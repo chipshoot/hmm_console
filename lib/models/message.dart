@@ -23,7 +23,7 @@ class Message {
     return Message(
       sender: sender ?? this.sender,
       avatar: avatar ?? this.avatar,
-      preview: prview ?? this.preview,
+      preview: prview ?? preview,
       time: time ?? this.time,
       isUnread: isUnread ?? this.isUnread,
     );

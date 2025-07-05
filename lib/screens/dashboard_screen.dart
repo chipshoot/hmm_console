@@ -152,7 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 30,
             offset: const Offset(0, 10),
           ),
@@ -374,39 +374,95 @@ class _DashboardScreenState extends State<DashboardScreen>
               childAspectRatio: 1.1,
             ),
             itemCount: functions.length,
-            itemBuilder: (context, index){
+            itemBuilder: (context, index) {
               return AnimatedBuilder(
                 animation: _animationController,
-                builder: (context, child){
-                  final slideAnimation = Tween<Offset>(
-                    begin: const Offset(0, 1),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                      parent: _animationController,
-                      curve: Interval(
-                        0.2 + (index * 0.1),
-                        0.8 + (index * 0.1),
-                        curve: Curves.easeInOut,
-                      ),
-                    ),
+                builder: (context, child) {
+                  final slideAnimation =
+                      Tween<Offset>(
+                        begin: const Offset(0, 1),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: _animationController,
+                          curve: Interval(
+                            0.2 + (index * 0.1),
+                            0.8 + (index * 0.1),
+                            curve: Curves.easeInOut,
+                          ),
+                        ),
+                      );
+                  return SlideTransition(
+                    position: slideAnimation,
+                    child: _buildFunctionCard(functions[index]),
                   );
-                return SlideTransition(
-                  position: slideAnimation,
-                  child: _buildFunctionCard(functions[index]),
-                ); 
-              },
-            );
-          },
-          )
+                },
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFunctionCard(AppFunction function){
+  Widget _buildFunctionCard(AppFunction function) {
     return GestureDetector(
       onTap: () => _navigateToFunction(function),
-
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 25,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                ),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Center(
+                child: Text(
+                  function.icon,
+                  style: const TextStyle( fontSize: 24 ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Text(
+              function.title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              function.description,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF666666),
+                height: 1.3,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -425,7 +481,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
         boxShadow: [
           BoxShadow(
-           color: Colors.black,
+            color: Colors.black,
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -447,17 +503,20 @@ class _DashboardScreenState extends State<DashboardScreen>
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   gradient: isActive
-                    ? const LinearGradient(
-                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                    )
-                    : null,
+                      ? const LinearGradient(
+                          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                        )
+                      : null,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
-                  MainAxisSize: MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Stack(
                       children: [
@@ -465,21 +524,47 @@ class _DashboardScreenState extends State<DashboardScreen>
                           item.icon,
                           style: TextStyle(
                             fontSize: 20,
-                            color: isActive ? Colors.white : Color.black54,
+                            color: isActive ? Colors.white : Colors.black54,
                           ),
                         ),
-                        if(item.badge != null)
-                          Position(
+                        if (item.badge != null)
+                          Positioned(
                             right: -5,
                             top: -5,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFF4757),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                item.badge!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           ),
                       ],
                     ),
+                    const SizedBox(height: 5),
+                    Text(
+                      item.label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isActive ? Colors.white : Colors.black54,
+                      ),
+                    ),
                   ],
-                ),  
+                ),
               ),
-          ),
-        }
+            );
+          }).toList(),
         ),
       ),
     );
