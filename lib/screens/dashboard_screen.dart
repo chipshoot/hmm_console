@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../models/app_function.dart';
-import '../models/nav_item.dart';
-import '../models/message.dart';
+import '../domain/entities/app_function.dart';
+import '../domain/entities/nav_item.dart';
+import '../domain/entities/message.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
