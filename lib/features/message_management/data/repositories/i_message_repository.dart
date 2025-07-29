@@ -1,9 +1,9 @@
-import '../models/message_model.dart';
+import '../../domain/entities/message.dart';
 
 abstract class IMessageRepository {
-  Future<List<MessageModel>> getMessages();
+  Future<List<Message>> getMessages();
 
   Future<void> markAsRead(String messageId);
 
-  Stream<List<MessageModel>> watchMessages();
+  Stream<List<Message>> watchMessages();
 }

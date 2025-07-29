@@ -1,9 +1,9 @@
-import '../models/message_model.dart';
+import '../../domain/entities/message.dart';
 import "i_message_repository.dart";
 
 class LocalMessageRepository implements IMessageRepository {
-  final List<MessageModel> _messages = [
-    MessageModel(
+  final List<Message> _messages = [
+    Message(
       id: "1",
       sender: "John Doe",
       avatar: "JD",
@@ -11,7 +11,7 @@ class LocalMessageRepository implements IMessageRepository {
       time: "2m",
       isUnread: true,
     ),
-    MessageModel(
+    Message(
       id: "2",
       sender: "Sarah Miller",
       avatar: "SM",
@@ -19,7 +19,7 @@ class LocalMessageRepository implements IMessageRepository {
       time: "15m",
       isUnread: true,
     ),
-    MessageModel(
+    Message(
       id: "3",
       sender: "Mike Johnson",
       avatar: "MJ",
@@ -30,7 +30,7 @@ class LocalMessageRepository implements IMessageRepository {
   ];
 
   @override
-  Future<List<MessageModel>> getMessages() async {
+  Future<List<Message>> getMessages() async {
     // Simulate a delay to mimic network/database access
     await Future.delayed(Duration(seconds: 500));
     return List.from(_messages);
@@ -46,7 +46,7 @@ class LocalMessageRepository implements IMessageRepository {
   }
 
   @override
-  Stream<List<MessageModel>> watchMessages() {
+  Stream<List<Message>> watchMessages() {
     // Simulate a stream of messages
     return Stream.periodic(
       const Duration(seconds: 1),
