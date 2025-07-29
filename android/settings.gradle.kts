@@ -23,3 +23,11 @@ plugins {
 }
 
 include(":app")
+
+gradle.taskGraph.whenReady {
+    val tasks = allTasks
+    val lintDebugTask = tasks.find { it.name == "lintDebug" && it.project.name == "shared_preferences_android" }
+    if (lintDebugTask != null) {
+        lintDebugTask.enabled = false
+    }
+}

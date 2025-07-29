@@ -1,0 +1,12 @@
+{
+    "java.home": "C:/Program Files/Android/Android Studio/jbr",
+    "java.configuration.workspaces": [
+        "android"
+    ],
+    "gradle.focusTaskInExplorer": true,
+    "gradle.nestedProjects": true,
+    "files.exclude": {
+        "**/.gradle": true,
+        "**/build": true
+    }
+}
