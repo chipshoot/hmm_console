@@ -1,31 +1,17 @@
 import '../entities/message.dart';
 
-class IMessageProvider {
-  Future<List<Message>> getRecentMessages({int limit = 10}) {
-    return Future.value([]);
-  }
+abstract class IMessageProvider {
+  Future<List<Message>> getRecentMessages({int limit = 10});
 
-  Future<int> getUnreadCount() {
-    return Future.value(0);
-  }
+  Future<int> getUnreadCount();
 
-  Future<void> markMessageAsRead(String messageId) {
-    return Future.value();
-  }
+  Future<void> markMessageAsRead(String messageId);
 
-  Stream<List<Message>> watchRecentMessage() {
-    return Stream.value([]);
-  }
+  Stream<List<Message>> watchRecentMessage();
 
-  Stream<int> watchUnreadCount() {
-    return Stream.value(0);
-  }
+  Stream<int> watchUnreadCount();
 
-  Future<List<Message>> getMesageByConversation(String conversationId) {
-    return Future.value([]);
-  }
+  Future<List<Message>> getMesageByConversation(String conversationId);
 
-  Future<void> sendMessage(String conversationId, String content) {
-    return Future.value();
-  }
+  Future<void> sendMessage(String conversationId, String content);
 }

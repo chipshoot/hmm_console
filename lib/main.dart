@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'screens/dashboard_screen.dart';
+import 'core/di/service_locator.dart';
 
 void main() {
+  // Initialize dependency injection
+  ServiceLocator.setupDependencies();
+
   runApp(const MainApp());
 }
 

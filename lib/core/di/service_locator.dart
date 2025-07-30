@@ -1,11 +1,20 @@
 import 'package:get_it/get_it.dart';
+import '../../features/message_management/data/repositories/i_message_repository.dart';
+import '../../features/message_management/data/repositories/local_message_repository.dart';
+import '../../features/message_management/domain/providers/i_message_provider.dart';
+import '../../features/message_management/domain/providers/message_provider.dart';
 
 class ServiceLocator {
   static final GetIt _getIt = GetIt.instance;
 
   static void setupDependencies() {
-    // Register your services here
-    // Example: _getIt.registerSingleton<YourService>(YourService());
+    // Register repositories
+    _getIt.registerSingleton<IMessageRepository>(LocalMessageRepository());
+
+    // Register providers
+    _getIt.registerSingleton<IMessageProvider>(
+      MessageProvider(_getIt<IMessageRepository>()),
+    );
   }
 
   static T get<T extends Object>() {

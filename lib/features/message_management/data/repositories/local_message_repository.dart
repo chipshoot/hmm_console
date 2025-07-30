@@ -32,13 +32,13 @@ class LocalMessageRepository implements IMessageRepository {
   @override
   Future<List<Message>> getMessages() async {
     // Simulate a delay to mimic network/database access
-    await Future.delayed(Duration(seconds: 500));
+    await Future.delayed(Duration(milliseconds: 500));
     return List.from(_messages);
   }
 
   @override
   Future<void> markAsRead(String messageId) async {
-    await Future.delayed(Duration(seconds: 200));
+    await Future.delayed(Duration(milliseconds: 200));
     final index = _messages.indexWhere((msg) => msg.id == messageId);
     if (index != -1) {
       _messages[index] = _messages[index].copyWith(isUnread: false);

@@ -3,7 +3,10 @@ import 'package:intl/intl.dart';
 
 import '../domain/entities/app_function.dart';
 import '../domain/entities/nav_item.dart';
-import '../domain/entities/message.dart';
+import '../features/message_management/presentation/views/message_list_view.dart';
+import '../features/message_management/presentation/viewmodels/message_view_model.dart';
+import '../features/message_management/domain/providers/i_message_provider.dart';
+import '../core/di/service_locator.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,29 +19,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
   var _selectedNavIndex = 0;
   late AnimationController _animationController;
-  List<Message> messages = [
-    Message(
-      sender: "John Doe",
-      avatar: "JD",
-      preview: "Hey! Don't forget about our meeting tomorrow at 2 PM",
-      time: "2m",
-      isUnread: true,
-    ),
-    Message(
-      sender: "Sarah Miller",
-      avatar: "SM",
-      preview: "The project update looks great! Let's discuss the next steps",
-      time: "15m",
-      isUnread: true,
-    ),
-    Message(
-      sender: "Mike Johnson",
-      avatar: "MJ",
-      preview: "Thanks for sharing the documents. I'll review them today",
-      time: "1h",
-      isUnread: false,
-    ),
-  ];
+  late MessageViewModel _messageViewModel;
 
   @override
   void initState() {
@@ -47,7 +28,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
+
+    final messageProvider = ServiceLocator.get<IMessageProvider>();
+    _messageViewModel = MessageViewModel(messageProvider, _animationController);
+
     _animationController.forward();
+    _messageViewModel.loadMessages();
   }
 
   @override
@@ -88,7 +74,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                           padding: const EdgeInsets.only(bottom: 100),
                           child: Column(
                             children: [
-                              _buildMessagesSection(),
+                              ListenableBuilder(
+                                listenable: _messageViewModel,
+                                builder: (context, child) {
+                                  return MessageListView(
+                                    viewModel: _messageViewModel,
+                                  );
+                                },
+                              ),
                               _buildFunctionGrid(),
                             ],
                           ),
@@ -139,170 +132,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             style: const TextStyle(fontSize: 14, color: Colors.white70),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMessagesSection() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                " Recent Messages",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFF4757),
-                  shape: BoxShape.circle,
-                ),
-                child: const Text(
-                  "3",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          ...messages.asMap().entries.map((entry) {
-            final index = entry.key;
-            final message = entry.value;
-            return AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                final slideAnimation =
-                    Tween<Offset>(
-                      begin: const Offset(0, 1),
-                      end: Offset.zero,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: _animationController,
-                        curve: Interval(
-                          index * 0.1,
-                          0.6 + (index * 0.1),
-                          curve: Curves.easeInOut,
-                        ),
-                      ),
-                    );
-                return SlideTransition(
-                  position: slideAnimation,
-                  child: _buildMessageItem(message, index),
-                );
-              },
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageItem(Message message, int index) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          messages[index] = message.copyWith(isUnread: false);
-        });
-        _showSnackBar("Opening message from ${message.sender}");
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: message.isUnread
-              ? const Color(0xFFE3F2FD)
-              : const Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.circular(15),
-          border: Border(
-            left: BorderSide(
-              color: message.isUnread
-                  ? const Color(0xFF2196F3)
-                  : Colors.transparent,
-              width: 4,
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 45,
-              height: 45,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  message.avatar,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message.sender,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF333333),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    message.preview,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF666666),
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              message.time,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -437,7 +266,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: Center(
                 child: Text(
                   function.icon,
-                  style: const TextStyle( fontSize: 24 ),
+                  style: const TextStyle(fontSize: 24),
                 ),
               ),
             ),
@@ -578,13 +407,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _navigateToFunction(AppFunction function) {
-    _showSnackBar("Navigating to ${function.title}...");
-  }
-
-  void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text("Navigating to ${function.title}..."),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
