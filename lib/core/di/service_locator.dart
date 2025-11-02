@@ -3,6 +3,8 @@ import '../../features/message_management/data/repositories/i_message_repository
 import '../../features/message_management/data/repositories/local_message_repository.dart';
 import '../../features/message_management/domain/providers/i_message_provider.dart';
 import '../../features/message_management/domain/providers/message_provider.dart';
+import '../../features/gas_log/data/repositories/i_gas_log_repository.dart';
+import '../../features/gas_log/data/repositories/gas_log_hive_repository.dart';
 
 class ServiceLocator {
   static final GetIt _getIt = GetIt.instance;
@@ -10,6 +12,7 @@ class ServiceLocator {
   static void setupDependencies() {
     // Register repositories
     _getIt.registerSingleton<IMessageRepository>(LocalMessageRepository());
+    _getIt.registerSingleton<IGasLogRepository>(GasLogHiveRepository());
 
     // Register providers
     _getIt.registerSingleton<IMessageProvider>(
