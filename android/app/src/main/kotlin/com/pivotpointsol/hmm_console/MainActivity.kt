@@ -1,4 +1,4 @@
-package com.example.hmm_console
+package com.pivotpointsol.hmm_console
 
 import io.flutter.embedding.android.FlutterActivity
 

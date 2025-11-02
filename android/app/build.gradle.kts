@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.hmm_console"
+    namespace = "com.pivotpointsol.hmm_console"
     compileSdk = flutter.compileSdkVersion
 
     compileOptions {
