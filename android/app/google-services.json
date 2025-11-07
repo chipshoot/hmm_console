@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "486015857737",
+    "project_id": "home-made-message",
+    "storage_bucket": "home-made-message.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:486015857737:android:4be4c34511fb60f7e63b98",
+        "android_client_info": {
+          "package_name": "com.pivotpointsol.hmm_console"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiZZYLa_E7TAzHuGHatXMZlOuTmpRGk0U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
