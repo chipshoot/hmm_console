@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hmm_console/core/navigation/router.dart';
+import 'package:hmm_console/core/theme/theme.dart';
 import 'firebase_options.dart';
 import 'core/di/service_locator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,6 +30,9 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: "hmm message",
+      theme: AppTheme.lightThemeData,
+      darkTheme: AppTheme.darkThemeData,
+      themeMode: ThemeMode.system,
       routerConfig: AppRouter.config,
     );
     //return MaterialApp(home: DashboardScreen());
