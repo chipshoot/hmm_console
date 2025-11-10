@@ -215,8 +215,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         CurvedAnimation(
                           parent: _animationController,
                           curve: Interval(
-                            0.2 + (index * 0.1),
-                            0.8 + (index * 0.1),
+                            0.2 + (index * 0.05),
+                            0.6 + (index * 0.05),
                             curve: Curves.easeInOut,
                           ),
                         ),
