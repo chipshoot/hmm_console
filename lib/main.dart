@@ -2,13 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hmm_console/core/navigation/router.dart';
 import 'firebase_options.dart';
-import 'screens/dashboard_screen.dart';
 import 'core/di/service_locator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
@@ -19,7 +18,7 @@ Future<void> main() async {
   //   await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
   // }
 
-  runApp(const ProviderScope(child: MainApp(),),);
+  runApp(const ProviderScope(child: MainApp()));
 }
 
 class MainApp extends StatelessWidget {
@@ -28,6 +27,10 @@ class MainApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: DashboardScreen());
+    return MaterialApp.router(
+      title: "hmm message",
+      routerConfig: AppRouter.config,
+    );
+    //return MaterialApp(home: DashboardScreen());
   }
 }
