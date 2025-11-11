@@ -52,7 +52,7 @@ class GasLogAppSetup {
     // This creates the database file if it doesn't exist
     await GasLogHiveRepository.init();
 
-    print('✅ Hive database initialized successfully');
+    //print('✅ Hive database initialized successfully');
   }
 
   /// Comprehensive demonstration of the gas log system functionality
