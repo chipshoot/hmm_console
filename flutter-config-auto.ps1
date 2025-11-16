@@ -1,17 +1,10 @@
-# Auto-configure Flutter based on current OS
+# Auto-configure Flutter for mobile platforms only (Android + iOS)
 
-if ($IsWindows) {
-    Write-Host "Configuring Flutter for Windows..."
-    flutter config --enable-android --enable-windows-desktop `
-                   --no-enable-ios --no-enable-macos-desktop --no-enable-linux-desktop
-} elseif ($IsMacOS) {
-    Write-Host "Configuring Flutter for macOS..."
-    flutter config --enable-ios --enable-android --enable-macos-desktop `
-                   --no-enable-windows-desktop --no-enable-linux-desktop
-} elseif ($IsLinux) {
-    Write-Host "Configuring Flutter for Linux..."
-    flutter config --enable-android --enable-linux-desktop `
-                   --no-enable-ios --no-enable-macos-desktop --no-enable-windows-desktop
-}
+Write-Host "Configuring Flutter for mobile platforms (Android + iOS)..."
+flutter config --enable-android --enable-ios `
+               --no-enable-windows-desktop --no-enable-linux-desktop --no-enable-macos-desktop `
+               --no-enable-web
 
+Write-Host ""
+Write-Host "Enabled platforms:"
 flutter config --list | Select-String "enable-"
