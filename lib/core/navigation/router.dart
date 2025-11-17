@@ -3,6 +3,16 @@ import 'package:hmm_console/core/navigation/route_names.dart';
 import 'package:hmm_console/features/auth/presentation/presentation.dart';
 
 class AppRouter {
+  static Future<T?> go<T>(
+    context,
+    RouterNames routerName, {
+    Map<String, String> pathParameters = const {},
+  }) {
+    return GoRouter.of(
+      context,
+    ).pushNamed<T>(routerName.name, pathParameters: pathParameters);
+  }
+
   static GoRouter config = GoRouter(
     initialLocation: '/auth',
     routes: [
