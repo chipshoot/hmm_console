@@ -29,7 +29,7 @@ class AppRouter {
           GoRoute(
             path: 'forgot-password',
             name: RouterNames.forgotPassword.name,
-            builder: (context, state) => const ForgotPasswordScreen(),
+            builder: (context, state) => ForgotPasswordScreen(),
           ),
         ],
       ),

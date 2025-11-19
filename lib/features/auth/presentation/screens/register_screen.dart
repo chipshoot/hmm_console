@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hmm_console/core/core.dart';
+import 'package:hmm_console/features/auth/presentation/widges/user_pass_form.dart';
 import 'package:hmm_console/features/auth/presentation/widges/welcome_text.dart';
 
 class RegisterScreen extends StatelessWidget {
@@ -15,7 +16,7 @@ class RegisterScreen extends StatelessWidget {
           const WelcomeText(),
           GapWidgets.h48,
           UserPassForm(
-            buttonLable: 'Sign Up',
+            buttonLabel: 'Sign Up',
             onFormSubmit: (String email, String password) {
               // todo: handle register logic
             },

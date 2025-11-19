@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hmm_console/core/core.dart';
+import 'package:hmm_console/features/auth/domain/logics/email_pass_validator.dart';
 
-class UserPassForm extends StatelessWidget {
+class UserPassForm extends StatelessWidget with EmailPassValidator {
   final String buttonLabel;
   final Function(String, String) onFormSubmit;
 
@@ -25,11 +26,13 @@ class UserPassForm extends StatelessWidget {
         children: <Widget>[
           AppTextFormField(
             fieldController: userNameController,
+            fieldValidator: validateEmail,
             label: 'Username',
           ),
           GapWidgets.h8,
           AppTextFormField(
             fieldController: passwordController,
+            fieldValidator: validatePassword,
             obscureText: true,
             label: 'Password',
           ),

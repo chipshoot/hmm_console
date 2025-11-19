@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class AppTextFormField extends StatelessWidget {
   final TextEditingController fieldController;
+  final String? Function(String?) fieldValidator;
   final String label;
   final bool obscureText;
 
   const AppTextFormField({
     super.key,
     required this.fieldController,
+    required this.fieldValidator,
     required this.label,
     this.obscureText = false,
   });
@@ -22,12 +24,7 @@ class AppTextFormField extends StatelessWidget {
         labelText: label,
         border: OutlineInputBorder(),
       ),
-      //validator: (value) {
-      //  if (value == null || value.isEmpty) {
-      //    return 'Please enter your $label';
-      //  }
-      //  return null;
-      //},
+      validator: fieldValidator,
     );
   }
 }
