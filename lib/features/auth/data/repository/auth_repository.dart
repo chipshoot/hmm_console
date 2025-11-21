@@ -9,6 +9,20 @@ class _AuthRepository implements AuthRepository {
   final AuthRepository authDataSource;
 
   @override
+  Future<CurrentUserDataModel> loginWithEmailPassword({
+    required String email,
+    required String password,
+  }) {
+    // if you're offline, call offline data source here
+
+    // if you're online
+    return authDataSource.loginWithEmailPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  @override
   Future<CurrentUserDataModel> registerWithEmailPassword({
     required String email,
     required String password,

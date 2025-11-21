@@ -9,6 +9,21 @@ class _AuthRemoteDataSource implements AuthRepository {
   final FirebaseAuth firebaseAuth;
 
   @override
+  Future<CurrentUserDataModel> loginWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    final UserCredential userCredential = await firebaseAuth
+        .signInWithEmailAndPassword(email: email, password: password);
+
+    return CurrentUserDataModel(
+      uid: userCredential.user!.uid,
+      email: userCredential.user!.email,
+      displayName: userCredential.user!.displayName,
+    );
+  }
+
+  @override
   Future<CurrentUserDataModel> registerWithEmailPassword({
     required String email,
     required String password,

@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/core.dart';
 import 'package:hmm_console/features/auth/presentation/widges/social_login.dart';
 import 'package:hmm_console/features/auth/presentation/widges/user_pass_form.dart';
 import 'package:hmm_console/features/auth/presentation/widges/welcome_text.dart';
+import 'package:hmm_console/features/auth/states/login_state.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return CommonScreenScaffold(
       title: 'Login',
       child: Column(
@@ -18,7 +20,11 @@ class LoginScreen extends StatelessWidget {
           GapWidgets.h16,
           UserPassForm(
             buttonLabel: 'Login',
-            onFormSubmit: (String email, String password) async {},
+            onFormSubmit: (String email, String password) async {
+              ref
+                  .read(loginStateProvider.notifier)
+                  .loginWithEmailPassword(email, password);
+            },
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

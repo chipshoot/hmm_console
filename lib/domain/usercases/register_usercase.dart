@@ -1,4 +1,6 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/features/auth/data/interfaces/auth_interface.dart';
+import 'package:hmm_console/features/auth/data/repository/auth_repository.dart';
 
 abstract interface class RegisterUseCase {
   Future<bool> registerWithEmailPassword({
@@ -22,3 +24,7 @@ class _RegisterUserCase implements RegisterUseCase {
         .then((value) => value != null);
   }
 }
+
+final registerUserCaseProvider = Provider<_RegisterUserCase>(
+  (ref) => _RegisterUserCase(ref.watch(authRepositoryProvider)),
+);
