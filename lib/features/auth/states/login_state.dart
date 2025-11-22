@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hmm_console/domain/usercases/login_usercase.dart';
+import 'package:hmm_console/features/auth/usecases/login_usecase.dart';
 
 class LoginState extends AsyncNotifier<bool> {
   @override
   bool build() => false;
 
-  loginWithEmailPassword(String email, String password) async {
+  Future<void> loginWithEmailPassword(String email, String password) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() {
       return ref

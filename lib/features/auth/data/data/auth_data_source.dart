@@ -37,6 +37,16 @@ class _AuthRemoteDataSource implements AuthRepository {
       displayName: userCredential.user!.displayName,
     );
   }
+
+  @override
+  Future<void> signOut() async {
+    await firebaseAuth.signOut();
+  }
+
+  @override
+  Stream<bool> isUserAuthenticated() {
+    return firebaseAuth.authStateChanges().map((user) => user != null);
+  }
 }
 
 final authRemoteDataSource = Provider<_AuthRemoteDataSource>(

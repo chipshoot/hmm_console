@@ -1,18 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hmm_console/core/widgets/screen_scaffold.dart';
+import 'package:hmm_console/features/auth/usecases/signout_usecase.dart';
 import 'package:intl/intl.dart';
 
-import '../domain/entities/app_function.dart';
-import '../domain/entities/nav_item.dart';
-import '../features/message_management/presentation/views/message_list_view.dart';
-import '../features/message_management/presentation/viewmodels/message_view_model.dart';
-import '../features/message_management/domain/providers/i_message_provider.dart';
-import '../core/di/service_locator.dart';
+import '../../../../domain/entities/app_function.dart';
+import '../../../../domain/entities/nav_item.dart';
+import '../../../message_management/presentation/views/message_list_view.dart';
+import '../../../message_management/presentation/viewmodels/message_view_model.dart';
+import '../../../message_management/domain/providers/i_message_provider.dart';
+import '../../../../core/di/service_locator.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    return CommonScreenScaffold(
+      title: 'Dashboard',
+      actions: [
+        TextButton(
+          onPressed: () {
+            ref.read(signOutUseCaseProvider).signOut();
+          },
+          child: const Text('Logout'),
+        ),
+      ],
+      child: Center(child: Text('Dashboard Content Here')),
+    );
+  }
 }
 
 class _DashboardScreenState extends State<DashboardScreen>
@@ -300,7 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       NavItem(icon: "🏠", label: "Home", badge: null),
       NavItem(icon: "💬", label: "Messages", badge: "5"),
       NavItem(icon: "📊", label: "Analytics", badge: null),
-      NavItem(icon: "⚙️", label: "Settings", badge: null),
+      NavItem(icon: "⚙️", label: "Sign Out", badge: null),
     ];
 
     return Container(

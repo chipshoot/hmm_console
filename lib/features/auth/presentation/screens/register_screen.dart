@@ -23,7 +23,6 @@ class RegisterScreen extends ConsumerWidget {
               ref
                   .read(registerStateProvider.notifier)
                   .registerWithEmailPassword(email, password);
-              // todo: handle register logic
             },
           ),
           GapWidgets.h48,

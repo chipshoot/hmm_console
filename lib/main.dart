@@ -20,18 +20,18 @@ Future<void> main() async {
   runApp(const ProviderScope(child: MainApp()));
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends ConsumerWidget {
   const MainApp({super.key});
 
   // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: "hmm message",
       theme: AppTheme.lightThemeData,
       darkTheme: AppTheme.darkThemeData,
       themeMode: ThemeMode.system,
-      routerConfig: AppRouter.config,
+      routerConfig: ref.watch(AppRouter.config),
     );
     //return MaterialApp(home: DashboardScreen());
   }

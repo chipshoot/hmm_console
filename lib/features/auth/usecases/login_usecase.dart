@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hmm_console/features/auth/data/interfaces/auth_interface.dart';
-import 'package:hmm_console/features/auth/data/repository/auth_repository.dart';
+import 'package:hmm_console/features/auth/data/data.dart';
 
 abstract interface class LoginUseCase {
   Future<bool> loginWithEmailPassword({

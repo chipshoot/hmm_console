@@ -1,1 +1,1 @@
-enum RouterNames { login, register, forgotPassword }
+enum RouterNames { dashboard, login, register, forgotPassword }

@@ -35,6 +35,16 @@ class _AuthRepository implements AuthRepository {
       password: password,
     );
   }
+
+  @override
+  Future<void> signOut() async {
+    return authDataSource.signOut();
+  }
+
+  @override
+  Stream<bool> isUserAuthenticated() {
+    return authDataSource.isUserAuthenticated();
+  }
 }
 
 final authRepositoryProvider = Provider<_AuthRepository>(
