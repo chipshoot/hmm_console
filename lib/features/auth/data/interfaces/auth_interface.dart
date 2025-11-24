@@ -9,6 +9,7 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
+  Future<CurrentUserDataModel> loginWithGoogle();
   Future<void> signOut();
   Stream<bool> isUserAuthenticated();
 }

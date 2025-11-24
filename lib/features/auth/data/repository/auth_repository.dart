@@ -37,6 +37,11 @@ class _AuthRepository implements AuthRepository {
   }
 
   @override
+  Future<CurrentUserDataModel> loginWithGoogle() {
+    return authDataSource.loginWithGoogle();
+  }
+
+  @override
   Future<void> signOut() async {
     return authDataSource.signOut();
   }

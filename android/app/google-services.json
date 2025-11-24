@@ -12,7 +12,20 @@
           "package_name": "com.pivotpointsol.hmm_console"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "486015857737-vqmmevr7cbes4rep2co5g3rdtov7h31t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.pivotpointsol.hmm_console",
+            "certificate_hash": "7d8d9d82fa7c7423111e1e032c63535e98412049"
+          }
+        },
+        {
+          "client_id": "486015857737-ct945ji89h90toktmvijeqr54n9vd7mr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCiZZYLa_E7TAzHuGHatXMZlOuTmpRGk0U"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "486015857737-ct945ji89h90toktmvijeqr54n9vd7mr.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "486015857737-o5aq7b3lspdhn7r87asplon57a8ife1f.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.pivotpointsol.hmmConsole"
+              }
+            }
+          ]
         }
       }
     }
