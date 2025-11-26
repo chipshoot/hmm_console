@@ -70,8 +70,12 @@ class LoginScreen extends ConsumerWidget {
                 ),
                 GapWidgets.h8,
                 const Text('Or login with'),
-                const SocialLogin(),
-                // Add your login form widgets here
+                SocialLogin(
+                  onGoogleLogin: () {
+                    ref.read(loginStateProvider.notifier).logInGoogle();
+                  },
+                  onAppleLogin: null,
+                ),
               ],
             ),
     );

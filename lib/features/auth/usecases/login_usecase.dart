@@ -6,6 +6,8 @@ abstract interface class LoginUseCase {
     required String email,
     required String password,
   });
+
+  Future<bool> loginWithGoogle();
 }
 
 class _LoginUseCase implements LoginUseCase {
@@ -21,6 +23,11 @@ class _LoginUseCase implements LoginUseCase {
     return _authRepository
         .loginWithEmailPassword(email: email, password: password)
         .then((value) => value != null);
+  }
+
+  @override
+  Future<bool> loginWithGoogle() async {
+    return _authRepository.loginWithGoogle().then((value) => value != null);
   }
 }
 

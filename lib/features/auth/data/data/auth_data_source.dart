@@ -61,9 +61,13 @@ class _AuthRemoteDataSource implements AuthRepository {
   @override
   Future<CurrentUserDataModel> loginWithGoogle() async {
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize(
+        serverClientId:
+            '486015857737-ct945ji89h90toktmvijeqr54n9vd7mr.apps.googleusercontent.com',
+      );
 
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
 
       if (googleUser == null) {
         throw AppFirebaseException(
@@ -72,11 +76,17 @@ class _AuthRemoteDataSource implements AuthRepository {
         );
       }
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      const List<String> scopes = <String>[
+        'email',
+        'https://www.googleapis.com/auth/contacts.readonly',
+      ];
+      final GoogleSignInClientAuthorization? googleClientAuth = await googleUser
+          .authorizationClient
+          .authorizationForScopes(scopes);
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: googleClientAuth?.accessToken,
         idToken: googleAuth.idToken,
       );
 

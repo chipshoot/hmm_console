@@ -13,6 +13,13 @@ class LoginState extends AsyncNotifier<bool> {
           .loginWithEmailPassword(email: email, password: password);
     });
   }
+
+  Future<void> logInGoogle() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() {
+      return ref.watch(loginUserCaseProvider).loginWithGoogle();
+    });
+  }
 }
 
 final loginStateProvider = AsyncNotifierProvider<LoginState, bool>(() {
