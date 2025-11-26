@@ -67,14 +67,7 @@ class _AuthRemoteDataSource implements AuthRepository {
             '486015857737-ct945ji89h90toktmvijeqr54n9vd7mr.apps.googleusercontent.com',
       );
 
-      final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
-
-      if (googleUser == null) {
-        throw AppFirebaseException(
-          'google_sign_in_cancelled',
-          'Google sign-in was cancelled by user',
-        );
-      }
+      final GoogleSignInAccount googleUser = await googleSignIn.authenticate();
 
       const List<String> scopes = <String>[
         'email',
