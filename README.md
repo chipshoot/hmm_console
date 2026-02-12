@@ -6,11 +6,11 @@ A new Flutter project.
 
 This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. project purpose:
+    The project is the console of hmm note management. user can open all hmm support note, e.g. gaslog, todo list, appointment, book note etc.
+2. project platform:
+    The project should run on mutilple platform, e.g. IOS, Android, web.
+3. project is single user system
+    The project can only used by single user at one time, however one user can log to the system from different device, e.g. IOS and website.
+4. project is using hmm-api to access all data service, and hmm-idp for authentication and authorezation, check ../hmm/claude.md for more detail
+5. project main UI should like google give user clear and simple interface. when user input the subsystem keyword, e.g. gaslog, then system should display gas log management console. 
