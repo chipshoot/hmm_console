@@ -1,37 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hmm_console/core/widgets/screen_scaffold.dart';
-import 'package:hmm_console/features/auth/usecases/signout_usecase.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../domain/entities/app_function.dart';
 import '../../../../domain/entities/nav_item.dart';
+import '../../../message_management/data/providers/message_providers.dart';
 import '../../../message_management/presentation/views/message_list_view.dart';
 import '../../../message_management/presentation/viewmodels/message_view_model.dart';
-import '../../../message_management/domain/providers/i_message_provider.dart';
-import '../../../../core/di/service_locator.dart';
+import '../../../auth/usecases/signout_usecase.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return CommonScreenScaffold(
-      title: 'Dashboard',
-      actions: [
-        TextButton(
-          onPressed: () {
-            ref.read(signOutUseCaseProvider).signOut();
-          },
-          child: const Text('Logout'),
-        ),
-      ],
-      child: Center(child: Text('Dashboard Content Here')),
-    );
-  }
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with TickerProviderStateMixin {
   var _selectedNavIndex = 0;
   late AnimationController _animationController;
@@ -45,8 +30,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       vsync: this,
     );
 
-    final messageProvider = ServiceLocator.get<IMessageProvider>();
-    _messageViewModel = MessageViewModel(messageProvider, _animationController);
+    final messageProvider = ref.read(messageProviderProvider);
+    _messageViewModel =
+        MessageViewModel(messageProvider, _animationController);
 
     _animationController.forward();
     _messageViewModel.loadMessages();
@@ -342,6 +328,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
             return GestureDetector(
               onTap: () {
+                if (index == 3) {
+                  ref.read(signOutUseCaseProvider).signOut();
+                  return;
+                }
                 setState(() {
                   _selectedNavIndex = index;
                 });
