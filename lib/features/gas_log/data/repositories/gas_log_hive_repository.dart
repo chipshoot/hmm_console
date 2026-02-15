@@ -1,4 +1,4 @@
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import '../../domain/entities/gas_log.dart';
 import '../model/gas_log_record.dart';
 import '../mappers/gas_log_mapper.dart';

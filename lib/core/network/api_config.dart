@@ -8,6 +8,6 @@ class ApiConfig {
   );
 
   static const development = ApiConfig(
-    baseUrl: 'https://localhost:5010/api/v1',
+    baseUrl: 'http://localhost:5010/api/v1',
   );
 }

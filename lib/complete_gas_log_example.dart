@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'features/gas_log/domain/entities/gas_log.dart';
 import 'features/gas_log/data/model/gas_log_record.dart';
 import 'features/gas_log/data/repositories/gas_log_hive_repository.dart';
