@@ -27,7 +27,7 @@ class UserPassForm extends StatelessWidget with EmailPassValidator {
           AppTextFormField(
             fieldController: userNameController,
             fieldValidator: validateEmail,
-            label: 'Username',
+            label: 'Email',
           ),
           GapWidgets.h8,
           AppTextFormField(
