@@ -8,9 +8,10 @@ class EngineTypeDropdown extends StatelessWidget {
     'Gasoline',
     'Diesel',
     'Hybrid',
-    'PluginHybrid',
+    'PlugInHybrid',
     'Electric',
-    'Other',
+    'Hydrogen',
+    'CNG',
   ];
 
   const EngineTypeDropdown({

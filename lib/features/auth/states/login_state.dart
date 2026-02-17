@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
 import 'package:hmm_console/features/auth/usecases/login_usecase.dart';
 
 class LoginState extends AsyncNotifier<bool> {
@@ -7,17 +8,12 @@ class LoginState extends AsyncNotifier<bool> {
 
   Future<void> loginWithEmailPassword(String email, String password) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() {
-      return ref
+    state = await AsyncValue.guard(() async {
+      final user = await ref
           .watch(loginUserCaseProvider)
           .loginWithEmailPassword(email: email, password: password);
-    });
-  }
-
-  Future<void> logInGoogle() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() {
-      return ref.watch(loginUserCaseProvider).loginWithGoogle();
+      ref.read(currentUserProvider.notifier).setUser(user);
+      return true;
     });
   }
 }

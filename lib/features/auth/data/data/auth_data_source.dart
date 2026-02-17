@@ -1,117 +1,72 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:hmm_console/core/exceptions/app_exceptions.dart';
+import 'package:hmm_console/core/network/idp_token_service.dart';
+import 'package:hmm_console/core/network/token_storage.dart';
 import 'package:hmm_console/features/auth/data/interfaces/auth_interface.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 
 class _AuthRemoteDataSource implements AuthRepository {
-  _AuthRemoteDataSource(this.firebaseAuth);
+  _AuthRemoteDataSource(this._idpTokenService, this._tokenStorage);
 
-  final FirebaseAuth firebaseAuth;
+  final IdpTokenService _idpTokenService;
+  final TokenStorage _tokenStorage;
+  final StreamController<bool> _authStateController =
+      StreamController<bool>.broadcast();
 
   @override
   Future<CurrentUserDataModel> loginWithEmailPassword({
     required String email,
     required String password,
   }) async {
-    try {
-      final UserCredential userCredential = await firebaseAuth
-          .signInWithEmailAndPassword(email: email, password: password);
+    final claims = await _idpTokenService.authorize(email, password);
+    _authStateController.add(true);
 
-      return CurrentUserDataModel(
-        uid: userCredential.user!.uid,
-        email: userCredential.user!.email,
-        displayName: userCredential.user!.displayName,
-      );
-    } on FirebaseAuthException catch (e) {
-      throw AppFirebaseException(
-        e.code,
-        e.message ?? 'An error occurred during login',
-      );
-    } catch (e) {
-      throw e.toString();
-    }
+    return CurrentUserDataModel(
+      uid: claims['sub'] as String? ?? '',
+      email: claims['email'] as String?,
+      displayName: claims['name'] as String?,
+      photoUrl: claims['picture'] as String?,
+    );
   }
 
   @override
   Future<CurrentUserDataModel> registerWithEmailPassword({
+    required String username,
     required String email,
     required String password,
+    required String confirmPassword,
   }) async {
-    try {
-      final UserCredential userCredential = await firebaseAuth
-          .createUserWithEmailAndPassword(email: email, password: password);
+    final result = await _idpTokenService.register(
+      username: username,
+      email: email,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
 
-      return CurrentUserDataModel(
-        uid: userCredential.user!.uid,
-        email: userCredential.user!.email,
-        displayName: userCredential.user!.displayName,
-      );
-    } on FirebaseAuthException catch (e) {
-      throw AppFirebaseException(
-        e.code,
-        e.message ?? 'An error occurred during registration',
-      );
-    } catch (e) {
-      throw e.toString();
-    }
-  }
-
-  @override
-  Future<CurrentUserDataModel> loginWithGoogle() async {
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
-      await googleSignIn.initialize(
-        serverClientId:
-            '486015857737-ct945ji89h90toktmvijeqr54n9vd7mr.apps.googleusercontent.com',
-      );
-
-      final GoogleSignInAccount googleUser = await googleSignIn.authenticate();
-
-      const List<String> scopes = <String>[
-        'email',
-        'https://www.googleapis.com/auth/contacts.readonly',
-      ];
-      final GoogleSignInClientAuthorization? googleClientAuth = await googleUser
-          .authorizationClient
-          .authorizationForScopes(scopes);
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleClientAuth?.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential = await firebaseAuth
-          .signInWithCredential(credential);
-
-      return CurrentUserDataModel(
-        uid: userCredential.user!.uid,
-        email: userCredential.user!.email,
-        displayName: userCredential.user!.displayName,
-      );
-    } on FirebaseAuthException catch (e) {
-      throw AppFirebaseException(
-        e.code,
-        e.message ?? 'An error occurred during Google sign-in',
-      );
-    } catch (e) {
-      throw e.toString();
-    }
+    return CurrentUserDataModel(
+      uid: result['userId'] as String? ?? '',
+      email: result['email'] as String?,
+      displayName: result['username'] as String?,
+    );
   }
 
   @override
   Future<void> signOut() async {
-    await firebaseAuth.signOut();
+    await _idpTokenService.clearTokens();
+    _authStateController.add(false);
   }
 
   @override
-  Stream<bool> isUserAuthenticated() {
-    return firebaseAuth.authStateChanges().map((user) => user != null);
+  Stream<bool> isUserAuthenticated() async* {
+    yield await _tokenStorage.hasValidToken();
+    yield* _authStateController.stream;
   }
 }
 
 final authRemoteDataSource = Provider<_AuthRemoteDataSource>(
-  (ref) => _AuthRemoteDataSource(FirebaseAuth.instance),
+  (ref) => _AuthRemoteDataSource(
+    ref.watch(idpTokenServiceProvider),
+    ref.watch(tokenStorageProvider),
+  ),
 );

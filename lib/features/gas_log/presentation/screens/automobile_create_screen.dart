@@ -40,7 +40,7 @@ class _AutomobileCreateScreenState
 
   // Engine
   String _engineType = 'Gasoline';
-  String _fuelType = 'Gasoline';
+  String _fuelType = 'Regular';
   final _tankCapacityCtrl = TextEditingController();
   final _cityMpgCtrl = TextEditingController();
   final _highwayMpgCtrl = TextEditingController();
@@ -190,7 +190,7 @@ class _AutomobileCreateScreenState
               FuelTypeDropdown(
                 value: _fuelType,
                 onChanged: (v) =>
-                    setState(() => _fuelType = v ?? 'Gasoline'),
+                    setState(() => _fuelType = v ?? 'Regular'),
               ),
               GapWidgets.h16,
               AppTextFormField(

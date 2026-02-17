@@ -13,9 +13,6 @@ class _AuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) {
-    // if you're offline, call offline data source here
-
-    // if you're online
     return authDataSource.loginWithEmailPassword(
       email: email,
       password: password,
@@ -24,21 +21,17 @@ class _AuthRepository implements AuthRepository {
 
   @override
   Future<CurrentUserDataModel> registerWithEmailPassword({
+    required String username,
     required String email,
     required String password,
+    required String confirmPassword,
   }) {
-    // if you're offline, call offline data source here
-
-    // if you're online
     return authDataSource.registerWithEmailPassword(
+      username: username,
       email: email,
       password: password,
+      confirmPassword: confirmPassword,
     );
-  }
-
-  @override
-  Future<CurrentUserDataModel> loginWithGoogle() {
-    return authDataSource.loginWithGoogle();
   }
 
   @override

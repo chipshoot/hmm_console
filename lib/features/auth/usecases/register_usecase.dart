@@ -3,8 +3,10 @@ import 'package:hmm_console/features/auth/data/data.dart';
 
 abstract interface class RegisterUseCase {
   Future<bool> registerWithEmailPassword({
+    required String username,
     required String email,
     required String password,
+    required String confirmPassword,
   });
 }
 
@@ -15,12 +17,18 @@ class _RegisterUseCase implements RegisterUseCase {
 
   @override
   Future<bool> registerWithEmailPassword({
+    required String username,
     required String email,
     required String password,
+    required String confirmPassword,
   }) async {
-    return authRepository
-        .registerWithEmailPassword(email: email, password: password)
-        .then((value) => value != null);
+    await authRepository.registerWithEmailPassword(
+      username: username,
+      email: email,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
+    return true;
   }
 }
 

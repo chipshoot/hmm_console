@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/core.dart';
 import 'package:hmm_console/core/exceptions/app_exceptions.dart';
-import 'package:hmm_console/features/auth/presentation/widges/social_login.dart';
 import 'package:hmm_console/features/auth/presentation/widges/user_pass_form.dart';
 import 'package:hmm_console/features/auth/presentation/widges/welcome_text.dart';
 import 'package:hmm_console/features/auth/states/login_state.dart';
@@ -67,14 +66,6 @@ class LoginScreen extends ConsumerWidget {
                       child: const Text('Forgot Password'),
                     ),
                   ],
-                ),
-                GapWidgets.h8,
-                const Text('Or login with'),
-                SocialLogin(
-                  onGoogleLogin: () {
-                    ref.read(loginStateProvider.notifier).logInGoogle();
-                  },
-                  onAppleLogin: null,
                 ),
               ],
             ),

@@ -1,8 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../repositories/gas_log_hive_repository.dart';
-import '../repositories/i_gas_log_repository.dart';
-
-final gasLogRepositoryProvider = Provider<IGasLogRepository>(
-  (ref) => GasLogHiveRepository(),
-);
+export '../repositories/gas_log_api_repository.dart'
+    show gasLogRepositoryProvider;
+export '../repositories/automobile_repository.dart'
+    show automobileRepositoryProvider;

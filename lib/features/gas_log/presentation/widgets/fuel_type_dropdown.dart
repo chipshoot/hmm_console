@@ -5,7 +5,9 @@ class FuelTypeDropdown extends StatelessWidget {
   final ValueChanged<String?> onChanged;
 
   static const types = [
-    'Gasoline',
+    'Regular',
+    'MidGrade',
+    'Premium',
     'Diesel',
     'E85',
     'Electric',

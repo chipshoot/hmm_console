@@ -4,7 +4,7 @@ class OwnershipStatusDropdown extends StatelessWidget {
   final String value;
   final ValueChanged<String?> onChanged;
 
-  static const statuses = ['Owned', 'Leased', 'Financed'];
+  static const statuses = ['Owned', 'Financed', 'Leased', 'Company'];
 
   const OwnershipStatusDropdown({
     super.key,

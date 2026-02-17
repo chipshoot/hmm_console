@@ -6,10 +6,11 @@ abstract interface class AuthRepository {
     required String password,
   });
   Future<CurrentUserDataModel> registerWithEmailPassword({
+    required String username,
     required String email,
     required String password,
+    required String confirmPassword,
   });
-  Future<CurrentUserDataModel> loginWithGoogle();
   Future<void> signOut();
   Stream<bool> isUserAuthenticated();
 }

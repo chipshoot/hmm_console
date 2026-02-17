@@ -50,9 +50,6 @@ dependencies:
   dio: ^5.7.0
   flutter_secure_storage: ^9.2.4
 
-  # Hive database dependencies (hive_ce is the maintained community fork)
-  hive_ce: ^2.19.3
-  hive_ce_flutter: ^2.3.4
   flutter_riverpod: ^3.0.3
   go_router: ^17.0.0
   riverpod_annotation: ^3.0.3
@@ -61,8 +58,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # Hive code generation (hive_ce_generator is the maintained community fork)
-  hive_ce_generator: ^1.10.0
   build_runner: ^2.4.9
 
   # The "flutter_lints" package below contains a set of recommended lints to

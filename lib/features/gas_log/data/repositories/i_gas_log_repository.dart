@@ -1,13 +1,18 @@
+import '../../../../core/network/pagination.dart';
 import '../../domain/entities/gas_log.dart';
 
-abstract class IGasLogRepository {
-  Future<List<GasLog>> getGasLogs();
+abstract interface class IGasLogRepository {
+  Future<PaginatedResponse<GasLog>> getGasLogs(
+    int autoId, {
+    int page,
+    int pageSize,
+  });
 
-  Future<GasLog> getGasLog(String id);
+  Future<GasLog> getGasLogById(int autoId, int id);
 
-  Future<GasLog> finGasLogByDate(DateTime date);
+  Future<GasLog> createGasLog(int autoId, GasLog gasLog);
 
-  Future<String> saveGasLog(GasLog gasLog);
+  Future<GasLog> updateGasLog(int autoId, int id, GasLog gasLog);
 
-  Future<bool> deleteGasLog(String id);
+  Future<void> deleteGasLog(int autoId, int id);
 }

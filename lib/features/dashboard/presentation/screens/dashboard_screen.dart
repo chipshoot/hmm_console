@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../domain/entities/app_function.dart';
-import '../../../../domain/entities/nav_item.dart';
-import '../../../message_management/data/providers/message_providers.dart';
-import '../../../message_management/presentation/views/message_list_view.dart';
-import '../../../message_management/presentation/viewmodels/message_view_model.dart';
+import '../../../auth/data/models/current_user.dart';
+import '../../../auth/providers/current_user_provider.dart';
 import '../../../auth/usecases/signout_usecase.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -16,390 +14,279 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen>
-    with TickerProviderStateMixin {
-  var _selectedNavIndex = 0;
-  late AnimationController _animationController;
-  late MessageViewModel _messageViewModel;
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
+  static final _allFunctions = [
+    AppFunction(
+      icon: "\u26FD",
+      title: "Gas Log",
+      description: "Track fuel consumption",
+      route: "gas-log",
+    ),
+    AppFunction(
+      icon: "\uD83C\uDF45",
+      title: "Pomodoro",
+      description: "Focus timer",
+      route: "pomodoro",
+    ),
+    AppFunction(
+      icon: "\uD83D\uDCB0",
+      title: "Expenses",
+      description: "Track spending",
+      route: "expenses",
+    ),
+    AppFunction(
+      icon: "\uD83D\uDCDD",
+      title: "Notes",
+      description: "Quick notes",
+      route: "notes",
+    ),
+    AppFunction(
+      icon: "\uD83C\uDF24\uFE0F",
+      title: "Weather",
+      description: "Current forecast",
+      route: "weather",
+    ),
+    AppFunction(
+      icon: "\uD83D\uDCC5",
+      title: "Calendar",
+      description: "Schedule events",
+      route: "calendar",
+    ),
+  ];
 
-    final messageProvider = ref.read(messageProviderProvider);
-    _messageViewModel =
-        MessageViewModel(messageProvider, _animationController);
-
-    _animationController.forward();
-    _messageViewModel.loadMessages();
+  List<AppFunction> get _filteredFunctions {
+    if (_searchQuery.isEmpty) return _allFunctions;
+    final query = _searchQuery.toLowerCase();
+    return _allFunctions
+        .where(
+          (f) =>
+              f.title.toLowerCase().contains(query) ||
+              f.description.toLowerCase().contains(query),
+        )
+        .toList();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30.0),
-                      topRight: Radius.circular(30.0),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.only(bottom: 100),
-                          child: Column(
-                            children: [
-                              ListenableBuilder(
-                                listenable: _messageViewModel,
-                                builder: (context, child) {
-                                  return MessageListView(
-                                    viewModel: _messageViewModel,
-                                  );
-                                },
-                              ),
-                              _buildFunctionGrid(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNavigation(),
-    );
-  }
-
-  Widget _buildHeader() {
-    final now = DateTime.now();
-    final timeFormat = DateFormat('EEEE, MMMM d, y . h:mm a');
-    final greeting = _getGreeting();
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            greeting,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w300,
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            "Alex",
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            timeFormat.format(now),
-            style: const TextStyle(fontSize: 14, color: Colors.white70),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFunctionGrid() {
-    final functions = [
-      AppFunction(
-        icon: "⛽",
-        title: "Gas Log",
-        description: "Track fuel consumption",
-        route: "gas-log",
-      ),
-      AppFunction(
-        icon: "🍅",
-        title: "Pomodoro",
-        description: "Focus timer",
-        route: "pomodoro",
-      ),
-      AppFunction(
-        icon: "💰",
-        title: "Expenses",
-        description: "Track spending",
-        route: "expenses",
-      ),
-      AppFunction(
-        icon: "📝",
-        title: "Notes",
-        description: "Quick notes",
-        route: "notes",
-      ),
-      AppFunction(
-        icon: "🌤️",
-        title: "Weather",
-        description: "Current forecast",
-        route: "weather",
-      ),
-      AppFunction(
-        icon: "📅",
-        title: "Calendar",
-        description: "Schedule events",
-        route: "calendar",
-      ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 5),
-            child: Text(
-              "Quick Access",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF333333),
-              ),
-            ),
-          ),
-          const SizedBox(height: 15),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 15,
-              crossAxisSpacing: 15,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: functions.length,
-            itemBuilder: (context, index) {
-              return AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  final slideAnimation =
-                      Tween<Offset>(
-                        begin: const Offset(0, 1),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: _animationController,
-                          curve: Interval(
-                            0.2 + (index * 0.05),
-                            0.6 + (index * 0.05),
-                            curve: Curves.easeInOut,
-                          ),
-                        ),
-                      );
-                  return SlideTransition(
-                    position: slideAnimation,
-                    child: _buildFunctionCard(functions[index]),
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFunctionCard(AppFunction function) {
-    return GestureDetector(
-      onTap: () => _navigateToFunction(function),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 25,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
+      body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                ),
-                borderRadius: BorderRadius.circular(15),
-              ),
+            _buildTopBar(user, colorScheme),
+            Expanded(
               child: Center(
-                child: Text(
-                  function.icon,
-                  style: const TextStyle(fontSize: 24),
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              function.title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF333333),
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              function.description,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF666666),
-                height: 1.3,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigation() {
-    final navItems = [
-      NavItem(icon: "🏠", label: "Home", badge: null),
-      NavItem(icon: "💬", label: "Messages", badge: "5"),
-      NavItem(icon: "📊", label: "Analytics", badge: null),
-      NavItem(icon: "⚙️", label: "Sign Out", badge: null),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black,
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: navItems.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
-            final isActive = _selectedNavIndex == index;
-
-            return GestureDetector(
-              onTap: () {
-                if (index == 3) {
-                  ref.read(signOutUseCaseProvider).signOut();
-                  return;
-                }
-                setState(() {
-                  _selectedNavIndex = index;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  gradient: isActive
-                      ? const LinearGradient(
-                          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                        )
-                      : null,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 584),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          item.icon,
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: isActive ? Colors.white : Colors.black54,
-                          ),
-                        ),
-                        if (item.badge != null)
-                          Positioned(
-                            right: -5,
-                            top: -5,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFF4757),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                item.badge!,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
+                        const SizedBox(height: 48),
+                        _buildBrandText(colorScheme),
+                        const SizedBox(height: 32),
+                        _buildSearchBar(colorScheme),
+                        const SizedBox(height: 40),
+                        _buildShortcuts(colorScheme),
+                        const SizedBox(height: 48),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      item.label,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isActive ? Colors.white : Colors.black54,
-                      ),
-                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar(CurrentUserDataModel? user, ColorScheme colorScheme) {
+    final displayName = user?.displayName ?? user?.email?.split('@').first;
+    final greeting = _getGreeting();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Text(
+            displayName != null ? '$greeting, $displayName' : greeting,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const Spacer(),
+          PopupMenuButton<String>(
+            offset: const Offset(0, 48),
+            onSelected: (value) {
+              if (value == 'sign_out') {
+                ref.read(signOutUseCaseProvider).signOut();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'sign_out',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 12),
+                    Text('Sign out'),
                   ],
                 ),
               ),
-            );
-          }).toList(),
+            ],
+            child: _buildAvatar(user, colorScheme),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(CurrentUserDataModel? user, ColorScheme colorScheme) {
+    final photoUrl = user?.photoUrl;
+    final name = user?.displayName ?? user?.email?.split('@').first;
+    final initials = _getInitials(name);
+
+    if (photoUrl != null) {
+      return CircleAvatar(
+        radius: 18,
+        backgroundImage: NetworkImage(photoUrl),
+        onBackgroundImageError: (_, _) {},
+        child: Text(initials, style: const TextStyle(fontSize: 14)),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: colorScheme.primaryContainer,
+      child: Text(
+        initials,
+        style: TextStyle(
+          fontSize: 14,
+          color: colorScheme.onPrimaryContainer,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrandText(ColorScheme colorScheme) {
+    return Text(
+      'Hmm',
+      style: TextStyle(
+        fontSize: 64,
+        fontWeight: FontWeight.w400,
+        color: colorScheme.primary,
+        letterSpacing: -1,
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(ColorScheme colorScheme) {
+    return TextField(
+      controller: _searchController,
+      onChanged: (value) => setState(() => _searchQuery = value),
+      onSubmitted: (value) {
+        final filtered = _filteredFunctions;
+        if (filtered.length == 1) {
+          _navigateToFunction(filtered.first);
+        }
+      },
+      decoration: InputDecoration(
+        hintText: 'Search functions...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide(
+            color: colorScheme.outlineVariant,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 2,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShortcuts(ColorScheme colorScheme) {
+    final functions = _filteredFunctions;
+
+    if (functions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Text(
+          'No matching functions',
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 24,
+      runSpacing: 20,
+      alignment: WrapAlignment.center,
+      children: functions.map((f) => _buildShortcutItem(f, colorScheme)).toList(),
+    );
+  }
+
+  Widget _buildShortcutItem(AppFunction function, ColorScheme colorScheme) {
+    return InkWell(
+      onTap: () => _navigateToFunction(function),
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: colorScheme.secondaryContainer,
+              child: Text(function.icon, style: const TextStyle(fontSize: 22)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              function.title,
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );
@@ -407,19 +294,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+    }
+    return parts.first[0].toUpperCase();
   }
 
   void _navigateToFunction(AppFunction function) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Navigating to ${function.title}..."),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    switch (function.route) {
+      case 'gas-log':
+        context.push('/automobiles');
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${function.title} coming soon...'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+    }
   }
 }

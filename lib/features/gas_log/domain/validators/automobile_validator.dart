@@ -30,7 +30,7 @@ mixin AutomobileValidator {
   }
 
   String? validateYear(String? value) {
-    if (value == null || value.isEmpty) return null; // optional
+    if (value == null || value.isEmpty) return 'Year is required';
     final v = int.tryParse(value);
     if (v == null || v < 1900 || v > 2100) {
       return 'Enter a year between 1900 and 2100';

@@ -1,77 +1,125 @@
-/// Domain model for Gas Log - used in UI and business logic
+import 'discount_info.dart';
+
 class GasLog {
-  final String? id;
-  final String odometer;
-  final double distance;
-  final double gas;
-  final double price;
+  final int? id;
   final DateTime date;
-  final String? gasStation;
+  final int automobileId;
+
+  final double odometer;
+  final String odometerUnit;
+  final double distance;
+  final String distanceUnit;
+
+  final double fuel;
+  final String fuelUnit;
+  final String fuelGrade;
+  final bool isFullTank;
+  final bool isFirstFillUp;
+
+  final double totalPrice;
+  final double unitPrice;
+  final String currency;
+  final double totalCostAfterDiscounts;
+  final List<DiscountInfo> discounts;
+
+  final String? stationName;
+  final String? location;
+  final int? cityDrivingPercentage;
+  final int? highwayDrivingPercentage;
+  final String? receiptNumber;
+
+  final double fuelEfficiency;
+  final DateTime? createDate;
+  final DateTime? lastModifiedDate;
   final String? comment;
 
   GasLog({
     this.id,
-    required this.odometer,
-    required this.distance,
-    required this.gas,
-    required this.price,
     required this.date,
-    this.gasStation,
+    required this.automobileId,
+    required this.odometer,
+    this.odometerUnit = 'Mile',
+    required this.distance,
+    this.distanceUnit = 'Mile',
+    required this.fuel,
+    this.fuelUnit = 'Gallon',
+    required this.fuelGrade,
+    this.isFullTank = true,
+    this.isFirstFillUp = false,
+    required this.totalPrice,
+    required this.unitPrice,
+    this.currency = 'CAD',
+    this.totalCostAfterDiscounts = 0,
+    this.discounts = const [],
+    this.stationName,
+    this.location,
+    this.cityDrivingPercentage,
+    this.highwayDrivingPercentage,
+    this.receiptNumber,
+    this.fuelEfficiency = 0,
+    this.createDate,
+    this.lastModifiedDate,
     this.comment,
   });
 
   GasLog copyWith({
-    String? id,
-    String? odometer,
-    double? distance,
-    double? gas,
-    double? price,
+    int? id,
     DateTime? date,
-    String? gasStation,
+    int? automobileId,
+    double? odometer,
+    String? odometerUnit,
+    double? distance,
+    String? distanceUnit,
+    double? fuel,
+    String? fuelUnit,
+    String? fuelGrade,
+    bool? isFullTank,
+    bool? isFirstFillUp,
+    double? totalPrice,
+    double? unitPrice,
+    String? currency,
+    double? totalCostAfterDiscounts,
+    List<DiscountInfo>? discounts,
+    String? stationName,
+    String? location,
+    int? cityDrivingPercentage,
+    int? highwayDrivingPercentage,
+    String? receiptNumber,
+    double? fuelEfficiency,
+    DateTime? createDate,
+    DateTime? lastModifiedDate,
     String? comment,
   }) {
     return GasLog(
       id: id ?? this.id,
-      odometer: odometer ?? this.odometer,
-      distance: distance ?? this.distance,
-      gas: gas ?? this.gas,
-      price: price ?? this.price,
       date: date ?? this.date,
-      gasStation: gasStation ?? this.gasStation,
+      automobileId: automobileId ?? this.automobileId,
+      odometer: odometer ?? this.odometer,
+      odometerUnit: odometerUnit ?? this.odometerUnit,
+      distance: distance ?? this.distance,
+      distanceUnit: distanceUnit ?? this.distanceUnit,
+      fuel: fuel ?? this.fuel,
+      fuelUnit: fuelUnit ?? this.fuelUnit,
+      fuelGrade: fuelGrade ?? this.fuelGrade,
+      isFullTank: isFullTank ?? this.isFullTank,
+      isFirstFillUp: isFirstFillUp ?? this.isFirstFillUp,
+      totalPrice: totalPrice ?? this.totalPrice,
+      unitPrice: unitPrice ?? this.unitPrice,
+      currency: currency ?? this.currency,
+      totalCostAfterDiscounts:
+          totalCostAfterDiscounts ?? this.totalCostAfterDiscounts,
+      discounts: discounts ?? this.discounts,
+      stationName: stationName ?? this.stationName,
+      location: location ?? this.location,
+      cityDrivingPercentage:
+          cityDrivingPercentage ?? this.cityDrivingPercentage,
+      highwayDrivingPercentage:
+          highwayDrivingPercentage ?? this.highwayDrivingPercentage,
+      receiptNumber: receiptNumber ?? this.receiptNumber,
+      fuelEfficiency: fuelEfficiency ?? this.fuelEfficiency,
+      createDate: createDate ?? this.createDate,
+      lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
       comment: comment ?? this.comment,
-    );
-  }
-
-  @override
-  String toString() {
-    return 'GasLog(id: $id, odometer: $odometer, distance: $distance, gas: $gas, price: $price, date: $date, gasStation: $gasStation, comment: $comment)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is GasLog &&
-        other.id == id &&
-        other.odometer == odometer &&
-        other.distance == distance &&
-        other.gas == gas &&
-        other.price == price &&
-        other.date == date &&
-        other.gasStation == gasStation &&
-        other.comment == comment;
-  }
-
-  @override
-  int get hashCode {
-    return Object.hash(
-      id,
-      odometer,
-      distance,
-      gas,
-      price,
-      date,
-      gasStation,
-      comment,
     );
   }
 }

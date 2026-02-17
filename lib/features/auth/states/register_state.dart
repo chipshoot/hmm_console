@@ -5,12 +5,20 @@ class RegisterState extends AsyncNotifier<bool> {
   @override
   bool build() => false;
 
-  Future<void> registerWithEmailPassword(String email, String password) async {
+  Future<void> registerWithEmailPassword(
+    String username,
+    String email,
+    String password,
+    String confirmPassword,
+  ) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() {
-      return ref
-          .watch(registerUserCaseProvider)
-          .registerWithEmailPassword(email: email, password: password);
+      return ref.watch(registerUserCaseProvider).registerWithEmailPassword(
+            username: username,
+            email: email,
+            password: password,
+            confirmPassword: confirmPassword,
+          );
     });
   }
 }

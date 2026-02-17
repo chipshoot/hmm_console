@@ -12,6 +12,7 @@ class IdpConfig {
   final String scopes;
 
   String get tokenEndpoint => '$authority/connect/token';
+  String get registerEndpoint => '$authority/api/account/register';
 
   static const production = IdpConfig(
     authority: 'https://auth.homemademessage.com',

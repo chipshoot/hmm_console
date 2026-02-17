@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../exceptions/app_exceptions.dart';
 import 'idp_config.dart';
+import 'jwt_utils.dart';
 import 'token_storage.dart';
 
 class IdpTokenService {
@@ -19,8 +20,8 @@ class IdpTokenService {
   final Dio _dio;
 
   /// Authenticate with email/password using ROPC grant.
-  /// Used after Firebase login to obtain IDP tokens for API access.
-  Future<void> authorize(String email, String password) async {
+  /// Returns decoded JWT claims from the access token.
+  Future<Map<String, dynamic>> authorize(String email, String password) async {
     try {
       final response = await _dio.post(
         _config.tokenEndpoint,
@@ -38,8 +39,52 @@ class IdpTokenService {
       );
 
       await _storeTokens(response.data);
+      final accessToken = response.data['access_token'] as String;
+      return decodeJwtPayload(accessToken);
     } on DioException {
       throw AuthTokenException.exchangeFailed();
+    }
+  }
+
+  /// Register a new user via the IDP API.
+  /// Returns the registration response or throws on failure.
+  Future<Map<String, dynamic>> register({
+    required String username,
+    required String email,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await _dio.post(
+        _config.registerEndpoint,
+        data: {
+          'username': username,
+          'email': email,
+          'password': password,
+          'confirmPassword': confirmPassword,
+        },
+        options: Options(
+          contentType: Headers.jsonContentType,
+        ),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.statusCode == 400) {
+        final data = e.response!.data;
+        if (data is Map<String, dynamic> && data.containsKey('errors')) {
+          final errors = data['errors'] as Map<String, dynamic>;
+          final messages = errors.values
+              .expand((v) => v is List ? v : [v])
+              .map((e) => e.toString())
+              .toList();
+          throw ApiException.fromStatusCode(
+            400,
+            messages.join('. '),
+          );
+        }
+      }
+      throw const ApiException('REGISTRATION_FAILED', 'Registration failed');
     }
   }
 
