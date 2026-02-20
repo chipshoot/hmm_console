@@ -59,7 +59,7 @@ class GasLogRemoteDataSource {
   Future<ApiGasLog> getGasLogById(int autoId, int id) async {
     final response =
         await _apiClient.dio.get('/automobiles/$autoId/gaslogs/$id');
-    return ApiGasLog.fromJson(response.data as Map<String, dynamic>);
+    return ApiGasLog.fromJson(_unwrapResponse(response.data));
   }
 
   Future<ApiGasLog> createGasLog(
@@ -70,7 +70,7 @@ class GasLogRemoteDataSource {
       '/automobiles/$autoId/gaslogs',
       data: dto.toJson(),
     );
-    return ApiGasLog.fromJson(response.data as Map<String, dynamic>);
+    return ApiGasLog.fromJson(_unwrapResponse(response.data));
   }
 
   Future<ApiGasLog> updateGasLog(
@@ -82,11 +82,28 @@ class GasLogRemoteDataSource {
       '/automobiles/$autoId/gaslogs/$id',
       data: dto.toJson(),
     );
-    return ApiGasLog.fromJson(response.data as Map<String, dynamic>);
+    return ApiGasLog.fromJson(_unwrapResponse(response.data));
   }
 
   Future<void> deleteGasLog(int autoId, int id) async {
     await _apiClient.dio.delete('/automobiles/$autoId/gaslogs/$id');
+  }
+
+  /// Unwraps the backend's result filter response format.
+  /// Single-item endpoints return { "value": { ...fields... }, "links": [...] }
+  /// where the value object uses PascalCase keys (from ExpandoObject).
+  /// This extracts the value and normalizes keys to camelCase.
+  Map<String, dynamic> _unwrapResponse(dynamic data) {
+    final map = data as Map<String, dynamic>;
+    // Extract from { "value": {...}, "links": [...] } wrapper if present
+    final value = map['value'] as Map<String, dynamic>? ?? map;
+    // Normalize PascalCase keys to camelCase
+    return value.map((key, v) {
+      final camelKey = key.isNotEmpty
+          ? key[0].toLowerCase() + key.substring(1)
+          : key;
+      return MapEntry(camelKey, v);
+    });
   }
 }
 

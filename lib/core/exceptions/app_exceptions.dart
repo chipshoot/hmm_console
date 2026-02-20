@@ -66,6 +66,12 @@ class ApiException extends AppException {
 class AuthTokenException extends AppException {
   const AuthTokenException(super.code, super.message);
 
+  factory AuthTokenException.invalidCredentials() =>
+      const AuthTokenException(
+        'INVALID_CREDENTIALS',
+        'Invalid email or password',
+      );
+
   factory AuthTokenException.exchangeFailed() =>
       const AuthTokenException('TOKEN_EXCHANGE_FAILED', 'Token exchange failed');
 

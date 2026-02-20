@@ -64,6 +64,7 @@ class GasLogApiMapper {
       discountInfos: gasLog.discounts.isNotEmpty
           ? gasLog.discounts.map(_discountToApi).toList()
           : null,
+      stationId: gasLog.stationId,
       location: gasLog.location,
       cityDrivingPercentage: gasLog.cityDrivingPercentage,
       highwayDrivingPercentage: gasLog.highwayDrivingPercentage,

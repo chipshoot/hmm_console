@@ -7,6 +7,7 @@ import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../domain/entities/gas_log.dart';
+import '../../domain/entities/gas_station.dart';
 import '../../domain/validators/gas_log_validator.dart';
 import '../../providers/selected_automobile_provider.dart';
 import '../../states/create_gas_log_state.dart';
@@ -14,6 +15,7 @@ import '../../states/gas_logs_state.dart';
 import '../../states/update_gas_log_state.dart';
 import '../widgets/date_picker_field.dart';
 import '../widgets/fuel_grade_dropdown.dart';
+import '../widgets/station_dropdown.dart';
 
 class GasLogFormScreen extends ConsumerStatefulWidget {
   final int? gasLogId;
@@ -32,12 +34,13 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
   final _fuelCtrl = TextEditingController();
   final _totalPriceCtrl = TextEditingController();
   final _unitPriceCtrl = TextEditingController();
-  final _stationCtrl = TextEditingController();
   final _commentCtrl = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   String _fuelGrade = 'Regular';
   bool _isFullTank = true;
+  GasStation? _selectedStation;
+  String? _initialStationName;
 
   bool get _isEditing => widget.gasLogId != null;
 
@@ -63,11 +66,17 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     _fuelCtrl.text = gasLog.fuel.toStringAsFixed(1);
     _totalPriceCtrl.text = gasLog.totalPrice.toStringAsFixed(2);
     _unitPriceCtrl.text = gasLog.unitPrice.toStringAsFixed(2);
-    _stationCtrl.text = gasLog.stationName ?? '';
     _commentCtrl.text = gasLog.comment ?? '';
     _selectedDate = gasLog.date;
     _fuelGrade = gasLog.fuelGrade;
     _isFullTank = gasLog.isFullTank;
+    _initialStationName = gasLog.stationName;
+    if (gasLog.stationName != null) {
+      _selectedStation = GasStation(
+        id: gasLog.stationId,
+        name: gasLog.stationName!,
+      );
+    }
   }
 
   @override
@@ -77,7 +86,6 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     _fuelCtrl.dispose();
     _totalPriceCtrl.dispose();
     _unitPriceCtrl.dispose();
-    _stationCtrl.dispose();
     _commentCtrl.dispose();
     super.dispose();
   }
@@ -89,6 +97,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     final isLoading = createState.isLoading || updateState.isLoading;
 
     ref.listen<AsyncValue<GasLog?>>(createGasLogStateProvider, (_, next) {
+      if (!mounted) return;
       if (next.hasValue && next.value != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Gas log created')),
@@ -106,6 +115,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     });
 
     ref.listen<AsyncValue<GasLog?>>(updateGasLogStateProvider, (_, next) {
+      if (!mounted) return;
       if (next.hasValue && next.value != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Gas log updated')),
@@ -186,10 +196,11 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                 contentPadding: EdgeInsets.zero,
               ),
               GapWidgets.h8,
-              AppTextFormField(
-                fieldController: _stationCtrl,
-                fieldValidator: (_) => null,
-                label: 'Station Name (optional)',
+              StationDropdown(
+                initialValue: _initialStationName,
+                onStationChanged: (station) {
+                  _selectedStation = station;
+                },
               ),
               GapWidgets.h16,
               AppTextFormField(
@@ -215,6 +226,17 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedStation == null &&
+        (_initialStationName == null || _initialStationName!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select or enter a gas station'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
     final autoId = ref.read(selectedAutomobileIdProvider);
     if (autoId == null) return;
 
@@ -229,7 +251,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
       isFullTank: _isFullTank,
       totalPrice: double.parse(_totalPriceCtrl.text),
       unitPrice: double.parse(_unitPriceCtrl.text),
-      stationName: _stationCtrl.text.isNotEmpty ? _stationCtrl.text : null,
+      stationId: _selectedStation?.id,
+      stationName: _selectedStation?.name,
       comment: _commentCtrl.text.isNotEmpty ? _commentCtrl.text : null,
     );
 

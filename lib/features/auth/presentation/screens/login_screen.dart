@@ -12,18 +12,39 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final loginState = ref.watch(loginStateProvider);
+    final messenger = ScaffoldMessenger.of(context);
     ref.listen(loginStateProvider, (prev, next) {
+      if (next.isLoading || next.hasValue) {
+        messenger.hideCurrentSnackBar();
+      }
       if (next.hasError) {
         final error = next.error;
-        ScaffoldMessenger.of(context).showSnackBar(
+        final message =
+            error is AppException ? error.message : 'Something went wrong';
+        final isInvalidCredentials = error is AuthTokenException &&
+            error.code == 'INVALID_CREDENTIALS';
+
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
-              error is AppException ? error.message : 'Something went wrong',
+              isInvalidCredentials
+                  ? '$message. New here? Sign up for an account.'
+                  : message,
             ),
+            action: isInvalidCredentials
+                ? SnackBarAction(
+                    label: 'Sign Up',
+                    onPressed: () {
+                      messenger.hideCurrentSnackBar();
+                      AppRouter.go(context, RouterNames.register);
+                    },
+                  )
+                : null,
+            duration: isInvalidCredentials
+                ? const Duration(seconds: 6)
+                : const Duration(seconds: 4),
           ),
         );
-      } else {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
       }
     });
     return CommonScreenScaffold(
@@ -37,7 +58,9 @@ class LoginScreen extends ConsumerWidget {
                 GapWidgets.h16,
                 UserPassForm(
                   buttonLabel: 'Login',
+                  onFieldInteraction: () => messenger.clearSnackBars(),
                   onFormSubmit: (String email, String password) async {
+                    messenger.clearSnackBars();
                     ref
                         .read(loginStateProvider.notifier)
                         .loginWithEmailPassword(email, password);

@@ -19,11 +19,15 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
     final registerState = ref.watch(registerStateProvider);
 
     ref.listen(registerStateProvider, (prev, next) {
+      if (next.isLoading) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.error.toString())),
         );
       } else if (next.hasValue && next.value == true && prev?.value != true) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(

@@ -28,6 +28,12 @@ class LoggingInterceptor extends Interceptor {
         '✖ ${err.response?.statusCode ?? "?"} ${err.requestOptions.method} '
         '${err.requestOptions.uri} — ${err.message}',
       );
+      if (err.response?.data != null) {
+        debugPrint('  Response: ${err.response?.data}');
+      }
+      if (err.requestOptions.data != null) {
+        debugPrint('  Request body: ${err.requestOptions.data}');
+      }
     }
     handler.next(err);
   }

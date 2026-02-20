@@ -5,6 +5,7 @@ import 'package:hmm_console/features/auth/domain/logics/email_pass_validator.dar
 class UserPassForm extends StatelessWidget with EmailPassValidator {
   final String buttonLabel;
   final Function(String, String) onFormSubmit;
+  final VoidCallback? onFieldInteraction;
 
   // create a global key that will uniquely identity the form
   final _formKey = GlobalKey<FormState>();
@@ -13,6 +14,7 @@ class UserPassForm extends StatelessWidget with EmailPassValidator {
     super.key,
     required this.buttonLabel,
     required this.onFormSubmit,
+    this.onFieldInteraction,
   });
 
   @override
@@ -24,17 +26,27 @@ class UserPassForm extends StatelessWidget with EmailPassValidator {
       key: _formKey,
       child: Column(
         children: <Widget>[
-          AppTextFormField(
-            fieldController: userNameController,
-            fieldValidator: validateEmail,
-            label: 'Email',
+          Focus(
+            onFocusChange: (hasFocus) {
+              if (hasFocus) onFieldInteraction?.call();
+            },
+            child: AppTextFormField(
+              fieldController: userNameController,
+              fieldValidator: validateEmail,
+              label: 'Email',
+            ),
           ),
           GapWidgets.h8,
-          AppTextFormField(
-            fieldController: passwordController,
-            fieldValidator: validatePassword,
-            obscureText: true,
-            label: 'Password',
+          Focus(
+            onFocusChange: (hasFocus) {
+              if (hasFocus) onFieldInteraction?.call();
+            },
+            child: AppTextFormField(
+              fieldController: passwordController,
+              fieldValidator: validatePassword,
+              obscureText: true,
+              label: 'Password',
+            ),
           ),
           GapWidgets.h24,
           HighlightButton(

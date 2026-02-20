@@ -41,7 +41,28 @@ class IdpTokenService {
       await _storeTokens(response.data);
       final accessToken = response.data['access_token'] as String;
       return decodeJwtPayload(accessToken);
-    } on DioException {
+    } on DioException catch (e) {
+      // Parse OAuth error response for meaningful messages
+      if (e.response?.statusCode == 400) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          final error = data['error'] as String?;
+          if (error == 'invalid_grant') {
+            throw AuthTokenException.invalidCredentials();
+          }
+        }
+      }
+
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout) {
+        throw NetworkException.noConnection();
+      }
+
+      if (e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw NetworkException.timeout();
+      }
+
       throw AuthTokenException.exchangeFailed();
     }
   }
@@ -130,6 +151,14 @@ class IdpTokenService {
     }
 
     throw AuthTokenException.missingToken();
+  }
+
+  /// Decode claims from the stored access token, if valid.
+  Future<Map<String, dynamic>?> getStoredClaims() async {
+    if (!await _tokenStorage.hasValidToken()) return null;
+    final token = await _tokenStorage.getAccessToken();
+    if (token == null) return null;
+    return decodeJwtPayload(token);
   }
 
   /// Clear all stored tokens (on sign-out).

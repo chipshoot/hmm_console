@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/idp_token_service.dart';
 import '../../../../domain/entities/app_function.dart';
 import '../../../auth/data/models/current_user.dart';
 import '../../../auth/providers/current_user_provider.dart';
@@ -17,6 +18,30 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+    });
+    _restoreUserIfNeeded();
+  }
+
+  Future<void> _restoreUserIfNeeded() async {
+    if (ref.read(currentUserProvider) != null) return;
+    final claims = await ref.read(idpTokenServiceProvider).getStoredClaims();
+    if (claims != null && mounted) {
+      ref.read(currentUserProvider.notifier).setUser(
+            CurrentUserDataModel(
+              uid: claims['sub'] as String? ?? '',
+              email: claims['email'] as String?,
+              displayName: claims['name'] as String?,
+              photoUrl: claims['picture'] as String?,
+            ),
+          );
+    }
+  }
 
   static final _allFunctions = [
     AppFunction(

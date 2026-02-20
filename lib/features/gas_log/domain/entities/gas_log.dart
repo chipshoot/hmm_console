@@ -22,6 +22,7 @@ class GasLog {
   final double totalCostAfterDiscounts;
   final List<DiscountInfo> discounts;
 
+  final int? stationId;
   final String? stationName;
   final String? location;
   final int? cityDrivingPercentage;
@@ -51,6 +52,7 @@ class GasLog {
     this.currency = 'CAD',
     this.totalCostAfterDiscounts = 0,
     this.discounts = const [],
+    this.stationId,
     this.stationName,
     this.location,
     this.cityDrivingPercentage,
@@ -80,6 +82,7 @@ class GasLog {
     String? currency,
     double? totalCostAfterDiscounts,
     List<DiscountInfo>? discounts,
+    int? stationId,
     String? stationName,
     String? location,
     int? cityDrivingPercentage,
@@ -109,6 +112,7 @@ class GasLog {
       totalCostAfterDiscounts:
           totalCostAfterDiscounts ?? this.totalCostAfterDiscounts,
       discounts: discounts ?? this.discounts,
+      stationId: stationId ?? this.stationId,
       stationName: stationName ?? this.stationName,
       location: location ?? this.location,
       cityDrivingPercentage:
