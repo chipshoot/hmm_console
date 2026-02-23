@@ -96,3 +96,8 @@ Project ID: `home-made-message`. Firebase emulators configured in `firebase.json
 ## Backend API (planned integration)
 
 REST API at `https://api.homemademessage.com/api/v1/` with endpoints for notes, authors, tags, note catalogs, and gas logs. Auth uses Firebase JWT exchanged for Hmm access token as Bearer header. See `docs/SYSTEM_DESIGN.md` for full endpoint list and architecture diagram.
+
+## Local Testing Environment
+1. Backend start: run ../hmm/docker/test-env.ps1 or test-env.sh, based on current platform
+2. To acces Hmm.ServiceAPI, Use access token:"eyJhbGciOiJSUzI1NiIsImtpZCI6IkNFRjJBRjY0OEU0RUREOTQ0NURDOUY2MTc0MzREQTRFIiwidHlwIjoiYXQrand0In0.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjUwMDEiLCJuYmYiOjE3NzExMjk2NTUsImlhdCI6MTc3MTEyOTY1N"
+
