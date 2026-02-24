@@ -99,5 +99,6 @@ REST API at `https://api.homemademessage.com/api/v1/` with endpoints for notes, 
 
 ## Local Testing Environment
 1. Backend start: run ../hmm/docker/test-env.ps1 or test-env.sh, based on current platform
-2. To acces Hmm.ServiceAPI, Use access token:"eyJhbGciOiJSUzI1NiIsImtpZCI6IkNFRjJBRjY0OEU0RUREOTQ0NURDOUY2MTc0MzREQTRFIiwidHlwIjoiYXQrand0In0.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjUwMDEiLCJuYmYiOjE3NzExMjk2NTUsImlhdCI6MTc3MTEyOTY1N"
+2. To acces Hmm.ServiceAPI, Use access token:""
+3. If developing platform is MacOS, Start up flutter into IOS, if developing platform is Windows, Start up flutter into Android
 
