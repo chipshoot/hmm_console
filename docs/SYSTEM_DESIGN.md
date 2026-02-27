@@ -11,19 +11,19 @@
 The application follows **Clean Architecture** with feature-based modular organization.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Presentation Layer                     │
-│   Screens / Widgets / ViewModels / Riverpod States       │
-├─────────────────────────────────────────────────────────┤
-│                     Domain Layer                         │
-│   Entities / Use Cases / Providers / Validators          │
-├─────────────────────────────────────────────────────────┤
-│                      Data Layer                          │
-│   Repositories / Data Sources / Models / Mappers         │
-├─────────────────────────────────────────────────────────┤
-│                    Infrastructure                        │
+┌─────────────────────────────────────────────────────────────┐
+│                    Presentation Layer                       │
+│   Screens / Widgets / ViewModels / Riverpod States          │
+├─────────────────────────────────────────────────────────────┤
+│                     Domain Layer                            │
+│   Entities / Use Cases / Providers / Validators             │
+├─────────────────────────────────────────────────────────────┤
+│                      Data Layer                             │
+│   Repositories / Data Sources / Models / Mappers            │
+├─────────────────────────────────────────────────────────────┤
+│                    Infrastructure                           │
 │   Firebase Auth / Hive DB / HTTP Client / Get_It / GoRouter │
-└─────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.1 Layer Responsibilities
