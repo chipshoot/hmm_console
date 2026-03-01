@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/network/pagination.dart';
+import 'package:hmm_console/features/gas_log/data/repositories/gas_station_repository.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/gas_log.dart';
+import 'package:hmm_console/features/gas_log/domain/entities/gas_station.dart';
+import 'package:hmm_console/features/gas_log/providers/selected_automobile_provider.dart';
 import 'package:hmm_console/features/gas_log/states/update_gas_log_state.dart';
 import 'package:hmm_console/features/gas_log/usecases/get_gas_logs_usecase.dart';
 import 'package:hmm_console/features/gas_log/usecases/update_gas_log_usecase.dart';
@@ -41,6 +44,22 @@ class _FakeGetGasLogsUseCase implements GetGasLogsUseCase {
   }
 }
 
+class _FakeGasStationRepository implements IGasStationRepository {
+  @override
+  Future<List<GasStation>> getGasStations() async => [];
+
+  @override
+  Future<GasStation> createGasStation(GasStation station) async =>
+      station.copyWith(id: 10);
+
+  @override
+  Future<GasStation> updateGasStation(int id, GasStation station) async =>
+      station;
+
+  @override
+  Future<void> deleteGasStation(int id) async {}
+}
+
 void main() {
   group('UpdateGasLogState', () {
     late _FakeUpdateGasLogUseCase fakeUpdateUseCase;
@@ -53,8 +72,12 @@ void main() {
           updateGasLogUseCaseProvider.overrideWithValue(fakeUpdateUseCase),
           getGasLogsUseCaseProvider
               .overrideWithValue(_FakeGetGasLogsUseCase()),
+          gasStationRepositoryProvider
+              .overrideWithValue(_FakeGasStationRepository()),
         ],
       );
+      // Set selected automobile so gasLogsState.refresh() works
+      container.read(selectedAutomobileIdProvider.notifier).select(42);
       addTearDown(container.dispose);
     });
 
