@@ -24,7 +24,7 @@ class IdpConfig {
   static const development = IdpConfig(
     authority: 'http://localhost:5001',
     clientId: 'hmm.functest',
-    clientSecret: 'FuncTestSecret123!',
+    clientSecret: 'FuncTestSecret123#',
     scopes: 'openid profile hmmapi offline_access',
   );
 }
