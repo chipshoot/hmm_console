@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/gas_station.dart';
+import '../../providers/location_provider.dart';
 import '../../states/gas_stations_state.dart';
 
 class GasStationFormDialog extends ConsumerStatefulWidget {
@@ -28,6 +29,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
   final _zipCodeCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
   bool _isSubmitting = false;
+  bool _isLocating = false;
+  double? _latitude;
+  double? _longitude;
 
   bool get _isEditing => widget.station != null;
 
@@ -43,6 +47,8 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
       _countryCtrl.text = s.country ?? '';
       _zipCodeCtrl.text = s.zipCode ?? '';
       _descriptionCtrl.text = s.description ?? '';
+      _latitude = s.latitude;
+      _longitude = s.longitude;
     } else if (widget.initialName != null) {
       _nameCtrl.text = widget.initialName!;
     }
@@ -58,6 +64,34 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
     _zipCodeCtrl.dispose();
     _descriptionCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _captureLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      final position = await ref.read(currentPositionProvider.future);
+      if (position != null && mounted) {
+        setState(() {
+          _latitude = position.latitude;
+          _longitude = position.longitude;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location captured')),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not get location. Check permissions.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Location error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLocating = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -80,6 +114,8 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
         description: _descriptionCtrl.text.trim().isEmpty
             ? null
             : _descriptionCtrl.text.trim(),
+        latitude: _latitude,
+        longitude: _longitude,
       );
 
       final notifier = ref.read(gasStationsStateProvider.notifier);
@@ -251,6 +287,20 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                         ? 'Max 500 characters'
                         : null,
                     textInputAction: TextInputAction.done,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _isLocating ? null : _captureLocation,
+                    icon: _isLocating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location),
+                    label: Text(_latitude != null
+                        ? 'Location: ${_latitude!.toStringAsFixed(4)}, ${_longitude!.toStringAsFixed(4)}'
+                        : 'Capture Current Location'),
                   ),
                   const SizedBox(height: 20),
                   Row(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../domain/entities/gas_station.dart';
 import '../../domain/services/station_display_name.dart';
+import '../../providers/location_provider.dart';
 import '../../states/gas_logs_state.dart';
 import '../../states/gas_stations_state.dart';
 import 'gas_station_form_dialog.dart';
@@ -30,9 +32,9 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
     super.dispose();
   }
 
-  /// Sort stations: recently-used first (by gas log date), then alphabetical.
+  /// Sort stations: nearby first (if GPS available), recently-used, then alphabetical.
   List<GasStation> _sortStations(
-      List<GasStation> stations, GasLogsData gasLogsData) {
+      List<GasStation> stations, GasLogsData gasLogsData, Position? userPos) {
     // Build a map of station name → most recent gas log date
     final recentUsage = <String, DateTime>{};
     for (final log in gasLogsData.items) {
@@ -45,19 +47,44 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
       }
     }
 
+    // Pre-compute distances if GPS is available
+    final distances = <int, double>{};
+    if (userPos != null) {
+      for (final s in stations) {
+        if (s.id != null && s.latitude != null && s.longitude != null) {
+          distances[s.id!] = distanceInKm(
+            userPos.latitude,
+            userPos.longitude,
+            s.latitude!,
+            s.longitude!,
+          );
+        }
+      }
+    }
+
     final sorted = List<GasStation>.from(stations);
     sorted.sort((a, b) {
+      final aDist = a.id != null ? distances[a.id!] : null;
+      final bDist = b.id != null ? distances[b.id!] : null;
+
+      // Both have location: sort by distance
+      if (aDist != null && bDist != null) {
+        return aDist.compareTo(bDist);
+      }
+      // Only one has distance: it goes first
+      if (aDist != null) return -1;
+      if (bDist != null) return 1;
+
+      // Fall back to recent usage
       final aDate = recentUsage[a.name.toLowerCase()];
       final bDate = recentUsage[b.name.toLowerCase()];
-
-      // Both have recent usage: sort by most recent first
       if (aDate != null && bDate != null) {
         return bDate.compareTo(aDate);
       }
-      // Only one has recent usage: it goes first
       if (aDate != null) return -1;
       if (bDate != null) return 1;
-      // Neither has usage: alphabetical
+
+      // Neither: alphabetical
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
 
@@ -83,6 +110,8 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
     final gasLogs = gasLogsAsync.hasValue
         ? gasLogsAsync.value!
         : const GasLogsData();
+    final positionAsync = ref.watch(currentPositionProvider);
+    final userPos = positionAsync.hasValue ? positionAsync.value : null;
 
     return stationsAsync.when(
       loading: () => TextFormField(
@@ -101,17 +130,32 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
         ),
         enabled: false,
       ),
-      error: (_, _) => _buildAutocomplete([]),
+      error: (_, _) => _buildAutocomplete([], null),
       data: (stations) {
         final activeStations = stations.where((s) => s.isActive).toList();
-        final sorted = _sortStations(activeStations, gasLogs);
-        return _buildAutocomplete(sorted);
+        final sorted = _sortStations(activeStations, gasLogs, userPos);
+        return _buildAutocomplete(sorted, userPos);
       },
     );
   }
 
-  Widget _buildAutocomplete(List<GasStation> stations) {
+  Widget _buildAutocomplete(List<GasStation> stations, Position? userPos) {
     String displayName(GasStation s) => stationDisplayName(s, stations);
+
+    String? distanceLabel(GasStation s) {
+      if (userPos == null || s.latitude == null || s.longitude == null) {
+        return null;
+      }
+      final km = distanceInKm(
+        userPos.latitude,
+        userPos.longitude,
+        s.latitude!,
+        s.longitude!,
+      );
+      return km < 1
+          ? '${(km * 1000).round()} m'
+          : '${km.toStringAsFixed(1)} km';
+    }
 
     return Autocomplete<GasStation>(
       initialValue: TextEditingValue(text: widget.initialValue ?? ''),
@@ -212,12 +256,24 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
                   }
                   final station = options.elementAt(index - 1);
                   final name = displayName(station);
+                  final dist = distanceLabel(station);
                   final details = [
-                    if (station.address != null) station.address!,
-                  ].join(', ');
+                    ?station.address,
+                    ?dist,
+                  ].join(' \u2022 ');
                   return ListTile(
                     title: Text(name),
                     subtitle: details.isNotEmpty ? Text(details) : null,
+                    trailing: dist != null
+                        ? Text(
+                            dist,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        : null,
                     onTap: () => onSelected(station),
                   );
                 },

@@ -7,6 +7,8 @@ class ApiGasStation {
   final String? country;
   final String? zipCode;
   final String? description;
+  final double? latitude;
+  final double? longitude;
   final bool isActive;
 
   const ApiGasStation({
@@ -18,6 +20,8 @@ class ApiGasStation {
     this.country,
     this.zipCode,
     this.description,
+    this.latitude,
+    this.longitude,
     this.isActive = true,
   });
 
@@ -32,6 +36,10 @@ class ApiGasStation {
       zipCode: json['ZipCode'] as String? ?? json['zipCode'] as String?,
       description:
           json['Description'] as String? ?? json['description'] as String?,
+      latitude: (json['Latitude'] as num?)?.toDouble() ??
+          (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['Longitude'] as num?)?.toDouble() ??
+          (json['longitude'] as num?)?.toDouble(),
       isActive: json['IsActive'] as bool? ?? json['isActive'] as bool? ?? true,
     );
   }
@@ -44,6 +52,8 @@ class ApiGasStation {
         if (country != null) 'country': country,
         if (zipCode != null) 'zipCode': zipCode,
         if (description != null) 'description': description,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
         'isActive': isActive,
       };
 }

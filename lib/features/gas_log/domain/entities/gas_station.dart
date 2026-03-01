@@ -7,6 +7,8 @@ class GasStation {
   final String? country;
   final String? zipCode;
   final String? description;
+  final double? latitude;
+  final double? longitude;
   final bool isActive;
 
   const GasStation({
@@ -18,6 +20,8 @@ class GasStation {
     this.country,
     this.zipCode,
     this.description,
+    this.latitude,
+    this.longitude,
     this.isActive = true,
   });
 
@@ -30,6 +34,8 @@ class GasStation {
     String? country,
     String? zipCode,
     String? description,
+    double? latitude,
+    double? longitude,
     bool? isActive,
   }) {
     return GasStation(
@@ -41,6 +47,8 @@ class GasStation {
       country: country ?? this.country,
       zipCode: zipCode ?? this.zipCode,
       description: description ?? this.description,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       isActive: isActive ?? this.isActive,
     );
   }

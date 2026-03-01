@@ -49,6 +49,8 @@ class _GasStationApiRepository implements IGasStationRepository {
       country: station.country,
       zipCode: station.zipCode,
       description: station.description,
+      latitude: station.latitude,
+      longitude: station.longitude,
       isActive: station.isActive,
     );
   }
@@ -63,6 +65,8 @@ class _GasStationApiRepository implements IGasStationRepository {
       country: api.country,
       zipCode: api.zipCode,
       description: api.description,
+      latitude: api.latitude,
+      longitude: api.longitude,
       isActive: api.isActive,
     );
   }
