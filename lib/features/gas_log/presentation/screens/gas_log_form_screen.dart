@@ -8,7 +8,9 @@ import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../domain/entities/gas_log.dart';
 import '../../domain/entities/gas_station.dart';
+import '../../domain/services/unit_converter.dart';
 import '../../domain/validators/gas_log_validator.dart';
+import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../providers/selected_automobile_provider.dart';
 import '../../states/create_gas_log_state.dart';
 import '../../states/gas_logs_state.dart';
@@ -61,9 +63,20 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
         .firstOrNull;
     if (gasLog == null) return;
 
-    _odometerCtrl.text = gasLog.odometer.toStringAsFixed(0);
-    _distanceCtrl.text = gasLog.distance.toStringAsFixed(1);
-    _fuelCtrl.text = gasLog.fuel.toStringAsFixed(1);
+    final s = ref.read(gasLogSettingsProvider);
+    final targetDist = s.distanceUnit.apiValue;
+    final targetFuel = s.fuelUnit.apiValue;
+
+    final odometer = UnitConverter.convertDistance(
+        gasLog.odometer, gasLog.odometerUnit, targetDist);
+    final distance = UnitConverter.convertDistance(
+        gasLog.distance, gasLog.distanceUnit, targetDist);
+    final fuel = UnitConverter.convertVolume(
+        gasLog.fuel, gasLog.fuelUnit, targetFuel);
+
+    _odometerCtrl.text = odometer.toStringAsFixed(0);
+    _distanceCtrl.text = distance.toStringAsFixed(1);
+    _fuelCtrl.text = fuel.toStringAsFixed(1);
     _totalPriceCtrl.text = gasLog.totalPrice.toStringAsFixed(2);
     _unitPriceCtrl.text = gasLog.unitPrice.toStringAsFixed(2);
     _commentCtrl.text = gasLog.comment ?? '';
@@ -132,6 +145,11 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
       }
     });
 
+    final settings = ref.watch(gasLogSettingsProvider);
+    final distLabel = settings.distanceUnit.label;
+    final fuelLabel = settings.fuelUnit.label;
+    final currSymbol = settings.currency.symbol;
+
     return CommonScreenScaffold(
       title: _isEditing ? 'Edit Gas Log' : 'New Gas Log',
       child: Form(
@@ -148,19 +166,19 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
               AppTextFormField(
                 fieldController: _odometerCtrl,
                 fieldValidator: validateOdometer,
-                label: 'Odometer',
+                label: 'Odometer ($distLabel)',
               ),
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _distanceCtrl,
                 fieldValidator: validateDistance,
-                label: 'Distance',
+                label: 'Distance ($distLabel)',
               ),
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _fuelCtrl,
                 fieldValidator: validateFuel,
-                label: 'Fuel (gallons)',
+                label: 'Fuel ($fuelLabel)',
               ),
               GapWidgets.h16,
               FuelGradeDropdown(
@@ -175,7 +193,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                     child: AppTextFormField(
                       fieldController: _unitPriceCtrl,
                       fieldValidator: validatePrice,
-                      label: 'Unit Price',
+                      label: 'Unit Price ($currSymbol/$fuelLabel)',
                     ),
                   ),
                   GapWidgets.w16,
@@ -183,7 +201,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                     child: AppTextFormField(
                       fieldController: _totalPriceCtrl,
                       fieldValidator: validatePrice,
-                      label: 'Total Price',
+                      label: 'Total Price ($currSymbol)',
                     ),
                   ),
                 ],
@@ -240,17 +258,22 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     final autoId = ref.read(selectedAutomobileIdProvider);
     if (autoId == null) return;
 
+    final s = ref.read(gasLogSettingsProvider);
     final gasLog = GasLog(
       id: widget.gasLogId,
       date: _selectedDate,
       automobileId: autoId,
       odometer: double.parse(_odometerCtrl.text),
+      odometerUnit: s.distanceUnit.apiValue,
       distance: double.tryParse(_distanceCtrl.text) ?? 0,
+      distanceUnit: s.distanceUnit.apiValue,
       fuel: double.parse(_fuelCtrl.text),
+      fuelUnit: s.fuelUnit.apiValue,
       fuelGrade: _fuelGrade,
       isFullTank: _isFullTank,
       totalPrice: double.parse(_totalPriceCtrl.text),
       unitPrice: double.parse(_unitPriceCtrl.text),
+      currency: s.currency.apiValue,
       stationId: _selectedStation?.id,
       stationName: _selectedStation?.name,
       comment: _commentCtrl.text.isNotEmpty ? _commentCtrl.text : null,

@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../domain/entities/gas_log.dart';
+import '../models/gas_log_display_model.dart';
 
 class GasLogListTile extends StatelessWidget {
-  final GasLog gasLog;
+  final GasLogDisplayModel displayModel;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
 
   const GasLogListTile({
     super.key,
-    required this.gasLog,
+    required this.displayModel,
     this.onTap,
     this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat.yMMMd().format(gasLog.date);
+    final dateStr = DateFormat.yMMMd().format(displayModel.date);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -29,27 +29,27 @@ class GasLogListTile extends StatelessWidget {
               color: colorScheme.onPrimaryContainer),
         ),
         title: Text(
-          '${gasLog.odometer.toStringAsFixed(0)} ${gasLog.odometerUnit.toLowerCase()}s',
+          '${displayModel.odometer.toStringAsFixed(0)} ${displayModel.distanceLabel}',
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${gasLog.fuel.toStringAsFixed(1)} ${gasLog.fuelUnit.toLowerCase()}s'
-              ' \u2022 \$${gasLog.totalPrice.toStringAsFixed(2)}',
+              '${displayModel.fuel.toStringAsFixed(1)} ${displayModel.fuelLabel}'
+              ' \u2022 ${displayModel.currencySymbol}${displayModel.totalPrice.toStringAsFixed(2)}',
             ),
             Text(
               '$dateStr'
-              '${gasLog.stationName != null ? ' \u2022 ${gasLog.stationName}' : ''}',
+              '${displayModel.stationName != null ? ' \u2022 ${displayModel.stationName}' : ''}',
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
-            if (gasLog.fuelEfficiency > 0)
+            if (displayModel.fuelEfficiency > 0)
               Text(
-                '${gasLog.fuelEfficiency.toStringAsFixed(1)} MPG',
+                '${displayModel.fuelEfficiency.toStringAsFixed(1)} ${displayModel.distanceLabel}/${displayModel.fuelLabel}',
                 style: TextStyle(
                   fontSize: 12,
                   color: colorScheme.primary,

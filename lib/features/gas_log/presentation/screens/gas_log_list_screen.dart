@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../domain/entities/gas_log.dart';
+import '../../domain/services/gas_log_converter.dart';
+import '../../../settings/providers/gas_log_settings_provider.dart';
+import '../../providers/exchange_rate_provider.dart';
 import '../../providers/selected_automobile_provider.dart';
 import '../../states/delete_gas_log_state.dart';
 import '../../states/gas_logs_state.dart';
@@ -16,6 +19,13 @@ class GasLogListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final gasLogsAsync = ref.watch(gasLogsStateProvider);
     final autoId = ref.watch(selectedAutomobileIdProvider);
+    final settings = ref.watch(gasLogSettingsProvider);
+
+    final rateAsync = ref.watch(exchangeRateProvider((
+      from: _dominantCurrency(gasLogsAsync, settings.currency.apiValue),
+      to: settings.currency.apiValue,
+    )));
+    final exchangeRate = rateAsync.hasValue ? rateAsync.value! : 1.0;
 
     ref.listen<AsyncValue<bool>>(deleteGasLogStateProvider, (_, next) {
       if (next.hasError) {
@@ -105,8 +115,12 @@ class GasLogListScreen extends ConsumerWidget {
                       );
                     }
                     final log = data.items[index];
+                    final displayModel = log.toDisplayModel(
+                      settings,
+                      exchangeRate: exchangeRate,
+                    );
                     return GasLogListTile(
-                      gasLog: log,
+                      displayModel: displayModel,
                       onTap: () =>
                           context.push('/gas-logs/${log.id}/edit'),
                       onDelete: () => _confirmDelete(
@@ -128,6 +142,17 @@ class GasLogListScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Returns the currency of the first gas log, or the target currency
+  /// if there are no logs yet (which short-circuits to rate=1.0).
+  String _dominantCurrency(
+    AsyncValue<GasLogsData> gasLogsAsync,
+    String targetCurrency,
+  ) {
+    final data = gasLogsAsync.hasValue ? gasLogsAsync.value : null;
+    if (data == null || data.items.isEmpty) return targetCurrency;
+    return data.items.first.currency;
   }
 
   void _confirmDelete(
