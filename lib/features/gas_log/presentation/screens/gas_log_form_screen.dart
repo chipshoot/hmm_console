@@ -43,15 +43,51 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
   bool _isFullTank = true;
   GasStation? _selectedStation;
   String? _initialStationName;
+  bool _totalPriceManuallyEdited = false;
 
   bool get _isEditing => widget.gasLogId != null;
 
   @override
   void initState() {
     super.initState();
+    _fuelCtrl.addListener(_autoCalculateTotalPrice);
+    _unitPriceCtrl.addListener(_autoCalculateTotalPrice);
+    _totalPriceCtrl.addListener(_onTotalPriceChanged);
     if (_isEditing) {
       _populateForm();
     }
+  }
+
+  void _autoCalculateTotalPrice() {
+    if (_totalPriceManuallyEdited) return;
+
+    final fuel = double.tryParse(_fuelCtrl.text);
+    final unitPrice = double.tryParse(_unitPriceCtrl.text);
+
+    if (fuel == null && unitPrice == null) {
+      _setTotalPriceWithoutNotify('0.00');
+      return;
+    }
+
+    if (fuel != null && unitPrice != null) {
+      _setTotalPriceWithoutNotify((fuel * unitPrice).toStringAsFixed(2));
+    }
+  }
+
+  void _onTotalPriceChanged() {
+    // Only mark as manually edited if the change came from user interaction,
+    // not from our programmatic update via _setTotalPriceWithoutNotify.
+    if (!_isUpdatingTotalPrice) {
+      _totalPriceManuallyEdited = true;
+    }
+  }
+
+  bool _isUpdatingTotalPrice = false;
+
+  void _setTotalPriceWithoutNotify(String value) {
+    _isUpdatingTotalPrice = true;
+    _totalPriceCtrl.text = value;
+    _isUpdatingTotalPrice = false;
   }
 
   void _populateForm() {
@@ -74,6 +110,10 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     final fuel = UnitConverter.convertVolume(
         gasLog.fuel, gasLog.fuelUnit, targetFuel);
 
+    // Mark as manually edited before populating so auto-calc doesn't
+    // overwrite the stored total price during form pre-fill.
+    _totalPriceManuallyEdited = true;
+
     _odometerCtrl.text = odometer.toStringAsFixed(0);
     _distanceCtrl.text = distance.toStringAsFixed(1);
     _fuelCtrl.text = fuel.toStringAsFixed(1);
@@ -94,6 +134,9 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
 
   @override
   void dispose() {
+    _fuelCtrl.removeListener(_autoCalculateTotalPrice);
+    _unitPriceCtrl.removeListener(_autoCalculateTotalPrice);
+    _totalPriceCtrl.removeListener(_onTotalPriceChanged);
     _odometerCtrl.dispose();
     _distanceCtrl.dispose();
     _fuelCtrl.dispose();
