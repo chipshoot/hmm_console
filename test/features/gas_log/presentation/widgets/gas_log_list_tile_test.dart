@@ -1,10 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/features/gas_log/presentation/models/gas_log_display_model.dart';
 import 'package:hmm_console/features/gas_log/presentation/widgets/gas_log_list_tile.dart';
 
 import '../../helpers/gas_log_fixtures.dart';
 
 void main() {
+  GasLogDisplayModel buildDisplayModel() {
+    final log = GasLogFixtures.gasLog();
+    return GasLogDisplayModel(
+      original: log,
+      odometer: log.odometer,
+      distance: log.distance,
+      fuel: log.fuel,
+      totalPrice: log.totalPrice,
+      unitPrice: log.unitPrice,
+      fuelEfficiency: log.fuelEfficiency,
+      distanceLabel: 'mi',
+      fuelLabel: 'gal',
+      currencySymbol: '\$',
+      date: log.date,
+      stationName: log.stationName,
+    );
+  }
+
   Widget buildWidget({
     VoidCallback? onTap,
     VoidCallback? onDelete,
@@ -12,7 +31,7 @@ void main() {
     return MaterialApp(
       home: Scaffold(
         body: GasLogListTile(
-          gasLog: GasLogFixtures.gasLog(),
+          displayModel: buildDisplayModel(),
           onTap: onTap,
           onDelete: onDelete,
         ),

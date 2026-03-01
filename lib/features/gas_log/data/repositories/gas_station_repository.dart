@@ -7,6 +7,8 @@ import '../models/api_gas_station.dart';
 abstract interface class IGasStationRepository {
   Future<List<GasStation>> getGasStations();
   Future<GasStation> createGasStation(GasStation station);
+  Future<GasStation> updateGasStation(int id, GasStation station);
+  Future<void> deleteGasStation(int id);
 }
 
 class _GasStationApiRepository implements IGasStationRepository {
@@ -22,19 +24,33 @@ class _GasStationApiRepository implements IGasStationRepository {
 
   @override
   Future<GasStation> createGasStation(GasStation station) async {
-    final api = await _remoteDataSource.createGasStation(
-      ApiGasStation(
-        id: 0,
-        name: station.name,
-        address: station.address,
-        city: station.city,
-        state: station.state,
-        country: station.country,
-        zipCode: station.zipCode,
-        description: station.description,
-      ),
-    );
+    final api = await _remoteDataSource.createGasStation(_toApi(station));
     return _fromApi(api);
+  }
+
+  @override
+  Future<GasStation> updateGasStation(int id, GasStation station) async {
+    final api = await _remoteDataSource.updateGasStation(id, _toApi(station));
+    return _fromApi(api);
+  }
+
+  @override
+  Future<void> deleteGasStation(int id) async {
+    await _remoteDataSource.deleteGasStation(id);
+  }
+
+  static ApiGasStation _toApi(GasStation station) {
+    return ApiGasStation(
+      id: station.id ?? 0,
+      name: station.name,
+      address: station.address,
+      city: station.city,
+      state: station.state,
+      country: station.country,
+      zipCode: station.zipCode,
+      description: station.description,
+      isActive: station.isActive,
+    );
   }
 
   static GasStation _fromApi(ApiGasStation api) {

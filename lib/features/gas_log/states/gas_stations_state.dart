@@ -42,6 +42,32 @@ class GasStationsState extends AsyncNotifier<List<GasStation>> {
     return created;
   }
 
+  Future<GasStation> updateStation(int id, GasStation station) async {
+    final updated = await ref
+        .read(gasStationRepositoryProvider)
+        .updateGasStation(id, station);
+
+    // Update local state
+    final stations = state.value ?? [];
+    state = AsyncValue.data(
+      stations.map((s) => s.id == id ? updated : s).toList(),
+    );
+
+    return updated;
+  }
+
+  Future<void> deleteStation(int id) async {
+    await ref.read(gasStationRepositoryProvider).deleteGasStation(id);
+
+    // Remove from local state (backend soft-deletes, so mark inactive)
+    final stations = state.value ?? [];
+    state = AsyncValue.data(
+      stations
+          .map((s) => s.id == id ? s.copyWith(isActive: false) : s)
+          .toList(),
+    );
+  }
+
   void refresh() {
     ref.invalidateSelf();
   }

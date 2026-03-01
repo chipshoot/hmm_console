@@ -43,6 +43,11 @@ class GasLogListScreen extends ConsumerWidget {
       withPadding: false,
       actions: [
         IconButton(
+          icon: const Icon(Icons.local_gas_station),
+          tooltip: 'Manage Stations',
+          onPressed: () => context.push('/gas-stations'),
+        ),
+        IconButton(
           icon: const Icon(Icons.refresh),
           onPressed: () =>
               ref.read(gasLogsStateProvider.notifier).refresh(),

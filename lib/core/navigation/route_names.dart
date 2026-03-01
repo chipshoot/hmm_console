@@ -9,5 +9,6 @@ enum RouterNames {
   automobileEdit,
   gasLogList,
   gasLogForm,
+  gasStationManagement,
   settings,
 }

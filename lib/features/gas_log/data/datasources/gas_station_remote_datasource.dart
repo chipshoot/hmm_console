@@ -32,6 +32,18 @@ class GasStationRemoteDataSource {
     );
     return ApiGasStation.fromJson(response.data as Map<String, dynamic>);
   }
+
+  Future<ApiGasStation> updateGasStation(int id, ApiGasStation station) async {
+    final response = await _apiClient.dio.put(
+      '/automobiles/gasstations/$id',
+      data: station.toJson(),
+    );
+    return ApiGasStation.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteGasStation(int id) async {
+    await _apiClient.dio.delete('/automobiles/gasstations/$id');
+  }
 }
 
 final gasStationRemoteDataSourceProvider =

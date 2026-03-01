@@ -5,9 +5,13 @@ import '../../domain/entities/gas_station.dart';
 import '../../states/gas_stations_state.dart';
 
 class GasStationFormDialog extends ConsumerStatefulWidget {
-  const GasStationFormDialog({super.key, this.initialName});
+  const GasStationFormDialog({super.key, this.initialName, this.station});
 
+  /// Pre-fill name for create mode (from dropdown text).
   final String? initialName;
+
+  /// Existing station for edit mode. If non-null, dialog is in edit mode.
+  final GasStation? station;
 
   @override
   ConsumerState<GasStationFormDialog> createState() =>
@@ -25,10 +29,21 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
   final _descriptionCtrl = TextEditingController();
   bool _isSubmitting = false;
 
+  bool get _isEditing => widget.station != null;
+
   @override
   void initState() {
     super.initState();
-    if (widget.initialName != null) {
+    if (widget.station != null) {
+      final s = widget.station!;
+      _nameCtrl.text = s.name;
+      _addressCtrl.text = s.address ?? '';
+      _cityCtrl.text = s.city ?? '';
+      _stateCtrl.text = s.state ?? '';
+      _countryCtrl.text = s.country ?? '';
+      _zipCodeCtrl.text = s.zipCode ?? '';
+      _descriptionCtrl.text = s.description ?? '';
+    } else if (widget.initialName != null) {
       _nameCtrl.text = widget.initialName!;
     }
   }
@@ -52,6 +67,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
 
     try {
       final station = GasStation(
+        id: widget.station?.id,
         name: _nameCtrl.text.trim(),
         address:
             _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
@@ -66,16 +82,22 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
             : _descriptionCtrl.text.trim(),
       );
 
-      final created =
-          await ref.read(gasStationsStateProvider.notifier).createStation(station);
+      final notifier = ref.read(gasStationsStateProvider.notifier);
+      final GasStation result;
+      if (_isEditing) {
+        result = await notifier.updateStation(widget.station!.id!, station);
+      } else {
+        result = await notifier.createStation(station);
+      }
 
       if (mounted) {
-        Navigator.of(context).pop(created);
+        Navigator.of(context).pop(result);
       }
     } catch (e) {
       if (mounted) {
+        final action = _isEditing ? 'update' : 'create';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create station: $e')),
+          SnackBar(content: Text('Failed to $action station: $e')),
         );
       }
     } finally {
@@ -87,6 +109,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final title = _isEditing ? 'Edit Gas Station' : 'Add Gas Station';
+    final submitLabel = _isEditing ? 'Save' : 'Add Station';
+
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
@@ -104,10 +129,8 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                     children: [
                       const Icon(Icons.local_gas_station),
                       const SizedBox(width: 8),
-                      Text(
-                        'Add Gas Station',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
+                      Text(title,
+                          style: Theme.of(context).textTheme.titleLarge),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -135,8 +158,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                       labelText: 'Address',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (v) =>
-                        v != null && v.length > 200 ? 'Max 200 characters' : null,
+                    validator: (v) => v != null && v.length > 200
+                        ? 'Max 200 characters'
+                        : null,
                     textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 12),
@@ -223,8 +247,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                       border: OutlineInputBorder(),
                     ),
                     maxLines: 2,
-                    validator: (v) =>
-                        v != null && v.length > 500 ? 'Max 500 characters' : null,
+                    validator: (v) => v != null && v.length > 500
+                        ? 'Max 500 characters'
+                        : null,
                     textInputAction: TextInputAction.done,
                   ),
                   const SizedBox(height: 20),
@@ -232,8 +257,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed:
-                            _isSubmitting ? null : () => Navigator.of(context).pop(),
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 8),
@@ -246,7 +272,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Add Station'),
+                            : Text(submitLabel),
                       ),
                     ],
                   ),
