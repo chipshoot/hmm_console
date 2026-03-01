@@ -88,6 +88,7 @@ class GasLogApiMapper {
       totalPrice: gasLog.totalPrice,
       unitPrice: gasLog.unitPrice,
       currency: gasLog.currency,
+      stationId: gasLog.stationId,
       location: gasLog.location,
       cityDrivingPercentage: gasLog.cityDrivingPercentage,
       highwayDrivingPercentage: gasLog.highwayDrivingPercentage,
