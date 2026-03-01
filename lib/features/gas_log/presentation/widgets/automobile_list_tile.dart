@@ -4,11 +4,13 @@ import '../../domain/entities/automobile.dart';
 
 class AutomobileListTile extends StatelessWidget {
   final Automobile automobile;
+  final String distanceLabel;
   final VoidCallback? onTap;
 
   const AutomobileListTile({
     super.key,
     required this.automobile,
+    this.distanceLabel = 'mi',
     this.onTap,
   });
 
@@ -34,7 +36,7 @@ class AutomobileListTile extends StatelessWidget {
               automobile.plate!,
             if (automobile.color != null && automobile.color!.isNotEmpty)
               automobile.color!,
-            '${automobile.meterReading} mi',
+            '${automobile.meterReading} $distanceLabel',
           ].join(' \u2022 '),
         ),
         trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),

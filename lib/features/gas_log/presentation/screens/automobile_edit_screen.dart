@@ -7,6 +7,7 @@ import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../domain/entities/automobile.dart';
+import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../domain/validators/automobile_validator.dart';
 import '../../states/automobiles_state.dart';
 import '../../states/update_automobile_state.dart';
@@ -99,6 +100,9 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     final updateState = ref.watch(updateAutomobileStateProvider);
     final isLoading = updateState.isLoading;
 
+    final settings = ref.watch(gasLogSettingsProvider);
+    final distLabel = settings.distanceUnit.label;
+
     ref.listen<AsyncValue<void>>(updateAutomobileStateProvider, (_, next) {
       if (next.hasValue && !next.isLoading && !next.isRefreshing) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -171,7 +175,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               AppTextFormField(
                 fieldController: _meterReadingCtrl,
                 fieldValidator: validateMeterReading,
-                label: 'Meter Reading',
+                label: 'Meter Reading ($distLabel)',
               ),
               GapWidgets.h16,
               OwnershipStatusDropdown(
@@ -226,7 +230,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               AppTextFormField(
                 fieldController: _lastServiceMeterCtrl,
                 fieldValidator: validateMeterReading,
-                label: 'Last Service Meter (optional)',
+                label: 'Last Service Meter ($distLabel)',
               ),
               GapWidgets.h16,
               _optionalDatePicker(
@@ -240,7 +244,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               AppTextFormField(
                 fieldController: _nextServiceDueMeterCtrl,
                 fieldValidator: validateMeterReading,
-                label: 'Next Service Meter (optional)',
+                label: 'Next Service Meter ($distLabel)',
               ),
               GapWidgets.h24,
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/screen_scaffold.dart';
+import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../providers/selected_automobile_provider.dart';
 import '../../states/automobiles_state.dart';
 import '../widgets/automobile_list_tile.dart';
@@ -13,6 +14,7 @@ class AutomobileSelectorScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final automobilesAsync = ref.watch(automobilesStateProvider);
+    final distLabel = ref.watch(gasLogSettingsProvider).distanceUnit.label;
 
     return CommonScreenScaffold(
       title: 'Select Vehicle',
@@ -85,6 +87,7 @@ class AutomobileSelectorScreen extends ConsumerWidget {
                 final auto = active[index];
                 return AutomobileListTile(
                   automobile: auto,
+                  distanceLabel: distLabel,
                   onTap: () {
                     ref.read(selectedAutomobileIdProvider.notifier).select(
                         auto.id);

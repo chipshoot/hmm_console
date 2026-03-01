@@ -154,11 +154,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           PopupMenuButton<String>(
             offset: const Offset(0, 48),
             onSelected: (value) {
+              if (value == 'settings') {
+                context.push('/settings');
+              }
               if (value == 'sign_out') {
                 ref.read(signOutUseCaseProvider).signOut();
               }
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, size: 20),
+                    SizedBox(width: 12),
+                    Text('Settings'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'sign_out',
                 child: Row(

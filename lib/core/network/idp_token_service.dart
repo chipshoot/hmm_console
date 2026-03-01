@@ -42,17 +42,6 @@ class IdpTokenService {
       final accessToken = response.data['access_token'] as String;
       return decodeJwtPayload(accessToken);
     } on DioException catch (e) {
-      // Parse OAuth error response for meaningful messages
-      if (e.response?.statusCode == 400) {
-        final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          final error = data['error'] as String?;
-          if (error == 'invalid_grant') {
-            throw AuthTokenException.invalidCredentials();
-          }
-        }
-      }
-
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout) {
         throw NetworkException.noConnection();
@@ -61,6 +50,30 @@ class IdpTokenService {
       if (e.type == DioExceptionType.sendTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         throw NetworkException.timeout();
+      }
+
+      // Parse OAuth error response for meaningful messages
+      final data = e.response?.data;
+      if (data is Map<String, dynamic>) {
+        final error = data['error'] as String?;
+        final errorDescription = data['error_description'] as String?;
+
+        if (error == 'invalid_grant') {
+          throw AuthTokenException.invalidCredentials();
+        }
+
+        if (errorDescription != null && errorDescription.isNotEmpty) {
+          throw AuthTokenException(
+            error?.toUpperCase() ?? 'AUTH_ERROR',
+            errorDescription,
+          );
+        }
+      }
+
+      // Map HTTP status codes to meaningful messages
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null) {
+        throw AuthTokenException.fromStatusCode(statusCode);
       }
 
       throw AuthTokenException.exchangeFailed();

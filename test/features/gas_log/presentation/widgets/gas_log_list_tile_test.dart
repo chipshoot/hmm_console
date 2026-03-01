@@ -48,7 +48,7 @@ void main() {
     testWidgets('displays fuel efficiency when > 0', (tester) async {
       await tester.pumpWidget(buildWidget());
 
-      expect(find.textContaining('7.6 MPG'), findsOneWidget);
+      expect(find.textContaining('7.6 mi/gal'), findsOneWidget);
     });
 
     testWidgets('shows delete button when onDelete provided', (tester) async {

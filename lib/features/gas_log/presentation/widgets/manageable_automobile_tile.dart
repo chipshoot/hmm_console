@@ -4,12 +4,14 @@ import '../../domain/entities/automobile.dart';
 
 class ManageableAutomobileTile extends StatelessWidget {
   final Automobile automobile;
+  final String distanceLabel;
   final VoidCallback? onEdit;
   final VoidCallback? onToggleActive;
 
   const ManageableAutomobileTile({
     super.key,
     required this.automobile,
+    this.distanceLabel = 'mi',
     this.onEdit,
     this.onToggleActive,
   });
@@ -68,7 +70,7 @@ class ManageableAutomobileTile extends StatelessWidget {
               if (automobile.engineType != null &&
                   automobile.engineType!.isNotEmpty)
                 automobile.engineType!,
-              '${automobile.meterReading} mi',
+              '${automobile.meterReading} $distanceLabel',
             ].join(' \u2022 '),
           ),
           trailing: Row(

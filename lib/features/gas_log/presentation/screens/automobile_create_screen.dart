@@ -7,6 +7,7 @@ import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../domain/entities/automobile.dart';
+import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../domain/validators/automobile_validator.dart';
 import '../../states/create_automobile_state.dart';
 import '../widgets/date_picker_field.dart';
@@ -79,6 +80,10 @@ class _AutomobileCreateScreenState
   Widget build(BuildContext context) {
     final createState = ref.watch(createAutomobileStateProvider);
     final isLoading = createState.isLoading;
+
+    final settings = ref.watch(gasLogSettingsProvider);
+    final distLabel = settings.distanceUnit.label;
+    final currSymbol = settings.currency.symbol;
 
     ref.listen<AsyncValue<Automobile?>>(createAutomobileStateProvider,
         (_, next) {
@@ -234,7 +239,7 @@ class _AutomobileCreateScreenState
               AppTextFormField(
                 fieldController: _meterReadingCtrl,
                 fieldValidator: validateMeterReading,
-                label: 'Meter Reading (optional)',
+                label: 'Meter Reading ($distLabel)',
               ),
               GapWidgets.h16,
               DatePickerField(
@@ -245,7 +250,7 @@ class _AutomobileCreateScreenState
               AppTextFormField(
                 fieldController: _purchasePriceCtrl,
                 fieldValidator: (_) => null,
-                label: 'Purchase Price (optional)',
+                label: 'Purchase Price ($currSymbol)',
               ),
               GapWidgets.h16,
               OwnershipStatusDropdown(

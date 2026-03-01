@@ -75,6 +75,19 @@ class AuthTokenException extends AppException {
   factory AuthTokenException.exchangeFailed() =>
       const AuthTokenException('TOKEN_EXCHANGE_FAILED', 'Token exchange failed');
 
+  factory AuthTokenException.fromStatusCode(int statusCode) {
+    final message = switch (statusCode) {
+      400 => 'Invalid login request',
+      401 => 'Invalid email or password',
+      403 => 'Account is locked or disabled',
+      404 => 'Authentication service not found',
+      429 => 'Too many login attempts, please try again later',
+      >= 500 => 'Authentication service is unavailable, please try again later',
+      _ => 'Login failed (error $statusCode)',
+    };
+    return AuthTokenException('AUTH_HTTP_$statusCode', message);
+  }
+
   factory AuthTokenException.refreshFailed() =>
       const AuthTokenException('TOKEN_REFRESH_FAILED', 'Token refresh failed');
 

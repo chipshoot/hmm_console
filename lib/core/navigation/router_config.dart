@@ -10,6 +10,7 @@ import 'package:hmm_console/features/gas_log/presentation/screens/automobile_man
 import 'package:hmm_console/features/gas_log/presentation/screens/automobile_selector_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_log_form_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_log_list_screen.dart';
+import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
 
 final routerConfig = Provider<GoRouter>(
   (ref) => GoRouter(
@@ -76,6 +77,11 @@ final routerConfig = Provider<GoRouter>(
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/settings',
+        name: RouterNames.settings.name,
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/gas-logs',

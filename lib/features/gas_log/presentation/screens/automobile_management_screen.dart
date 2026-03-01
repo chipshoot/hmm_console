@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/screen_scaffold.dart';
+import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../domain/entities/automobile.dart';
 import '../../states/automobiles_state.dart';
 import '../../states/deactivate_automobile_state.dart';
@@ -133,8 +134,10 @@ class AutomobileManagementScreen extends ConsumerWidget {
 
   Widget _buildTile(
       BuildContext context, WidgetRef ref, Automobile auto) {
+    final distLabel = ref.watch(gasLogSettingsProvider).distanceUnit.label;
     return ManageableAutomobileTile(
       automobile: auto,
+      distanceLabel: distLabel,
       onEdit: () => context.push('/automobiles/manage/${auto.id}/edit'),
       onToggleActive: () => _confirmToggleActive(context, ref, auto),
     );
