@@ -20,11 +20,23 @@ class GasStationsState extends AsyncNotifier<List<GasStation>> {
       return existing;
     }
 
-    // Create new station
-    final created =
-        await ref.read(gasStationRepositoryProvider).createGasStation(name);
+    // Create new station with name only
+    final created = await ref
+        .read(gasStationRepositoryProvider)
+        .createGasStation(GasStation(name: name));
 
     // Refresh station list
+    state = AsyncValue.data([...stations, created]);
+
+    return created;
+  }
+
+  Future<GasStation> createStation(GasStation station) async {
+    final created =
+        await ref.read(gasStationRepositoryProvider).createGasStation(station);
+
+    // Add to local state
+    final stations = state.value ?? [];
     state = AsyncValue.data([...stations, created]);
 
     return created;

@@ -4,6 +4,7 @@ class ApiGasStation {
   final String? address;
   final String? city;
   final String? state;
+  final String? country;
   final String? zipCode;
   final String? description;
   final bool isActive;
@@ -14,6 +15,7 @@ class ApiGasStation {
     this.address,
     this.city,
     this.state,
+    this.country,
     this.zipCode,
     this.description,
     this.isActive = true,
@@ -26,6 +28,7 @@ class ApiGasStation {
       address: json['Address'] as String? ?? json['address'] as String?,
       city: json['City'] as String? ?? json['city'] as String?,
       state: json['State'] as String? ?? json['state'] as String?,
+      country: json['Country'] as String? ?? json['country'] as String?,
       zipCode: json['ZipCode'] as String? ?? json['zipCode'] as String?,
       description:
           json['Description'] as String? ?? json['description'] as String?,
@@ -37,6 +40,10 @@ class ApiGasStation {
         'name': name,
         if (address != null) 'address': address,
         if (city != null) 'city': city,
+        if (state != null) 'state': state,
+        if (country != null) 'country': country,
+        if (zipCode != null) 'zipCode': zipCode,
+        if (description != null) 'description': description,
         'isActive': isActive,
       };
 }
