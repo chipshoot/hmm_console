@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 class IdpConfig {
   const IdpConfig({
     required this.authority,
@@ -21,10 +23,12 @@ class IdpConfig {
     scopes: 'openid profile hmm.api offline_access',
   );
 
-  static const development = IdpConfig(
-    authority: 'http://localhost:5001',
+  static final development = IdpConfig(
+    authority: 'http://$_devHost:5001',
     clientId: 'hmm.functest',
     clientSecret: 'FuncTestSecret123#',
     scopes: 'openid profile hmmapi offline_access',
   );
+
+  static String get _devHost => Platform.isAndroid ? '10.0.2.2' : 'localhost';
 }

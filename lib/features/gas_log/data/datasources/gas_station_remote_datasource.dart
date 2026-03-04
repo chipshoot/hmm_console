@@ -30,15 +30,42 @@ class GasStationRemoteDataSource {
       '/automobiles/gasstations',
       data: station.toJson(),
     );
-    return ApiGasStation.fromJson(response.data as Map<String, dynamic>);
+    return ApiGasStation.fromJson(_unwrapResponse(response.data));
   }
 
   Future<ApiGasStation> updateGasStation(int id, ApiGasStation station) async {
-    final response = await _apiClient.dio.put(
+    await _apiClient.dio.put(
       '/automobiles/gasstations/$id',
       data: station.toJson(),
     );
-    return ApiGasStation.fromJson(response.data as Map<String, dynamic>);
+    // Backend returns 204 No Content — return the input with the known id
+    return ApiGasStation(
+      id: id,
+      name: station.name,
+      address: station.address,
+      city: station.city,
+      state: station.state,
+      country: station.country,
+      zipCode: station.zipCode,
+      description: station.description,
+      latitude: station.latitude,
+      longitude: station.longitude,
+      isActive: station.isActive,
+    );
+  }
+
+  /// Unwraps the backend's result filter response format.
+  /// Single-item endpoints return { "value": { ...fields... }, "links": [...] }
+  /// where the value object uses PascalCase keys (from ExpandoObject).
+  /// This extracts the value and normalizes keys to camelCase.
+  Map<String, dynamic> _unwrapResponse(dynamic data) {
+    final map = data as Map<String, dynamic>;
+    final value = map['value'] as Map<String, dynamic>? ?? map;
+    return value.map((key, v) {
+      final camelKey =
+          key.isNotEmpty ? key[0].toLowerCase() + key.substring(1) : key;
+      return MapEntry(camelKey, v);
+    });
   }
 
   Future<void> deleteGasStation(int id) async {
