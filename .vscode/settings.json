@@ -1,9 +1,10 @@
 {
-    "java.configuration.workspaces": [
-        "android"
+    "java.configuration.workspaces": [],
+    "java.import.exclusions": [
+        "**/android/**"
     ],
     "gradle.focusTaskInExplorer": true,
-    "gradle.nestedProjects": true,
+    "gradle.nestedProjects": false,
     "files.exclude": {
         "**/.gradle": true,
         "**/build": true
