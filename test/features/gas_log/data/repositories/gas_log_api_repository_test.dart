@@ -49,6 +49,13 @@ class _TestGasLogApiRepository implements IGasLogRepository {
   }
 
   @override
+  Future<GasLog> createHistoryGasLog(int autoId, GasLog gasLog) async {
+    final dto = GasLogApiMapper.toCreationDto(gasLog);
+    final api = await _remote.createHistoryGasLog(autoId, dto);
+    return GasLogApiMapper.fromApi(api);
+  }
+
+  @override
   Future<void> deleteGasLog(int autoId, int id) =>
       _remote.deleteGasLog(autoId, id);
 }

@@ -32,6 +32,9 @@ class _FakeGasLogRepository implements IGasLogRepository {
   Future<GasLog> createGasLog(int autoId, GasLog gasLog) =>
       throw UnimplementedError();
   @override
+  Future<GasLog> createHistoryGasLog(int autoId, GasLog gasLog) =>
+      throw UnimplementedError();
+  @override
   Future<void> deleteGasLog(int autoId, int id) =>
       throw UnimplementedError();
 }

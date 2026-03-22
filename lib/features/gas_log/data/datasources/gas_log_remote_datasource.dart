@@ -85,6 +85,17 @@ class GasLogRemoteDataSource {
     return ApiGasLog.fromJson(_unwrapResponse(response.data));
   }
 
+  Future<ApiGasLog> createHistoryGasLog(
+    int autoId,
+    ApiGasLogForCreation dto,
+  ) async {
+    final response = await _apiClient.dio.post(
+      '/automobiles/$autoId/gaslogs/historylog',
+      data: dto.toJson(),
+    );
+    return ApiGasLog.fromJson(_unwrapResponse(response.data));
+  }
+
   Future<void> deleteGasLog(int autoId, int id) async {
     await _apiClient.dio.delete('/automobiles/$autoId/gaslogs/$id');
   }

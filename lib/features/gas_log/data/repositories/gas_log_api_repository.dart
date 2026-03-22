@@ -42,6 +42,13 @@ class _GasLogApiRepository implements IGasLogRepository {
   }
 
   @override
+  Future<GasLog> createHistoryGasLog(int autoId, GasLog gasLog) async {
+    final dto = GasLogApiMapper.toCreationDto(gasLog);
+    final api = await _remoteDataSource.createHistoryGasLog(autoId, dto);
+    return GasLogApiMapper.fromApi(api);
+  }
+
+  @override
   Future<GasLog> updateGasLog(int autoId, int id, GasLog gasLog) async {
     final dto = GasLogApiMapper.toUpdateDto(gasLog);
     final api = await _remoteDataSource.updateGasLog(autoId, id, dto);

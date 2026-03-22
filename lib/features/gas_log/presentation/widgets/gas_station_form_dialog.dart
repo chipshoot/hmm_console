@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../geocoding/data/repositories/geocoding_repository.dart';
 import '../../domain/entities/gas_station.dart';
 import '../../providers/location_provider.dart';
 import '../../states/gas_stations_state.dart';
@@ -75,9 +76,44 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
           _latitude = position.latitude;
           _longitude = position.longitude;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location captured')),
-        );
+
+        // Reverse geocode to auto-fill address fields
+        try {
+          final geocoding = ref.read(geocodingRepositoryProvider);
+          final address = await geocoding.reverseGeocode(
+            position.latitude,
+            position.longitude,
+          );
+          if (mounted) {
+            setState(() {
+              if (_addressCtrl.text.isEmpty && address.street != null) {
+                _addressCtrl.text = address.street!;
+              }
+              if (_cityCtrl.text.isEmpty && address.city != null) {
+                _cityCtrl.text = address.city!;
+              }
+              if (_stateCtrl.text.isEmpty && address.state != null) {
+                _stateCtrl.text = address.state!;
+              }
+              if (_countryCtrl.text.isEmpty && address.country != null) {
+                _countryCtrl.text = address.country!;
+              }
+              if (_zipCodeCtrl.text.isEmpty && address.zipCode != null) {
+                _zipCodeCtrl.text = address.zipCode!;
+              }
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Location and address captured')),
+            );
+          }
+        } catch (_) {
+          // Geocoding failed but GPS succeeded — still useful
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Location captured (address lookup unavailable)')),
+            );
+          }
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not get location. Check permissions.')),
