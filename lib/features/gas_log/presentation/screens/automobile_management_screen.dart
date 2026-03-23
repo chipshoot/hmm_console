@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,7 +51,7 @@ class AutomobileManagementScreen extends ConsumerWidget {
       child: Stack(
         children: [
           automobilesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator.adaptive()),
             error: (error, _) => Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -146,69 +147,90 @@ class AutomobileManagementScreen extends ConsumerWidget {
   void _confirmToggleActive(
       BuildContext context, WidgetRef ref, Automobile auto) {
     final action = auto.isActive ? 'deactivate' : 'reactivate';
-    showDialog(
+    final actionLabel = action[0].toUpperCase() + action.substring(1);
+    final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
+        Theme.of(context).platform == TargetPlatform.macOS;
+
+    void performAction() {
+      if (auto.isActive) {
+        ref
+            .read(deactivateAutomobileStateProvider.notifier)
+            .deactivate(auto.id);
+      } else {
+        final reactivated = Automobile(
+          id: auto.id,
+          vin: auto.vin,
+          maker: auto.maker,
+          brand: auto.brand,
+          model: auto.model,
+          trim: auto.trim,
+          year: auto.year,
+          color: auto.color,
+          plate: auto.plate,
+          engineType: auto.engineType,
+          fuelType: auto.fuelType,
+          fuelTankCapacity: auto.fuelTankCapacity,
+          cityMPG: auto.cityMPG,
+          highwayMPG: auto.highwayMPG,
+          combinedMPG: auto.combinedMPG,
+          meterReading: auto.meterReading,
+          purchaseMeterReading: auto.purchaseMeterReading,
+          purchaseDate: auto.purchaseDate,
+          purchasePrice: auto.purchasePrice,
+          ownershipStatus: auto.ownershipStatus,
+          isActive: true,
+          soldDate: auto.soldDate,
+          soldMeterReading: auto.soldMeterReading,
+          soldPrice: auto.soldPrice,
+          registrationExpiryDate: auto.registrationExpiryDate,
+          insuranceExpiryDate: auto.insuranceExpiryDate,
+          insuranceProvider: auto.insuranceProvider,
+          insurancePolicyNumber: auto.insurancePolicyNumber,
+          lastServiceDate: auto.lastServiceDate,
+          lastServiceMeterReading: auto.lastServiceMeterReading,
+          nextServiceDueDate: auto.nextServiceDueDate,
+          nextServiceDueMeterReading: auto.nextServiceDueMeterReading,
+          notes: auto.notes,
+        );
+        ref
+            .read(updateAutomobileStateProvider.notifier)
+            .updateAutomobile(auto.id, reactivated);
+      }
+    }
+
+    showAdaptiveDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('${action[0].toUpperCase()}${action.substring(1)} vehicle?'),
+      builder: (ctx) => AlertDialog.adaptive(
+        title: Text('$actionLabel vehicle?'),
         content: Text(
           'Are you sure you want to $action ${auto.displayName}?',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              if (auto.isActive) {
-                ref
-                    .read(deactivateAutomobileStateProvider.notifier)
-                    .deactivate(auto.id);
-              } else {
-                // Reactivate: update with isActive = true
-                final reactivated = Automobile(
-                  id: auto.id,
-                  vin: auto.vin,
-                  maker: auto.maker,
-                  brand: auto.brand,
-                  model: auto.model,
-                  trim: auto.trim,
-                  year: auto.year,
-                  color: auto.color,
-                  plate: auto.plate,
-                  engineType: auto.engineType,
-                  fuelType: auto.fuelType,
-                  fuelTankCapacity: auto.fuelTankCapacity,
-                  cityMPG: auto.cityMPG,
-                  highwayMPG: auto.highwayMPG,
-                  combinedMPG: auto.combinedMPG,
-                  meterReading: auto.meterReading,
-                  purchaseMeterReading: auto.purchaseMeterReading,
-                  purchaseDate: auto.purchaseDate,
-                  purchasePrice: auto.purchasePrice,
-                  ownershipStatus: auto.ownershipStatus,
-                  isActive: true,
-                  soldDate: auto.soldDate,
-                  soldMeterReading: auto.soldMeterReading,
-                  soldPrice: auto.soldPrice,
-                  registrationExpiryDate: auto.registrationExpiryDate,
-                  insuranceExpiryDate: auto.insuranceExpiryDate,
-                  insuranceProvider: auto.insuranceProvider,
-                  insurancePolicyNumber: auto.insurancePolicyNumber,
-                  lastServiceDate: auto.lastServiceDate,
-                  lastServiceMeterReading: auto.lastServiceMeterReading,
-                  nextServiceDueDate: auto.nextServiceDueDate,
-                  nextServiceDueMeterReading: auto.nextServiceDueMeterReading,
-                  notes: auto.notes,
-                );
-                ref
-                    .read(updateAutomobileStateProvider.notifier)
-                    .updateAutomobile(auto.id, reactivated);
-              }
-            },
-            child: Text(action[0].toUpperCase() + action.substring(1)),
-          ),
+          isApple
+              ? CupertinoDialogAction(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                )
+              : TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+          isApple
+              ? CupertinoDialogAction(
+                  isDestructiveAction: auto.isActive,
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    performAction();
+                  },
+                  child: Text(actionLabel),
+                )
+              : FilledButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    performAction();
+                  },
+                  child: Text(actionLabel),
+                ),
         ],
       ),
     );

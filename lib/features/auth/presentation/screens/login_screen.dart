@@ -50,7 +50,7 @@ class LoginScreen extends ConsumerWidget {
     return CommonScreenScaffold(
       title: 'Login',
       child: loginState.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator.adaptive())
           : Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[

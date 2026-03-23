@@ -46,6 +46,10 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
   GasStation? _selectedStation;
   String? _initialStationName;
   bool _totalPriceManuallyEdited = false;
+  bool _odometerManuallyEdited = false;
+  bool _distanceManuallyEdited = false;
+  bool _isUpdatingOdometer = false;
+  bool _isUpdatingDistance = false;
   bool _isHistorical = false;
   String? _odometerGapWarning;
 
@@ -66,6 +70,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     _totalPriceCtrl.addListener(_onTotalPriceChanged);
     _odometerCtrl.addListener(_updateOdometerGapWarning);
     _distanceCtrl.addListener(_updateOdometerGapWarning);
+    _odometerCtrl.addListener(_onOdometerChanged);
+    _distanceCtrl.addListener(_onDistanceChanged);
     if (_isEditing) {
       _populateForm();
     } else {
@@ -73,7 +79,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final auto = _selectedAutomobile;
         if (auto != null && !_isHistorical) {
-          _odometerCtrl.text = auto.meterReading.toString();
+          _setOdometerWithoutNotify(auto.meterReading.toString());
+          _odometerManuallyEdited = true;
         }
       });
     }
@@ -130,6 +137,48 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     }
   }
 
+  void _onOdometerChanged() {
+    if (_isUpdatingOdometer) return;
+    _odometerManuallyEdited = true;
+    if (_distanceManuallyEdited) return;
+
+    final auto = _selectedAutomobile;
+    if (auto == null) return;
+    final odometer = double.tryParse(_odometerCtrl.text);
+    if (odometer == null) return;
+
+    final distance = odometer - auto.meterReading;
+    if (distance >= 0) {
+      _setDistanceWithoutNotify(distance.toStringAsFixed(1));
+    }
+  }
+
+  void _onDistanceChanged() {
+    if (_isUpdatingDistance) return;
+    _distanceManuallyEdited = true;
+    if (_odometerManuallyEdited) return;
+
+    final auto = _selectedAutomobile;
+    if (auto == null) return;
+    final distance = double.tryParse(_distanceCtrl.text);
+    if (distance == null || distance < 0) return;
+
+    final odometer = auto.meterReading + distance;
+    _setOdometerWithoutNotify(odometer.toStringAsFixed(0));
+  }
+
+  void _setOdometerWithoutNotify(String value) {
+    _isUpdatingOdometer = true;
+    _odometerCtrl.text = value;
+    _isUpdatingOdometer = false;
+  }
+
+  void _setDistanceWithoutNotify(String value) {
+    _isUpdatingDistance = true;
+    _distanceCtrl.text = value;
+    _isUpdatingDistance = false;
+  }
+
   void _populateForm() {
     final data = ref.read(gasLogsStateProvider).value;
     if (data == null) return;
@@ -151,8 +200,10 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
         gasLog.fuel, gasLog.fuelUnit, targetFuel);
 
     // Mark as manually edited before populating so auto-calc doesn't
-    // overwrite the stored total price during form pre-fill.
+    // overwrite the stored values during form pre-fill.
     _totalPriceManuallyEdited = true;
+    _odometerManuallyEdited = true;
+    _distanceManuallyEdited = true;
 
     _odometerCtrl.text = odometer.toStringAsFixed(0);
     _distanceCtrl.text = distance.toStringAsFixed(1);
@@ -179,6 +230,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     _totalPriceCtrl.removeListener(_onTotalPriceChanged);
     _odometerCtrl.removeListener(_updateOdometerGapWarning);
     _distanceCtrl.removeListener(_updateOdometerGapWarning);
+    _odometerCtrl.removeListener(_onOdometerChanged);
+    _distanceCtrl.removeListener(_onDistanceChanged);
     _odometerCtrl.dispose();
     _distanceCtrl.dispose();
     _fuelCtrl.dispose();
@@ -226,13 +279,17 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
         onChanged: (v) {
           setState(() {
             _isHistorical = v;
+            _odometerManuallyEdited = false;
+            _distanceManuallyEdited = false;
             if (!v) {
               final auto = _selectedAutomobile;
               if (auto != null) {
-                _odometerCtrl.text = auto.meterReading.toString();
+                _setOdometerWithoutNotify(auto.meterReading.toString());
+                _odometerManuallyEdited = true;
               }
             } else {
-              _odometerCtrl.clear();
+              _setOdometerWithoutNotify('');
+              _setDistanceWithoutNotify('');
               _odometerGapWarning = null;
             }
           });

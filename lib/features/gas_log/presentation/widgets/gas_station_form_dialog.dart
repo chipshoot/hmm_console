@@ -331,7 +331,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                           )
                         : const Icon(Icons.my_location),
                     label: Text(_latitude != null
@@ -356,7 +356,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                                 width: 20,
                                 height: 20,
                                 child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                    CircularProgressIndicator.adaptive(strokeWidth: 2),
                               )
                             : Text(submitLabel),
                       ),

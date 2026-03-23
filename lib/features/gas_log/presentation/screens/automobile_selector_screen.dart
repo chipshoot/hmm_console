@@ -27,7 +27,7 @@ class AutomobileSelectorScreen extends ConsumerWidget {
         ),
       ],
       child: automobilesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator.adaptive()),
         error: (error, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
