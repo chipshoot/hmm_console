@@ -6,12 +6,14 @@ import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
+import '../../domain/entities/automobile.dart';
 import '../../domain/entities/gas_log.dart';
 import '../../domain/entities/gas_station.dart';
 import '../../domain/services/unit_converter.dart';
 import '../../domain/validators/gas_log_validator.dart';
 import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../providers/selected_automobile_provider.dart';
+import '../../states/automobiles_state.dart';
 import '../../states/create_gas_log_state.dart';
 import '../../states/gas_logs_state.dart';
 import '../../states/update_gas_log_state.dart';
@@ -44,8 +46,21 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
   GasStation? _selectedStation;
   String? _initialStationName;
   bool _totalPriceManuallyEdited = false;
+  bool _odometerManuallyEdited = false;
+  bool _distanceManuallyEdited = false;
+  bool _isUpdatingOdometer = false;
+  bool _isUpdatingDistance = false;
+  bool _isHistorical = false;
+  String? _odometerGapWarning;
 
   bool get _isEditing => widget.gasLogId != null;
+
+  Automobile? get _selectedAutomobile {
+    final autoId = ref.read(selectedAutomobileIdProvider);
+    final autos = ref.read(automobilesStateProvider).value;
+    if (autoId == null || autos == null) return null;
+    return autos.where((a) => a.id == autoId).firstOrNull;
+  }
 
   @override
   void initState() {
@@ -53,8 +68,21 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     _fuelCtrl.addListener(_autoCalculateTotalPrice);
     _unitPriceCtrl.addListener(_autoCalculateTotalPrice);
     _totalPriceCtrl.addListener(_onTotalPriceChanged);
+    _odometerCtrl.addListener(_updateOdometerGapWarning);
+    _distanceCtrl.addListener(_updateOdometerGapWarning);
+    _odometerCtrl.addListener(_onOdometerChanged);
+    _distanceCtrl.addListener(_onDistanceChanged);
     if (_isEditing) {
       _populateForm();
+    } else {
+      // Default is real-time; pre-fill odometer from selected automobile
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final auto = _selectedAutomobile;
+        if (auto != null && !_isHistorical) {
+          _setOdometerWithoutNotify(auto.meterReading.toString());
+          _odometerManuallyEdited = true;
+        }
+      });
     }
   }
 
@@ -90,6 +118,67 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     _isUpdatingTotalPrice = false;
   }
 
+  void _updateOdometerGapWarning() {
+    if (_isHistorical || _isEditing) {
+      if (_odometerGapWarning != null) {
+        setState(() => _odometerGapWarning = null);
+      }
+      return;
+    }
+    final auto = _selectedAutomobile;
+    if (auto == null) return;
+    final warning = warnOdometerGap(
+      _odometerCtrl.text,
+      _distanceCtrl.text,
+      auto.meterReading,
+    );
+    if (warning != _odometerGapWarning) {
+      setState(() => _odometerGapWarning = warning);
+    }
+  }
+
+  void _onOdometerChanged() {
+    if (_isUpdatingOdometer) return;
+    _odometerManuallyEdited = true;
+    if (_distanceManuallyEdited) return;
+
+    final auto = _selectedAutomobile;
+    if (auto == null) return;
+    final odometer = double.tryParse(_odometerCtrl.text);
+    if (odometer == null) return;
+
+    final distance = odometer - auto.meterReading;
+    if (distance >= 0) {
+      _setDistanceWithoutNotify(distance.toStringAsFixed(1));
+    }
+  }
+
+  void _onDistanceChanged() {
+    if (_isUpdatingDistance) return;
+    _distanceManuallyEdited = true;
+    if (_odometerManuallyEdited) return;
+
+    final auto = _selectedAutomobile;
+    if (auto == null) return;
+    final distance = double.tryParse(_distanceCtrl.text);
+    if (distance == null || distance < 0) return;
+
+    final odometer = auto.meterReading + distance;
+    _setOdometerWithoutNotify(odometer.toStringAsFixed(0));
+  }
+
+  void _setOdometerWithoutNotify(String value) {
+    _isUpdatingOdometer = true;
+    _odometerCtrl.text = value;
+    _isUpdatingOdometer = false;
+  }
+
+  void _setDistanceWithoutNotify(String value) {
+    _isUpdatingDistance = true;
+    _distanceCtrl.text = value;
+    _isUpdatingDistance = false;
+  }
+
   void _populateForm() {
     final data = ref.read(gasLogsStateProvider).value;
     if (data == null) return;
@@ -111,8 +200,10 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
         gasLog.fuel, gasLog.fuelUnit, targetFuel);
 
     // Mark as manually edited before populating so auto-calc doesn't
-    // overwrite the stored total price during form pre-fill.
+    // overwrite the stored values during form pre-fill.
     _totalPriceManuallyEdited = true;
+    _odometerManuallyEdited = true;
+    _distanceManuallyEdited = true;
 
     _odometerCtrl.text = odometer.toStringAsFixed(0);
     _distanceCtrl.text = distance.toStringAsFixed(1);
@@ -137,6 +228,10 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     _fuelCtrl.removeListener(_autoCalculateTotalPrice);
     _unitPriceCtrl.removeListener(_autoCalculateTotalPrice);
     _totalPriceCtrl.removeListener(_onTotalPriceChanged);
+    _odometerCtrl.removeListener(_updateOdometerGapWarning);
+    _distanceCtrl.removeListener(_updateOdometerGapWarning);
+    _odometerCtrl.removeListener(_onOdometerChanged);
+    _distanceCtrl.removeListener(_onDistanceChanged);
     _odometerCtrl.dispose();
     _distanceCtrl.dispose();
     _fuelCtrl.dispose();
@@ -144,6 +239,67 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
     _unitPriceCtrl.dispose();
     _commentCtrl.dispose();
     super.dispose();
+  }
+
+  Widget _buildHistoricalToggle(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor =
+        _isHistorical ? Colors.amber : Colors.green;
+    final bgColor = isDark
+        ? accentColor.withValues(alpha: 0.15)
+        : (_isHistorical ? Colors.amber.shade50 : Colors.green.shade50);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentColor.withValues(alpha: 0.4)),
+      ),
+      child: SwitchListTile(
+        secondary: Icon(
+          _isHistorical ? Icons.history : Icons.update,
+          color: accentColor.shade700,
+        ),
+        title: Text(
+          _isHistorical ? 'Historical Entry' : 'Live Entry',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: accentColor.shade700,
+          ),
+        ),
+        subtitle: Text(
+          _isHistorical
+              ? 'Backfilling a past fill-up (won\'t update odometer)'
+              : 'Recording a current fill-up (updates odometer)',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        activeThumbColor: Colors.amber,
+        inactiveThumbColor: Colors.green,
+        value: _isHistorical,
+        onChanged: (v) {
+          setState(() {
+            _isHistorical = v;
+            _odometerManuallyEdited = false;
+            _distanceManuallyEdited = false;
+            if (!v) {
+              final auto = _selectedAutomobile;
+              if (auto != null) {
+                _setOdometerWithoutNotify(auto.meterReading.toString());
+                _odometerManuallyEdited = true;
+              }
+            } else {
+              _setOdometerWithoutNotify('');
+              _setDistanceWithoutNotify('');
+              _odometerGapWarning = null;
+            }
+          });
+        },
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
   }
 
   @override
@@ -205,12 +361,35 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                 selectedDate: _selectedDate,
                 onDateChanged: (d) => setState(() => _selectedDate = d),
               ),
+              if (!_isEditing) ...[
+                GapWidgets.h8,
+                _buildHistoricalToggle(context),
+              ],
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _odometerCtrl,
-                fieldValidator: validateOdometer,
+                fieldValidator: (value) {
+                  if (!_isHistorical && !_isEditing) {
+                    final auto = _selectedAutomobile;
+                    if (auto != null) {
+                      return validateOdometerAgainstMeter(
+                          value, auto.meterReading);
+                    }
+                  }
+                  return validateOdometer(value);
+                },
                 label: 'Odometer ($distLabel)',
               ),
+              if (_odometerGapWarning != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 12),
+                  child: Text(
+                    _odometerGapWarning!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.amber.shade700,
+                        ),
+                  ),
+                ),
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _distanceCtrl,
@@ -327,7 +506,9 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
           .read(updateGasLogStateProvider.notifier)
           .updateGasLog(autoId, widget.gasLogId!, gasLog);
     } else {
-      ref.read(createGasLogStateProvider.notifier).create(autoId, gasLog);
+      ref
+          .read(createGasLogStateProvider.notifier)
+          .create(autoId, gasLog, isHistorical: _isHistorical);
     }
   }
 }

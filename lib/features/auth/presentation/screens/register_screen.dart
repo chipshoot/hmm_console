@@ -42,7 +42,7 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
     return CommonScreenScaffold(
       title: 'Sign Up',
       child: registerState.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator.adaptive())
           : SingleChildScrollView(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

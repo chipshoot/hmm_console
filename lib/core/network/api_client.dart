@@ -7,6 +7,8 @@ import 'interceptors/auth_interceptor.dart';
 import 'interceptors/error_interceptor.dart';
 import 'interceptors/logging_interceptor.dart';
 
+const _apiEnv = String.fromEnvironment('API_ENV', defaultValue: 'development');
+
 class ApiClient {
   ApiClient(this.dio);
 
@@ -15,10 +17,11 @@ class ApiClient {
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final tokenService = ref.watch(idpTokenServiceProvider);
+  final config = _apiEnv == 'production' ? ApiConfig.production : ApiConfig.development;
 
   final dio = Dio(
     BaseOptions(
-      baseUrl: ApiConfig.development.baseUrl,
+      baseUrl: config.baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {

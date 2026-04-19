@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,7 +21,7 @@ class GasStationManagementScreen extends ConsumerWidget {
       child: Stack(
         children: [
           stationsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator.adaptive()),
             error: (error, _) => Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -122,37 +123,65 @@ class GasStationManagementScreen extends ConsumerWidget {
   void _confirmToggleActive(
       BuildContext context, WidgetRef ref, GasStation station) {
     final action = station.isActive ? 'deactivate' : 'reactivate';
-    showDialog(
+    final actionLabel = action[0].toUpperCase() + action.substring(1);
+    final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
+        Theme.of(context).platform == TargetPlatform.macOS;
+
+    showAdaptiveDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title:
-            Text('${action[0].toUpperCase()}${action.substring(1)} station?'),
+      builder: (ctx) => AlertDialog.adaptive(
+        title: Text('$actionLabel station?'),
         content: Text(
           'Are you sure you want to $action "${station.name}"?',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              if (station.isActive) {
-                ref
-                    .read(gasStationsStateProvider.notifier)
-                    .deleteStation(station.id!);
-              } else {
-                ref
-                    .read(gasStationsStateProvider.notifier)
-                    .updateStation(
-                      station.id!,
-                      station.copyWith(isActive: true),
-                    );
-              }
-            },
-            child: Text(action[0].toUpperCase() + action.substring(1)),
-          ),
+          isApple
+              ? CupertinoDialogAction(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                )
+              : TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+          isApple
+              ? CupertinoDialogAction(
+                  isDestructiveAction: station.isActive,
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    if (station.isActive) {
+                      ref
+                          .read(gasStationsStateProvider.notifier)
+                          .deleteStation(station.id!);
+                    } else {
+                      ref
+                          .read(gasStationsStateProvider.notifier)
+                          .updateStation(
+                            station.id!,
+                            station.copyWith(isActive: true),
+                          );
+                    }
+                  },
+                  child: Text(actionLabel),
+                )
+              : FilledButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    if (station.isActive) {
+                      ref
+                          .read(gasStationsStateProvider.notifier)
+                          .deleteStation(station.id!);
+                    } else {
+                      ref
+                          .read(gasStationsStateProvider.notifier)
+                          .updateStation(
+                            station.id!,
+                            station.copyWith(isActive: true),
+                          );
+                    }
+                  },
+                  child: Text(actionLabel),
+                ),
         ],
       ),
     );

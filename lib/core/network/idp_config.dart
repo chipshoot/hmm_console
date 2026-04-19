@@ -17,10 +17,10 @@ class IdpConfig {
   String get registerEndpoint => '$authority/api/account/register';
 
   static const production = IdpConfig(
-    authority: 'https://auth.homemademessage.com',
+    authority: 'https://idp.homemademessage.com',
     clientId: 'hmm.web',
     clientSecret: '',
-    scopes: 'openid profile hmm.api offline_access',
+    scopes: 'openid profile hmmapi offline_access',
   );
 
   static final development = IdpConfig(

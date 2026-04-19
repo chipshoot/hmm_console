@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../geocoding/data/repositories/geocoding_repository.dart';
 import '../../domain/entities/gas_station.dart';
 import '../../providers/location_provider.dart';
 import '../../states/gas_stations_state.dart';
@@ -77,56 +78,56 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
         });
 
         // Reverse geocode to auto-fill address fields
-        var message = 'Location captured';
         try {
-          final placemark = await ref.read(
-            reverseGeocodeProvider((
-              latitude: position.latitude,
-              longitude: position.longitude,
-            )).future,
+          final geocoding = ref.read(geocodingRepositoryProvider);
+          final address = await geocoding.reverseGeocode(
+            position.latitude,
+            position.longitude,
           );
-          if (placemark != null && mounted) {
+          if (mounted) {
             setState(() {
-              if (_addressCtrl.text.isEmpty) {
-                _addressCtrl.text = [
-                  placemark.subThoroughfare,
-                  placemark.thoroughfare,
-                ].where((s) => s != null && s.isNotEmpty).join(' ');
+              if (_addressCtrl.text.isEmpty && address.street != null) {
+                _addressCtrl.text = address.street!;
               }
-              if (_cityCtrl.text.isEmpty) {
-                _cityCtrl.text = placemark.locality ?? '';
+              if (_cityCtrl.text.isEmpty && address.city != null) {
+                _cityCtrl.text = address.city!;
               }
-              if (_stateCtrl.text.isEmpty) {
-                _stateCtrl.text = placemark.administrativeArea ?? '';
+              if (_stateCtrl.text.isEmpty && address.state != null) {
+                _stateCtrl.text = address.state!;
               }
-              if (_countryCtrl.text.isEmpty) {
-                _countryCtrl.text = placemark.country ?? '';
+              if (_countryCtrl.text.isEmpty && address.country != null) {
+                _countryCtrl.text = address.country!;
               }
-              if (_zipCodeCtrl.text.isEmpty) {
-                _zipCodeCtrl.text = placemark.postalCode ?? '';
+              if (_zipCodeCtrl.text.isEmpty && address.zipCode != null) {
+                _zipCodeCtrl.text = address.zipCode!;
               }
             });
-            message = 'Location and address captured';
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Location and address captured')),
+            );
           }
         } catch (_) {
-          // Geocoding failed — GPS coordinates are still captured
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          // Geocoding failed but GPS succeeded — still useful
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Location captured (address lookup unavailable)'),
+              ),
+            );
+          }
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not get location. Check permissions.')),
+          const SnackBar(
+            content: Text('Could not get location. Check permissions.'),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Location error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Location error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLocating = false);
@@ -142,14 +143,17 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
       final station = GasStation(
         id: widget.station?.id,
         name: _nameCtrl.text.trim(),
-        address:
-            _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+        address: _addressCtrl.text.trim().isEmpty
+            ? null
+            : _addressCtrl.text.trim(),
         city: _cityCtrl.text.trim().isEmpty ? null : _cityCtrl.text.trim(),
         state: _stateCtrl.text.trim().isEmpty ? null : _stateCtrl.text.trim(),
-        country:
-            _countryCtrl.text.trim().isEmpty ? null : _countryCtrl.text.trim(),
-        zipCode:
-            _zipCodeCtrl.text.trim().isEmpty ? null : _zipCodeCtrl.text.trim(),
+        country: _countryCtrl.text.trim().isEmpty
+            ? null
+            : _countryCtrl.text.trim(),
+        zipCode: _zipCodeCtrl.text.trim().isEmpty
+            ? null
+            : _zipCodeCtrl.text.trim(),
         description: _descriptionCtrl.text.trim().isEmpty
             ? null
             : _descriptionCtrl.text.trim(),
@@ -204,8 +208,10 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                     children: [
                       const Icon(Icons.local_gas_station),
                       const SizedBox(width: 8),
-                      Text(title,
-                          style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -334,12 +340,16 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator.adaptive(
+                              strokeWidth: 2,
+                            ),
                           )
                         : const Icon(Icons.my_location),
-                    label: Text(_latitude != null
-                        ? 'Location: ${_latitude!.toStringAsFixed(4)}, ${_longitude!.toStringAsFixed(4)}'
-                        : 'Capture Location & Address'),
+                    label: Text(
+                      _latitude != null
+                          ? 'Location: ${_latitude!.toStringAsFixed(4)}, ${_longitude!.toStringAsFixed(4)}'
+                          : 'Capture Location & Address',
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -358,8 +368,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator.adaptive(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : Text(submitLabel),
                       ),

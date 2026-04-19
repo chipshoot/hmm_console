@@ -124,7 +124,7 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
             height: 20,
             child: Padding(
               padding: EdgeInsets.all(12),
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator.adaptive(strokeWidth: 2),
             ),
           ),
         ),

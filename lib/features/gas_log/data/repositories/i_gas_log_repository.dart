@@ -12,6 +12,8 @@ abstract interface class IGasLogRepository {
 
   Future<GasLog> createGasLog(int autoId, GasLog gasLog);
 
+  Future<GasLog> createHistoryGasLog(int autoId, GasLog gasLog);
+
   Future<GasLog> updateGasLog(int autoId, int id, GasLog gasLog);
 
   Future<void> deleteGasLog(int autoId, int id);

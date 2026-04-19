@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,7 +57,7 @@ class GasLogListScreen extends ConsumerWidget {
       child: Stack(
         children: [
           gasLogsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator.adaptive()),
             error: (error, _) => Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -166,28 +167,46 @@ class GasLogListScreen extends ConsumerWidget {
     int autoId,
     GasLog gasLog,
   ) {
-    showDialog(
+    final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
+        Theme.of(context).platform == TargetPlatform.macOS;
+    showAdaptiveDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AlertDialog.adaptive(
         title: const Text('Delete Gas Log'),
         content:
             const Text('Are you sure you want to delete this gas log?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ref
-                  .read(deleteGasLogStateProvider.notifier)
-                  .delete(autoId, gasLog.id!);
-            },
-            child: Text('Delete',
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.error)),
-          ),
+          isApple
+              ? CupertinoDialogAction(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                )
+              : TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+          isApple
+              ? CupertinoDialogAction(
+                  isDestructiveAction: true,
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    ref
+                        .read(deleteGasLogStateProvider.notifier)
+                        .delete(autoId, gasLog.id!);
+                  },
+                  child: const Text('Delete'),
+                )
+              : TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    ref
+                        .read(deleteGasLogStateProvider.notifier)
+                        .delete(autoId, gasLog.id!);
+                  },
+                  child: Text('Delete',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.error)),
+                ),
         ],
       ),
     );

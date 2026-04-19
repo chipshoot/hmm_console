@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -151,38 +152,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const Spacer(),
-          PopupMenuButton<String>(
-            offset: const Offset(0, 48),
-            onSelected: (value) {
-              if (value == 'settings') {
-                context.push('/settings');
-              }
-              if (value == 'sign_out') {
-                ref.read(signOutUseCaseProvider).signOut();
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings, size: 20),
-                    SizedBox(width: 12),
-                    Text('Settings'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'sign_out',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, size: 20),
-                    SizedBox(width: 12),
-                    Text('Sign out'),
-                  ],
-                ),
-              ),
-            ],
+          GestureDetector(
+            onTap: _showUserMenu,
             child: _buildAvatar(user, colorScheme),
           ),
         ],
@@ -328,6 +299,85 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showUserMenu() async {
+    final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
+        Theme.of(context).platform == TargetPlatform.macOS;
+
+    if (isApple) {
+      showCupertinoModalPopup(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                context.push('/settings');
+              },
+              child: const Text('Settings'),
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.pop(ctx);
+                ref.read(signOutUseCaseProvider).signOut();
+
+              },
+              child: const Text('Sign out'),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+        ),
+      );
+    } else {
+      final RenderBox button = context.findRenderObject() as RenderBox;
+      final overlay =
+          Overlay.of(context).context.findRenderObject() as RenderBox;
+      final position = RelativeRect.fromRect(
+        Rect.fromPoints(
+          button.localToGlobal(Offset.zero, ancestor: overlay),
+          button.localToGlobal(button.size.bottomRight(Offset.zero),
+              ancestor: overlay),
+        ),
+        Offset.zero & overlay.size,
+      );
+      final value = await showMenu<String>(
+        context: context,
+        position: position,
+        items: [
+          const PopupMenuItem(
+            value: 'settings',
+            child: Row(
+              children: [
+                Icon(Icons.settings, size: 20),
+                SizedBox(width: 12),
+                Text('Settings'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'sign_out',
+            child: Row(
+              children: [
+                Icon(Icons.logout, size: 20),
+                SizedBox(width: 12),
+                Text('Sign out'),
+              ],
+            ),
+          ),
+        ],
+      );
+      if (!mounted) return;
+      if (value == 'settings') {
+        context.push('/settings');
+      } else if (value == 'sign_out') {
+        ref.read(signOutUseCaseProvider).signOut();
+      }
+    }
   }
 
   String _getGreeting() {
