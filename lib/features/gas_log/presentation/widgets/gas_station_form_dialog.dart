@@ -75,9 +75,48 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
           _latitude = position.latitude;
           _longitude = position.longitude;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location captured')),
-        );
+
+        // Reverse geocode to auto-fill address fields
+        var message = 'Location captured';
+        try {
+          final placemark = await ref.read(
+            reverseGeocodeProvider((
+              latitude: position.latitude,
+              longitude: position.longitude,
+            )).future,
+          );
+          if (placemark != null && mounted) {
+            setState(() {
+              if (_addressCtrl.text.isEmpty) {
+                _addressCtrl.text = [
+                  placemark.subThoroughfare,
+                  placemark.thoroughfare,
+                ].where((s) => s != null && s.isNotEmpty).join(' ');
+              }
+              if (_cityCtrl.text.isEmpty) {
+                _cityCtrl.text = placemark.locality ?? '';
+              }
+              if (_stateCtrl.text.isEmpty) {
+                _stateCtrl.text = placemark.administrativeArea ?? '';
+              }
+              if (_countryCtrl.text.isEmpty) {
+                _countryCtrl.text = placemark.country ?? '';
+              }
+              if (_zipCodeCtrl.text.isEmpty) {
+                _zipCodeCtrl.text = placemark.postalCode ?? '';
+              }
+            });
+            message = 'Location and address captured';
+          }
+        } catch (_) {
+          // Geocoding failed — GPS coordinates are still captured
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not get location. Check permissions.')),
@@ -300,7 +339,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                         : const Icon(Icons.my_location),
                     label: Text(_latitude != null
                         ? 'Location: ${_latitude!.toStringAsFixed(4)}, ${_longitude!.toStringAsFixed(4)}'
-                        : 'Capture Current Location'),
+                        : 'Capture Location & Address'),
                   ),
                   const SizedBox(height: 20),
                   Row(

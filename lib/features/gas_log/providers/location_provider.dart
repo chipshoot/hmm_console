@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 /// Provides the user's current GPS position, handling permissions.
@@ -23,6 +24,23 @@ final currentPositionProvider = FutureProvider<Position?>((ref) async {
     ),
   );
 });
+
+/// Reverse geocodes coordinates into a Placemark (address, city, state, etc.).
+/// Returns null if geocoding fails.
+final reverseGeocodeProvider = FutureProvider.family<Placemark?,
+    ({double latitude, double longitude})>(
+  (ref, coords) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        coords.latitude,
+        coords.longitude,
+      );
+      return placemarks.isNotEmpty ? placemarks.first : null;
+    } catch (_) {
+      return null;
+    }
+  },
+);
 
 /// Calculate distance in km between two lat/lng points using Haversine formula.
 double distanceInKm(

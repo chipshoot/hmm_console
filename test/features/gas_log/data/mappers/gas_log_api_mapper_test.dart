@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/gas_log/data/mappers/gas_log_api_mapper.dart';
-import 'package:hmm_console/features/gas_log/data/models/api_gas_log.dart';
 
 import '../../helpers/gas_log_fixtures.dart';
 
