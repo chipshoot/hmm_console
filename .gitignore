@@ -48,3 +48,8 @@ app.*.map.json
 # Windows reserved device name
 nul
 .vscode/settings.json
+
+# Signing keys
+android/key.properties
+*.jks
+*.keystore

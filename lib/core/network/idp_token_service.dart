@@ -191,9 +191,11 @@ class IdpTokenService {
   }
 }
 
+const _apiEnv = String.fromEnvironment('API_ENV', defaultValue: 'development');
+
 final idpTokenServiceProvider = Provider<IdpTokenService>(
   (ref) => IdpTokenService(
     tokenStorage: ref.watch(tokenStorageProvider),
-    config: IdpConfig.development,
+    config: _apiEnv == 'production' ? IdpConfig.production : IdpConfig.development,
   ),
 );
