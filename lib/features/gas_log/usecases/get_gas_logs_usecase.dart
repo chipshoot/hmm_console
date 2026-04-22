@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/pagination.dart';
-import '../data/repositories/gas_log_api_repository.dart';
+import '../../../../core/data/repository_providers.dart';
 import '../data/repositories/i_gas_log_repository.dart';
 import '../domain/entities/gas_log.dart';
 
@@ -29,5 +29,5 @@ class _GetGasLogsUseCase implements GetGasLogsUseCase {
 }
 
 final getGasLogsUseCaseProvider = Provider<GetGasLogsUseCase>(
-  (ref) => _GetGasLogsUseCase(ref.watch(gasLogRepositoryProvider)),
+  (ref) => _GetGasLogsUseCase(ref.watch(gasLogRepositoryModeProvider)),
 );

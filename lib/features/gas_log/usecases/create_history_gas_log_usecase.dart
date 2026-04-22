@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/repositories/gas_log_api_repository.dart';
+import '../../../../core/data/repository_providers.dart';
 import '../data/repositories/i_gas_log_repository.dart';
 import '../domain/entities/gas_log.dart';
 
@@ -21,5 +21,5 @@ class _CreateHistoryGasLogUseCase implements CreateHistoryGasLogUseCase {
 
 final createHistoryGasLogUseCaseProvider =
     Provider<CreateHistoryGasLogUseCase>(
-  (ref) => _CreateHistoryGasLogUseCase(ref.watch(gasLogRepositoryProvider)),
+  (ref) => _CreateHistoryGasLogUseCase(ref.watch(gasLogRepositoryModeProvider)),
 );

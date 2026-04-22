@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/repository_providers.dart';
 import '../data/repositories/automobile_repository.dart';
 import '../domain/entities/automobile.dart';
 
@@ -19,5 +20,5 @@ class _UpdateAutomobileUseCase implements UpdateAutomobileUseCase {
 }
 
 final updateAutomobileUseCaseProvider = Provider<UpdateAutomobileUseCase>(
-  (ref) => _UpdateAutomobileUseCase(ref.watch(automobileRepositoryProvider)),
+  (ref) => _UpdateAutomobileUseCase(ref.watch(automobileRepositoryModeProvider)),
 );

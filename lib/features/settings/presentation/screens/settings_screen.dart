@@ -1,6 +1,9 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
+import '../../../../core/data/data_mode.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../domain/gas_log_units.dart';
@@ -9,9 +12,41 @@ import '../../providers/gas_log_settings_provider.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  Future<void> _pickDatabaseFolder(BuildContext context, WidgetRef ref) async {
+    final result = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Choose database folder',
+    );
+    if (result == null) return;
+
+    final newPath = p.join(result, 'hmm.db');
+    await updateDatabasePath(newPath);
+    ref.invalidate(databasePathProvider);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Database location set to $result. Restart app to apply.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _resetToDefault(BuildContext context, WidgetRef ref) async {
+    await updateDatabasePath('');
+    ref.invalidate(databasePathProvider);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reset to default location. Restart app to apply.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(gasLogSettingsProvider);
+    final dataMode = ref.watch(dataModeProvider);
+    final dbPathAsync = ref.watch(databasePathProvider);
 
     return CommonScreenScaffold(
       title: 'Settings',
@@ -19,6 +54,86 @@ class SettingsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              'Data Storage',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            GapWidgets.h16,
+            DropdownButtonFormField<DataMode>(
+              initialValue: dataMode,
+              decoration: const InputDecoration(
+                labelText: 'Storage Mode',
+                border: OutlineInputBorder(),
+              ),
+              items: DataMode.values
+                  .map((m) => DropdownMenuItem(
+                        value: m,
+                        child: Text(m.displayName),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  ref.read(dataModeProvider.notifier).setMode(v);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Switched to ${v.displayName}. Restart app to apply.'),
+                    ),
+                  );
+                }
+              },
+            ),
+            if (dataMode == DataMode.local) ...[
+              GapWidgets.h16,
+              dbPathAsync.when(
+                data: (path) => InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Database Location',
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          path,
+                          style: Theme.of(context).textTheme.bodySmall,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Text('Error: $e'),
+              ),
+              GapWidgets.h8,
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _pickDatabaseFolder(context, ref),
+                    icon: const Icon(Icons.folder_open, size: 18),
+                    label: const Text('Change Location'),
+                  ),
+                  GapWidgets.w8,
+                  TextButton(
+                    onPressed: () => _resetToDefault(context, ref),
+                    child: const Text('Reset to Default'),
+                  ),
+                ],
+              ),
+              GapWidgets.h8,
+              Text(
+                'Choose a cloud-synced folder (iCloud Drive, OneDrive, Dropbox) for automatic backup.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+            GapWidgets.h24,
+            const Divider(),
+            GapWidgets.h24,
             Text(
               'Gas Log Defaults',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(

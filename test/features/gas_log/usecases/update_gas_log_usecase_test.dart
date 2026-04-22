@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/network/pagination.dart';
-import 'package:hmm_console/features/gas_log/data/repositories/gas_log_api_repository.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/gas_log/data/repositories/i_gas_log_repository.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/gas_log.dart';
 import 'package:hmm_console/features/gas_log/usecases/update_gas_log_usecase.dart';
@@ -48,7 +48,7 @@ void main() {
       fakeRepo = _FakeGasLogRepository();
       container = ProviderContainer(
         overrides: [
-          gasLogRepositoryProvider.overrideWithValue(fakeRepo),
+          gasLogRepositoryModeProvider.overrideWithValue(fakeRepo),
         ],
       );
       addTearDown(container.dispose);

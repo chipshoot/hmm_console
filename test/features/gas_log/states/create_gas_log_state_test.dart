@@ -1,12 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/network/pagination.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/gas_log/data/repositories/gas_station_repository.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/gas_log.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/gas_station.dart';
 import 'package:hmm_console/features/gas_log/providers/selected_automobile_provider.dart';
 import 'package:hmm_console/features/gas_log/states/create_gas_log_state.dart';
+import 'package:hmm_console/features/gas_log/domain/entities/automobile.dart';
 import 'package:hmm_console/features/gas_log/usecases/create_gas_log_usecase.dart';
+import 'package:hmm_console/features/gas_log/usecases/get_automobiles_usecase.dart';
 import 'package:hmm_console/features/gas_log/usecases/get_gas_logs_usecase.dart';
 
 import '../helpers/gas_log_fixtures.dart';
@@ -42,6 +45,11 @@ class _FakeGetGasLogsUseCase implements GetGasLogsUseCase {
   }
 }
 
+class _FakeGetAutomobilesUseCase implements GetAutomobilesUseCase {
+  @override
+  Future<List<Automobile>> call() async => [];
+}
+
 class _FakeGasStationRepository implements IGasStationRepository {
   @override
   Future<List<GasStation>> getGasStations() async => [];
@@ -70,7 +78,9 @@ void main() {
           createGasLogUseCaseProvider.overrideWithValue(fakeCreateUseCase),
           getGasLogsUseCaseProvider
               .overrideWithValue(_FakeGetGasLogsUseCase()),
-          gasStationRepositoryProvider
+          getAutomobilesUseCaseProvider
+              .overrideWithValue(_FakeGetAutomobilesUseCase()),
+          gasStationRepositoryModeProvider
               .overrideWithValue(_FakeGasStationRepository()),
         ],
       );

@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/navigation/router.dart';
 import 'package:hmm_console/core/theme/theme.dart';
 import 'firebase_options.dart';
@@ -13,7 +14,14 @@ Future<void> main() async {
   //   await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
   // }
 
-  runApp(const ProviderScope(child: MainApp()));
+  final db = await createHmmDatabase();
+
+  runApp(ProviderScope(
+    overrides: [
+      hmmDatabaseProvider.overrideWithValue(db),
+    ],
+    child: const MainApp(),
+  ));
 }
 
 class MainApp extends ConsumerWidget {
