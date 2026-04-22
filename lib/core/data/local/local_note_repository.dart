@@ -6,6 +6,8 @@ import 'database.dart';
 
 abstract interface class INoteRepository {
   Future<PaginatedResponse<Note>> getNotes({
+    int? catalogId,
+    int? parentNoteId,
     int page = 1,
     int pageSize = 20,
     bool includeDeleted = false,
@@ -18,12 +20,6 @@ abstract interface class INoteRepository {
   Future<Note> updateNote(int id, NotesCompanion note);
 
   Future<void> deleteNote(int id);
-
-  Future<PaginatedResponse<Note>> getNotesBySubjectPrefix(
-    String prefix, {
-    int page = 1,
-    int pageSize = 20,
-  });
 }
 
 class LocalNoteRepository implements INoteRepository {
@@ -33,20 +29,27 @@ class LocalNoteRepository implements INoteRepository {
 
   @override
   Future<PaginatedResponse<Note>> getNotes({
+    int? catalogId,
+    int? parentNoteId,
     int page = 1,
     int pageSize = 20,
     bool includeDeleted = false,
   }) async {
-    var query = _db.select(_db.notes);
-    if (!includeDeleted) {
-      query.where((n) => n.isDeleted.equals(false));
+    Expression<bool> buildWhere($NotesTable n) {
+      Expression<bool> expr = const Constant(true);
+      if (!includeDeleted) expr = expr & n.deletedAt.isNull();
+      if (catalogId != null) expr = expr & n.catalogId.equals(catalogId);
+      if (parentNoteId != null) expr = expr & n.parentNoteId.equals(parentNoteId);
+      return expr;
     }
 
-    final totalCount = await query.get().then((r) => r.length);
+    final totalCount = await (_db.select(_db.notes)..where(buildWhere))
+        .get()
+        .then((r) => r.length);
     final totalPages = (totalCount / pageSize).ceil();
 
     final items = await (_db.select(_db.notes)
-          ..where((n) => includeDeleted ? const Constant(true) : n.isDeleted.equals(false))
+          ..where(buildWhere)
           ..orderBy([(n) => OrderingTerm.desc(n.lastModifiedDate)])
           ..limit(pageSize, offset: (page - 1) * pageSize))
         .get();
@@ -93,37 +96,14 @@ class LocalNoteRepository implements INoteRepository {
 
   @override
   Future<void> deleteNote(int id) async {
+    final now = DateTime.now().toUtc();
     await (_db.update(_db.notes)..where((n) => n.id.equals(id)))
-        .write(const NotesCompanion(isDeleted: Value(true)));
+        .write(NotesCompanion(
+      deletedAt: Value(now),
+      lastModifiedDate: Value(now),
+    ));
   }
 
-  @override
-  Future<PaginatedResponse<Note>> getNotesBySubjectPrefix(
-    String prefix, {
-    int page = 1,
-    int pageSize = 20,
-  }) async {
-    final countQuery = _db.select(_db.notes)
-      ..where((n) => n.subject.like('$prefix%') & n.isDeleted.equals(false));
-    final totalCount = await countQuery.get().then((r) => r.length);
-    final totalPages = (totalCount / pageSize).ceil();
-
-    final items = await (_db.select(_db.notes)
-          ..where((n) => n.subject.like('$prefix%') & n.isDeleted.equals(false))
-          ..orderBy([(n) => OrderingTerm.desc(n.lastModifiedDate)])
-          ..limit(pageSize, offset: (page - 1) * pageSize))
-        .get();
-
-    return PaginatedResponse(
-      items: items,
-      meta: PaginationMeta(
-        totalCount: totalCount,
-        pageSize: pageSize,
-        currentPage: page,
-        totalPages: totalPages,
-      ),
-    );
-  }
 }
 
 final localNoteRepositoryProvider = Provider<INoteRepository>((ref) {

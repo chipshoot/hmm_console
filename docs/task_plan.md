@@ -48,11 +48,15 @@ All modes read/write the same local SQLite store. Cloud modes layer a sync engin
 
 ## Phases
 
-### Phase 1: Scope & Design Decisions — `in_progress`
-- [ ] User confirms mode model (2 vs 3) and initial feature scope
-- [ ] Decide conflict resolution policy
-- [ ] Pick initial cloud providers for v1 (likely iCloud + API, OneDrive later)
-- [ ] Document the sync contract (push / pull / merge semantics)
+### Phase 1: Scope & Design Decisions — `complete`
+- [x] Mode model = three modes (Local / CloudStorage / CloudApi)
+- [x] Feature scope = all data-backed features
+- [x] CloudStorage provider v1 = OneDrive only
+- [x] OneDrive layout = per-entity JSON + manifest
+- [x] Conflict resolution = LWW via `updated_at`
+- [x] gas_log local store = migrate Hive → SQLite (de facto already done on branch)
+- [x] Data model = Path C (unified notes + typed Dart views)
+- [x] Sync contract documented (`docs/sync_contract.md`)
 
 ### Phase 2: OneDrive Research & Azure Setup — `pending`
 - [ ] Register app in Azure AD; capture client ID + redirect URIs
@@ -61,38 +65,51 @@ All modes read/write the same local SQLite store. Cloud modes layer a sync engin
 - [ ] Confirm `Files.ReadWrite.AppFolder` scope gives expected sandbox
 - [ ] Decide on data layout (per-entity JSON + manifest vs SQLite blob)
 
-### Phase 3: Note-Centric Local Schema (Path C) — `pending`
-- [ ] Design SQLite schema:
-  - `notes`: `id`, `catalog_id`, `parent_note_id` (nullable, self-FK), `author_id`, `title`, `body`, `payload` (JSON), `created_at`, `updated_at`, `deleted_at`
-  - `note_catalogs`: `id`, `name`, `display_name`, `parent_catalog_id` (nullable, for automobile → gas_log/maintenance/… hierarchy)
-  - `authors`: `id`, `display_name`, `email`
-  - `tags`: `id`, `name`
-  - `note_tags`: `note_id`, `tag_id` (composite PK)
-  - `attachments`: `id`, `note_id`, `filename`, `mime_type`, `size`, `local_path`, `remote_path`, `created_at`, `updated_at`, `deleted_at`
-  - Indexes: `notes(updated_at)`, `notes(catalog_id, deleted_at)`, `notes(parent_note_id)`, `attachments(note_id)`, `attachments(updated_at)`
-- [ ] Migrations: initial schema + seed rows in `note_catalogs` (`automobile`, `gas_log` with parent=automobile)
-- [ ] Hive → SQLite migration: one-shot on first launch reading existing Hive boxes
-  - Automobiles → notes with `catalog='automobile'`
-  - Gas logs → notes with `catalog='gas_log'`, `parent_note_id=<automobile note id>`
-- [ ] `NoteRepository` (generic CRUD + `watchByCatalog`, `watchByParent`)
-- [ ] `AttachmentRepository` (CRUD + binary file handling)
-- [ ] Codec layer: per-catalog Dart encoders/decoders (`Automobile ↔ Note`, `GasLog ↔ Note`)
-- [ ] Typed repositories (`AutomobileRepository`, `GasLogRepository`) delegating to `NoteRepository`
+### Phase 3: Note-Centric Local Schema (Path C) — `in_progress`
 
-### Phase 3b: Redesign DataMode Model — `pending`
-- [ ] Update `lib/core/data/data_mode.dart` to three-mode enum + optional provider
-- [ ] Persist selection + provider choice via SharedPreferences
-- [ ] Update `dataModeProvider` consumers
+**Already in place on the branch before this session:**
+- [x] SQLite schema (Drift): `Authors`, `NoteCatalogs`, `Notes`, `Tags`, `NoteTagRefs`
+- [x] `LocalNoteRepository` (generic CRUD)
+- [x] Typed local repos (`LocalAutomobileRepository`, `LocalGasLogRepository`, `LocalGasStationRepository`, `LocalAuthorRepository`, `LocalNoteCatalogRepository`, `LocalTagRepository`) encoding/decoding via `notes.content` JSON
+- [x] DataMode-based routing in `repository_providers.dart`
 
-### Phase 4: Sync Engine Abstraction — `pending`
-- [ ] Define `CloudSyncProvider` interface (push note, push attachment, pull manifest, pull blob, LWW merge)
-- [ ] Implement `ApiSyncProvider` (maps notes → `/notes` + `/notecatalogs` + `/tags` REST endpoints; attachments via API upload)
-- [ ] Implement `OneDriveSyncProvider` (Graph REST + AppFolder)
-  - Notes: `/notes/<id>.json`
-  - Attachments: `/attachments/<id>.<ext>`
-  - Index: `/manifest.json` (notes + attachments with `updated_at` / `deleted`)
-- [ ] Sync trigger points (app start, on write, manual button, optional periodic)
-- [ ] LWW resolution: compare `updated_at` per note / attachment
+**Completed this session (schemaVersion 1 → 2 migration):**
+- [x] Added `notes.parent_note_id` (nullable self-FK) + index
+- [x] Added `notes.deleted_at` (datetime tombstone) + migration backfill from old `is_deleted` flag
+- [x] Added indexes on `notes.last_modified_date`, `notes.catalog_id`, `notes.parent_note_id`
+- [x] New `attachments` table with indexes on `note_id` and `last_modified_date`
+- [x] `LocalNoteRepository` updated: `deletedAt.isNull()` filters + tombstone on delete
+- [x] Drift codegen regenerated, `flutter analyze` clean, all 289 tests pass
+
+**Still pending:**
+- [x] `AttachmentRepository` (CRUD + binary file handling) — done 2026-04-21
+- [x] Replace subject-hack with clean `catalog_id` + `parent_note_id` queries (done 2026-04-21)
+- [ ] Hive legacy cleanup — verify no remaining Hive usage, remove dead code if any
+- [ ] Seed `automobile` and `gas_log` rows in `note_catalogs` at startup (if not already)
+- [ ] One-time migration of existing v1 note rows: populate `parent_note_id` from old subject `"GasLog,AutomobileId:N"` pattern (optional — only needed if beta users have pre-refactor data)
+
+### Phase 3b: Redesign DataMode Model — `complete`
+- [x] Three-mode enum (`local`, `cloudStorage`, `cloudApi`) with `displayName` + `description`
+- [x] New `CloudProvider` enum (`onedrive`) with persistence via `cloudProviderProvider`
+- [x] `DataModeNotifier` preserves legacy `'api'` persisted value (maps → `cloudApi`)
+- [x] `repository_providers.dart` routes `local` + `cloudStorage` to SQLite, `cloudApi` to API repos (via `_useLocal` helper)
+- [x] Settings screen shows provider sub-picker when CloudStorage is selected; per-mode description text
+- [x] `flutter analyze` clean, 289 tests pass
+
+### Phase 4: Sync Engine Abstraction — `in_progress`
+- [x] `CloudSyncProvider` interface (`lib/core/data/sync/cloud_sync_provider.dart`)
+- [x] Shared value types: `NoteBlob`, `AttachmentBlob`, `ManifestEntry`, `SyncManifest`, `SyncRequest`, `SyncResult`, `SyncError` (`sync_models.dart`)
+- [x] `SyncMetaRepository` — per-provider `lastPushedAt` cursor in SharedPreferences
+- [x] `OneDriveAuth` stub (flutter_appauth + secure storage integration pending)
+- [x] `OneDriveSyncProvider` stub — returns a typed `SyncResult.failed` until Graph wiring lands
+- [x] `ApiSyncProvider` stub — returns `SyncResult.failed` until REST wiring lands
+- [x] `SyncOrchestrator` — selects provider from DataMode + CloudProvider, collects changed notes via `lastModifiedDate > cursor`, advances cursor on success
+- [x] "Sync now" button wired in Settings (visible only when `mode != Local`)
+- [x] Attachment collection in orchestrator (`_collectChangedAttachments` reads row + binary bytes from disk, skips tombstones)
+- [ ] Real OneDrive Graph implementation (push/pull notes + attachments + manifest)
+- [ ] Real API implementation (maps to `/notes` + `/notecatalogs` + `/tags` REST endpoints)
+- [ ] Apply-pulled-note / apply-pulled-attachment logic in orchestrator (LWW merge into local SQLite + filesystem)
+- [ ] Optional sync triggers (app resume, on write, periodic timer)
 
 ### Phase 5: Settings UI — `pending`
 - [ ] Update `settings_screen.dart` with mode picker + provider picker

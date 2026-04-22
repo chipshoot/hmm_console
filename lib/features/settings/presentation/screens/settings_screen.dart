@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/data/sync/sync_orchestrator.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../domain/gas_log_units.dart';
@@ -42,10 +43,31 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _syncNow(BuildContext context, WidgetRef ref) async {
+    final orchestrator = ref.read(syncOrchestratorProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(const SnackBar(content: Text('Syncing…')));
+    final result = await orchestrator.syncNow();
+    messenger.clearSnackBars();
+    if (result.success) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(
+          'Synced — pushed ${result.pushedNotes} / pulled ${result.pulledNotes} notes',
+        ),
+      ));
+    } else {
+      messenger.showSnackBar(SnackBar(
+        content: Text('Sync failed: ${result.errors.first.message}'),
+        duration: const Duration(seconds: 6),
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(gasLogSettingsProvider);
     final dataMode = ref.watch(dataModeProvider);
+    final cloudProvider = ref.watch(cloudProviderProvider);
     final dbPathAsync = ref.watch(databasePathProvider);
 
     return CommonScreenScaffold(
@@ -84,6 +106,42 @@ class SettingsScreen extends ConsumerWidget {
                 }
               },
             ),
+            GapWidgets.h8,
+            Text(
+              dataMode.description,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            if (dataMode == DataMode.cloudStorage) ...[
+              GapWidgets.h16,
+              DropdownButtonFormField<CloudProvider>(
+                initialValue: cloudProvider,
+                decoration: const InputDecoration(
+                  labelText: 'Cloud Provider',
+                  border: OutlineInputBorder(),
+                ),
+                items: CloudProvider.values
+                    .map((p) => DropdownMenuItem(
+                          value: p,
+                          child: Text(p.displayName),
+                        ))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) {
+                    ref.read(cloudProviderProvider.notifier).setProvider(v);
+                  }
+                },
+              ),
+            ],
+            if (dataMode != DataMode.local) ...[
+              GapWidgets.h16,
+              FilledButton.icon(
+                onPressed: () => _syncNow(context, ref),
+                icon: const Icon(Icons.sync),
+                label: const Text('Sync now'),
+              ),
+            ],
             if (dataMode == DataMode.local) ...[
               GapWidgets.h16,
               dbPathAsync.when(
@@ -122,13 +180,6 @@ class SettingsScreen extends ConsumerWidget {
                     child: const Text('Reset to Default'),
                   ),
                 ],
-              ),
-              GapWidgets.h8,
-              Text(
-                'Choose a cloud-synced folder (iCloud Drive, OneDrive, Dropbox) for automatic backup.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
               ),
             ],
             GapWidgets.h24,

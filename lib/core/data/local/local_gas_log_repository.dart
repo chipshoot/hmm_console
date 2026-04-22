@@ -28,8 +28,13 @@ class LocalGasLogRepository implements IGasLogRepository {
     int page = 1,
     int pageSize = 20,
   }) async {
-    final result = await _noteRepo.getNotesBySubjectPrefix(
-      'GasLog,AutomobileId:$autoId',
+    final catalog = await _catalogRepo.getOrCreateCatalog(
+      _gasLogCatalogName,
+      _gasLogCatalogSchema,
+    );
+    final result = await _noteRepo.getNotes(
+      catalogId: catalog.id,
+      parentNoteId: autoId,
       page: page,
       pageSize: pageSize,
     );
@@ -61,13 +66,22 @@ class LocalGasLogRepository implements IGasLogRepository {
 
     final content = _serializeGasLog(gasLog);
     final note = await _noteRepo.createNote(NotesCompanion.insert(
-      subject: 'GasLog,AutomobileId:${gasLog.automobileId}',
+      subject: _subjectFor(gasLog),
       content: Value(content),
       authorId: author.id,
       catalogId: Value(catalog.id),
+      parentNoteId: Value(gasLog.automobileId),
     ));
 
     return _deserializeGasLog(note)!;
+  }
+
+  String _subjectFor(GasLog log) {
+    final date = log.date.toIso8601String().substring(0, 10);
+    final where = (log.stationName != null && log.stationName!.isNotEmpty)
+        ? ' @ ${log.stationName}'
+        : '';
+    return 'Fill-up $date$where';
   }
 
   @override

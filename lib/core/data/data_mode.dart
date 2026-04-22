@@ -7,11 +7,30 @@ import 'local/database.dart';
 
 enum DataMode {
   local,
-  api;
+  cloudStorage,
+  cloudApi;
 
   String get displayName => switch (this) {
         local => 'Local (Offline)',
-        api => 'Cloud (API)',
+        cloudStorage => 'Cloud Storage',
+        cloudApi => 'Cloud (API)',
+      };
+
+  String get description => switch (this) {
+        local =>
+          'Your data stays on this device. No sync, no account needed.',
+        cloudStorage =>
+          'Data is stored locally and synced to your personal cloud account (OneDrive).',
+        cloudApi =>
+          'Data is stored locally and synced with the Hmm backend API.',
+      };
+}
+
+enum CloudProvider {
+  onedrive;
+
+  String get displayName => switch (this) {
+        onedrive => 'OneDrive',
       };
 }
 
@@ -27,9 +46,12 @@ class DataModeNotifier extends Notifier<DataMode> {
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_key);
-    if (stored == 'api') {
-      state = DataMode.api;
-    }
+    state = switch (stored) {
+      'cloudStorage' => DataMode.cloudStorage,
+      // Backward compat: legacy 'api' value maps to the new cloudApi mode.
+      'cloudApi' || 'api' => DataMode.cloudApi,
+      _ => DataMode.local,
+    };
   }
 
   Future<void> setMode(DataMode mode) async {
@@ -39,8 +61,37 @@ class DataModeNotifier extends Notifier<DataMode> {
   }
 }
 
+class CloudProviderNotifier extends Notifier<CloudProvider> {
+  static const _key = 'cloud_provider';
+
+  @override
+  CloudProvider build() {
+    _loadFromPrefs();
+    return CloudProvider.onedrive;
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_key);
+    if (stored == CloudProvider.onedrive.name) {
+      state = CloudProvider.onedrive;
+    }
+  }
+
+  Future<void> setProvider(CloudProvider provider) async {
+    state = provider;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, provider.name);
+  }
+}
+
 final dataModeProvider = NotifierProvider<DataModeNotifier, DataMode>(
   () => DataModeNotifier(),
+);
+
+final cloudProviderProvider =
+    NotifierProvider<CloudProviderNotifier, CloudProvider>(
+  () => CloudProviderNotifier(),
 );
 
 final databasePathProvider = FutureProvider<String>((ref) async {

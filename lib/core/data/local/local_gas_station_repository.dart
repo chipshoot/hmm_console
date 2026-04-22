@@ -22,8 +22,12 @@ class LocalGasStationRepository implements IGasStationRepository {
 
   @override
   Future<List<GasStation>> getGasStations() async {
-    final result = await _noteRepo.getNotesBySubjectPrefix(
-      'GasStation',
+    final catalog = await _catalogRepo.getOrCreateCatalog(
+      _stationCatalogName,
+      _stationCatalogSchema,
+    );
+    final result = await _noteRepo.getNotes(
+      catalogId: catalog.id,
       pageSize: 200,
     );
     return result.items
@@ -44,16 +48,12 @@ class LocalGasStationRepository implements IGasStationRepository {
 
     final content = _serialize(station);
     final note = await _noteRepo.createNote(NotesCompanion.insert(
-      subject: 'GasStation,Id:0',
+      subject: station.name.isNotEmpty ? station.name : 'Gas Station',
       content: Value(content),
       authorId: authors.first.id,
       catalogId: Value(catalog.id),
     ));
 
-    await _noteRepo.updateNote(
-      note.id,
-      NotesCompanion(subject: Value('GasStation,Id:${note.id}')),
-    );
     return _deserialize(note)!.copyWith(id: note.id);
   }
 

@@ -22,8 +22,12 @@ class LocalAutomobileRepository implements IAutomobileRepository {
 
   @override
   Future<List<Automobile>> getAutomobiles() async {
-    final result = await _noteRepo.getNotesBySubjectPrefix(
-      'AutomobileInfo',
+    final catalog = await _catalogRepo.getOrCreateCatalog(
+      _autoCatalogName,
+      _autoCatalogSchema,
+    );
+    final result = await _noteRepo.getNotes(
+      catalogId: catalog.id,
       pageSize: 100,
     );
     return result.items
@@ -51,18 +55,25 @@ class LocalAutomobileRepository implements IAutomobileRepository {
 
     final content = _serialize(automobile);
     final note = await _noteRepo.createNote(NotesCompanion.insert(
-      subject: 'AutomobileInfo,Id:0',
+      subject: _subjectFor(automobile),
       content: Value(content),
       authorId: authors.first.id,
       catalogId: Value(catalog.id),
     ));
 
-    final created = _deserialize(note)!;
-    await _noteRepo.updateNote(
-      note.id,
-      NotesCompanion(subject: Value('AutomobileInfo,Id:${note.id}')),
-    );
-    return created;
+    return _deserialize(note)!;
+  }
+
+  String _subjectFor(Automobile auto) {
+    final parts = [
+      if (auto.year != 0) auto.year.toString(),
+      auto.brand ?? auto.maker ?? '',
+      auto.model ?? '',
+    ].where((p) => p.isNotEmpty).join(' ');
+    if (parts.isNotEmpty) return parts;
+    if (auto.plate != null && auto.plate!.isNotEmpty) return auto.plate!;
+    if (auto.vin != null && auto.vin!.isNotEmpty) return 'VIN ${auto.vin}';
+    return 'Automobile';
   }
 
   @override

@@ -33,17 +33,39 @@ class NoteCatalogs extends Table {
   List<Set<Column>> get uniqueKeys => [{name}];
 }
 
+@TableIndex(name: 'idx_notes_last_modified', columns: {#lastModifiedDate})
+@TableIndex(name: 'idx_notes_catalog', columns: {#catalogId})
+@TableIndex(name: 'idx_notes_parent', columns: {#parentNoteId})
 class Notes extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get subject => text().withLength(min: 1, max: 1000)();
   TextColumn get content => text().nullable()();
   IntColumn get authorId => integer().references(Authors, #id)();
   IntColumn get catalogId => integer().nullable().references(NoteCatalogs, #id)();
-  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  // Self-referential parent note (e.g. gas_log note → its automobile note).
+  IntColumn get parentNoteId =>
+      integer().nullable().references(Notes, #id)();
+  // Soft-delete timestamp (tombstone). NULL → live row.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
   BlobColumn get version => blob().nullable()();
   DateTimeColumn get createDate => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get lastModifiedDate => dateTime().nullable()();
   TextColumn get description => text().withLength(min: 0, max: 1000).nullable()();
+}
+
+@TableIndex(name: 'idx_attachments_note', columns: {#noteId})
+@TableIndex(name: 'idx_attachments_last_modified', columns: {#lastModifiedDate})
+class Attachments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get noteId => integer().references(Notes, #id)();
+  TextColumn get filename => text().withLength(min: 1, max: 500)();
+  TextColumn get mimeType => text().withLength(min: 1, max: 200)();
+  IntColumn get size => integer()();
+  TextColumn get localPath => text().nullable()();
+  TextColumn get remotePath => text().nullable()();
+  DateTimeColumn get createDate => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get lastModifiedDate => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 }
 
 class Tags extends Table {
@@ -64,18 +86,73 @@ class NoteTagRefs extends Table {
   Set<Column> get primaryKey => {noteId, tagId};
 }
 
-@DriftDatabase(tables: [Authors, NoteCatalogs, Notes, Tags, NoteTagRefs])
+@DriftDatabase(
+  tables: [Authors, NoteCatalogs, Notes, Tags, NoteTagRefs, Attachments],
+)
 class HmmDatabase extends _$HmmDatabase {
   HmmDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       await customStatement('PRAGMA journal_mode=WAL');
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        // Add new nullable columns.
+        await m.addColumn(notes, notes.parentNoteId);
+        await m.addColumn(notes, notes.deletedAt);
+
+        // Backfill deleted_at from the retired is_deleted flag.
+        // Choose the best available timestamp for old deletes.
+        await customStatement('''
+          UPDATE notes
+             SET deleted_at = COALESCE(last_modified_date, create_date)
+           WHERE is_deleted = 1 AND deleted_at IS NULL
+        ''');
+
+        // Create attachments table + indexes declared via @TableIndex.
+        await m.createTable(attachments);
+        await m.createIndex(
+          Index(
+            'idx_notes_last_modified',
+            'CREATE INDEX IF NOT EXISTS idx_notes_last_modified '
+                'ON notes (last_modified_date)',
+          ),
+        );
+        await m.createIndex(
+          Index(
+            'idx_notes_catalog',
+            'CREATE INDEX IF NOT EXISTS idx_notes_catalog '
+                'ON notes (catalog_id)',
+          ),
+        );
+        await m.createIndex(
+          Index(
+            'idx_notes_parent',
+            'CREATE INDEX IF NOT EXISTS idx_notes_parent '
+                'ON notes (parent_note_id)',
+          ),
+        );
+        await m.createIndex(
+          Index(
+            'idx_attachments_note',
+            'CREATE INDEX IF NOT EXISTS idx_attachments_note '
+                'ON attachments (note_id)',
+          ),
+        );
+        await m.createIndex(
+          Index(
+            'idx_attachments_last_modified',
+            'CREATE INDEX IF NOT EXISTS idx_attachments_last_modified '
+                'ON attachments (last_modified_date)',
+          ),
+        );
+      }
     },
   );
 }
