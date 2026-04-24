@@ -84,18 +84,6 @@ class SyncManifest {
   final List<ManifestEntry> attachments;
 }
 
-class SyncRequest {
-  const SyncRequest({
-    required this.lastPushedAt,
-    required this.locallyChangedNotes,
-    required this.locallyChangedAttachments,
-  });
-
-  final DateTime lastPushedAt;
-  final List<NoteBlob> locallyChangedNotes;
-  final List<AttachmentBlob> locallyChangedAttachments;
-}
-
 class SyncError {
   const SyncError({
     required this.recordType,

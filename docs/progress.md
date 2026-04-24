@@ -86,6 +86,107 @@ Discovered Path C is already ~70% implemented on this branch (LocalNoteRepositor
 - DataMode enum upgrade 2 → 3 modes (small, isolated change)
 - Sync engine scaffolding (Phase 4)
 
+## Session: 2026-04-23
+
+### Bug fixes for multi-device sync — DONE
+
+**Bug 1 — initial-sync re-upload wastefulness.** `SyncOrchestrator.syncNow()` now snapshots local deltas *before* the pull phase (step 0), so on a fresh device install we don't re-upload the thousands of rows we just pulled.
+
+**Bug 2 & 3 — cross-device record identity.** Schema v2→v3 with `notes.uuid` + `attachments.uuid`:
+- New `lib/core/util/uuid.dart` — RFC 4122 v4 via `Random.secure()`; no external dep.
+- Drift schema: nullable at column level (allows ADD COLUMN during migration) but `clientDefault(generateUuid)` means every fresh insert is populated.
+- Unique indexes via `@TableIndex(..., unique: true)`.
+- Migration: ADD COLUMN on notes + attachments, per-row UPDATE to backfill a fresh UUID, then CREATE UNIQUE INDEX.
+
+**Sync layer rewrite** (`SyncOrchestrator`):
+- `ManifestEntry.id` / `NoteBlob.id` / `AttachmentBlob.id` now carry UUIDs instead of device-local int ids.
+- Note body schema changed: dropped `id` / `catalogId` / `parentNoteId` / `authorId`; added `uuid` / `catalogName` / `parentNoteUuid`.
+- Catalog resolution: look up by unique `name`, getOrCreate if missing. No catalog sync needed.
+- Parent-note resolution: two-pass. Pass 1 inserts/updates with `parentNoteId = null`; pass 2 walks the collected `(childId, parentUuid)` queue and resolves to local ids. If a parent can't be resolved, next sync retries.
+- Attachment `noteUuid` resolves to local `noteId` at apply time (attachments are always processed after notes, so parent is present).
+- `_collectChangedNotes` batches catalog-name + parent-uuid lookups.
+- `_buildManifest` uses UUIDs everywhere; attachments whose parent has no uuid are skipped.
+- OneDrive file paths now use UUIDs: `/notes/<uuid>.json`, `/attachments/<uuid><ext>`.
+
+**Verification:** `flutter analyze` clean, 289/289 tests pass.
+
+**Status of 1e:** deferred. The prior OneDrive OAuth round-trip succeeded but was against the pre-UUID sync layer. Once you're ready to smoke-test again, we rebuild and retry.
+
+## Session: 2026-04-22
+
+### Phase 4 steps 1c + 1d — Full sync algorithm — DONE (2026-04-22)
+
+**Provider contract refactored** (`CloudSyncProvider`): dropped the monolithic `sync(SyncRequest)`; replaced with I/O primitives:
+- `pullManifest()` / `pushManifest(SyncManifest)`
+- `pullNoteBody(id)` / `pushNoteBody(id, body)`
+- `pullAttachmentBytes({id, filename})` / `pushAttachmentBytes({id, filename, mimeType, bytes})`
+
+`SyncRequest` value type removed — no longer needed.
+
+**`OneDriveSyncProvider`** now delegates every primitive to `OneDriveGraphClient`.
+
+**`ApiSyncProvider`** stub mirrors the new contract; every primitive throws `UnsupportedError('…not yet implemented')`.
+
+**`SyncMetaRepository`** gained `getOrCreateDeviceId()` (persists a random id to SharedPreferences for manifest telemetry only).
+
+**`SyncOrchestrator.syncNow()`** now implements the full algorithm per `docs/sync_contract.md` §4–§6:
+1. Pull remote manifest (404 → empty).
+2. For each remote note entry, LWW-check against local and apply body (or tombstone) if remote is newer. Deleted entries land as tombstones without fetching a body.
+3. Same for remote attachment entries — pulls bytes, writes to `<appDocs>/attachments/<id><ext>`, upserts row.
+4. Collect local notes/attachments where `lastModifiedDate > cursor` and push each. Tombstoned attachments are counted but not uploaded (manifest carries the delete).
+5. Rebuild a full manifest from current local state and push it.
+6. Advance cursor only if zero errors.
+
+Per-record errors are collected into `SyncResult.errors` so one bad record doesn't abort the rest of the pass.
+
+**Verification:** `flutter analyze` clean, 289/289 tests pass.
+
+**Known gaps:**
+- No retry on 401 — user must tap Sync again after re-signing in (refresh handled inside `OneDriveAuth.getAccessToken`, so a typical token expiry self-heals on the next call).
+- Attachments >4 MiB are blocked by `OneDriveGraphClient`'s simple-upload guard (resumable upload session deferred per sync contract §10).
+- GC (`/attachments/<id><ext>` and manifest tombstone cleanup after 30 days) not implemented.
+
+Next: step **1e** — smoke test the real OAuth flow + end-to-end sync against a live OneDrive account.
+
+### Phase 4 step 1b — OneDrive Graph HTTP client — DONE
+
+New: `lib/core/data/sync/onedrive_graph_client.dart`
+- `OneDriveGraphClient(OneDriveAuth, {Dio?})` — Dio instance scoped to `https://graph.microsoft.com/v1.0`
+- Request interceptor attaches a fresh bearer via `OneDriveAuth.getAccessToken()`; rejects with a typed `OneDriveGraphException(401)` if the user is not signed in
+- `validateStatus: (_) => true` so the client branches on status codes explicitly (vs Dio's default exception-on-non-2xx)
+- Endpoints scoped to `/me/drive/special/approot`:
+  - `getManifest()` / `putManifest(SyncManifest)` — 404 surfaces as `null` on read
+  - `getNoteBlob(id)` / `putNoteBlob(id, body)` / `deleteNoteBlob(id)` (404 tolerated on delete)
+  - `getAttachment({id, filename})` / `putAttachment(…)` / `deleteAttachment({id, filename})`
+- `putAttachment` guards against the 4 MiB simple-upload cap with a typed exception (resumable upload session deferred — see `docs/sync_contract.md` §10)
+- JSON codec for `SyncManifest` + `ManifestEntry` matches the shape in `docs/sync_contract.md` §3.1
+- `oneDriveGraphClientProvider` Riverpod provider
+
+**Verification:** `flutter analyze` clean, 289/289 tests pass.
+
+**Still to wire (step 1c):** `OneDriveSyncProvider.sync()` uses the Graph client to push locally-changed notes/attachments, pull manifest entries newer than local, rewrite the manifest, and return a real `SyncResult`.
+
+### Phase 4 step 1a — OneDrive OAuth — DONE
+
+**Dep added:** `flutter_appauth ^12.0.0` (flutter_secure_storage was already a dep).
+
+**Code:**
+- `lib/core/data/sync/onedrive_config.dart` — client ID via `--dart-define=ONEDRIVE_CLIENT_ID`, discovery URL (`/common/v2.0/...`), redirect `com.homemademessage.hmm://auth`, scopes (`Files.ReadWrite.AppFolder`, `User.Read`, `offline_access`)
+- `lib/core/data/sync/onedrive_auth.dart` — real implementation using `FlutterAppAuth.authorizeAndExchangeCode` + `.token` for refresh. Tokens in `flutter_secure_storage` under keys `onedrive_access_token` / `onedrive_refresh_token` / `onedrive_token_expiry`. `getAccessToken()` auto-refreshes when expiry is within 60 s. `FlutterAppAuthUserCancelledException` → `OneDriveAuthException('Sign-in was cancelled.')`. `FlutterAppAuthPlatformException` on refresh → signs out and returns null.
+- New `oneDriveAuthStateProvider` (`FutureProvider<bool>` over `hasToken()`) drives UI button state.
+- `OneDriveSyncProvider` exposes `auth` getter (for the upcoming Graph client).
+- `settings_screen.dart` — when `CloudStorage` mode is picked: shows OneDrive provider dropdown, then either Sign in / Sign out button (or an error text if `ONEDRIVE_CLIENT_ID` is unset).
+
+**Native wiring:**
+- `ios/Runner/Info.plist` — added `CFBundleURLTypes` entry for scheme `com.homemademessage.hmm`.
+- `android/app/build.gradle.kts` — added `manifestPlaceholders["appAuthRedirectScheme"] = "com.homemademessage.hmm"` in `defaultConfig`.
+
+**Verification:** `flutter analyze` clean, 289/289 tests pass.
+
+**Known limitations pending steps 1b–1e:**
+- "Sync now" button still returns `SyncResult.failed` with the "not yet implemented" message.
+- OAuth can't actually succeed at runtime until the user finishes Azure AD app registration and rebuilds with `--dart-define=ONEDRIVE_CLIENT_ID=<id>` (see `docs/cloud_storage_setup.md` §1). Until then the sign-in button surfaces a clear error message.
+
 ### AttachmentRepository — DONE (2026-04-21)
 
 - `lib/core/data/local/local_attachment_repository.dart` — `IAttachmentRepository` + `LocalAttachmentRepository`

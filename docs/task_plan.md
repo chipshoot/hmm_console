@@ -100,15 +100,21 @@ All modes read/write the same local SQLite store. Cloud modes layer a sync engin
 - [x] `CloudSyncProvider` interface (`lib/core/data/sync/cloud_sync_provider.dart`)
 - [x] Shared value types: `NoteBlob`, `AttachmentBlob`, `ManifestEntry`, `SyncManifest`, `SyncRequest`, `SyncResult`, `SyncError` (`sync_models.dart`)
 - [x] `SyncMetaRepository` — per-provider `lastPushedAt` cursor in SharedPreferences
-- [x] `OneDriveAuth` stub (flutter_appauth + secure storage integration pending)
+- [x] `OneDriveAuth` real implementation (flutter_appauth 12 + flutter_secure_storage, auto-refresh)
+- [x] `OneDriveConfig` — client ID via `--dart-define=ONEDRIVE_CLIENT_ID`, discovery URL, redirect URI, scopes
+- [x] iOS Info.plist + Android build.gradle.kts native wiring for `com.homemademessage.hmm://auth` scheme
+- [x] Settings: Sign in / Sign out of OneDrive buttons (with configured-check), auth state via `oneDriveAuthStateProvider`
 - [x] `OneDriveSyncProvider` stub — returns a typed `SyncResult.failed` until Graph wiring lands
 - [x] `ApiSyncProvider` stub — returns `SyncResult.failed` until REST wiring lands
 - [x] `SyncOrchestrator` — selects provider from DataMode + CloudProvider, collects changed notes via `lastModifiedDate > cursor`, advances cursor on success
 - [x] "Sync now" button wired in Settings (visible only when `mode != Local`)
 - [x] Attachment collection in orchestrator (`_collectChangedAttachments` reads row + binary bytes from disk, skips tombstones)
-- [ ] Real OneDrive Graph implementation (push/pull notes + attachments + manifest)
+- [x] **1b** OneDrive Graph HTTP client (`OneDriveGraphClient`): bearer interceptor, manifest get/put, note blob get/put/delete, attachment get/put/delete with 4 MiB guard rail
+- [x] **1c+1d** Full sync algorithm in `SyncOrchestrator` — pull manifest → LWW-apply newer remote notes/attachments → push local changes since cursor → rewrite and push manifest → advance cursor only on clean run. Provider contract refactored to I/O primitives only (pullManifest/pushManifest/pullNoteBody/pushNoteBody/pullAttachmentBytes/pushAttachmentBytes).
+- [x] **Bug 1 fix (initial-sync re-upload):** moved local-delta collection before the pull phase so fresh-device onboarding doesn't push what it just pulled.
+- [x] **Bug 2/3 fix (cross-device identity):** schema v2→v3 adds `notes.uuid` + `attachments.uuid` (RFC 4122 v4 via `lib/core/util/uuid.dart`, `clientDefault`). Sync layer uses uuids as identity, `catalogName` for catalog resolution, `parentNoteUuid` with a two-pass resolution for parent-note references, and `noteUuid` for attachment parent resolution.
+- [ ] **1e** Real smoke test against a OneDrive account (revisit after bug-fix branch lands)
 - [ ] Real API implementation (maps to `/notes` + `/notecatalogs` + `/tags` REST endpoints)
-- [ ] Apply-pulled-note / apply-pulled-attachment logic in orchestrator (LWW merge into local SQLite + filesystem)
 - [ ] Optional sync triggers (app resume, on write, periodic timer)
 
 ### Phase 5: Settings UI — `pending`

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/data/sync/onedrive_auth.dart';
+import '../../../../core/data/sync/onedrive_config.dart';
 import '../../../../core/data/sync/sync_orchestrator.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
@@ -39,6 +41,34 @@ class SettingsScreen extends ConsumerWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Reset to default location. Restart app to apply.')),
+      );
+    }
+  }
+
+  Future<void> _signInOneDrive(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(oneDriveAuthProvider).signIn();
+      ref.invalidate(oneDriveAuthStateProvider);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Signed in to OneDrive')),
+      );
+    } on OneDriveAuthException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    }
+  }
+
+  Future<void> _signOutOneDrive(BuildContext context, WidgetRef ref) async {
+    await ref.read(oneDriveAuthProvider).signOut();
+    ref.invalidate(oneDriveAuthStateProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Signed out of OneDrive')),
       );
     }
   }
@@ -133,6 +163,30 @@ class SettingsScreen extends ConsumerWidget {
                   }
                 },
               ),
+              GapWidgets.h8,
+              if (!OneDriveConfig.isConfigured)
+                Text(
+                  'OneDrive client ID not set. Rebuild with --dart-define=ONEDRIVE_CLIENT_ID=<app-id> (see docs/cloud_storage_setup.md §1).',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                )
+              else
+                ref.watch(oneDriveAuthStateProvider).when(
+                      data: (signedIn) => signedIn
+                          ? OutlinedButton.icon(
+                              onPressed: () => _signOutOneDrive(context, ref),
+                              icon: const Icon(Icons.logout),
+                              label: const Text('Sign out of OneDrive'),
+                            )
+                          : FilledButton.icon(
+                              onPressed: () => _signInOneDrive(context, ref),
+                              icon: const Icon(Icons.cloud_outlined),
+                              label: const Text('Sign in to OneDrive'),
+                            ),
+                      loading: () => const LinearProgressIndicator(),
+                      error: (e, _) => Text('Auth state error: $e'),
+                    ),
             ],
             if (dataMode != DataMode.local) ...[
               GapWidgets.h16,

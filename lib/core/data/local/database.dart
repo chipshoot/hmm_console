@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../util/uuid.dart';
+
 part 'database.g.dart';
 
 class Authors extends Table {
@@ -36,8 +38,13 @@ class NoteCatalogs extends Table {
 @TableIndex(name: 'idx_notes_last_modified', columns: {#lastModifiedDate})
 @TableIndex(name: 'idx_notes_catalog', columns: {#catalogId})
 @TableIndex(name: 'idx_notes_parent', columns: {#parentNoteId})
+@TableIndex(name: 'idx_notes_uuid', columns: {#uuid}, unique: true)
 class Notes extends Table {
   IntColumn get id => integer().autoIncrement()();
+  // Stable cross-device identity used by the sync layer. Nullable in the
+  // schema only to allow ADD COLUMN during the v2→v3 migration; fresh inserts
+  // always populate via [clientDefault].
+  TextColumn get uuid => text().nullable().clientDefault(generateUuid)();
   TextColumn get subject => text().withLength(min: 1, max: 1000)();
   TextColumn get content => text().nullable()();
   IntColumn get authorId => integer().references(Authors, #id)();
@@ -55,8 +62,10 @@ class Notes extends Table {
 
 @TableIndex(name: 'idx_attachments_note', columns: {#noteId})
 @TableIndex(name: 'idx_attachments_last_modified', columns: {#lastModifiedDate})
+@TableIndex(name: 'idx_attachments_uuid', columns: {#uuid}, unique: true)
 class Attachments extends Table {
   IntColumn get id => integer().autoIncrement()();
+  TextColumn get uuid => text().nullable().clientDefault(generateUuid)();
   IntColumn get noteId => integer().references(Notes, #id)();
   TextColumn get filename => text().withLength(min: 1, max: 500)();
   TextColumn get mimeType => text().withLength(min: 1, max: 200)();
@@ -93,7 +102,7 @@ class HmmDatabase extends _$HmmDatabase {
   HmmDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -151,6 +160,40 @@ class HmmDatabase extends _$HmmDatabase {
             'CREATE INDEX IF NOT EXISTS idx_attachments_last_modified '
                 'ON attachments (last_modified_date)',
           ),
+        );
+      }
+      if (from < 3) {
+        // v3: cross-device record identity.
+        await m.addColumn(notes, notes.uuid);
+        await m.addColumn(attachments, attachments.uuid);
+        // Backfill one UUID per existing row. Small volumes expected during
+        // upgrade (this is still pre-release), so per-row UPDATE is fine.
+        final pendingNotes = await customSelect(
+          'SELECT id FROM notes WHERE uuid IS NULL',
+          readsFrom: {notes},
+        ).get();
+        for (final row in pendingNotes) {
+          await customStatement(
+            'UPDATE notes SET uuid = ? WHERE id = ?',
+            [generateUuid(), row.read<int>('id')],
+          );
+        }
+        final pendingAttachments = await customSelect(
+          'SELECT id FROM attachments WHERE uuid IS NULL',
+          readsFrom: {attachments},
+        ).get();
+        for (final row in pendingAttachments) {
+          await customStatement(
+            'UPDATE attachments SET uuid = ? WHERE id = ?',
+            [generateUuid(), row.read<int>('id')],
+          );
+        }
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_uuid ON notes (uuid)',
+        );
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_attachments_uuid '
+              'ON attachments (uuid)',
         );
       }
     },

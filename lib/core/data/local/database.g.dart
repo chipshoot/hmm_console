@@ -859,6 +859,16 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: generateUuid,
+  );
   static const VerificationMeta _subjectMeta = const VerificationMeta(
     'subject',
   );
@@ -991,6 +1001,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    uuid,
     subject,
     content,
     authorId,
@@ -1016,6 +1027,12 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
     }
     if (data.containsKey('subject')) {
       context.handle(
@@ -1103,6 +1120,10 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      ),
       subject: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}subject'],
@@ -1154,6 +1175,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
 
 class Note extends DataClass implements Insertable<Note> {
   final int id;
+  final String? uuid;
   final String subject;
   final String? content;
   final int authorId;
@@ -1166,6 +1188,7 @@ class Note extends DataClass implements Insertable<Note> {
   final String? description;
   const Note({
     required this.id,
+    this.uuid,
     required this.subject,
     this.content,
     required this.authorId,
@@ -1181,6 +1204,9 @@ class Note extends DataClass implements Insertable<Note> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    if (!nullToAbsent || uuid != null) {
+      map['uuid'] = Variable<String>(uuid);
+    }
     map['subject'] = Variable<String>(subject);
     if (!nullToAbsent || content != null) {
       map['content'] = Variable<String>(content);
@@ -1211,6 +1237,7 @@ class Note extends DataClass implements Insertable<Note> {
   NotesCompanion toCompanion(bool nullToAbsent) {
     return NotesCompanion(
       id: Value(id),
+      uuid: uuid == null && nullToAbsent ? const Value.absent() : Value(uuid),
       subject: Value(subject),
       content: content == null && nullToAbsent
           ? const Value.absent()
@@ -1245,6 +1272,7 @@ class Note extends DataClass implements Insertable<Note> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Note(
       id: serializer.fromJson<int>(json['id']),
+      uuid: serializer.fromJson<String?>(json['uuid']),
       subject: serializer.fromJson<String>(json['subject']),
       content: serializer.fromJson<String?>(json['content']),
       authorId: serializer.fromJson<int>(json['authorId']),
@@ -1264,6 +1292,7 @@ class Note extends DataClass implements Insertable<Note> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'uuid': serializer.toJson<String?>(uuid),
       'subject': serializer.toJson<String>(subject),
       'content': serializer.toJson<String?>(content),
       'authorId': serializer.toJson<int>(authorId),
@@ -1279,6 +1308,7 @@ class Note extends DataClass implements Insertable<Note> {
 
   Note copyWith({
     int? id,
+    Value<String?> uuid = const Value.absent(),
     String? subject,
     Value<String?> content = const Value.absent(),
     int? authorId,
@@ -1291,6 +1321,7 @@ class Note extends DataClass implements Insertable<Note> {
     Value<String?> description = const Value.absent(),
   }) => Note(
     id: id ?? this.id,
+    uuid: uuid.present ? uuid.value : this.uuid,
     subject: subject ?? this.subject,
     content: content.present ? content.value : this.content,
     authorId: authorId ?? this.authorId,
@@ -1307,6 +1338,7 @@ class Note extends DataClass implements Insertable<Note> {
   Note copyWithCompanion(NotesCompanion data) {
     return Note(
       id: data.id.present ? data.id.value : this.id,
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       subject: data.subject.present ? data.subject.value : this.subject,
       content: data.content.present ? data.content.value : this.content,
       authorId: data.authorId.present ? data.authorId.value : this.authorId,
@@ -1332,6 +1364,7 @@ class Note extends DataClass implements Insertable<Note> {
   String toString() {
     return (StringBuffer('Note(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('subject: $subject, ')
           ..write('content: $content, ')
           ..write('authorId: $authorId, ')
@@ -1349,6 +1382,7 @@ class Note extends DataClass implements Insertable<Note> {
   @override
   int get hashCode => Object.hash(
     id,
+    uuid,
     subject,
     content,
     authorId,
@@ -1365,6 +1399,7 @@ class Note extends DataClass implements Insertable<Note> {
       identical(this, other) ||
       (other is Note &&
           other.id == this.id &&
+          other.uuid == this.uuid &&
           other.subject == this.subject &&
           other.content == this.content &&
           other.authorId == this.authorId &&
@@ -1379,6 +1414,7 @@ class Note extends DataClass implements Insertable<Note> {
 
 class NotesCompanion extends UpdateCompanion<Note> {
   final Value<int> id;
+  final Value<String?> uuid;
   final Value<String> subject;
   final Value<String?> content;
   final Value<int> authorId;
@@ -1391,6 +1427,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   final Value<String?> description;
   const NotesCompanion({
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     this.subject = const Value.absent(),
     this.content = const Value.absent(),
     this.authorId = const Value.absent(),
@@ -1404,6 +1441,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   });
   NotesCompanion.insert({
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     required String subject,
     this.content = const Value.absent(),
     required int authorId,
@@ -1418,6 +1456,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
        authorId = Value(authorId);
   static Insertable<Note> custom({
     Expression<int>? id,
+    Expression<String>? uuid,
     Expression<String>? subject,
     Expression<String>? content,
     Expression<int>? authorId,
@@ -1431,6 +1470,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (uuid != null) 'uuid': uuid,
       if (subject != null) 'subject': subject,
       if (content != null) 'content': content,
       if (authorId != null) 'author_id': authorId,
@@ -1446,6 +1486,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
 
   NotesCompanion copyWith({
     Value<int>? id,
+    Value<String?>? uuid,
     Value<String>? subject,
     Value<String?>? content,
     Value<int>? authorId,
@@ -1459,6 +1500,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   }) {
     return NotesCompanion(
       id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
       subject: subject ?? this.subject,
       content: content ?? this.content,
       authorId: authorId ?? this.authorId,
@@ -1477,6 +1519,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
     }
     if (subject.present) {
       map['subject'] = Variable<String>(subject.value);
@@ -1515,6 +1560,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   String toString() {
     return (StringBuffer('NotesCompanion(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('subject: $subject, ')
           ..write('content: $content, ')
           ..write('authorId: $authorId, ')
@@ -2084,6 +2130,16 @@ class $AttachmentsTable extends Attachments
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: generateUuid,
+  );
   static const VerificationMeta _noteIdMeta = const VerificationMeta('noteId');
   @override
   late final GeneratedColumn<int> noteId = GeneratedColumn<int>(
@@ -2195,6 +2251,7 @@ class $AttachmentsTable extends Attachments
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    uuid,
     noteId,
     filename,
     mimeType,
@@ -2219,6 +2276,12 @@ class $AttachmentsTable extends Attachments
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
     }
     if (data.containsKey('note_id')) {
       context.handle(
@@ -2298,6 +2361,10 @@ class $AttachmentsTable extends Attachments
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      ),
       noteId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}note_id'],
@@ -2345,6 +2412,7 @@ class $AttachmentsTable extends Attachments
 
 class Attachment extends DataClass implements Insertable<Attachment> {
   final int id;
+  final String? uuid;
   final int noteId;
   final String filename;
   final String mimeType;
@@ -2356,6 +2424,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   final DateTime? deletedAt;
   const Attachment({
     required this.id,
+    this.uuid,
     required this.noteId,
     required this.filename,
     required this.mimeType,
@@ -2370,6 +2439,9 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    if (!nullToAbsent || uuid != null) {
+      map['uuid'] = Variable<String>(uuid);
+    }
     map['note_id'] = Variable<int>(noteId);
     map['filename'] = Variable<String>(filename);
     map['mime_type'] = Variable<String>(mimeType);
@@ -2393,6 +2465,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   AttachmentsCompanion toCompanion(bool nullToAbsent) {
     return AttachmentsCompanion(
       id: Value(id),
+      uuid: uuid == null && nullToAbsent ? const Value.absent() : Value(uuid),
       noteId: Value(noteId),
       filename: Value(filename),
       mimeType: Value(mimeType),
@@ -2420,6 +2493,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Attachment(
       id: serializer.fromJson<int>(json['id']),
+      uuid: serializer.fromJson<String?>(json['uuid']),
       noteId: serializer.fromJson<int>(json['noteId']),
       filename: serializer.fromJson<String>(json['filename']),
       mimeType: serializer.fromJson<String>(json['mimeType']),
@@ -2438,6 +2512,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'uuid': serializer.toJson<String?>(uuid),
       'noteId': serializer.toJson<int>(noteId),
       'filename': serializer.toJson<String>(filename),
       'mimeType': serializer.toJson<String>(mimeType),
@@ -2452,6 +2527,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
 
   Attachment copyWith({
     int? id,
+    Value<String?> uuid = const Value.absent(),
     int? noteId,
     String? filename,
     String? mimeType,
@@ -2463,6 +2539,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
     Value<DateTime?> deletedAt = const Value.absent(),
   }) => Attachment(
     id: id ?? this.id,
+    uuid: uuid.present ? uuid.value : this.uuid,
     noteId: noteId ?? this.noteId,
     filename: filename ?? this.filename,
     mimeType: mimeType ?? this.mimeType,
@@ -2478,6 +2555,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   Attachment copyWithCompanion(AttachmentsCompanion data) {
     return Attachment(
       id: data.id.present ? data.id.value : this.id,
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       noteId: data.noteId.present ? data.noteId.value : this.noteId,
       filename: data.filename.present ? data.filename.value : this.filename,
       mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
@@ -2500,6 +2578,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   String toString() {
     return (StringBuffer('Attachment(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('noteId: $noteId, ')
           ..write('filename: $filename, ')
           ..write('mimeType: $mimeType, ')
@@ -2516,6 +2595,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
   @override
   int get hashCode => Object.hash(
     id,
+    uuid,
     noteId,
     filename,
     mimeType,
@@ -2531,6 +2611,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
       identical(this, other) ||
       (other is Attachment &&
           other.id == this.id &&
+          other.uuid == this.uuid &&
           other.noteId == this.noteId &&
           other.filename == this.filename &&
           other.mimeType == this.mimeType &&
@@ -2544,6 +2625,7 @@ class Attachment extends DataClass implements Insertable<Attachment> {
 
 class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   final Value<int> id;
+  final Value<String?> uuid;
   final Value<int> noteId;
   final Value<String> filename;
   final Value<String> mimeType;
@@ -2555,6 +2637,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   final Value<DateTime?> deletedAt;
   const AttachmentsCompanion({
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     this.noteId = const Value.absent(),
     this.filename = const Value.absent(),
     this.mimeType = const Value.absent(),
@@ -2567,6 +2650,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   });
   AttachmentsCompanion.insert({
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     required int noteId,
     required String filename,
     required String mimeType,
@@ -2582,6 +2666,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
        size = Value(size);
   static Insertable<Attachment> custom({
     Expression<int>? id,
+    Expression<String>? uuid,
     Expression<int>? noteId,
     Expression<String>? filename,
     Expression<String>? mimeType,
@@ -2594,6 +2679,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (uuid != null) 'uuid': uuid,
       if (noteId != null) 'note_id': noteId,
       if (filename != null) 'filename': filename,
       if (mimeType != null) 'mime_type': mimeType,
@@ -2608,6 +2694,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
 
   AttachmentsCompanion copyWith({
     Value<int>? id,
+    Value<String?>? uuid,
     Value<int>? noteId,
     Value<String>? filename,
     Value<String>? mimeType,
@@ -2620,6 +2707,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   }) {
     return AttachmentsCompanion(
       id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
       noteId: noteId ?? this.noteId,
       filename: filename ?? this.filename,
       mimeType: mimeType ?? this.mimeType,
@@ -2637,6 +2725,9 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
     }
     if (noteId.present) {
       map['note_id'] = Variable<int>(noteId.value);
@@ -2672,6 +2763,7 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   String toString() {
     return (StringBuffer('AttachmentsCompanion(')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('noteId: $noteId, ')
           ..write('filename: $filename, ')
           ..write('mimeType: $mimeType, ')
@@ -2707,6 +2799,10 @@ abstract class _$HmmDatabase extends GeneratedDatabase {
     'idx_notes_parent',
     'CREATE INDEX idx_notes_parent ON notes (parent_note_id)',
   );
+  late final Index idxNotesUuid = Index(
+    'idx_notes_uuid',
+    'CREATE UNIQUE INDEX idx_notes_uuid ON notes (uuid)',
+  );
   late final Index idxAttachmentsNote = Index(
     'idx_attachments_note',
     'CREATE INDEX idx_attachments_note ON attachments (note_id)',
@@ -2714,6 +2810,10 @@ abstract class _$HmmDatabase extends GeneratedDatabase {
   late final Index idxAttachmentsLastModified = Index(
     'idx_attachments_last_modified',
     'CREATE INDEX idx_attachments_last_modified ON attachments (last_modified_date)',
+  );
+  late final Index idxAttachmentsUuid = Index(
+    'idx_attachments_uuid',
+    'CREATE UNIQUE INDEX idx_attachments_uuid ON attachments (uuid)',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -2729,8 +2829,10 @@ abstract class _$HmmDatabase extends GeneratedDatabase {
     idxNotesLastModified,
     idxNotesCatalog,
     idxNotesParent,
+    idxNotesUuid,
     idxAttachmentsNote,
     idxAttachmentsLastModified,
+    idxAttachmentsUuid,
   ];
 }
 
@@ -3370,6 +3472,7 @@ typedef $$NoteCatalogsTableProcessedTableManager =
 typedef $$NotesTableCreateCompanionBuilder =
     NotesCompanion Function({
       Value<int> id,
+      Value<String?> uuid,
       required String subject,
       Value<String?> content,
       required int authorId,
@@ -3384,6 +3487,7 @@ typedef $$NotesTableCreateCompanionBuilder =
 typedef $$NotesTableUpdateCompanionBuilder =
     NotesCompanion Function({
       Value<int> id,
+      Value<String?> uuid,
       Value<String> subject,
       Value<String?> content,
       Value<int> authorId,
@@ -3500,6 +3604,11 @@ class $$NotesTableFilterComposer extends Composer<_$HmmDatabase, $NotesTable> {
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3672,6 +3781,11 @@ class $$NotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get subject => $composableBuilder(
     column: $table.subject,
     builder: (column) => ColumnOrderings(column),
@@ -3788,6 +3902,9 @@ class $$NotesTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
 
   GeneratedColumn<String> get subject =>
       $composableBuilder(column: $table.subject, builder: (column) => column);
@@ -3971,6 +4088,7 @@ class $$NotesTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String?> uuid = const Value.absent(),
                 Value<String> subject = const Value.absent(),
                 Value<String?> content = const Value.absent(),
                 Value<int> authorId = const Value.absent(),
@@ -3983,6 +4101,7 @@ class $$NotesTableTableManager
                 Value<String?> description = const Value.absent(),
               }) => NotesCompanion(
                 id: id,
+                uuid: uuid,
                 subject: subject,
                 content: content,
                 authorId: authorId,
@@ -3997,6 +4116,7 @@ class $$NotesTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String?> uuid = const Value.absent(),
                 required String subject,
                 Value<String?> content = const Value.absent(),
                 required int authorId,
@@ -4009,6 +4129,7 @@ class $$NotesTableTableManager
                 Value<String?> description = const Value.absent(),
               }) => NotesCompanion.insert(
                 id: id,
+                uuid: uuid,
                 subject: subject,
                 content: content,
                 authorId: authorId,
@@ -4789,6 +4910,7 @@ typedef $$NoteTagRefsTableProcessedTableManager =
 typedef $$AttachmentsTableCreateCompanionBuilder =
     AttachmentsCompanion Function({
       Value<int> id,
+      Value<String?> uuid,
       required int noteId,
       required String filename,
       required String mimeType,
@@ -4802,6 +4924,7 @@ typedef $$AttachmentsTableCreateCompanionBuilder =
 typedef $$AttachmentsTableUpdateCompanionBuilder =
     AttachmentsCompanion Function({
       Value<int> id,
+      Value<String?> uuid,
       Value<int> noteId,
       Value<String> filename,
       Value<String> mimeType,
@@ -4847,6 +4970,11 @@ class $$AttachmentsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4928,6 +5056,11 @@ class $$AttachmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get filename => $composableBuilder(
     column: $table.filename,
     builder: (column) => ColumnOrderings(column),
@@ -5003,6 +5136,9 @@ class $$AttachmentsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
 
   GeneratedColumn<String> get filename =>
       $composableBuilder(column: $table.filename, builder: (column) => column);
@@ -5087,6 +5223,7 @@ class $$AttachmentsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String?> uuid = const Value.absent(),
                 Value<int> noteId = const Value.absent(),
                 Value<String> filename = const Value.absent(),
                 Value<String> mimeType = const Value.absent(),
@@ -5098,6 +5235,7 @@ class $$AttachmentsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
               }) => AttachmentsCompanion(
                 id: id,
+                uuid: uuid,
                 noteId: noteId,
                 filename: filename,
                 mimeType: mimeType,
@@ -5111,6 +5249,7 @@ class $$AttachmentsTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String?> uuid = const Value.absent(),
                 required int noteId,
                 required String filename,
                 required String mimeType,
@@ -5122,6 +5261,7 @@ class $$AttachmentsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
               }) => AttachmentsCompanion.insert(
                 id: id,
+                uuid: uuid,
                 noteId: noteId,
                 filename: filename,
                 mimeType: mimeType,
