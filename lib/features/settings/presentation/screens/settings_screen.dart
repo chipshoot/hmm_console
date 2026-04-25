@@ -7,7 +7,9 @@ import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/onedrive_config.dart';
 import '../../../../core/data/sync/sync_orchestrator.dart';
+import '../../../../core/i18n/locale_provider.dart';
 import '../../../../core/widgets/gaps.dart';
+import '../../../../l10n/gen/app_localizations.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../domain/gas_log_units.dart';
 import '../../providers/gas_log_settings_provider.dart';
@@ -99,15 +101,46 @@ class SettingsScreen extends ConsumerWidget {
     final dataMode = ref.watch(dataModeProvider);
     final cloudProvider = ref.watch(cloudProviderProvider);
     final dbPathAsync = ref.watch(databasePathProvider);
+    final selectedLocale = ref.watch(localeProvider);
+    final l = AppLocalizations.of(context);
 
     return CommonScreenScaffold(
-      title: 'Settings',
+      title: l.settingsTitle,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            DropdownButtonFormField<String?>(
+              initialValue: selectedLocale?.languageCode,
+              decoration: InputDecoration(
+                labelText: l.settingsLanguage,
+                border: const OutlineInputBorder(),
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: null,
+                  child: Text(l.settingsLanguageFollowSystem),
+                ),
+                DropdownMenuItem(
+                  value: 'en',
+                  child: Text(l.settingsLanguageEnglish),
+                ),
+                DropdownMenuItem(
+                  value: 'zh',
+                  child: Text(l.settingsLanguageChinese),
+                ),
+              ],
+              onChanged: (code) {
+                ref.read(localeProvider.notifier).setLocale(
+                      code == null ? null : Locale(code),
+                    );
+              },
+            ),
+            GapWidgets.h24,
+            const Divider(),
+            GapWidgets.h24,
             Text(
-              'Data Storage',
+              l.settingsDataStorage,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -115,9 +148,9 @@ class SettingsScreen extends ConsumerWidget {
             GapWidgets.h16,
             DropdownButtonFormField<DataMode>(
               initialValue: dataMode,
-              decoration: const InputDecoration(
-                labelText: 'Storage Mode',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.settingsStorageMode,
+                border: const OutlineInputBorder(),
               ),
               items: DataMode.values
                   .map((m) => DropdownMenuItem(
@@ -147,9 +180,9 @@ class SettingsScreen extends ConsumerWidget {
               GapWidgets.h16,
               DropdownButtonFormField<CloudProvider>(
                 initialValue: cloudProvider,
-                decoration: const InputDecoration(
-                  labelText: 'Cloud Provider',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l.settingsCloudProvider,
+                  border: const OutlineInputBorder(),
                 ),
                 items: CloudProvider.values
                     .map((p) => DropdownMenuItem(
@@ -177,12 +210,12 @@ class SettingsScreen extends ConsumerWidget {
                           ? OutlinedButton.icon(
                               onPressed: () => _signOutOneDrive(context, ref),
                               icon: const Icon(Icons.logout),
-                              label: const Text('Sign out of OneDrive'),
+                              label: Text(l.settingsSignOutOneDrive),
                             )
                           : FilledButton.icon(
                               onPressed: () => _signInOneDrive(context, ref),
                               icon: const Icon(Icons.cloud_outlined),
-                              label: const Text('Sign in to OneDrive'),
+                              label: Text(l.settingsSignInOneDrive),
                             ),
                       loading: () => const LinearProgressIndicator(),
                       error: (e, _) => Text('Auth state error: $e'),
@@ -193,7 +226,7 @@ class SettingsScreen extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => _syncNow(context, ref),
                 icon: const Icon(Icons.sync),
-                label: const Text('Sync now'),
+                label: Text(l.settingsSyncNow),
               ),
             ],
             if (dataMode == DataMode.local) ...[

@@ -1,0 +1,22 @@
+{
+  "@@locale": "zh",
+  "appTitle": "Hmm 控制台",
+
+  "settingsTitle": "设置",
+  "settingsLanguage": "语言",
+  "settingsLanguageFollowSystem": "跟随系统",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageChinese": "中文",
+
+  "settingsDataStorage": "数据存储",
+  "settingsStorageMode": "存储模式",
+  "settingsCloudProvider": "云服务",
+
+  "settingsSignInOneDrive": "登录 OneDrive",
+  "settingsSignOutOneDrive": "退出 OneDrive",
+  "settingsSyncNow": "立即同步",
+
+  "commonCancel": "取消",
+  "commonSave": "保存",
+  "commonDelete": "删除"
+}

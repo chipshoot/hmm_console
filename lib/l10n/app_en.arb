@@ -1,0 +1,28 @@
+{
+  "@@locale": "en",
+  "appTitle": "Hmm Console",
+  "@appTitle": {
+    "description": "Application name shown in MaterialApp title"
+  },
+
+  "settingsTitle": "Settings",
+  "settingsLanguage": "Language",
+  "settingsLanguageFollowSystem": "Follow system",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageChinese": "中文",
+  "@settingsLanguageChinese": {
+    "description": "Always rendered in the native script so Chinese users recognize it regardless of current locale"
+  },
+
+  "settingsDataStorage": "Data Storage",
+  "settingsStorageMode": "Storage Mode",
+  "settingsCloudProvider": "Cloud Provider",
+
+  "settingsSignInOneDrive": "Sign in to OneDrive",
+  "settingsSignOutOneDrive": "Sign out of OneDrive",
+  "settingsSyncNow": "Sync now",
+
+  "commonCancel": "Cancel",
+  "commonSave": "Save",
+  "commonDelete": "Delete"
+}
