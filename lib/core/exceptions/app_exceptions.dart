@@ -72,6 +72,24 @@ class AuthTokenException extends AppException {
         'Invalid email or password',
       );
 
+  /// Password matched but the IDP refused the token grant because the user
+  /// hasn't clicked the email-verification link yet. The UI should offer
+  /// "resend confirmation" instead of the generic "wrong password" treatment.
+  factory AuthTokenException.emailNotConfirmed() =>
+      const AuthTokenException(
+        'EMAIL_NOT_CONFIRMED',
+        'Your email address is not verified yet. Please check your inbox for the confirmation link, or request a new one.',
+      );
+
+  /// Server-side login validator reports the account is locked (e.g. too many
+  /// failed attempts). Distinct from a generic 403 because the IDP communicates
+  /// this via the OAuth `error_description` field.
+  factory AuthTokenException.accountLocked() =>
+      const AuthTokenException(
+        'ACCOUNT_LOCKED',
+        'Your account is temporarily locked. Please try again later or contact support.',
+      );
+
   factory AuthTokenException.exchangeFailed() =>
       const AuthTokenException('TOKEN_EXCHANGE_FAILED', 'Token exchange failed');
 

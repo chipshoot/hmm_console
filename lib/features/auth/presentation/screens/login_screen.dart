@@ -23,6 +23,8 @@ class LoginScreen extends ConsumerWidget {
             error is AppException ? error.message : 'Something went wrong';
         final isInvalidCredentials = error is AuthTokenException &&
             error.code == 'INVALID_CREDENTIALS';
+        final isEmailNotConfirmed = error is AuthTokenException &&
+            error.code == 'EMAIL_NOT_CONFIRMED';
 
         messenger.showSnackBar(
           SnackBar(
@@ -40,7 +42,9 @@ class LoginScreen extends ConsumerWidget {
                     },
                   )
                 : null,
-            duration: isInvalidCredentials
+            // Email-not-confirmed is informational, not a recovery prompt —
+            // give the user a few extra seconds to read it.
+            duration: isInvalidCredentials || isEmailNotConfirmed
                 ? const Duration(seconds: 6)
                 : const Duration(seconds: 4),
           ),

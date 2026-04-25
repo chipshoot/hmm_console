@@ -52,14 +52,30 @@ class IdpTokenService {
         throw NetworkException.timeout();
       }
 
-      // Parse OAuth error response for meaningful messages
+      // Parse OAuth error response for meaningful messages.
+      //
+      // The IDP's CustomResourceOwnerPasswordValidator distinguishes failure
+      // cases by setting `error_description` to one of:
+      //   - "invalid_username_or_password"  (bad credentials)
+      //   - "email_not_confirmed"           (password OK, account unverified)
+      //   - "account_locked"                (too many failed attempts)
+      // We map each to a typed AuthTokenException so the UI can present the
+      // right next-step (sign-in retry vs verify-email vs wait/contact).
       final data = e.response?.data;
       if (data is Map<String, dynamic>) {
         final error = data['error'] as String?;
         final errorDescription = data['error_description'] as String?;
 
         if (error == 'invalid_grant') {
-          throw AuthTokenException.invalidCredentials();
+          switch (errorDescription) {
+            case 'email_not_confirmed':
+              throw AuthTokenException.emailNotConfirmed();
+            case 'account_locked':
+              throw AuthTokenException.accountLocked();
+            case 'invalid_username_or_password':
+            default:
+              throw AuthTokenException.invalidCredentials();
+          }
         }
 
         if (errorDescription != null && errorDescription.isNotEmpty) {

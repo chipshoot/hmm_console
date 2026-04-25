@@ -124,5 +124,17 @@ void main() {
       final e = AuthTokenException.missingToken();
       expect(e.code, 'MISSING_TOKEN');
     });
+
+    test('emailNotConfirmed() has correct code and friendly message', () {
+      final e = AuthTokenException.emailNotConfirmed();
+      expect(e.code, 'EMAIL_NOT_CONFIRMED');
+      expect(e.message, contains('not verified'));
+    });
+
+    test('accountLocked() has correct code and message', () {
+      final e = AuthTokenException.accountLocked();
+      expect(e.code, 'ACCOUNT_LOCKED');
+      expect(e.message, contains('locked'));
+    });
   });
 }
