@@ -15,6 +15,8 @@ class IdpConfig {
 
   String get tokenEndpoint => '$authority/connect/token';
   String get registerEndpoint => '$authority/api/account/register';
+  String get resendConfirmationEndpoint =>
+      '$authority/api/account/resend-confirmation';
 
   static const production = IdpConfig(
     authority: 'https://idp.homemademessage.com',

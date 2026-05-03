@@ -138,6 +138,24 @@ class IdpTokenService {
     }
   }
 
+  /// Re-issues an email-verification link for an account that hasn't been
+  /// confirmed yet. Fire-and-forget from the UI's perspective: the IDP returns
+  /// 200 with the same generic body whether or not the email matches a real
+  /// unconfirmed account (no enumeration leak). Network errors are swallowed
+  /// — the user can simply tap "Resend email" again if their connection
+  /// blipped, and there's nothing actionable to surface otherwise.
+  Future<void> resendConfirmation({required String email}) async {
+    try {
+      await _dio.post(
+        _config.resendConfirmationEndpoint,
+        data: {'email': email},
+        options: Options(contentType: Headers.jsonContentType),
+      );
+    } on DioException {
+      // Intentionally swallowed.
+    }
+  }
+
   /// Refresh the access token using the stored refresh token.
   Future<void> refreshAccessToken() async {
     final refreshToken = await _tokenStorage.getRefreshToken();
