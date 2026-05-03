@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/gas_log/data/repositories/automobile_repository.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/automobile.dart';
 import 'package:hmm_console/features/gas_log/usecases/create_automobile_usecase.dart';
@@ -35,7 +36,7 @@ void main() {
       fakeRepo = _FakeAutomobileRepository();
       container = ProviderContainer(
         overrides: [
-          automobileRepositoryProvider.overrideWithValue(fakeRepo),
+          automobileRepositoryModeProvider.overrideWithValue(fakeRepo),
         ],
       );
       addTearDown(container.dispose);

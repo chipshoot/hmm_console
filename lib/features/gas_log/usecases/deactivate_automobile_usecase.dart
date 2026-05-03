@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/repository_providers.dart';
 import '../data/repositories/automobile_repository.dart';
 
 abstract interface class DeactivateAutomobileUseCase {
@@ -20,5 +21,5 @@ class _DeactivateAutomobileUseCase implements DeactivateAutomobileUseCase {
 final deactivateAutomobileUseCaseProvider =
     Provider<DeactivateAutomobileUseCase>(
   (ref) =>
-      _DeactivateAutomobileUseCase(ref.watch(automobileRepositoryProvider)),
+      _DeactivateAutomobileUseCase(ref.watch(automobileRepositoryModeProvider)),
 );

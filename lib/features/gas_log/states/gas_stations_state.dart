@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/repositories/gas_station_repository.dart';
+import '../../../core/data/repository_providers.dart';
 import '../domain/entities/gas_station.dart';
 
 class GasStationsState extends AsyncNotifier<List<GasStation>> {
   @override
   Future<List<GasStation>> build() async {
-    return ref.read(gasStationRepositoryProvider).getGasStations();
+    return ref.read(gasStationRepositoryModeProvider).getGasStations();
   }
 
   Future<GasStation> getOrCreateStation(String name) async {
@@ -22,7 +22,7 @@ class GasStationsState extends AsyncNotifier<List<GasStation>> {
 
     // Create new station with name only
     final created = await ref
-        .read(gasStationRepositoryProvider)
+        .read(gasStationRepositoryModeProvider)
         .createGasStation(GasStation(name: name));
 
     // Refresh station list
@@ -33,7 +33,7 @@ class GasStationsState extends AsyncNotifier<List<GasStation>> {
 
   Future<GasStation> createStation(GasStation station) async {
     final created =
-        await ref.read(gasStationRepositoryProvider).createGasStation(station);
+        await ref.read(gasStationRepositoryModeProvider).createGasStation(station);
 
     // Add to local state
     final stations = state.value ?? [];
@@ -44,7 +44,7 @@ class GasStationsState extends AsyncNotifier<List<GasStation>> {
 
   Future<GasStation> updateStation(int id, GasStation station) async {
     final updated = await ref
-        .read(gasStationRepositoryProvider)
+        .read(gasStationRepositoryModeProvider)
         .updateGasStation(id, station);
 
     // Update local state
@@ -57,7 +57,7 @@ class GasStationsState extends AsyncNotifier<List<GasStation>> {
   }
 
   Future<void> deleteStation(int id) async {
-    await ref.read(gasStationRepositoryProvider).deleteGasStation(id);
+    await ref.read(gasStationRepositoryModeProvider).deleteGasStation(id);
 
     // Remove from local state (backend soft-deletes, so mark inactive)
     final stations = state.value ?? [];

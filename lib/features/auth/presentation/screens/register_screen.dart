@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/core.dart';
 import 'package:hmm_console/features/auth/domain/logics/email_pass_validator.dart';
 import 'package:hmm_console/features/auth/presentation/widges/welcome_text.dart';
@@ -33,9 +34,15 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
             content: Text(
               'Registration successful! Please check your email to verify your account, then log in.',
             ),
+            duration: Duration(seconds: 6),
           ),
         );
-        Navigator.of(context).pop();
+        // Use go_router's go() to land on /auth deterministically, regardless
+        // of how the user reached this screen (push from login, deep-link,
+        // hot-restart, etc.). Navigator.pop() is unreliable across nested
+        // GoRoute hierarchies — silently no-ops if the imperative stack is
+        // empty even though GoRouter still has /auth/register as the location.
+        context.go('/auth');
       }
     });
 

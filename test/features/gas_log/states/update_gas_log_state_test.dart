@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/network/pagination.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/gas_log/data/repositories/gas_station_repository.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/gas_log.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/gas_station.dart';
@@ -72,7 +73,7 @@ void main() {
           updateGasLogUseCaseProvider.overrideWithValue(fakeUpdateUseCase),
           getGasLogsUseCaseProvider
               .overrideWithValue(_FakeGetGasLogsUseCase()),
-          gasStationRepositoryProvider
+          gasStationRepositoryModeProvider
               .overrideWithValue(_FakeGasStationRepository()),
         ],
       );

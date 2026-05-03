@@ -2,15 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/core.dart';
 import 'package:hmm_console/core/exceptions/app_exceptions.dart';
+import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:hmm_console/features/auth/presentation/widges/user_pass_form.dart';
 import 'package:hmm_console/features/auth/presentation/widges/welcome_text.dart';
 import 'package:hmm_console/features/auth/states/login_state.dart';
 
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  // Captured on each form submit so the email-not-confirmed snackbar can
+  // wire a "Resend email" action without asking the user to retype.
+  String _lastEmail = '';
+
+  @override
+  Widget build(BuildContext context) {
     final loginState = ref.watch(loginStateProvider);
     final messenger = ScaffoldMessenger.of(context);
     ref.listen(loginStateProvider, (prev, next) {
@@ -23,6 +33,38 @@ class LoginScreen extends ConsumerWidget {
             error is AppException ? error.message : 'Something went wrong';
         final isInvalidCredentials = error is AuthTokenException &&
             error.code == 'INVALID_CREDENTIALS';
+        final isEmailNotConfirmed = error is AuthTokenException &&
+            error.code == 'EMAIL_NOT_CONFIRMED';
+
+        SnackBarAction? action;
+        if (isInvalidCredentials) {
+          action = SnackBarAction(
+            label: 'Sign Up',
+            onPressed: () {
+              messenger.hideCurrentSnackBar();
+              AppRouter.go(context, RouterNames.register);
+            },
+          );
+        } else if (isEmailNotConfirmed && _lastEmail.isNotEmpty) {
+          action = SnackBarAction(
+            label: 'Resend email',
+            onPressed: () async {
+              messenger.hideCurrentSnackBar();
+              await ref
+                  .read(idpTokenServiceProvider)
+                  .resendConfirmation(email: _lastEmail);
+              if (!context.mounted) return;
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'If $_lastEmail is registered, we just sent a new verification link. Check your inbox.',
+                  ),
+                  duration: const Duration(seconds: 6),
+                ),
+              );
+            },
+          );
+        }
 
         messenger.showSnackBar(
           SnackBar(
@@ -31,16 +73,10 @@ class LoginScreen extends ConsumerWidget {
                   ? '$message. New here? Sign up for an account.'
                   : message,
             ),
-            action: isInvalidCredentials
-                ? SnackBarAction(
-                    label: 'Sign Up',
-                    onPressed: () {
-                      messenger.hideCurrentSnackBar();
-                      AppRouter.go(context, RouterNames.register);
-                    },
-                  )
-                : null,
-            duration: isInvalidCredentials
+            action: action,
+            // Email-not-confirmed is informational, not a recovery prompt —
+            // give the user a few extra seconds to read it.
+            duration: isInvalidCredentials || isEmailNotConfirmed
                 ? const Duration(seconds: 6)
                 : const Duration(seconds: 4),
           ),
@@ -61,6 +97,7 @@ class LoginScreen extends ConsumerWidget {
                   onFieldInteraction: () => messenger.clearSnackBars(),
                   onFormSubmit: (String email, String password) async {
                     messenger.clearSnackBars();
+                    _lastEmail = email;
                     ref
                         .read(loginStateProvider.notifier)
                         .loginWithEmailPassword(email, password);

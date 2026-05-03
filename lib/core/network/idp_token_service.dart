@@ -52,14 +52,30 @@ class IdpTokenService {
         throw NetworkException.timeout();
       }
 
-      // Parse OAuth error response for meaningful messages
+      // Parse OAuth error response for meaningful messages.
+      //
+      // The IDP's CustomResourceOwnerPasswordValidator distinguishes failure
+      // cases by setting `error_description` to one of:
+      //   - "invalid_username_or_password"  (bad credentials)
+      //   - "email_not_confirmed"           (password OK, account unverified)
+      //   - "account_locked"                (too many failed attempts)
+      // We map each to a typed AuthTokenException so the UI can present the
+      // right next-step (sign-in retry vs verify-email vs wait/contact).
       final data = e.response?.data;
       if (data is Map<String, dynamic>) {
         final error = data['error'] as String?;
         final errorDescription = data['error_description'] as String?;
 
         if (error == 'invalid_grant') {
-          throw AuthTokenException.invalidCredentials();
+          switch (errorDescription) {
+            case 'email_not_confirmed':
+              throw AuthTokenException.emailNotConfirmed();
+            case 'account_locked':
+              throw AuthTokenException.accountLocked();
+            case 'invalid_username_or_password':
+            default:
+              throw AuthTokenException.invalidCredentials();
+          }
         }
 
         if (errorDescription != null && errorDescription.isNotEmpty) {
@@ -119,6 +135,24 @@ class IdpTokenService {
         }
       }
       throw const ApiException('REGISTRATION_FAILED', 'Registration failed');
+    }
+  }
+
+  /// Re-issues an email-verification link for an account that hasn't been
+  /// confirmed yet. Fire-and-forget from the UI's perspective: the IDP returns
+  /// 200 with the same generic body whether or not the email matches a real
+  /// unconfirmed account (no enumeration leak). Network errors are swallowed
+  /// — the user can simply tap "Resend email" again if their connection
+  /// blipped, and there's nothing actionable to surface otherwise.
+  Future<void> resendConfirmation({required String email}) async {
+    try {
+      await _dio.post(
+        _config.resendConfirmationEndpoint,
+        data: {'email': email},
+        options: Options(contentType: Headers.jsonContentType),
+      );
+    } on DioException {
+      // Intentionally swallowed.
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/repositories/gas_log_api_repository.dart';
+import '../../../../core/data/repository_providers.dart';
 import '../data/repositories/i_gas_log_repository.dart';
 import '../domain/entities/gas_log.dart';
 
@@ -20,5 +20,5 @@ class _UpdateGasLogUseCase implements UpdateGasLogUseCase {
 }
 
 final updateGasLogUseCaseProvider = Provider<UpdateGasLogUseCase>(
-  (ref) => _UpdateGasLogUseCase(ref.watch(gasLogRepositoryProvider)),
+  (ref) => _UpdateGasLogUseCase(ref.watch(gasLogRepositoryModeProvider)),
 );

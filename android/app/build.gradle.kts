@@ -29,6 +29,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // OneDrive OAuth redirect scheme — must match OneDriveConfig.redirectUri
+        // (see docs/cloud_storage_setup.md §1.5).
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.homemademessage.hmm"
     }
 
     buildTypes {
