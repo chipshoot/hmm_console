@@ -3,7 +3,7 @@
 ## 2026-02-16: GasLog Subsystem Implementation
 
 ### Summary
-Replaced Hive-based offline gas log feature with full API integration against the backend (`/api/v1/automobiles/{autoId}/gaslogs`). Built complete clean architecture layers: data, domain, state management, and presentation.
+Replaced Hive-based offline gas log feature with full API integration against the backend (`/v1/automobiles/{autoId}/gaslogs`). Built complete clean architecture layers: data, domain, state management, and presentation.
 
 ### Changes
 

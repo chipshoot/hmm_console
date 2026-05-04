@@ -317,7 +317,7 @@ class AppRouter {
 
 ### 7.2 Planned Backend Integration
 
-The Hmm backend API provides REST endpoints at `https://api.homemademessage.com/api/v1/`:
+The Hmm backend API provides REST endpoints at `https://api.homemademessage.com/v1/`:
 
 | Endpoint | Flutter Feature |
 |----------|----------------|
@@ -454,7 +454,7 @@ Flutter App
   │      → Hmm access token (JWT)
   │
   └── 3. API calls with Bearer token
-         GET https://api.homemademessage.com/api/v1/notes
+         GET https://api.homemademessage.com/v1/notes
          Authorization: Bearer <hmm-jwt>
 ```
 
@@ -462,15 +462,15 @@ Flutter App
 
 | HTTP Method | Endpoint | Purpose |
 |------------|----------|---------|
-| GET | `/api/v1/notes` | List notes (paginated) |
-| POST | `/api/v1/notes` | Create note |
-| PUT | `/api/v1/notes/{id}` | Update note |
-| DELETE | `/api/v1/notes/{id}` | Soft-delete note |
-| GET | `/api/v1/authors` | Get authors |
-| GET | `/api/v1/tags` | List tags |
-| GET | `/api/v1/notecatalogs` | List note templates |
-| GET | `/api/v1/automobiles/{id}/gaslogs` | Get gas logs |
-| POST | `/api/v1/automobiles/{id}/gaslogs` | Add gas log |
+| GET | `/v1/notes` | List notes (paginated) |
+| POST | `/v1/notes` | Create note |
+| PUT | `/v1/notes/{id}` | Update note |
+| DELETE | `/v1/notes/{id}` | Soft-delete note |
+| GET | `/v1/authors` | Get authors |
+| GET | `/v1/tags` | List tags |
+| GET | `/v1/notecatalogs` | List note templates |
+| GET | `/v1/automobiles/{id}/gaslogs` | Get gas logs |
+| POST | `/v1/automobiles/{id}/gaslogs` | Add gas log |
 
 ## 13. Future Considerations
 

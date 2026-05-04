@@ -6,10 +6,10 @@ import 'sync_models.dart';
 /// Stub implementation — real REST wiring lands next.
 ///
 /// Target endpoints (see `docs/SYSTEM_DESIGN.md`):
-///   GET/POST/PUT/DELETE /api/v1/notes
-///   GET                 /api/v1/notecatalogs
-///   GET                 /api/v1/tags
-///   GET/POST            /api/v1/authors
+///   GET/POST/PUT/DELETE /v1/notes
+///   GET                 /v1/notecatalogs
+///   GET                 /v1/tags
+///   GET/POST            /v1/authors
 ///
 /// Auth piggybacks on the existing `IdpTokenService` (Firebase JWT → Hmm JWT).
 class ApiSyncProvider implements CloudSyncProvider {

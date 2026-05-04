@@ -6,11 +6,11 @@ class ApiConfig {
   final String baseUrl;
 
   static const production = ApiConfig(
-    baseUrl: 'https://api.homemademessage.com/api/v1',
+    baseUrl: 'https://api.homemademessage.com/v1',
   );
 
   static final development = ApiConfig(
-    baseUrl: 'http://$_devHost:5010/api/v1',
+    baseUrl: 'http://$_devHost:5010/v1',
   );
 
   static String get _devHost => Platform.isAndroid ? '10.0.2.2' : 'localhost';
