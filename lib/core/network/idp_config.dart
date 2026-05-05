@@ -20,7 +20,7 @@ class IdpConfig {
 
   static const production = IdpConfig(
     authority: 'https://idp.homemademessage.com',
-    clientId: 'hmm.web',
+    clientId: 'hmm.mobile',
     clientSecret: '',
     scopes: 'openid profile hmmapi offline_access',
   );
