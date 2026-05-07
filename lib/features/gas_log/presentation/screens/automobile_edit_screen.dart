@@ -254,6 +254,32 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                         onChanged: (v) =>
                             setState(() => _fuelType = v ?? 'Regular'),
                       ),
+                      GapWidgets.h16,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppTextFormField(
+                              fieldController: _colorCtrl,
+                              fieldValidator: (_) => null,
+                              label: 'Color',
+                            ),
+                          ),
+                          GapWidgets.w16,
+                          Expanded(
+                            child: AppTextFormField(
+                              fieldController: _plateCtrl,
+                              fieldValidator: validatePlate,
+                              label: 'Plate',
+                            ),
+                          ),
+                        ],
+                      ),
+                      GapWidgets.h16,
+                      OwnershipStatusDropdown(
+                        value: _ownershipStatus,
+                        onChanged: (v) =>
+                            setState(() => _ownershipStatus = v ?? 'Owned'),
+                      ),
                     ] else ...[
                       _readOnlyField('VIN', orig.vin ?? 'N/A'),
                       _readOnlyField('Maker', orig.maker ?? 'N/A'),
@@ -264,47 +290,27 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                           'Year', orig.year > 0 ? '${orig.year}' : 'N/A'),
                       _readOnlyField('Engine', orig.engineType ?? 'N/A'),
                       _readOnlyField('Fuel', orig.fuelType ?? 'N/A'),
+                      _readOnlyField('Color', orig.color ?? 'N/A'),
+                      _readOnlyField('Plate', orig.plate ?? 'N/A'),
+                      _readOnlyField(
+                          'Ownership', orig.ownershipStatus ?? 'N/A'),
                     ],
                   ],
                 ),
               ),
               GapWidgets.h24,
 
-              // --- Mutable fields ---
-              _sectionTitle(context, 'Editable Details'),
+              // --- Mileage ---
+              // Meter reading stays unconditionally editable: it's the
+              // routine reason users open this screen between gas logs.
+              _sectionTitle(context, 'Mileage'),
               GapWidgets.h8,
-              Row(
-                children: [
-                  Expanded(
-                    child: AppTextFormField(
-                      fieldController: _colorCtrl,
-                      fieldValidator: (_) => null,
-                      label: 'Color',
-                    ),
-                  ),
-                  GapWidgets.w16,
-                  Expanded(
-                    child: AppTextFormField(
-                      fieldController: _plateCtrl,
-                      fieldValidator: validatePlate,
-                      label: 'Plate',
-                    ),
-                  ),
-                ],
-              ),
-              GapWidgets.h16,
               AppTextFormField(
                 fieldController: _meterReadingCtrl,
                 fieldValidator: validateMeterReading,
                 label: 'Meter Reading ($distLabel)',
                 keyboardType: NumericInput.integer.keyboardType,
                 inputFormatters: NumericInput.integer.formatters,
-              ),
-              GapWidgets.h16,
-              OwnershipStatusDropdown(
-                value: _ownershipStatus,
-                onChanged: (v) =>
-                    setState(() => _ownershipStatus = v ?? 'Owned'),
               ),
               GapWidgets.h24,
 
@@ -573,11 +579,19 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
         : orig.year;
     final newEngine = _immutableUnlocked ? _engineType : orig.engineType;
     final newFuel = _immutableUnlocked ? _fuelType : orig.fuelType;
+    final newColor = _immutableUnlocked
+        ? (_colorCtrl.text.isNotEmpty ? _colorCtrl.text : null)
+        : orig.color;
+    final newPlate = _immutableUnlocked
+        ? (_plateCtrl.text.isNotEmpty ? _plateCtrl.text : null)
+        : orig.plate;
+    final newOwnership =
+        _immutableUnlocked ? _ownershipStatus : orig.ownershipStatus;
 
     // Capture an audit entry per identity-field change. Only runs while
-    // the section is unlocked — normal mutable field edits (color, plate,
-    // meter, …) aren't audited because changing them is the expected use
-    // of this screen.
+    // the section is unlocked — meter reading edits aren't audited because
+    // updating mileage between gas logs is the routine reason to open
+    // this screen.
     final auditAdditions = _immutableUnlocked
         ? _diffIdentity(orig, {
             'vin': newVin,
@@ -588,6 +602,9 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
             'year': newYear == 0 ? null : '$newYear',
             'engineType': newEngine,
             'fuelType': newFuel,
+            'color': newColor,
+            'plate': newPlate,
+            'ownershipStatus': newOwnership,
           })
         : const <AutomobileAuditEntry>[];
 
@@ -599,8 +616,8 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       model: newModel,
       trim: newTrim,
       year: newYear,
-      color: _colorCtrl.text.isNotEmpty ? _colorCtrl.text : null,
-      plate: _plateCtrl.text.isNotEmpty ? _plateCtrl.text : null,
+      color: newColor,
+      plate: newPlate,
       engineType: newEngine,
       fuelType: newFuel,
       fuelTankCapacity: orig.fuelTankCapacity,
@@ -611,7 +628,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       purchaseMeterReading: orig.purchaseMeterReading,
       purchaseDate: orig.purchaseDate,
       purchasePrice: orig.purchasePrice,
-      ownershipStatus: _ownershipStatus,
+      ownershipStatus: newOwnership,
       isActive: orig.isActive,
       soldDate: orig.soldDate,
       soldMeterReading: orig.soldMeterReading,
@@ -662,6 +679,9 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       'year': orig.year > 0 ? '${orig.year}' : null,
       'engineType': str(orig.engineType),
       'fuelType': str(orig.fuelType),
+      'color': str(orig.color),
+      'plate': str(orig.plate),
+      'ownershipStatus': str(orig.ownershipStatus),
     };
 
     final out = <AutomobileAuditEntry>[];
