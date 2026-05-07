@@ -1,12 +1,11 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/gas_log/data/repositories/gas_station_repository.dart';
 import '../../../features/gas_log/domain/entities/gas_station.dart';
+import '../note_input.dart';
 import 'database.dart';
-import 'local_author_repository.dart';
 import 'local_note_catalog_repository.dart';
 import 'local_note_repository.dart';
 
@@ -14,11 +13,10 @@ const _stationCatalogName = 'Hmm.AutomobileMan.GasStation';
 const _stationCatalogSchema = '{}';
 
 class LocalGasStationRepository implements IGasStationRepository {
-  LocalGasStationRepository(this._noteRepo, this._catalogRepo, this._authorRepo);
+  LocalGasStationRepository(this._noteRepo, this._catalogRepo);
 
   final INoteRepository _noteRepo;
   final INoteCatalogRepository _catalogRepo;
-  final IAuthorRepository _authorRepo;
 
   @override
   Future<List<GasStation>> getGasStations() async {
@@ -43,15 +41,11 @@ class LocalGasStationRepository implements IGasStationRepository {
       _stationCatalogName,
       _stationCatalogSchema,
     );
-    final authors = await _authorRepo.getAuthors();
-    if (authors.isEmpty) throw Exception('No author found');
-
     final content = _serialize(station);
-    final note = await _noteRepo.createNote(NotesCompanion.insert(
+    final note = await _noteRepo.createNote(NoteCreate(
       subject: station.name.isNotEmpty ? station.name : 'Gas Station',
-      content: Value(content),
-      authorId: authors.first.id,
-      catalogId: Value(catalog.id),
+      content: content,
+      catalogId: catalog.id,
     ));
 
     return _deserialize(note)!.copyWith(id: note.id);
@@ -60,10 +54,7 @@ class LocalGasStationRepository implements IGasStationRepository {
   @override
   Future<GasStation> updateGasStation(int id, GasStation station) async {
     final content = _serialize(station);
-    final note = await _noteRepo.updateNote(
-      id,
-      NotesCompanion(content: Value(content)),
-    );
+    final note = await _noteRepo.updateNote(id, NoteUpdate(content: content));
     return _deserialize(note)!;
   }
 
@@ -119,6 +110,5 @@ final localGasStationRepositoryProvider = Provider<IGasStationRepository>((ref) 
   return LocalGasStationRepository(
     ref.watch(localNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),
-    ref.watch(localAuthorRepositoryProvider),
   );
 });

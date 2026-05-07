@@ -1,12 +1,11 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/gas_log/data/repositories/automobile_repository.dart';
 import '../../../features/gas_log/domain/entities/automobile.dart';
+import '../note_input.dart';
 import 'database.dart';
-import 'local_author_repository.dart';
 import 'local_note_catalog_repository.dart';
 import 'local_note_repository.dart';
 
@@ -14,11 +13,10 @@ const _autoCatalogName = 'Hmm.AutomobileMan.AutomobileInfo';
 const _autoCatalogSchema = '{}';
 
 class LocalAutomobileRepository implements IAutomobileRepository {
-  LocalAutomobileRepository(this._noteRepo, this._catalogRepo, this._authorRepo);
+  LocalAutomobileRepository(this._noteRepo, this._catalogRepo);
 
   final INoteRepository _noteRepo;
   final INoteCatalogRepository _catalogRepo;
-  final IAuthorRepository _authorRepo;
 
   @override
   Future<List<Automobile>> getAutomobiles() async {
@@ -50,15 +48,11 @@ class LocalAutomobileRepository implements IAutomobileRepository {
       _autoCatalogName,
       _autoCatalogSchema,
     );
-    final authors = await _authorRepo.getAuthors();
-    if (authors.isEmpty) throw Exception('No author found');
-
     final content = _serialize(automobile);
-    final note = await _noteRepo.createNote(NotesCompanion.insert(
+    final note = await _noteRepo.createNote(NoteCreate(
       subject: _subjectFor(automobile),
-      content: Value(content),
-      authorId: authors.first.id,
-      catalogId: Value(catalog.id),
+      content: content,
+      catalogId: catalog.id,
     ));
 
     return _deserialize(note)!;
@@ -79,7 +73,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
   @override
   Future<void> updateAutomobile(int id, Automobile automobile) async {
     final content = _serialize(automobile);
-    await _noteRepo.updateNote(id, NotesCompanion(content: Value(content)));
+    await _noteRepo.updateNote(id, NoteUpdate(content: content));
   }
 
   @override
@@ -121,7 +115,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
       notes: current.notes,
     );
     final content = _serialize(deactivated);
-    await _noteRepo.updateNote(id, NotesCompanion(content: Value(content)));
+    await _noteRepo.updateNote(id, NoteUpdate(content: content));
   }
 
   String _serialize(Automobile auto) {
@@ -217,6 +211,5 @@ final localAutomobileRepositoryProvider = Provider<IAutomobileRepository>((ref) 
   return LocalAutomobileRepository(
     ref.watch(localNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),
-    ref.watch(localAuthorRepositoryProvider),
   );
 });

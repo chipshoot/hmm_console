@@ -16,7 +16,11 @@ abstract interface class IAuthorRepository {
 
   Future<void> deactivateAuthor(int id);
 
-  Future<Author> getOrCreateDefaultAuthor(String accountName);
+  Future<Author> getOrCreateDefaultAuthor(
+    String accountName, {
+    String? description,
+    String? avatarUrl,
+  });
 }
 
 class LocalAuthorRepository implements IAuthorRepository {
@@ -64,13 +68,20 @@ class LocalAuthorRepository implements IAuthorRepository {
   }
 
   @override
-  Future<Author> getOrCreateDefaultAuthor(String accountName) async {
+  Future<Author> getOrCreateDefaultAuthor(
+    String accountName, {
+    String? description,
+    String? avatarUrl,
+  }) async {
     final existing = await getAuthorByAccountName(accountName);
     if (existing != null) return existing;
 
     return createAuthor(AuthorsCompanion.insert(
       accountName: accountName,
-      description: Value('Local user'),
+      description: Value(description ?? 'Local user'),
+      // avatarUrl reserved for future schema bump — drift Author table doesn't
+      // have the column yet. Threaded through the API so the call site stays
+      // correct when we add it.
     ));
   }
 }

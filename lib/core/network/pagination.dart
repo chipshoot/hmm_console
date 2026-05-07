@@ -36,3 +36,10 @@ class PaginatedResponse<T> {
   final List<T> items;
   final PaginationMeta meta;
 }
+
+/// Canonical pagination envelope. Mirrors the Hmm.ServiceApi `PageList<T>`
+/// shape — see `docs/data-layer-unification-plan.md`. Aliased to the older
+/// `PaginatedResponse<T>` name so legacy call sites keep compiling; new code
+/// should prefer `PageList<T>`.
+typedef PageList<T> = PaginatedResponse<T>;
+typedef PageMeta = PaginationMeta;

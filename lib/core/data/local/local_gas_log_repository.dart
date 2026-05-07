@@ -1,14 +1,13 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/gas_log/data/repositories/i_gas_log_repository.dart';
 import '../../../features/gas_log/domain/entities/discount_info.dart';
 import '../../../features/gas_log/domain/entities/gas_log.dart';
 import '../../network/pagination.dart';
+import '../note_input.dart';
 import 'database.dart';
-import 'local_author_repository.dart';
 import 'local_note_catalog_repository.dart';
 import 'local_note_repository.dart';
 
@@ -16,11 +15,10 @@ const _gasLogCatalogName = 'Hmm.AutomobileMan.GasLog';
 const _gasLogCatalogSchema = '{}';
 
 class LocalGasLogRepository implements IGasLogRepository {
-  LocalGasLogRepository(this._noteRepo, this._catalogRepo, this._authorRepo);
+  LocalGasLogRepository(this._noteRepo, this._catalogRepo);
 
   final INoteRepository _noteRepo;
   final INoteCatalogRepository _catalogRepo;
-  final IAuthorRepository _authorRepo;
 
   @override
   Future<PaginatedResponse<GasLog>> getGasLogs(
@@ -60,17 +58,12 @@ class LocalGasLogRepository implements IGasLogRepository {
       _gasLogCatalogName,
       _gasLogCatalogSchema,
     );
-    final authors = await _authorRepo.getAuthors();
-    if (authors.isEmpty) throw Exception('No author found');
-    final author = authors.first;
-
     final content = _serializeGasLog(gasLog);
-    final note = await _noteRepo.createNote(NotesCompanion.insert(
+    final note = await _noteRepo.createNote(NoteCreate(
       subject: _subjectFor(gasLog),
-      content: Value(content),
-      authorId: author.id,
-      catalogId: Value(catalog.id),
-      parentNoteId: Value(gasLog.automobileId),
+      content: content,
+      catalogId: catalog.id,
+      parentNoteId: gasLog.automobileId,
     ));
 
     return _deserializeGasLog(note)!;
@@ -92,10 +85,7 @@ class LocalGasLogRepository implements IGasLogRepository {
   @override
   Future<GasLog> updateGasLog(int autoId, int id, GasLog gasLog) async {
     final content = _serializeGasLog(gasLog);
-    final note = await _noteRepo.updateNote(
-      id,
-      NotesCompanion(content: Value(content)),
-    );
+    final note = await _noteRepo.updateNote(id, NoteUpdate(content: content));
     return _deserializeGasLog(note)!;
   }
 
@@ -199,6 +189,5 @@ final localGasLogRepositoryProvider = Provider<IGasLogRepository>((ref) {
   return LocalGasLogRepository(
     ref.watch(localNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),
-    ref.watch(localAuthorRepositoryProvider),
   );
 });
