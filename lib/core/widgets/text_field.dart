@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTextFormField extends StatelessWidget {
   final TextEditingController fieldController;
@@ -13,6 +14,11 @@ class AppTextFormField extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
 
+  /// Restricts what characters can be typed/pasted into the field. Useful
+  /// in tandem with `keyboardType: TextInputType.numberWithOptions(...)` to
+  /// stop letters from sneaking in via paste on Android.
+  final List<TextInputFormatter>? inputFormatters;
+
   const AppTextFormField({
     super.key,
     required this.fieldController,
@@ -22,6 +28,7 @@ class AppTextFormField extends StatelessWidget {
     this.autofillHints,
     this.keyboardType,
     this.textInputAction,
+    this.inputFormatters,
   });
 
   @override
@@ -33,6 +40,7 @@ class AppTextFormField extends StatelessWidget {
       autofillHints: autofillHints,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(),

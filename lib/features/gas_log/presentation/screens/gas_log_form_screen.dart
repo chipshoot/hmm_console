@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/gaps.dart';
+import '../../../../core/widgets/numeric_input.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../domain/entities/automobile.dart';
@@ -351,7 +352,13 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
 
     return CommonScreenScaffold(
       title: _isEditing ? 'Edit Gas Log' : 'New Gas Log',
-      child: Form(
+      // Tap anywhere outside a field to dismiss the keyboard. Important
+      // because the iOS number pad has no Done/Return key — without this
+      // there's no obvious way to close it after typing odometer/fuel/etc.
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Form(
         key: _formKey,
         child: SingleChildScrollView(
           child: Column(
@@ -379,6 +386,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                   return validateOdometer(value);
                 },
                 label: 'Odometer ($distLabel)',
+                keyboardType: NumericInput.decimal.keyboardType,
+                inputFormatters: NumericInput.decimal.formatters,
               ),
               if (_odometerGapWarning != null)
                 Padding(
@@ -395,12 +404,16 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                 fieldController: _distanceCtrl,
                 fieldValidator: validateDistance,
                 label: 'Distance ($distLabel)',
+                keyboardType: NumericInput.decimal.keyboardType,
+                inputFormatters: NumericInput.decimal.formatters,
               ),
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _fuelCtrl,
                 fieldValidator: validateFuel,
                 label: 'Fuel ($fuelLabel)',
+                keyboardType: NumericInput.decimal.keyboardType,
+                inputFormatters: NumericInput.decimal.formatters,
               ),
               GapWidgets.h16,
               FuelGradeDropdown(
@@ -416,6 +429,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                       fieldController: _unitPriceCtrl,
                       fieldValidator: validatePrice,
                       label: 'Unit Price ($currSymbol/$fuelLabel)',
+                      keyboardType: NumericInput.decimal.keyboardType,
+                      inputFormatters: NumericInput.decimal.formatters,
                     ),
                   ),
                   GapWidgets.w16,
@@ -424,6 +439,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                       fieldController: _totalPriceCtrl,
                       fieldValidator: validatePrice,
                       label: 'Total Price ($currSymbol)',
+                      keyboardType: NumericInput.decimal.keyboardType,
+                      inputFormatters: NumericInput.decimal.formatters,
                     ),
                   ),
                 ],
@@ -458,6 +475,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
               GapWidgets.h24,
             ],
           ),
+        ),
         ),
       ),
     );

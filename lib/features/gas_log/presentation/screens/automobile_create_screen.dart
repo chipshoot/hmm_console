@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/gaps.dart';
+import '../../../../core/widgets/numeric_input.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../domain/entities/automobile.dart';
@@ -105,7 +106,13 @@ class _AutomobileCreateScreenState
 
     return CommonScreenScaffold(
       title: 'New Vehicle',
-      child: Form(
+      // Tap outside any field to dismiss the keyboard. The iOS number pad
+      // has no Done/Return key, so without this users have no obvious way
+      // to close it after entering year/MPG/price.
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Form(
         key: _formKey,
         child: SingleChildScrollView(
           child: Column(
@@ -153,6 +160,8 @@ class _AutomobileCreateScreenState
                       fieldController: _yearCtrl,
                       fieldValidator: validateYear,
                       label: 'Year',
+                      keyboardType: NumericInput.integer.keyboardType,
+                      inputFormatters: NumericInput.integer.formatters,
                     ),
                   ),
                 ],
@@ -202,6 +211,8 @@ class _AutomobileCreateScreenState
                 fieldController: _tankCapacityCtrl,
                 fieldValidator: (_) => null,
                 label: 'Tank Capacity (optional)',
+                keyboardType: NumericInput.decimal.keyboardType,
+                inputFormatters: NumericInput.decimal.formatters,
               ),
               GapWidgets.h16,
               Row(
@@ -211,6 +222,8 @@ class _AutomobileCreateScreenState
                       fieldController: _cityMpgCtrl,
                       fieldValidator: (_) => null,
                       label: 'City MPG',
+                      keyboardType: NumericInput.decimal.keyboardType,
+                      inputFormatters: NumericInput.decimal.formatters,
                     ),
                   ),
                   GapWidgets.w16,
@@ -219,6 +232,8 @@ class _AutomobileCreateScreenState
                       fieldController: _highwayMpgCtrl,
                       fieldValidator: (_) => null,
                       label: 'Hwy MPG',
+                      keyboardType: NumericInput.decimal.keyboardType,
+                      inputFormatters: NumericInput.decimal.formatters,
                     ),
                   ),
                   GapWidgets.w16,
@@ -227,6 +242,8 @@ class _AutomobileCreateScreenState
                       fieldController: _combinedMpgCtrl,
                       fieldValidator: (_) => null,
                       label: 'Combined',
+                      keyboardType: NumericInput.decimal.keyboardType,
+                      inputFormatters: NumericInput.decimal.formatters,
                     ),
                   ),
                 ],
@@ -240,6 +257,8 @@ class _AutomobileCreateScreenState
                 fieldController: _meterReadingCtrl,
                 fieldValidator: validateMeterReading,
                 label: 'Meter Reading ($distLabel)',
+                keyboardType: NumericInput.integer.keyboardType,
+                inputFormatters: NumericInput.integer.formatters,
               ),
               GapWidgets.h16,
               DatePickerField(
@@ -251,6 +270,8 @@ class _AutomobileCreateScreenState
                 fieldController: _purchasePriceCtrl,
                 fieldValidator: (_) => null,
                 label: 'Purchase Price ($currSymbol)',
+                keyboardType: NumericInput.decimal.keyboardType,
+                inputFormatters: NumericInput.decimal.formatters,
               ),
               GapWidgets.h16,
               OwnershipStatusDropdown(
@@ -277,6 +298,7 @@ class _AutomobileCreateScreenState
               GapWidgets.h24,
             ],
           ),
+        ),
         ),
       ),
     );

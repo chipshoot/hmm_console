@@ -2,6 +2,7 @@
 export 'widgets/gaps.dart';
 export 'widgets/button.dart';
 export 'widgets/text_field.dart';
+export 'widgets/numeric_input.dart';
 export 'widgets/screen_scaffold.dart';
 
 // theme

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/gaps.dart';
+import '../../../../core/widgets/numeric_input.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../domain/entities/automobile.dart';
@@ -131,7 +132,10 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
     return CommonScreenScaffold(
       title: 'Edit Vehicle',
-      child: Form(
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Form(
         key: _formKey,
         child: SingleChildScrollView(
           child: Column(
@@ -176,6 +180,8 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                 fieldController: _meterReadingCtrl,
                 fieldValidator: validateMeterReading,
                 label: 'Meter Reading ($distLabel)',
+                keyboardType: NumericInput.integer.keyboardType,
+                inputFormatters: NumericInput.integer.formatters,
               ),
               GapWidgets.h16,
               OwnershipStatusDropdown(
@@ -231,6 +237,8 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                 fieldController: _lastServiceMeterCtrl,
                 fieldValidator: validateMeterReading,
                 label: 'Last Service Meter ($distLabel)',
+                keyboardType: NumericInput.integer.keyboardType,
+                inputFormatters: NumericInput.integer.formatters,
               ),
               GapWidgets.h16,
               _optionalDatePicker(
@@ -245,6 +253,8 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                 fieldController: _nextServiceDueMeterCtrl,
                 fieldValidator: validateMeterReading,
                 label: 'Next Service Meter ($distLabel)',
+                keyboardType: NumericInput.integer.keyboardType,
+                inputFormatters: NumericInput.integer.formatters,
               ),
               GapWidgets.h24,
 
@@ -265,6 +275,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               GapWidgets.h24,
             ],
           ),
+        ),
         ),
       ),
     );
