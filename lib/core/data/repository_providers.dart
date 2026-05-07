@@ -11,7 +11,7 @@ import 'local/local_author_repository.dart';
 import 'local/local_gas_log_repository.dart';
 import 'local/local_gas_station_repository.dart';
 import 'local/local_note_catalog_repository.dart';
-import 'local/local_note_repository.dart';
+import 'local/local_hmm_note_repository.dart';
 import 'local/local_tag_repository.dart';
 
 // Local SQLite is the source of truth for both `local` and `cloudStorage`
@@ -20,9 +20,9 @@ import 'local/local_tag_repository.dart';
 bool _useLocal(DataMode mode) =>
     mode == DataMode.local || mode == DataMode.cloudStorage;
 
-final noteRepositoryProvider = Provider<INoteRepository>((ref) {
+final hmmNoteRepositoryProvider = Provider<IHmmNoteRepository>((ref) {
   final mode = ref.watch(dataModeProvider);
-  if (_useLocal(mode)) return ref.watch(localNoteRepositoryProvider);
+  if (_useLocal(mode)) return ref.watch(localHmmNoteRepositoryProvider);
   throw UnimplementedError('API note repository not yet implemented');
 });
 

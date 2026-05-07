@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/gas_log/data/repositories/gas_station_repository.dart';
 import '../../../features/gas_log/domain/entities/gas_station.dart';
-import '../note_input.dart';
-import 'database.dart';
+import '../hmm_note_input.dart';
+import '../../../features/notes/data/models/hmm_note.dart';
 import 'local_note_catalog_repository.dart';
-import 'local_note_repository.dart';
+import 'local_hmm_note_repository.dart';
 
 const _stationCatalogName = 'Hmm.AutomobileMan.GasStation';
 const _stationCatalogSchema = '{}';
@@ -15,7 +15,7 @@ const _stationCatalogSchema = '{}';
 class LocalGasStationRepository implements IGasStationRepository {
   LocalGasStationRepository(this._noteRepo, this._catalogRepo);
 
-  final INoteRepository _noteRepo;
+  final IHmmNoteRepository _noteRepo;
   final INoteCatalogRepository _catalogRepo;
 
   @override
@@ -42,7 +42,7 @@ class LocalGasStationRepository implements IGasStationRepository {
       _stationCatalogSchema,
     );
     final content = _serialize(station);
-    final note = await _noteRepo.createNote(NoteCreate(
+    final note = await _noteRepo.createNote(HmmNoteCreate(
       subject: station.name.isNotEmpty ? station.name : 'Gas Station',
       content: content,
       catalogId: catalog.id,
@@ -54,7 +54,7 @@ class LocalGasStationRepository implements IGasStationRepository {
   @override
   Future<GasStation> updateGasStation(int id, GasStation station) async {
     final content = _serialize(station);
-    final note = await _noteRepo.updateNote(id, NoteUpdate(content: content));
+    final note = await _noteRepo.updateNote(id, HmmNoteUpdate(content: content));
     return _deserialize(note)!;
   }
 
@@ -80,7 +80,7 @@ class LocalGasStationRepository implements IGasStationRepository {
     return jsonEncode({'note': {'content': {'GasStation': data}}});
   }
 
-  GasStation? _deserialize(Note note) {
+  GasStation? _deserialize(HmmNote note) {
     if (note.content == null) return null;
     try {
       final json = jsonDecode(note.content!) as Map<String, dynamic>;
@@ -108,7 +108,7 @@ class LocalGasStationRepository implements IGasStationRepository {
 
 final localGasStationRepositoryProvider = Provider<IGasStationRepository>((ref) {
   return LocalGasStationRepository(
-    ref.watch(localNoteRepositoryProvider),
+    ref.watch(localHmmNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),
   );
 });

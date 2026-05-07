@@ -1,27 +1,31 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../features/notes/data/mappers/hmm_note_mapper.dart';
+import '../../../features/notes/data/models/hmm_note.dart';
 import '../../auth/current_author_account_name_provider.dart';
 import '../../network/pagination.dart';
-import '../note_input.dart';
+import '../hmm_note_input.dart';
 import 'database.dart';
 
-/// Repository contract for HmmNotes. Mirrors the Hmm.ServiceApi
+/// Repository contract for HmmNote. Mirrors the Hmm.ServiceApi
 /// `HmmNoteController` shape (`/v{version}/notes`):
 ///
 /// * Reads return [PageList] envelopes — same fields as the API's
 ///   `PageList<T>` (currentPage, pageSize, totalCount, totalPages).
-/// * Writes use [NoteCreate] / [NoteUpdate] parameter objects that mirror
-///   the API's `ApiNoteForCreate` / `ApiNoteForUpdate` DTOs. `authorId` is
-///   never exposed: the implementation resolves it from the signed-in user
-///   (matches the server's `CurrentUserAuthorProvider` flow).
+/// * Reads return the [HmmNote] domain entity, not the Drift `Note` row.
+///   The Drift row stays internal to this file.
+/// * Writes use [HmmNoteCreate] / [HmmNoteUpdate] parameter objects that
+///   mirror the API's `ApiNoteForCreate` / `ApiNoteForUpdate` DTOs.
+///   `authorId` is never exposed: the implementation resolves it from the
+///   signed-in user (matches the server's `CurrentUserAuthorProvider`).
 /// * `authorId` and `catalogId` are immutable after create — `updateNote`
-///   only accepts the subject/content/description fields, matching the
-///   API's PUT/PATCH contract.
+///   only accepts subject/content/description, matching the API's PUT/PATCH
+///   contract.
 /// * Delete is soft on both sides (`Notes.deletedAt` here ↔
 ///   `HmmNote.IsDeleted` on the server).
-abstract interface class INoteRepository {
-  Future<PageList<Note>> getNotes({
+abstract interface class IHmmNoteRepository {
+  Future<PageList<HmmNote>> getNotes({
     int? catalogId,
     int? parentNoteId,
     int page = 1,
@@ -29,27 +33,27 @@ abstract interface class INoteRepository {
     bool includeDeleted = false,
   });
 
-  Future<Note?> getNoteById(int id);
+  Future<HmmNote?> getNoteById(int id);
 
-  /// Stable cross-device identity. The local int [Note.id] is per-device;
-  /// [Note.uuid] is what sync providers use to correlate with the server.
-  Future<Note?> getNoteByUuid(String uuid);
+  /// Stable cross-device identity. The local int [HmmNote.id] is per-device;
+  /// [HmmNote.uuid] is what sync providers use to correlate with the server.
+  Future<HmmNote?> getNoteByUuid(String uuid);
 
-  Future<Note> createNote(NoteCreate input);
+  Future<HmmNote> createNote(HmmNoteCreate input);
 
-  Future<Note> updateNote(int id, NoteUpdate patch);
+  Future<HmmNote> updateNote(int id, HmmNoteUpdate patch);
 
   Future<void> deleteNote(int id);
 }
 
-class LocalNoteRepository implements INoteRepository {
-  LocalNoteRepository(this._db, this._currentAuthor);
+class LocalHmmNoteRepository implements IHmmNoteRepository {
+  LocalHmmNoteRepository(this._db, this._currentAuthor);
 
   final HmmDatabase _db;
   final Future<Author> Function() _currentAuthor;
 
   @override
-  Future<PageList<Note>> getNotes({
+  Future<PageList<HmmNote>> getNotes({
     int? catalogId,
     int? parentNoteId,
     int page = 1,
@@ -71,14 +75,14 @@ class LocalNoteRepository implements INoteRepository {
         .then((r) => r.length);
     final totalPages = (totalCount / pageSize).ceil();
 
-    final items = await (_db.select(_db.notes)
+    final rows = await (_db.select(_db.notes)
           ..where(buildWhere)
           ..orderBy([(n) => OrderingTerm.desc(n.lastModifiedDate)])
           ..limit(pageSize, offset: (page - 1) * pageSize))
         .get();
 
     return PaginatedResponse(
-      items: items,
+      items: rows.map(HmmNoteMapper.fromDriftRow).toList(),
       meta: PaginationMeta(
         totalCount: totalCount,
         pageSize: pageSize,
@@ -89,23 +93,25 @@ class LocalNoteRepository implements INoteRepository {
   }
 
   @override
-  Future<Note?> getNoteById(int id) async {
+  Future<HmmNote?> getNoteById(int id) async {
     final author = await _currentAuthor();
-    return await (_db.select(_db.notes)
+    final row = await (_db.select(_db.notes)
           ..where((n) => n.id.equals(id) & n.authorId.equals(author.id)))
         .getSingleOrNull();
+    return row == null ? null : HmmNoteMapper.fromDriftRow(row);
   }
 
   @override
-  Future<Note?> getNoteByUuid(String uuid) async {
+  Future<HmmNote?> getNoteByUuid(String uuid) async {
     final author = await _currentAuthor();
-    return await (_db.select(_db.notes)
+    final row = await (_db.select(_db.notes)
           ..where((n) => n.uuid.equals(uuid) & n.authorId.equals(author.id)))
         .getSingleOrNull();
+    return row == null ? null : HmmNoteMapper.fromDriftRow(row);
   }
 
   @override
-  Future<Note> createNote(NoteCreate input) async {
+  Future<HmmNote> createNote(HmmNoteCreate input) async {
     final author = await _currentAuthor();
     final now = DateTime.now().toUtc();
     final id = await _db.into(_db.notes).insert(NotesCompanion.insert(
@@ -123,7 +129,7 @@ class LocalNoteRepository implements INoteRepository {
   }
 
   @override
-  Future<Note> updateNote(int id, NoteUpdate patch) async {
+  Future<HmmNote> updateNote(int id, HmmNoteUpdate patch) async {
     if (patch.isEmpty) return (await getNoteById(id))!;
     final author = await _currentAuthor();
     final now = DateTime.now().toUtc();
@@ -141,9 +147,6 @@ class LocalNoteRepository implements INoteRepository {
     return (await getNoteById(id))!;
   }
 
-  Uint8List _versionStamp() => Uint8List.fromList(
-      DateTime.now().microsecondsSinceEpoch.toRadixString(16).codeUnits);
-
   @override
   Future<void> deleteNote(int id) async {
     final author = await _currentAuthor();
@@ -156,10 +159,12 @@ class LocalNoteRepository implements INoteRepository {
     ));
   }
 
+  Uint8List _versionStamp() => Uint8List.fromList(
+      DateTime.now().microsecondsSinceEpoch.toRadixString(16).codeUnits);
 }
 
-final localNoteRepositoryProvider = Provider<INoteRepository>((ref) {
-  return LocalNoteRepository(
+final localHmmNoteRepositoryProvider = Provider<IHmmNoteRepository>((ref) {
+  return LocalHmmNoteRepository(
     ref.watch(hmmDatabaseProvider),
     () => ref.read(currentAuthorProvider.future),
   );

@@ -174,6 +174,30 @@ By the end of Phase 3:
 - ViewModels never know which backend is which.
 - The (still-direct) API repos in `cloudApi` mode satisfy the same interface — switching modes doesn't change the call sites.
 
+### Phase 3.5 — Domain entity for HmmNote (~1 hr)
+
+Pull the domain layer out of the persistence layer for `HmmNote` so the repository contract stops leaking the Drift row. Names match server-side `Hmm.Core.HmmNote` so cross-stack greps and DTO mapping are unambiguous.
+
+**Server side has three distinct names; we currently collapse into one.** The server distinguishes:
+
+| Layer | Server | Client today | Client after Phase 3.5 |
+|---|---|---|---|
+| Domain entity | `HmmNote` | — (leaked Drift row) | `HmmNote` (new) |
+| Persistence row | `HmmNoteDao` | `Note` (Drift-generated) | `Note` (unchanged — still internal to `local_note_repository.dart`) |
+| Wire DTO | `ApiNote` | `NoteCreate` / `NoteUpdate` | `HmmNoteCreate` / `HmmNoteUpdate` |
+
+The Drift `Note` row class **stays as `Note`**. It's at a different layer (persistence), only ever seen inside `lib/core/data/local/`, and renaming it would force either a SQLite migration or a Drift `@DataClassName` annotation tax that buys nothing.
+
+**Files**
+
+- **NEW** `lib/features/notes/data/models/hmm_note.dart` — domain entity with the same shape as the server's `HmmNote`. Fields: `id`, `uuid`, `subject`, `content`, `authorId`, `catalogId`, `parentNoteId`, `description`, `createDate`, `lastModifiedDate`, `deletedAt`, `version`. Convenience getter `bool get isDeleted => deletedAt != null` (matches server's `IsDeleted` flag).
+- **NEW** `lib/features/notes/data/mappers/hmm_note_mapper.dart` — `HmmNoteMapper.fromDriftRow(Note row) → HmmNote`. When Phase 4's `ApiSyncProvider` lands, this gets `.fromApi(ApiNoteJson) → HmmNote` and `.toApi(HmmNote) → ApiNoteJson` companions.
+- **RENAME** `INoteRepository` → `IHmmNoteRepository`. Returns `HmmNote` instead of Drift `Note`.
+- **RENAME** `NoteCreate` → `HmmNoteCreate`, `NoteUpdate` → `HmmNoteUpdate`.
+- **EDIT** the three feature repos (`local_automobile_repository.dart`, `local_gas_log_repository.dart`, `local_gas_station_repository.dart`) to consume `HmmNote` instead of the Drift row. Their `_deserialize(...)` / `_deserializeGasLog(...)` helpers take `HmmNote` and read `note.content`, `note.id`, `note.createDate`, `note.lastModifiedDate` — same field names, just from the domain class.
+
+**`Author` doesn't need this treatment** today: server name (`Author`) matches the Drift-generated name. We'd add a domain `Author` only if/when something needs richer behaviour (validation, computed claims). When that happens, the domain class is `Author`, the Drift row gets `@DataClassName('AuthorRow')`, and the same mapper pattern applies.
+
 ### Phase 4 — Make `cloudApi` mode use local-first storage (~1 day)
 
 Today, `cloudApi` mode bypasses the local DB and hits the REST API directly. That breaks offline access and creates the data-divergence problem the unification is meant to prevent. Phase 4 routes all three modes through local first.

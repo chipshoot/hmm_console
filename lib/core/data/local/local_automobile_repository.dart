@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/gas_log/data/repositories/automobile_repository.dart';
 import '../../../features/gas_log/domain/entities/automobile.dart';
-import '../note_input.dart';
-import 'database.dart';
+import '../hmm_note_input.dart';
+import '../../../features/notes/data/models/hmm_note.dart';
 import 'local_note_catalog_repository.dart';
-import 'local_note_repository.dart';
+import 'local_hmm_note_repository.dart';
 
 const _autoCatalogName = 'Hmm.AutomobileMan.AutomobileInfo';
 const _autoCatalogSchema = '{}';
@@ -15,7 +15,7 @@ const _autoCatalogSchema = '{}';
 class LocalAutomobileRepository implements IAutomobileRepository {
   LocalAutomobileRepository(this._noteRepo, this._catalogRepo);
 
-  final INoteRepository _noteRepo;
+  final IHmmNoteRepository _noteRepo;
   final INoteCatalogRepository _catalogRepo;
 
   @override
@@ -49,7 +49,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
       _autoCatalogSchema,
     );
     final content = _serialize(automobile);
-    final note = await _noteRepo.createNote(NoteCreate(
+    final note = await _noteRepo.createNote(HmmNoteCreate(
       subject: _subjectFor(automobile),
       content: content,
       catalogId: catalog.id,
@@ -73,7 +73,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
   @override
   Future<void> updateAutomobile(int id, Automobile automobile) async {
     final content = _serialize(automobile);
-    await _noteRepo.updateNote(id, NoteUpdate(content: content));
+    await _noteRepo.updateNote(id, HmmNoteUpdate(content: content));
   }
 
   @override
@@ -115,7 +115,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
       notes: current.notes,
     );
     final content = _serialize(deactivated);
-    await _noteRepo.updateNote(id, NoteUpdate(content: content));
+    await _noteRepo.updateNote(id, HmmNoteUpdate(content: content));
   }
 
   String _serialize(Automobile auto) {
@@ -157,7 +157,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
     return jsonEncode({'note': {'content': {'AutomobileInfo': data}}});
   }
 
-  Automobile? _deserialize(Note note) {
+  Automobile? _deserialize(HmmNote note) {
     if (note.content == null) return null;
     try {
       final json = jsonDecode(note.content!) as Map<String, dynamic>;
@@ -209,7 +209,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
 
 final localAutomobileRepositoryProvider = Provider<IAutomobileRepository>((ref) {
   return LocalAutomobileRepository(
-    ref.watch(localNoteRepositoryProvider),
+    ref.watch(localHmmNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),
   );
 });
