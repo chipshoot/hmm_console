@@ -12,6 +12,8 @@ import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../domain/validators/automobile_validator.dart';
 import '../../states/automobiles_state.dart';
 import '../../states/update_automobile_state.dart';
+import '../widgets/engine_type_dropdown.dart';
+import '../widgets/fuel_type_dropdown.dart';
 import '../widgets/ownership_status_dropdown.dart';
 
 class AutomobileEditScreen extends ConsumerStatefulWidget {
@@ -27,6 +29,17 @@ class AutomobileEditScreen extends ConsumerStatefulWidget {
 class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     with AutomobileValidator {
   final _formKey = GlobalKey<FormState>();
+
+  // Normally-immutable identity fields. Hidden long-press on the section
+  // header unlocks editing for typo correction; otherwise read-only.
+  bool _immutableUnlocked = false;
+  final _vinCtrl = TextEditingController();
+  final _makerCtrl = TextEditingController();
+  final _brandCtrl = TextEditingController();
+  final _modelCtrl = TextEditingController();
+  final _yearCtrl = TextEditingController();
+  String _engineType = 'Gasoline';
+  String _fuelType = 'Regular';
 
   // Mutable fields
   final _colorCtrl = TextEditingController();
@@ -66,6 +79,13 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     if (auto == null) return;
 
     _original = auto;
+    _vinCtrl.text = auto.vin ?? '';
+    _makerCtrl.text = auto.maker ?? '';
+    _brandCtrl.text = auto.brand ?? '';
+    _modelCtrl.text = auto.model ?? '';
+    _yearCtrl.text = auto.year > 0 ? '${auto.year}' : '';
+    _engineType = auto.engineType ?? 'Gasoline';
+    _fuelType = auto.fuelType ?? 'Regular';
     _colorCtrl.text = auto.color ?? '';
     _plateCtrl.text = auto.plate ?? '';
     _meterReadingCtrl.text = auto.meterReading.toString();
@@ -85,6 +105,11 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
   @override
   void dispose() {
+    _vinCtrl.dispose();
+    _makerCtrl.dispose();
+    _brandCtrl.dispose();
+    _modelCtrl.dispose();
+    _yearCtrl.dispose();
     _colorCtrl.dispose();
     _plateCtrl.dispose();
     _meterReadingCtrl.dispose();
@@ -141,16 +166,85 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // --- Read-only immutable fields ---
-              _sectionTitle(context, 'Vehicle Info (read-only)'),
-              GapWidgets.h8,
-              _readOnlyField('VIN', orig.vin ?? 'N/A'),
-              _readOnlyField('Maker', orig.maker ?? 'N/A'),
-              _readOnlyField('Brand', orig.brand ?? 'N/A'),
-              _readOnlyField('Model', orig.model ?? 'N/A'),
-              _readOnlyField('Year', orig.year > 0 ? '${orig.year}' : 'N/A'),
-              _readOnlyField('Engine', orig.engineType ?? 'N/A'),
-              _readOnlyField('Fuel', orig.fuelType ?? 'N/A'),
+              // --- Normally-immutable identity fields ---
+              // Long-press anywhere on this section to open the
+              // edit-confirmation popup. Hidden by design — this is for
+              // correcting typos at creation time, not for casual edits,
+              // so discoverability is intentionally low. The behaviour
+              // mirrors GitHub repo rename / Apple Watch settings: friction
+              // proportional to consequences.
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onLongPress: _immutableUnlocked
+                    ? null
+                    : () => _confirmUnlockImmutables(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _sectionTitle(
+                      context,
+                      _immutableUnlocked
+                          ? 'Vehicle Info'
+                          : 'Vehicle Info (read-only)',
+                    ),
+                    GapWidgets.h8,
+                    if (_immutableUnlocked) ...[
+                      AppTextFormField(
+                        fieldController: _vinCtrl,
+                        fieldValidator: validateVin,
+                        label: 'VIN (17 characters)',
+                      ),
+                      GapWidgets.h16,
+                      AppTextFormField(
+                        fieldController: _makerCtrl,
+                        fieldValidator: validateMaker,
+                        label: 'Maker',
+                      ),
+                      GapWidgets.h16,
+                      AppTextFormField(
+                        fieldController: _brandCtrl,
+                        fieldValidator: validateBrand,
+                        label: 'Brand',
+                      ),
+                      GapWidgets.h16,
+                      AppTextFormField(
+                        fieldController: _modelCtrl,
+                        fieldValidator: validateModel,
+                        label: 'Model',
+                      ),
+                      GapWidgets.h16,
+                      AppTextFormField(
+                        fieldController: _yearCtrl,
+                        fieldValidator: validateYear,
+                        label: 'Year',
+                        keyboardType: NumericInput.integer.keyboardType,
+                        inputFormatters: NumericInput.integer.formatters,
+                      ),
+                      GapWidgets.h16,
+                      EngineTypeDropdown(
+                        value: _engineType,
+                        onChanged: (v) =>
+                            setState(() => _engineType = v ?? 'Gasoline'),
+                      ),
+                      GapWidgets.h16,
+                      FuelTypeDropdown(
+                        value: _fuelType,
+                        onChanged: (v) =>
+                            setState(() => _fuelType = v ?? 'Regular'),
+                      ),
+                    ] else ...[
+                      _readOnlyField('VIN', orig.vin ?? 'N/A'),
+                      _readOnlyField('Maker', orig.maker ?? 'N/A'),
+                      _readOnlyField('Brand', orig.brand ?? 'N/A'),
+                      _readOnlyField('Model', orig.model ?? 'N/A'),
+                      _readOnlyField(
+                          'Year', orig.year > 0 ? '${orig.year}' : 'N/A'),
+                      _readOnlyField('Engine', orig.engineType ?? 'N/A'),
+                      _readOnlyField('Fuel', orig.fuelType ?? 'N/A'),
+                    ],
+                  ],
+                ),
+              ),
               GapWidgets.h24,
 
               // --- Mutable fields ---
@@ -359,22 +453,63 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     );
   }
 
+  /// Long-press handler on the read-only identity section. Shows a
+  /// confirmation dialog explaining the consequences and unlocks the
+  /// fields on confirm. The popup intentionally mirrors the iOS HIG
+  /// "destructive but recoverable" pattern.
+  Future<void> _confirmUnlockImmutables(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit vehicle identity?'),
+        content: const Text(
+          'VIN, maker, brand, model, year, engine, and fuel type normally '
+          'do not change. Edit these only to correct a typo from when the '
+          'vehicle was added.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Edit'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      setState(() => _immutableUnlocked = true);
+    }
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
     final orig = _original!;
     final updated = Automobile(
       id: orig.id,
-      vin: orig.vin,
-      maker: orig.maker,
-      brand: orig.brand,
-      model: orig.model,
+      vin: _immutableUnlocked
+          ? (_vinCtrl.text.isNotEmpty ? _vinCtrl.text : null)
+          : orig.vin,
+      maker: _immutableUnlocked
+          ? (_makerCtrl.text.isNotEmpty ? _makerCtrl.text : null)
+          : orig.maker,
+      brand: _immutableUnlocked
+          ? (_brandCtrl.text.isNotEmpty ? _brandCtrl.text : null)
+          : orig.brand,
+      model: _immutableUnlocked
+          ? (_modelCtrl.text.isNotEmpty ? _modelCtrl.text : null)
+          : orig.model,
       trim: orig.trim,
-      year: orig.year,
+      year: _immutableUnlocked
+          ? (int.tryParse(_yearCtrl.text) ?? orig.year)
+          : orig.year,
       color: _colorCtrl.text.isNotEmpty ? _colorCtrl.text : null,
       plate: _plateCtrl.text.isNotEmpty ? _plateCtrl.text : null,
-      engineType: orig.engineType,
-      fuelType: orig.fuelType,
+      engineType: _immutableUnlocked ? _engineType : orig.engineType,
+      fuelType: _immutableUnlocked ? _fuelType : orig.fuelType,
       fuelTankCapacity: orig.fuelTankCapacity,
       cityMPG: orig.cityMPG,
       highwayMPG: orig.highwayMPG,
