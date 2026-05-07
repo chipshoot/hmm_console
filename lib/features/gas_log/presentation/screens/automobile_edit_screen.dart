@@ -7,6 +7,7 @@ import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/numeric_input.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
+import '../../../auth/providers/current_user_provider.dart';
 import '../../domain/entities/automobile.dart';
 import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../domain/validators/automobile_validator.dart';
@@ -37,6 +38,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   final _makerCtrl = TextEditingController();
   final _brandCtrl = TextEditingController();
   final _modelCtrl = TextEditingController();
+  final _trimCtrl = TextEditingController();
   final _yearCtrl = TextEditingController();
   String _engineType = 'Gasoline';
   String _fuelType = 'Regular';
@@ -83,6 +85,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     _makerCtrl.text = auto.maker ?? '';
     _brandCtrl.text = auto.brand ?? '';
     _modelCtrl.text = auto.model ?? '';
+    _trimCtrl.text = auto.trim ?? '';
     _yearCtrl.text = auto.year > 0 ? '${auto.year}' : '';
     _engineType = auto.engineType ?? 'Gasoline';
     _fuelType = auto.fuelType ?? 'Regular';
@@ -109,6 +112,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     _makerCtrl.dispose();
     _brandCtrl.dispose();
     _modelCtrl.dispose();
+    _trimCtrl.dispose();
     _yearCtrl.dispose();
     _colorCtrl.dispose();
     _plateCtrl.dispose();
@@ -187,6 +191,18 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                           ? 'Vehicle Info'
                           : 'Vehicle Info (read-only)',
                     ),
+                    if (!_immutableUnlocked) ...[
+                      GapWidgets.h4,
+                      Text(
+                        'Hold to edit',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                            ),
+                      ),
+                    ],
                     GapWidgets.h8,
                     if (_immutableUnlocked) ...[
                       AppTextFormField(
@@ -214,6 +230,12 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                       ),
                       GapWidgets.h16,
                       AppTextFormField(
+                        fieldController: _trimCtrl,
+                        fieldValidator: (_) => null,
+                        label: 'Trim (optional)',
+                      ),
+                      GapWidgets.h16,
+                      AppTextFormField(
                         fieldController: _yearCtrl,
                         fieldValidator: validateYear,
                         label: 'Year',
@@ -237,6 +259,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                       _readOnlyField('Maker', orig.maker ?? 'N/A'),
                       _readOnlyField('Brand', orig.brand ?? 'N/A'),
                       _readOnlyField('Model', orig.model ?? 'N/A'),
+                      _readOnlyField('Trim', orig.trim ?? 'N/A'),
                       _readOnlyField(
                           'Year', orig.year > 0 ? '${orig.year}' : 'N/A'),
                       _readOnlyField('Engine', orig.engineType ?? 'N/A'),
@@ -362,6 +385,13 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               ),
               GapWidgets.h24,
 
+              if (orig.auditLog.isNotEmpty) ...[
+                _sectionTitle(context, 'Change history'),
+                GapWidgets.h8,
+                ..._buildAuditList(context, orig.auditLog),
+                GapWidgets.h24,
+              ],
+
               HighlightButton(
                 text: isLoading ? 'Saving...' : 'Save Changes',
                 onPressed: isLoading ? () {} : _submit,
@@ -373,6 +403,41 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
         ),
       ),
     );
+  }
+
+  /// Render the per-vehicle audit log (newest first). Each row shows the
+  /// field name, old → new value, and a short timestamp. Actor is hidden
+  /// today since this is a single-user device — when multi-user gets
+  /// added we can surface it.
+  List<Widget> _buildAuditList(
+      BuildContext context, List<AutomobileAuditEntry> entries) {
+    final sorted = [...entries]
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final theme = Theme.of(context);
+    return sorted.map((e) {
+      final ts = e.timestamp.toLocal();
+      final stamp =
+          '${ts.year}-${'${ts.month}'.padLeft(2, '0')}-${'${ts.day}'.padLeft(2, '0')} '
+          '${'${ts.hour}'.padLeft(2, '0')}:${'${ts.minute}'.padLeft(2, '0')}';
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${e.field}  ${e.oldValue ?? '∅'}  →  ${e.newValue ?? '∅'}',
+              style: theme.textTheme.bodyMedium,
+            ),
+            Text(
+              stamp,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
   }
 
   Widget _sectionTitle(BuildContext context, String title) {
@@ -488,28 +553,56 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     if (!_formKey.currentState!.validate()) return;
 
     final orig = _original!;
+    final newVin = _immutableUnlocked
+        ? (_vinCtrl.text.isNotEmpty ? _vinCtrl.text : null)
+        : orig.vin;
+    final newMaker = _immutableUnlocked
+        ? (_makerCtrl.text.isNotEmpty ? _makerCtrl.text : null)
+        : orig.maker;
+    final newBrand = _immutableUnlocked
+        ? (_brandCtrl.text.isNotEmpty ? _brandCtrl.text : null)
+        : orig.brand;
+    final newModel = _immutableUnlocked
+        ? (_modelCtrl.text.isNotEmpty ? _modelCtrl.text : null)
+        : orig.model;
+    final newTrim = _immutableUnlocked
+        ? (_trimCtrl.text.isNotEmpty ? _trimCtrl.text : null)
+        : orig.trim;
+    final newYear = _immutableUnlocked
+        ? (int.tryParse(_yearCtrl.text) ?? orig.year)
+        : orig.year;
+    final newEngine = _immutableUnlocked ? _engineType : orig.engineType;
+    final newFuel = _immutableUnlocked ? _fuelType : orig.fuelType;
+
+    // Capture an audit entry per identity-field change. Only runs while
+    // the section is unlocked — normal mutable field edits (color, plate,
+    // meter, …) aren't audited because changing them is the expected use
+    // of this screen.
+    final auditAdditions = _immutableUnlocked
+        ? _diffIdentity(orig, {
+            'vin': newVin,
+            'maker': newMaker,
+            'brand': newBrand,
+            'model': newModel,
+            'trim': newTrim,
+            'year': newYear == 0 ? null : '$newYear',
+            'engineType': newEngine,
+            'fuelType': newFuel,
+          })
+        : const <AutomobileAuditEntry>[];
+
     final updated = Automobile(
       id: orig.id,
-      vin: _immutableUnlocked
-          ? (_vinCtrl.text.isNotEmpty ? _vinCtrl.text : null)
-          : orig.vin,
-      maker: _immutableUnlocked
-          ? (_makerCtrl.text.isNotEmpty ? _makerCtrl.text : null)
-          : orig.maker,
-      brand: _immutableUnlocked
-          ? (_brandCtrl.text.isNotEmpty ? _brandCtrl.text : null)
-          : orig.brand,
-      model: _immutableUnlocked
-          ? (_modelCtrl.text.isNotEmpty ? _modelCtrl.text : null)
-          : orig.model,
-      trim: orig.trim,
-      year: _immutableUnlocked
-          ? (int.tryParse(_yearCtrl.text) ?? orig.year)
-          : orig.year,
+      vin: newVin,
+      maker: newMaker,
+      brand: newBrand,
+      model: newModel,
+      trim: newTrim,
+      year: newYear,
       color: _colorCtrl.text.isNotEmpty ? _colorCtrl.text : null,
       plate: _plateCtrl.text.isNotEmpty ? _plateCtrl.text : null,
-      engineType: _immutableUnlocked ? _engineType : orig.engineType,
-      fuelType: _immutableUnlocked ? _fuelType : orig.fuelType,
+      engineType: newEngine,
+      fuelType: newFuel,
       fuelTankCapacity: orig.fuelTankCapacity,
       cityMPG: orig.cityMPG,
       highwayMPG: orig.highwayMPG,
@@ -538,10 +631,52 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       nextServiceDueMeterReading:
           int.tryParse(_nextServiceDueMeterCtrl.text),
       notes: _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
+      auditLog: [...orig.auditLog, ...auditAdditions],
     );
 
     ref
         .read(updateAutomobileStateProvider.notifier)
         .updateAutomobile(widget.automobileId, updated);
+  }
+
+  /// Build audit entries for the identity-field deltas between [orig] and
+  /// the supplied new-values map. Year is normalised to a string so the
+  /// before/after columns are comparable.
+  List<AutomobileAuditEntry> _diffIdentity(
+      Automobile orig, Map<String, Object?> newVals) {
+    final actor = ref.read(currentUserProvider)?.uid;
+    final now = DateTime.now().toUtc();
+
+    String? str(Object? v) {
+      if (v == null) return null;
+      final s = v is int ? '$v' : v.toString();
+      return s.isEmpty ? null : s;
+    }
+
+    final pairs = <String, String?>{
+      'vin': str(orig.vin),
+      'maker': str(orig.maker),
+      'brand': str(orig.brand),
+      'model': str(orig.model),
+      'trim': str(orig.trim),
+      'year': orig.year > 0 ? '${orig.year}' : null,
+      'engineType': str(orig.engineType),
+      'fuelType': str(orig.fuelType),
+    };
+
+    final out = <AutomobileAuditEntry>[];
+    pairs.forEach((field, oldVal) {
+      final newVal = str(newVals[field]);
+      if (oldVal != newVal) {
+        out.add(AutomobileAuditEntry(
+          timestamp: now,
+          field: field,
+          oldValue: oldVal,
+          newValue: newVal,
+          actor: actor,
+        ));
+      }
+    });
+    return out;
   }
 }

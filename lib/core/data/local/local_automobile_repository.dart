@@ -152,6 +152,15 @@ class LocalAutomobileRepository implements IAutomobileRepository {
       'nextServiceDueDate': auto.nextServiceDueDate?.toIso8601String(),
       'nextServiceDueMeterReading': auto.nextServiceDueMeterReading,
       'notes': auto.notes,
+      'auditLog': auto.auditLog
+          .map((e) => {
+                'ts': e.timestamp.toIso8601String(),
+                'field': e.field,
+                'oldValue': e.oldValue,
+                'newValue': e.newValue,
+                'actor': e.actor,
+              })
+          .toList(),
       '_v': 1,
     };
     return jsonEncode({'note': {'content': {'AutomobileInfo': data}}});
@@ -200,6 +209,21 @@ class LocalAutomobileRepository implements IAutomobileRepository {
         notes: d['notes'] as String?,
         createdDate: note.createDate,
         lastModifiedDate: note.lastModifiedDate,
+        auditLog: ((d['auditLog'] as List?) ?? const [])
+            .map((e) {
+              final m = e as Map<String, dynamic>;
+              final ts = DateTime.tryParse(m['ts'] as String? ?? '');
+              if (ts == null) return null;
+              return AutomobileAuditEntry(
+                timestamp: ts,
+                field: m['field'] as String? ?? '',
+                oldValue: m['oldValue'] as String?,
+                newValue: m['newValue'] as String?,
+                actor: m['actor'] as String?,
+              );
+            })
+            .whereType<AutomobileAuditEntry>()
+            .toList(),
       );
     } catch (_) {
       return null;

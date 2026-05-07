@@ -51,6 +51,13 @@ class Automobile {
   final DateTime? createdDate;
   final DateTime? lastModifiedDate;
 
+  /// Append-only history of changes to the normally-immutable identity
+  /// fields (VIN / maker / brand / model / trim / year / engine / fuel).
+  /// Populated only when the edit screen's hidden long-press unlock has
+  /// been confirmed. Persisted alongside the rest of the vehicle's
+  /// content blob.
+  final List<AutomobileAuditEntry> auditLog;
+
   const Automobile({
     required this.id,
     this.vin,
@@ -87,6 +94,7 @@ class Automobile {
     this.notes,
     this.createdDate,
     this.lastModifiedDate,
+    this.auditLog = const [],
   });
 
   String get displayName {
@@ -98,4 +106,31 @@ class Automobile {
     ];
     return parts.isNotEmpty ? parts.join(' ') : 'Vehicle #$id';
   }
+}
+
+/// One row of the [Automobile.auditLog]. Records a change to a
+/// normally-immutable identity field — captured by the hidden
+/// long-press-to-unlock flow on the edit screen.
+class AutomobileAuditEntry {
+  const AutomobileAuditEntry({
+    required this.timestamp,
+    required this.field,
+    required this.oldValue,
+    required this.newValue,
+    this.actor,
+  });
+
+  final DateTime timestamp;
+
+  /// Lower-case identifier of the field that changed (`vin`, `maker`,
+  /// `brand`, `model`, `trim`, `year`, `engineType`, `fuelType`).
+  final String field;
+
+  final String? oldValue;
+  final String? newValue;
+
+  /// `accountName` of the signed-in user at the time of the change
+  /// (= IdP JWT `sub`). Optional so legacy entries that pre-date the
+  /// audit feature deserialize cleanly.
+  final String? actor;
 }
