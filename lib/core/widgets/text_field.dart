@@ -6,12 +6,22 @@ class AppTextFormField extends StatelessWidget {
   final String label;
   final bool obscureText;
 
+  /// Hints the OS uses to offer iCloud Keychain / Google Password Manager
+  /// autofill. For paired credentials (email + password), wrap the parent
+  /// form in an `AutofillGroup` so the OS treats them as a single record.
+  final Iterable<String>? autofillHints;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+
   const AppTextFormField({
     super.key,
     required this.fieldController,
     required this.fieldValidator,
     required this.label,
     this.obscureText = false,
+    this.autofillHints,
+    this.keyboardType,
+    this.textInputAction,
   });
 
   @override
@@ -20,6 +30,9 @@ class AppTextFormField extends StatelessWidget {
       controller: fieldController,
       obscureText: obscureText,
       autovalidateMode: AutovalidateMode.onUserInteraction,
+      autofillHints: autofillHints,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(),

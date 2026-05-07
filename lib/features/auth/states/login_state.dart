@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
@@ -24,6 +25,11 @@ class LoginState extends AsyncNotifier<bool> {
             description: user.displayName,
             avatarUrl: user.photoUrl,
           );
+
+      // Tell the OS the autofill context is complete so iCloud Keychain /
+      // Google Password Manager prompts to save the credential. Without
+      // this iOS in particular never shows the "Save Password?" sheet.
+      TextInput.finishAutofillContext();
 
       return true;
     });

@@ -58,57 +58,74 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
                   GapWidgets.h16,
                   Form(
                     key: _formKey,
-                    child: Column(
-                      children: [
-                        AppTextFormField(
-                          fieldController: _usernameController,
-                          fieldValidator: _validateUsername,
-                          label: 'Username',
-                        ),
-                        GapWidgets.h8,
-                        AppTextFormField(
-                          fieldController: _emailController,
-                          fieldValidator: validateEmail,
-                          label: 'Email',
-                        ),
-                        GapWidgets.h8,
-                        AppTextFormField(
-                          fieldController: _passwordController,
-                          fieldValidator: validatePassword,
-                          obscureText: true,
-                          label: 'Password',
-                        ),
-                        GapWidgets.h8,
-                        AppTextFormField(
-                          fieldController: _confirmPasswordController,
-                          fieldValidator: _validateConfirmPassword,
-                          obscureText: true,
-                          label: 'Confirm Password',
-                        ),
-                        GapWidgets.h8,
-                        Text(
-                          'Password must be at least 12 characters with uppercase, '
-                          'lowercase, digit, and special character.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        GapWidgets.h24,
-                        HighlightButton(
-                          text: 'Sign Up',
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              ref
-                                  .read(registerStateProvider.notifier)
-                                  .registerWithEmailPassword(
-                                    _usernameController.text,
-                                    _emailController.text,
-                                    _passwordController.text,
-                                    _confirmPasswordController.text,
-                                  );
-                            }
-                          },
-                        ),
-                      ],
+                    // AutofillGroup pairs the email + new-password fields
+                    // so iCloud Keychain / Google Password Manager prompts
+                    // to save them as one credential. AutofillHints.newPassword
+                    // (vs .password) tells the OS this is a sign-up flow —
+                    // it'll suggest a strong password instead of offering
+                    // existing ones.
+                    child: AutofillGroup(
+                      child: Column(
+                        children: [
+                          AppTextFormField(
+                            fieldController: _usernameController,
+                            fieldValidator: _validateUsername,
+                            label: 'Username',
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.newUsername],
+                          ),
+                          GapWidgets.h8,
+                          AppTextFormField(
+                            fieldController: _emailController,
+                            fieldValidator: validateEmail,
+                            label: 'Email',
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                          ),
+                          GapWidgets.h8,
+                          AppTextFormField(
+                            fieldController: _passwordController,
+                            fieldValidator: validatePassword,
+                            obscureText: true,
+                            label: 'Password',
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.newPassword],
+                          ),
+                          GapWidgets.h8,
+                          AppTextFormField(
+                            fieldController: _confirmPasswordController,
+                            fieldValidator: _validateConfirmPassword,
+                            obscureText: true,
+                            label: 'Confirm Password',
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.newPassword],
+                          ),
+                          GapWidgets.h8,
+                          Text(
+                            'Password must be at least 12 characters with uppercase, '
+                            'lowercase, digit, and special character.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                          GapWidgets.h24,
+                          HighlightButton(
+                            text: 'Sign Up',
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                ref
+                                    .read(registerStateProvider.notifier)
+                                    .registerWithEmailPassword(
+                                      _usernameController.text,
+                                      _emailController.text,
+                                      _passwordController.text,
+                                      _confirmPasswordController.text,
+                                    );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   GapWidgets.h48,
