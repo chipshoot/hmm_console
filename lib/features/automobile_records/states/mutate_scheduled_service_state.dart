@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/repositories/scheduled_service_repository.dart';
+import '../../../core/data/repository_providers.dart';
 import '../domain/entities/auto_scheduled_service.dart';
 import 'scheduled_services_state.dart';
 
@@ -14,7 +14,7 @@ class MutateScheduledServiceState extends AsyncNotifier<void> {
     AutoScheduledService? created;
     state = await AsyncValue.guard(() async {
       created = await ref
-          .read(scheduledServiceRepositoryProvider)
+          .read(scheduledServiceRepositoryModeProvider)
           .createSchedule(autoId, schedule);
     });
     if (state.hasValue) _invalidate();
@@ -24,7 +24,7 @@ class MutateScheduledServiceState extends AsyncNotifier<void> {
   Future<void> edit(int autoId, int id, AutoScheduledService schedule) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => ref
-        .read(scheduledServiceRepositoryProvider)
+        .read(scheduledServiceRepositoryModeProvider)
         .updateSchedule(autoId, id, schedule));
     if (state.hasValue) _invalidate();
   }
@@ -32,7 +32,7 @@ class MutateScheduledServiceState extends AsyncNotifier<void> {
   Future<void> delete(int autoId, int id) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => ref
-        .read(scheduledServiceRepositoryProvider)
+        .read(scheduledServiceRepositoryModeProvider)
         .deleteSchedule(autoId, id));
     if (state.hasValue) _invalidate();
   }

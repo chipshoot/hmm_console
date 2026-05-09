@@ -3,10 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
-import '../../data/repositories/scheduled_service_repository.dart';
+import '../../../../core/data/repository_providers.dart';
 import '../../domain/entities/auto_scheduled_service.dart';
 import '../../domain/entities/service_type.dart';
 import '../../states/_records_automobile_id_provider.dart';
@@ -61,7 +62,7 @@ class _ScheduledServiceFormScreenState
     setState(() => _loading = true);
     try {
       final s = await ref
-          .read(scheduledServiceRepositoryProvider)
+          .read(scheduledServiceRepositoryModeProvider)
           .getScheduleById(widget.automobileId, widget.scheduleId!);
       _existing = s;
       _nameCtrl.text = s.name;
@@ -105,7 +106,7 @@ class _ScheduledServiceFormScreenState
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(dioErrorMessage(next.error!)),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );

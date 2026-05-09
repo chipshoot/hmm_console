@@ -3,10 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
-import '../../data/repositories/insurance_repository.dart';
+import '../../../../core/data/repository_providers.dart';
 import '../../domain/entities/auto_insurance_policy.dart';
 import '../../states/_records_automobile_id_provider.dart';
 import '../../states/mutate_insurance_policy_state.dart';
@@ -60,7 +61,7 @@ class _InsurancePolicyFormScreenState
     setState(() => _loading = true);
     try {
       final policy = await ref
-          .read(insuranceRepositoryProvider)
+          .read(insuranceRepositoryModeProvider)
           .getPolicyById(widget.automobileId, widget.policyId!);
       _existing = policy;
       _providerCtrl.text = policy.provider;
@@ -104,7 +105,7 @@ class _InsurancePolicyFormScreenState
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(dioErrorMessage(next.error!)),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );

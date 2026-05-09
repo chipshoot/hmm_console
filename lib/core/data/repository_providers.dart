@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/automobile_records/data/repositories/insurance_repository.dart';
+import '../../features/automobile_records/data/repositories/scheduled_service_repository.dart';
+import '../../features/automobile_records/data/repositories/service_record_repository.dart';
 import '../../features/gas_log/data/repositories/automobile_repository.dart';
 import '../../features/gas_log/data/repositories/gas_log_api_repository.dart';
 import '../../features/gas_log/data/repositories/gas_station_repository.dart';
@@ -10,8 +13,11 @@ import 'local/local_automobile_repository.dart';
 import 'local/local_author_repository.dart';
 import 'local/local_gas_log_repository.dart';
 import 'local/local_gas_station_repository.dart';
+import 'local/local_insurance_repository.dart';
 import 'local/local_note_catalog_repository.dart';
 import 'local/local_hmm_note_repository.dart';
+import 'local/local_scheduled_service_repository.dart';
+import 'local/local_service_record_repository.dart';
 import 'local/local_tag_repository.dart';
 
 // Local SQLite is the source of truth for both `local` and `cloudStorage`
@@ -69,4 +75,27 @@ final gasStationRepositoryModeProvider = Provider<IGasStationRepository>((ref) {
   return _useLocal(mode)
       ? ref.watch(localGasStationRepositoryProvider)
       : ref.watch(gasStationRepositoryProvider);
+});
+
+final insuranceRepositoryModeProvider = Provider<IInsuranceRepository>((ref) {
+  final mode = ref.watch(dataModeProvider);
+  return _useLocal(mode)
+      ? ref.watch(localInsuranceRepositoryProvider)
+      : ref.watch(insuranceRepositoryProvider);
+});
+
+final serviceRecordRepositoryModeProvider =
+    Provider<IServiceRecordRepository>((ref) {
+  final mode = ref.watch(dataModeProvider);
+  return _useLocal(mode)
+      ? ref.watch(localServiceRecordRepositoryProvider)
+      : ref.watch(serviceRecordRepositoryProvider);
+});
+
+final scheduledServiceRepositoryModeProvider =
+    Provider<IScheduledServiceRepository>((ref) {
+  final mode = ref.watch(dataModeProvider);
+  return _useLocal(mode)
+      ? ref.watch(localScheduledServiceRepositoryProvider)
+      : ref.watch(scheduledServiceRepositoryProvider);
 });

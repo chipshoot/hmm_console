@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/repositories/insurance_repository.dart';
+import '../../../core/data/repository_providers.dart';
 import '../domain/entities/auto_insurance_policy.dart';
 import '_records_automobile_id_provider.dart';
 
@@ -9,7 +9,7 @@ class InsurancePoliciesState extends AsyncNotifier<List<AutoInsurancePolicy>> {
   Future<List<AutoInsurancePolicy>> build() async {
     final autoId = ref.watch(recordsAutomobileIdProvider);
     if (autoId == null) return [];
-    return ref.watch(insuranceRepositoryProvider).getPolicies(autoId);
+    return ref.watch(insuranceRepositoryModeProvider).getPolicies(autoId);
   }
 
   Future<void> refresh() async {
@@ -17,7 +17,7 @@ class InsurancePoliciesState extends AsyncNotifier<List<AutoInsurancePolicy>> {
     if (autoId == null) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(insuranceRepositoryProvider).getPolicies(autoId),
+      () => ref.read(insuranceRepositoryModeProvider).getPolicies(autoId),
     );
   }
 }
@@ -32,7 +32,7 @@ class ActiveInsurancePolicyState extends AsyncNotifier<AutoInsurancePolicy?> {
   Future<AutoInsurancePolicy?> build() async {
     final autoId = ref.watch(recordsAutomobileIdProvider);
     if (autoId == null) return null;
-    return ref.watch(insuranceRepositoryProvider).getActivePolicy(autoId);
+    return ref.watch(insuranceRepositoryModeProvider).getActivePolicy(autoId);
   }
 
   Future<void> refresh() async {
@@ -40,7 +40,7 @@ class ActiveInsurancePolicyState extends AsyncNotifier<AutoInsurancePolicy?> {
     if (autoId == null) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(insuranceRepositoryProvider).getActivePolicy(autoId),
+      () => ref.read(insuranceRepositoryModeProvider).getActivePolicy(autoId),
     );
   }
 }

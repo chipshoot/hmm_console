@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/repositories/insurance_repository.dart';
+import '../../../core/data/repository_providers.dart';
 import '../domain/entities/auto_insurance_policy.dart';
 import 'insurance_policies_state.dart';
 
@@ -18,7 +18,7 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
     AutoInsurancePolicy? created;
     state = await AsyncValue.guard(() async {
       created = await ref
-          .read(insuranceRepositoryProvider)
+          .read(insuranceRepositoryModeProvider)
           .createPolicy(autoId, policy);
     });
     if (state.hasValue) _invalidate();
@@ -28,7 +28,7 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
   Future<void> edit(int autoId, int id, AutoInsurancePolicy policy) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => ref
-        .read(insuranceRepositoryProvider)
+        .read(insuranceRepositoryModeProvider)
         .updatePolicy(autoId, id, policy));
     if (state.hasValue) _invalidate();
   }
@@ -36,7 +36,7 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
   Future<void> delete(int autoId, int id) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-        () => ref.read(insuranceRepositoryProvider).deletePolicy(autoId, id));
+        () => ref.read(insuranceRepositoryModeProvider).deletePolicy(autoId, id));
     if (state.hasValue) _invalidate();
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/repositories/service_record_repository.dart';
+import '../../../core/data/repository_providers.dart';
 import '../domain/entities/service_record.dart';
 import 'service_records_state.dart';
 
@@ -13,7 +13,7 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
     ServiceRecord? created;
     state = await AsyncValue.guard(() async {
       created = await ref
-          .read(serviceRecordRepositoryProvider)
+          .read(serviceRecordRepositoryModeProvider)
           .createRecord(autoId, record);
     });
     if (state.hasValue) _invalidate();
@@ -23,7 +23,7 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
   Future<void> edit(int autoId, int id, ServiceRecord record) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => ref
-        .read(serviceRecordRepositoryProvider)
+        .read(serviceRecordRepositoryModeProvider)
         .updateRecord(autoId, id, record));
     if (state.hasValue) _invalidate();
   }
@@ -31,7 +31,7 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
   Future<void> delete(int autoId, int id) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() =>
-        ref.read(serviceRecordRepositoryProvider).deleteRecord(autoId, id));
+        ref.read(serviceRecordRepositoryModeProvider).deleteRecord(autoId, id));
     if (state.hasValue) _invalidate();
   }
 

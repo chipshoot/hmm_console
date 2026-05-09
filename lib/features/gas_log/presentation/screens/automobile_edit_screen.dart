@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../core/widgets/button.dart';
+import '../../../../core/widgets/editable_info_card.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/numeric_input.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
@@ -18,6 +17,23 @@ import '../widgets/engine_type_dropdown.dart';
 import '../widgets/fuel_type_dropdown.dart';
 import '../widgets/ownership_status_dropdown.dart';
 
+/// Vehicle Information screen.
+///
+/// Layout (top → bottom):
+///   1. Identity (VIN, maker, brand, …) — read-only by default. Long-press
+///      the header to unlock for typo correction; an inline Save/Cancel
+///      pair appears while unlocked.
+///   2. Mileage     — EditableInfoCard
+///   3. Registration — EditableInfoCard
+///   4. Insurance / Service / Scheduled-service summary cards (each links
+///      out to its own record-history screen).
+///   5. Notes — EditableInfoCard
+///   6. Audit log (read-only)
+///
+/// Each EditableInfoCard owns its own edit toggle + Save/Cancel buttons;
+/// there is no global Save button. Persisting a single card calls
+/// `updateAutomobileStateProvider` with the full Automobile (other fields
+/// unchanged from `_original`).
 class AutomobileEditScreen extends ConsumerStatefulWidget {
   final int automobileId;
 
@@ -30,11 +46,11 @@ class AutomobileEditScreen extends ConsumerStatefulWidget {
 
 class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     with AutomobileValidator {
-  final _formKey = GlobalKey<FormState>();
+  final _identityFormKey = GlobalKey<FormState>();
 
-  // Normally-immutable identity fields. Hidden long-press on the section
-  // header unlocks editing for typo correction; otherwise read-only.
+  // Identity fields (locked by default)
   bool _immutableUnlocked = false;
+  bool _identitySaving = false;
   final _vinCtrl = TextEditingController();
   final _makerCtrl = TextEditingController();
   final _brandCtrl = TextEditingController();
@@ -43,26 +59,13 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   final _yearCtrl = TextEditingController();
   String _engineType = 'Gasoline';
   String _fuelType = 'Regular';
-
-  // Mutable fields
   final _colorCtrl = TextEditingController();
   final _plateCtrl = TextEditingController();
-  final _meterReadingCtrl = TextEditingController();
   String _ownershipStatus = 'Owned';
 
-  // Insurance
-  final _insuranceProviderCtrl = TextEditingController();
-  final _insurancePolicyCtrl = TextEditingController();
-  DateTime? _insuranceExpiryDate;
+  // Per-card pending state
+  final _meterReadingCtrl = TextEditingController();
   DateTime? _registrationExpiryDate;
-
-  // Service
-  DateTime? _lastServiceDate;
-  final _lastServiceMeterCtrl = TextEditingController();
-  DateTime? _nextServiceDueDate;
-  final _nextServiceDueMeterCtrl = TextEditingController();
-
-  // Notes
   final _notesCtrl = TextEditingController();
 
   Automobile? _original;
@@ -70,41 +73,47 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   @override
   void initState() {
     super.initState();
-    _populateForm();
+    _populateFromOriginal();
   }
 
-  void _populateForm() {
+  void _populateFromOriginal() {
     final data = ref.read(automobilesStateProvider).value;
     if (data == null) return;
-
     final auto =
         data.where((a) => a.id == widget.automobileId).firstOrNull;
     if (auto == null) return;
-
     _original = auto;
-    _vinCtrl.text = auto.vin ?? '';
-    _makerCtrl.text = auto.maker ?? '';
-    _brandCtrl.text = auto.brand ?? '';
-    _modelCtrl.text = auto.model ?? '';
-    _trimCtrl.text = auto.trim ?? '';
-    _yearCtrl.text = auto.year > 0 ? '${auto.year}' : '';
-    _engineType = auto.engineType ?? 'Gasoline';
-    _fuelType = auto.fuelType ?? 'Regular';
-    _colorCtrl.text = auto.color ?? '';
-    _plateCtrl.text = auto.plate ?? '';
-    _meterReadingCtrl.text = auto.meterReading.toString();
-    _ownershipStatus = auto.ownershipStatus ?? 'Owned';
-    _insuranceProviderCtrl.text = auto.insuranceProvider ?? '';
-    _insurancePolicyCtrl.text = auto.insurancePolicyNumber ?? '';
-    _insuranceExpiryDate = auto.insuranceExpiryDate;
-    _registrationExpiryDate = auto.registrationExpiryDate;
-    _lastServiceDate = auto.lastServiceDate;
-    _lastServiceMeterCtrl.text =
-        auto.lastServiceMeterReading?.toString() ?? '';
-    _nextServiceDueDate = auto.nextServiceDueDate;
-    _nextServiceDueMeterCtrl.text =
-        auto.nextServiceDueMeterReading?.toString() ?? '';
-    _notesCtrl.text = auto.notes ?? '';
+    _resetIdentityFields();
+    _resetMileage();
+    _resetRegistration();
+    _resetNotes();
+  }
+
+  void _resetIdentityFields() {
+    final orig = _original!;
+    _vinCtrl.text = orig.vin ?? '';
+    _makerCtrl.text = orig.maker ?? '';
+    _brandCtrl.text = orig.brand ?? '';
+    _modelCtrl.text = orig.model ?? '';
+    _trimCtrl.text = orig.trim ?? '';
+    _yearCtrl.text = orig.year > 0 ? '${orig.year}' : '';
+    _engineType = orig.engineType ?? 'Gasoline';
+    _fuelType = orig.fuelType ?? 'Regular';
+    _colorCtrl.text = orig.color ?? '';
+    _plateCtrl.text = orig.plate ?? '';
+    _ownershipStatus = orig.ownershipStatus ?? 'Owned';
+  }
+
+  void _resetMileage() {
+    _meterReadingCtrl.text = _original!.meterReading.toString();
+  }
+
+  void _resetRegistration() {
+    _registrationExpiryDate = _original!.registrationExpiryDate;
+  }
+
+  void _resetNotes() {
+    _notesCtrl.text = _original!.notes ?? '';
   }
 
   @override
@@ -118,19 +127,174 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     _colorCtrl.dispose();
     _plateCtrl.dispose();
     _meterReadingCtrl.dispose();
-    _insuranceProviderCtrl.dispose();
-    _insurancePolicyCtrl.dispose();
-    _lastServiceMeterCtrl.dispose();
-    _nextServiceDueMeterCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
 
+  // -------------------- Save plumbing --------------------
+
+  /// Pushes [updated] through the update notifier, awaits completion, and
+  /// updates [_original] so subsequent card edits start from fresh data.
+  /// Errors surface via the snackbar listener; returns false to keep the
+  /// caller's editor open.
+  Future<bool> _persist(Automobile updated) async {
+    await ref
+        .read(updateAutomobileStateProvider.notifier)
+        .updateAutomobile(widget.automobileId, updated);
+    if (!mounted) return false;
+    final s = ref.read(updateAutomobileStateProvider);
+    if (s.hasError) return false;
+    setState(() => _original = updated);
+    return true;
+  }
+
+  Automobile _cloneWith({
+    String? vin,
+    String? maker,
+    String? brand,
+    String? model,
+    String? trim,
+    int? year,
+    String? color,
+    String? plate,
+    String? engineType,
+    String? fuelType,
+    int? meterReading,
+    String? ownershipStatus,
+    Object? registrationExpiryDate = _kSentinel,
+    Object? notes = _kSentinel,
+    List<AutomobileAuditEntry>? auditLog,
+  }) {
+    final orig = _original!;
+    return Automobile(
+      id: orig.id,
+      vin: vin ?? orig.vin,
+      maker: maker ?? orig.maker,
+      brand: brand ?? orig.brand,
+      model: model ?? orig.model,
+      trim: trim ?? orig.trim,
+      year: year ?? orig.year,
+      color: color ?? orig.color,
+      plate: plate ?? orig.plate,
+      engineType: engineType ?? orig.engineType,
+      fuelType: fuelType ?? orig.fuelType,
+      fuelTankCapacity: orig.fuelTankCapacity,
+      cityMPG: orig.cityMPG,
+      highwayMPG: orig.highwayMPG,
+      combinedMPG: orig.combinedMPG,
+      meterReading: meterReading ?? orig.meterReading,
+      purchaseMeterReading: orig.purchaseMeterReading,
+      purchaseDate: orig.purchaseDate,
+      purchasePrice: orig.purchasePrice,
+      ownershipStatus: ownershipStatus ?? orig.ownershipStatus,
+      isActive: orig.isActive,
+      soldDate: orig.soldDate,
+      soldMeterReading: orig.soldMeterReading,
+      soldPrice: orig.soldPrice,
+      registrationExpiryDate: identical(registrationExpiryDate, _kSentinel)
+          ? orig.registrationExpiryDate
+          : registrationExpiryDate as DateTime?,
+      insuranceExpiryDate: orig.insuranceExpiryDate,
+      insuranceProvider: orig.insuranceProvider,
+      insurancePolicyNumber: orig.insurancePolicyNumber,
+      lastServiceDate: orig.lastServiceDate,
+      lastServiceMeterReading: orig.lastServiceMeterReading,
+      nextServiceDueDate: orig.nextServiceDueDate,
+      nextServiceDueMeterReading: orig.nextServiceDueMeterReading,
+      notes: identical(notes, _kSentinel) ? orig.notes : notes as String?,
+      createdDate: orig.createdDate,
+      lastModifiedDate: orig.lastModifiedDate,
+      auditLog: auditLog ?? orig.auditLog,
+    );
+  }
+
+  static const Object _kSentinel = Object();
+
+  // -------------------- Per-card save handlers --------------------
+
+  Future<bool> _saveMileage() async {
+    final newMeter = int.tryParse(_meterReadingCtrl.text);
+    if (newMeter == null || newMeter < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid meter reading')),
+      );
+      return false;
+    }
+    return _persist(_cloneWith(meterReading: newMeter));
+  }
+
+  Future<bool> _saveRegistration() async {
+    return _persist(_cloneWith(registrationExpiryDate: _registrationExpiryDate));
+  }
+
+  Future<bool> _saveNotes() async {
+    final trimmed = _notesCtrl.text.trim();
+    return _persist(_cloneWith(notes: trimmed.isEmpty ? null : trimmed));
+  }
+
+  Future<void> _saveIdentity() async {
+    if (!_identityFormKey.currentState!.validate()) return;
+    setState(() => _identitySaving = true);
+    try {
+      final orig = _original!;
+      final newVin = _vinCtrl.text.isNotEmpty ? _vinCtrl.text : null;
+      final newMaker = _makerCtrl.text.isNotEmpty ? _makerCtrl.text : null;
+      final newBrand = _brandCtrl.text.isNotEmpty ? _brandCtrl.text : null;
+      final newModel = _modelCtrl.text.isNotEmpty ? _modelCtrl.text : null;
+      final newTrim = _trimCtrl.text.isNotEmpty ? _trimCtrl.text : null;
+      final newYear = int.tryParse(_yearCtrl.text) ?? orig.year;
+      final newColor = _colorCtrl.text.isNotEmpty ? _colorCtrl.text : null;
+      final newPlate = _plateCtrl.text.isNotEmpty ? _plateCtrl.text : null;
+
+      final auditAdditions = _diffIdentity(orig, {
+        'vin': newVin,
+        'maker': newMaker,
+        'brand': newBrand,
+        'model': newModel,
+        'trim': newTrim,
+        'year': newYear == 0 ? null : '$newYear',
+        'engineType': _engineType,
+        'fuelType': _fuelType,
+        'color': newColor,
+        'plate': newPlate,
+        'ownershipStatus': _ownershipStatus,
+      });
+
+      final updated = _cloneWith(
+        vin: newVin,
+        maker: newMaker,
+        brand: newBrand,
+        model: newModel,
+        trim: newTrim,
+        year: newYear,
+        color: newColor,
+        plate: newPlate,
+        engineType: _engineType,
+        fuelType: _fuelType,
+        ownershipStatus: _ownershipStatus,
+        auditLog: [...orig.auditLog, ...auditAdditions],
+      );
+
+      final ok = await _persist(updated);
+      if (ok && mounted) {
+        setState(() => _immutableUnlocked = false);
+      }
+    } finally {
+      if (mounted) setState(() => _identitySaving = false);
+    }
+  }
+
+  void _cancelIdentity() {
+    setState(() {
+      _resetIdentityFields();
+      _immutableUnlocked = false;
+    });
+  }
+
+  // -------------------- Build --------------------
+
   @override
   Widget build(BuildContext context) {
-    final updateState = ref.watch(updateAutomobileStateProvider);
-    final isLoading = updateState.isLoading;
-
     final settings = ref.watch(gasLogSettingsProvider);
     final distLabel = settings.distanceUnit.label;
 
@@ -139,7 +303,6 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Vehicle updated')),
         );
-        context.pop();
       }
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -153,7 +316,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
     if (_original == null) {
       return CommonScreenScaffold(
-        title: 'Edit Vehicle',
+        title: 'Vehicle Information',
         child: const Center(child: Text('Vehicle not found')),
       );
     }
@@ -161,317 +324,271 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     final orig = _original!;
 
     return CommonScreenScaffold(
-      title: 'Edit Vehicle',
+      title: 'Vehicle Information',
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusScope.of(context).unfocus(),
-        child: Form(
-        key: _formKey,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // --- At-a-glance records summary ---
-              // Shows current insurance, last service, and soonest schedule
-              // sourced from the dedicated record endpoints, with deep-links
-              // to the dedicated history / management screens. Lives at the
-              // top of the screen so users can find these one tap from the
-              // vehicle list.
-              AutomobileRecordsSummary(automobileId: widget.automobileId),
-              GapWidgets.h24,
+              // 1. Identity (read-only / long-press to unlock)
+              _identityCard(context, orig),
+              GapWidgets.h16,
 
-              // --- Normally-immutable identity fields ---
-              // Long-press anywhere on this section to open the
-              // edit-confirmation popup. Hidden by design — this is for
-              // correcting typos at creation time, not for casual edits,
-              // so discoverability is intentionally low. The behaviour
-              // mirrors GitHub repo rename / Apple Watch settings: friction
-              // proportional to consequences.
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onLongPress: _immutableUnlocked
-                    ? null
-                    : () => _confirmUnlockImmutables(context),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _sectionTitle(
-                      context,
-                      _immutableUnlocked
-                          ? 'Vehicle Info'
-                          : 'Vehicle Info (read-only)',
-                    ),
-                    if (!_immutableUnlocked) ...[
-                      GapWidgets.h4,
-                      Text(
-                        'Hold to edit',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              fontStyle: FontStyle.italic,
-                            ),
-                      ),
-                    ],
-                    GapWidgets.h8,
-                    if (_immutableUnlocked) ...[
-                      AppTextFormField(
-                        fieldController: _vinCtrl,
-                        fieldValidator: validateVin,
-                        label: 'VIN (17 characters)',
-                      ),
-                      GapWidgets.h16,
-                      AppTextFormField(
-                        fieldController: _makerCtrl,
-                        fieldValidator: validateMaker,
-                        label: 'Maker',
-                      ),
-                      GapWidgets.h16,
-                      AppTextFormField(
-                        fieldController: _brandCtrl,
-                        fieldValidator: validateBrand,
-                        label: 'Brand',
-                      ),
-                      GapWidgets.h16,
-                      AppTextFormField(
-                        fieldController: _modelCtrl,
-                        fieldValidator: validateModel,
-                        label: 'Model',
-                      ),
-                      GapWidgets.h16,
-                      AppTextFormField(
-                        fieldController: _trimCtrl,
-                        fieldValidator: (_) => null,
-                        label: 'Trim (optional)',
-                      ),
-                      GapWidgets.h16,
-                      AppTextFormField(
-                        fieldController: _yearCtrl,
-                        fieldValidator: validateYear,
-                        label: 'Year',
-                        keyboardType: NumericInput.integer.keyboardType,
-                        inputFormatters: NumericInput.integer.formatters,
-                      ),
-                      GapWidgets.h16,
-                      EngineTypeDropdown(
-                        value: _engineType,
-                        onChanged: (v) =>
-                            setState(() => _engineType = v ?? 'Gasoline'),
-                      ),
-                      GapWidgets.h16,
-                      FuelTypeDropdown(
-                        value: _fuelType,
-                        onChanged: (v) =>
-                            setState(() => _fuelType = v ?? 'Regular'),
-                      ),
-                      GapWidgets.h16,
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppTextFormField(
-                              fieldController: _colorCtrl,
-                              fieldValidator: (_) => null,
-                              label: 'Color',
-                            ),
-                          ),
-                          GapWidgets.w16,
-                          Expanded(
-                            child: AppTextFormField(
-                              fieldController: _plateCtrl,
-                              fieldValidator: validatePlate,
-                              label: 'Plate',
-                            ),
-                          ),
-                        ],
-                      ),
-                      GapWidgets.h16,
-                      OwnershipStatusDropdown(
-                        value: _ownershipStatus,
-                        onChanged: (v) =>
-                            setState(() => _ownershipStatus = v ?? 'Owned'),
-                      ),
-                    ] else ...[
-                      _readOnlyField('VIN', orig.vin ?? 'N/A'),
-                      _readOnlyField('Maker', orig.maker ?? 'N/A'),
-                      _readOnlyField('Brand', orig.brand ?? 'N/A'),
-                      _readOnlyField('Model', orig.model ?? 'N/A'),
-                      _readOnlyField('Trim', orig.trim ?? 'N/A'),
-                      _readOnlyField(
-                          'Year', orig.year > 0 ? '${orig.year}' : 'N/A'),
-                      _readOnlyField('Engine', orig.engineType ?? 'N/A'),
-                      _readOnlyField('Fuel', orig.fuelType ?? 'N/A'),
-                      _readOnlyField('Color', orig.color ?? 'N/A'),
-                      _readOnlyField('Plate', orig.plate ?? 'N/A'),
-                      _readOnlyField(
-                          'Ownership', orig.ownershipStatus ?? 'N/A'),
-                    ],
-                  ],
+              // 2. Mileage
+              EditableInfoCard(
+                icon: Icons.speed_outlined,
+                title: 'Mileage',
+                displayBuilder: (_) =>
+                    _readOnlyRow('Meter reading', '${orig.meterReading} $distLabel'),
+                editorBuilder: (_) => AppTextFormField(
+                  fieldController: _meterReadingCtrl,
+                  fieldValidator: validateMeterReading,
+                  label: 'Meter Reading ($distLabel)',
+                  keyboardType: NumericInput.integer.keyboardType,
+                  inputFormatters: NumericInput.integer.formatters,
                 ),
+                onSave: _saveMileage,
+                onCancel: () => setState(_resetMileage),
               ),
-              GapWidgets.h24,
+              GapWidgets.h16,
 
-              // --- Mileage ---
-              // Meter reading stays unconditionally editable: it's the
-              // routine reason users open this screen between gas logs.
-              _sectionTitle(context, 'Mileage'),
-              GapWidgets.h8,
-              AppTextFormField(
-                fieldController: _meterReadingCtrl,
-                fieldValidator: validateMeterReading,
-                label: 'Meter Reading ($distLabel)',
-                keyboardType: NumericInput.integer.keyboardType,
-                inputFormatters: NumericInput.integer.formatters,
+              // 3. Registration
+              EditableInfoCard(
+                icon: Icons.assignment_outlined,
+                title: 'Registration',
+                displayBuilder: (_) => _readOnlyRow(
+                  'Expiry',
+                  orig.registrationExpiryDate != null
+                      ? _formatDate(orig.registrationExpiryDate!)
+                      : 'Not set',
+                ),
+                editorBuilder: (_) => _optionalDatePicker(
+                  context,
+                  label: 'Registration Expiry',
+                  date: _registrationExpiryDate,
+                  onChanged: (d) => setState(() => _registrationExpiryDate = d),
+                ),
+                onSave: _saveRegistration,
+                onCancel: () => setState(_resetRegistration),
               ),
-              GapWidgets.h24,
+              GapWidgets.h16,
 
-              // --- Insurance & Registration ---
-              _sectionTitle(context, 'Insurance & Registration'),
-              GapWidgets.h8,
-              AppTextFormField(
-                fieldController: _insuranceProviderCtrl,
-                fieldValidator: (_) => null,
-                label: 'Insurance Provider (optional)',
-              ),
+              // 4. Insurance / Service / Scheduled-service summary cards
+              AutomobileRecordsSummary(automobileId: widget.automobileId),
               GapWidgets.h16,
-              AppTextFormField(
-                fieldController: _insurancePolicyCtrl,
-                fieldValidator: (_) => null,
-                label: 'Policy Number (optional)',
-              ),
-              GapWidgets.h16,
-              _optionalDatePicker(
-                context,
-                label: 'Insurance Expiry',
-                date: _insuranceExpiryDate,
-                onChanged: (d) =>
-                    setState(() => _insuranceExpiryDate = d),
-              ),
-              GapWidgets.h16,
-              _optionalDatePicker(
-                context,
-                label: 'Registration Expiry',
-                date: _registrationExpiryDate,
-                onChanged: (d) =>
-                    setState(() => _registrationExpiryDate = d),
-              ),
-              GapWidgets.h24,
 
-              // --- Service ---
-              _sectionTitle(context, 'Service'),
-              GapWidgets.h8,
-              _optionalDatePicker(
-                context,
-                label: 'Last Service Date',
-                date: _lastServiceDate,
-                onChanged: (d) => setState(() => _lastServiceDate = d),
+              // 5. Notes
+              EditableInfoCard(
+                icon: Icons.notes_outlined,
+                title: 'Notes',
+                displayBuilder: (_) => Text(
+                  orig.notes?.isNotEmpty == true ? orig.notes! : 'No notes',
+                  style: orig.notes?.isNotEmpty == true
+                      ? null
+                      : TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                ),
+                editorBuilder: (_) => AppTextFormField(
+                  fieldController: _notesCtrl,
+                  fieldValidator: (_) => null,
+                  label: 'Notes (optional)',
+                ),
+                onSave: _saveNotes,
+                onCancel: () => setState(_resetNotes),
               ),
               GapWidgets.h16,
-              AppTextFormField(
-                fieldController: _lastServiceMeterCtrl,
-                fieldValidator: validateMeterReading,
-                label: 'Last Service Meter ($distLabel)',
-                keyboardType: NumericInput.integer.keyboardType,
-                inputFormatters: NumericInput.integer.formatters,
-              ),
-              GapWidgets.h16,
-              _optionalDatePicker(
-                context,
-                label: 'Next Service Due',
-                date: _nextServiceDueDate,
-                onChanged: (d) =>
-                    setState(() => _nextServiceDueDate = d),
-              ),
-              GapWidgets.h16,
-              AppTextFormField(
-                fieldController: _nextServiceDueMeterCtrl,
-                fieldValidator: validateMeterReading,
-                label: 'Next Service Meter ($distLabel)',
-                keyboardType: NumericInput.integer.keyboardType,
-                inputFormatters: NumericInput.integer.formatters,
-              ),
-              GapWidgets.h24,
 
-              // --- Notes ---
-              _sectionTitle(context, 'Notes'),
-              GapWidgets.h8,
-              AppTextFormField(
-                fieldController: _notesCtrl,
-                fieldValidator: (_) => null,
-                label: 'Notes (optional)',
-              ),
-              GapWidgets.h24,
-
+              // 6. Audit log (read-only)
               if (orig.auditLog.isNotEmpty) ...[
                 _sectionTitle(context, 'Change history'),
                 GapWidgets.h8,
                 ..._buildAuditList(context, orig.auditLog),
                 GapWidgets.h24,
               ],
-
-              HighlightButton(
-                text: isLoading ? 'Saving...' : 'Save Changes',
-                onPressed: isLoading ? () {} : _submit,
-              ),
-              GapWidgets.h24,
             ],
           ),
-        ),
         ),
       ),
     );
   }
 
-  /// Render the per-vehicle audit log (newest first). Each row shows the
-  /// field name, old → new value, and a short timestamp. Actor is hidden
-  /// today since this is a single-user device — when multi-user gets
-  /// added we can surface it.
-  List<Widget> _buildAuditList(
-      BuildContext context, List<AutomobileAuditEntry> entries) {
-    final sorted = [...entries]
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    final theme = Theme.of(context);
-    return sorted.map((e) {
-      final ts = e.timestamp.toLocal();
-      final stamp =
-          '${ts.year}-${'${ts.month}'.padLeft(2, '0')}-${'${ts.day}'.padLeft(2, '0')} '
-          '${'${ts.hour}'.padLeft(2, '0')}:${'${ts.minute}'.padLeft(2, '0')}';
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${e.field}  ${e.oldValue ?? '∅'}  →  ${e.newValue ?? '∅'}',
-              style: theme.textTheme.bodyMedium,
+  Widget _identityCard(BuildContext context, Automobile orig) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPress: _immutableUnlocked
+              ? null
+              : () => _confirmUnlockImmutables(context),
+          child: Form(
+            key: _identityFormKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.directions_car, color: cs.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      _immutableUnlocked
+                          ? 'Vehicle Info'
+                          : 'Vehicle Info (read-only)',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
+                if (!_immutableUnlocked) ...[
+                  GapWidgets.h4,
+                  Text(
+                    'Hold to edit',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                  ),
+                ],
+                GapWidgets.h16,
+                if (_immutableUnlocked)
+                  ..._identityEditFields()
+                else
+                  ..._identityReadOnlyFields(orig),
+                if (_immutableUnlocked) ...[
+                  GapWidgets.h16,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed:
+                            _identitySaving ? null : _cancelIdentity,
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: _identitySaving ? null : _saveIdentity,
+                        child: Text(
+                            _identitySaving ? 'Saving...' : 'Save changes'),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ),
-            Text(
-              stamp,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _identityEditFields() => [
+        AppTextFormField(
+          fieldController: _vinCtrl,
+          fieldValidator: validateVin,
+          label: 'VIN (17 characters)',
+        ),
+        GapWidgets.h16,
+        AppTextFormField(
+          fieldController: _makerCtrl,
+          fieldValidator: validateMaker,
+          label: 'Maker',
+        ),
+        GapWidgets.h16,
+        AppTextFormField(
+          fieldController: _brandCtrl,
+          fieldValidator: validateBrand,
+          label: 'Brand',
+        ),
+        GapWidgets.h16,
+        AppTextFormField(
+          fieldController: _modelCtrl,
+          fieldValidator: validateModel,
+          label: 'Model',
+        ),
+        GapWidgets.h16,
+        AppTextFormField(
+          fieldController: _trimCtrl,
+          fieldValidator: (_) => null,
+          label: 'Trim (optional)',
+        ),
+        GapWidgets.h16,
+        AppTextFormField(
+          fieldController: _yearCtrl,
+          fieldValidator: validateYear,
+          label: 'Year',
+          keyboardType: NumericInput.integer.keyboardType,
+          inputFormatters: NumericInput.integer.formatters,
+        ),
+        GapWidgets.h16,
+        EngineTypeDropdown(
+          value: _engineType,
+          onChanged: (v) => setState(() => _engineType = v ?? 'Gasoline'),
+        ),
+        GapWidgets.h16,
+        FuelTypeDropdown(
+          value: _fuelType,
+          onChanged: (v) => setState(() => _fuelType = v ?? 'Regular'),
+        ),
+        GapWidgets.h16,
+        Row(
+          children: [
+            Expanded(
+              child: AppTextFormField(
+                fieldController: _colorCtrl,
+                fieldValidator: (_) => null,
+                label: 'Color',
+              ),
+            ),
+            GapWidgets.w16,
+            Expanded(
+              child: AppTextFormField(
+                fieldController: _plateCtrl,
+                fieldValidator: validatePlate,
+                label: 'Plate',
               ),
             ),
           ],
         ),
-      );
-    }).toList();
-  }
+        GapWidgets.h16,
+        OwnershipStatusDropdown(
+          value: _ownershipStatus,
+          onChanged: (v) => setState(() => _ownershipStatus = v ?? 'Owned'),
+        ),
+      ];
 
-  Widget _sectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-    );
-  }
+  List<Widget> _identityReadOnlyFields(Automobile orig) => [
+        _readOnlyRow('VIN', orig.vin ?? 'N/A'),
+        _readOnlyRow('Maker', orig.maker ?? 'N/A'),
+        _readOnlyRow('Brand', orig.brand ?? 'N/A'),
+        _readOnlyRow('Model', orig.model ?? 'N/A'),
+        _readOnlyRow('Trim', orig.trim ?? 'N/A'),
+        _readOnlyRow('Year', orig.year > 0 ? '${orig.year}' : 'N/A'),
+        _readOnlyRow('Engine', orig.engineType ?? 'N/A'),
+        _readOnlyRow('Fuel', orig.fuelType ?? 'N/A'),
+        _readOnlyRow('Color', orig.color ?? 'N/A'),
+        _readOnlyRow('Plate', orig.plate ?? 'N/A'),
+        _readOnlyRow('Ownership', orig.ownershipStatus ?? 'N/A'),
+      ];
 
-  Widget _readOnlyField(String label, String value) {
+  // -------------------- Helpers --------------------
+
+  String _formatDate(DateTime d) =>
+      '${d.month}/${d.day}/${d.year}';
+
+  Widget _readOnlyRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           SizedBox(
-            width: 80,
+            width: 110,
             child: Text(label,
                 style: const TextStyle(fontWeight: FontWeight.w500)),
           ),
@@ -482,6 +599,15 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _sectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
     );
   }
 
@@ -499,9 +625,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           firstDate: DateTime(2000),
           lastDate: DateTime(2100),
         );
-        if (picked != null) {
-          onChanged(picked);
-        }
+        if (picked != null) onChanged(picked);
       },
       child: InputDecorator(
         decoration: InputDecoration(
@@ -521,9 +645,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           ),
         ),
         child: Text(
-          date != null
-              ? '${date.month}/${date.day}/${date.year}'
-              : 'Not set',
+          date != null ? _formatDate(date) : 'Not set',
           style: TextStyle(
             color: date != null
                 ? null
@@ -536,8 +658,8 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
   /// Long-press handler on the read-only identity section. Shows a
   /// confirmation dialog explaining the consequences and unlocks the
-  /// fields on confirm. The popup intentionally mirrors the iOS HIG
-  /// "destructive but recoverable" pattern.
+  /// fields on confirm. Mirrors the iOS HIG "destructive but recoverable"
+  /// pattern.
   Future<void> _confirmUnlockImmutables(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -563,107 +685,6 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     if (ok == true && mounted) {
       setState(() => _immutableUnlocked = true);
     }
-  }
-
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
-
-    final orig = _original!;
-    final newVin = _immutableUnlocked
-        ? (_vinCtrl.text.isNotEmpty ? _vinCtrl.text : null)
-        : orig.vin;
-    final newMaker = _immutableUnlocked
-        ? (_makerCtrl.text.isNotEmpty ? _makerCtrl.text : null)
-        : orig.maker;
-    final newBrand = _immutableUnlocked
-        ? (_brandCtrl.text.isNotEmpty ? _brandCtrl.text : null)
-        : orig.brand;
-    final newModel = _immutableUnlocked
-        ? (_modelCtrl.text.isNotEmpty ? _modelCtrl.text : null)
-        : orig.model;
-    final newTrim = _immutableUnlocked
-        ? (_trimCtrl.text.isNotEmpty ? _trimCtrl.text : null)
-        : orig.trim;
-    final newYear = _immutableUnlocked
-        ? (int.tryParse(_yearCtrl.text) ?? orig.year)
-        : orig.year;
-    final newEngine = _immutableUnlocked ? _engineType : orig.engineType;
-    final newFuel = _immutableUnlocked ? _fuelType : orig.fuelType;
-    final newColor = _immutableUnlocked
-        ? (_colorCtrl.text.isNotEmpty ? _colorCtrl.text : null)
-        : orig.color;
-    final newPlate = _immutableUnlocked
-        ? (_plateCtrl.text.isNotEmpty ? _plateCtrl.text : null)
-        : orig.plate;
-    final newOwnership =
-        _immutableUnlocked ? _ownershipStatus : orig.ownershipStatus;
-
-    // Capture an audit entry per identity-field change. Only runs while
-    // the section is unlocked — meter reading edits aren't audited because
-    // updating mileage between gas logs is the routine reason to open
-    // this screen.
-    final auditAdditions = _immutableUnlocked
-        ? _diffIdentity(orig, {
-            'vin': newVin,
-            'maker': newMaker,
-            'brand': newBrand,
-            'model': newModel,
-            'trim': newTrim,
-            'year': newYear == 0 ? null : '$newYear',
-            'engineType': newEngine,
-            'fuelType': newFuel,
-            'color': newColor,
-            'plate': newPlate,
-            'ownershipStatus': newOwnership,
-          })
-        : const <AutomobileAuditEntry>[];
-
-    final updated = Automobile(
-      id: orig.id,
-      vin: newVin,
-      maker: newMaker,
-      brand: newBrand,
-      model: newModel,
-      trim: newTrim,
-      year: newYear,
-      color: newColor,
-      plate: newPlate,
-      engineType: newEngine,
-      fuelType: newFuel,
-      fuelTankCapacity: orig.fuelTankCapacity,
-      cityMPG: orig.cityMPG,
-      highwayMPG: orig.highwayMPG,
-      combinedMPG: orig.combinedMPG,
-      meterReading: int.tryParse(_meterReadingCtrl.text) ?? orig.meterReading,
-      purchaseMeterReading: orig.purchaseMeterReading,
-      purchaseDate: orig.purchaseDate,
-      purchasePrice: orig.purchasePrice,
-      ownershipStatus: newOwnership,
-      isActive: orig.isActive,
-      soldDate: orig.soldDate,
-      soldMeterReading: orig.soldMeterReading,
-      soldPrice: orig.soldPrice,
-      registrationExpiryDate: _registrationExpiryDate,
-      insuranceExpiryDate: _insuranceExpiryDate,
-      insuranceProvider: _insuranceProviderCtrl.text.isNotEmpty
-          ? _insuranceProviderCtrl.text
-          : null,
-      insurancePolicyNumber: _insurancePolicyCtrl.text.isNotEmpty
-          ? _insurancePolicyCtrl.text
-          : null,
-      lastServiceDate: _lastServiceDate,
-      lastServiceMeterReading:
-          int.tryParse(_lastServiceMeterCtrl.text),
-      nextServiceDueDate: _nextServiceDueDate,
-      nextServiceDueMeterReading:
-          int.tryParse(_nextServiceDueMeterCtrl.text),
-      notes: _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
-      auditLog: [...orig.auditLog, ...auditAdditions],
-    );
-
-    ref
-        .read(updateAutomobileStateProvider.notifier)
-        .updateAutomobile(widget.automobileId, updated);
   }
 
   /// Build audit entries for the identity-field deltas between [orig] and
@@ -708,5 +729,36 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       }
     });
     return out;
+  }
+
+  List<Widget> _buildAuditList(
+      BuildContext context, List<AutomobileAuditEntry> entries) {
+    final sorted = [...entries]
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final theme = Theme.of(context);
+    return sorted.map((e) {
+      final ts = e.timestamp.toLocal();
+      final stamp =
+          '${ts.year}-${'${ts.month}'.padLeft(2, '0')}-${'${ts.day}'.padLeft(2, '0')} '
+          '${'${ts.hour}'.padLeft(2, '0')}:${'${ts.minute}'.padLeft(2, '0')}';
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${e.field}  ${e.oldValue ?? '∅'}  →  ${e.newValue ?? '∅'}',
+              style: theme.textTheme.bodyMedium,
+            ),
+            Text(
+              stamp,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
   }
 }

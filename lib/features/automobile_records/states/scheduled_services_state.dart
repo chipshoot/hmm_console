@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/repositories/scheduled_service_repository.dart';
+import '../../../core/data/repository_providers.dart';
 import '../domain/entities/auto_scheduled_service.dart';
 import '_records_automobile_id_provider.dart';
 
@@ -9,7 +9,7 @@ class ScheduledServicesState extends AsyncNotifier<List<AutoScheduledService>> {
   Future<List<AutoScheduledService>> build() async {
     final autoId = ref.watch(recordsAutomobileIdProvider);
     if (autoId == null) return [];
-    return ref.watch(scheduledServiceRepositoryProvider).getSchedules(autoId);
+    return ref.watch(scheduledServiceRepositoryModeProvider).getSchedules(autoId);
   }
 
   Future<void> refresh() async {
@@ -17,7 +17,7 @@ class ScheduledServicesState extends AsyncNotifier<List<AutoScheduledService>> {
     if (autoId == null) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(scheduledServiceRepositoryProvider).getSchedules(autoId),
+      () => ref.read(scheduledServiceRepositoryModeProvider).getSchedules(autoId),
     );
   }
 }
@@ -33,7 +33,7 @@ class SoonestScheduledServiceState
   Future<AutoScheduledService?> build() async {
     final autoId = ref.watch(recordsAutomobileIdProvider);
     if (autoId == null) return null;
-    return ref.watch(scheduledServiceRepositoryProvider).getSoonest(autoId);
+    return ref.watch(scheduledServiceRepositoryModeProvider).getSoonest(autoId);
   }
 
   Future<void> refresh() async {
@@ -41,7 +41,7 @@ class SoonestScheduledServiceState
     if (autoId == null) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => ref.read(scheduledServiceRepositoryProvider).getSoonest(autoId),
+      () => ref.read(scheduledServiceRepositoryModeProvider).getSoonest(autoId),
     );
   }
 }

@@ -8,6 +8,8 @@ import '../../../../domain/entities/app_function.dart';
 import '../../../auth/data/models/current_user.dart';
 import '../../../auth/providers/current_user_provider.dart';
 import '../../../auth/usecases/signout_usecase.dart';
+import '../../providers/intro_card_provider.dart';
+import '../widgets/defaults_intro_card.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -124,7 +126,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         _buildBrandText(colorScheme),
                         const SizedBox(height: 32),
                         _buildSearchBar(colorScheme),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 24),
+                        // First-run defaults greeter. Hides itself after
+                        // the user acknowledges; never returns.
+                        if (!ref.watch(introCardSeenProvider)) ...[
+                          const DefaultsIntroCard(),
+                          const SizedBox(height: 24),
+                        ],
                         _buildShortcuts(colorScheme),
                         const SizedBox(height: 48),
                       ],

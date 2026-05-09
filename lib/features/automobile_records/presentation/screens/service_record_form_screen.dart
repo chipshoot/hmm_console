@@ -3,10 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
-import '../../data/repositories/service_record_repository.dart';
+import '../../../../core/data/repository_providers.dart';
 import '../../domain/entities/service_record.dart';
 import '../../domain/entities/service_type.dart';
 import '../../states/_records_automobile_id_provider.dart';
@@ -61,7 +62,7 @@ class _ServiceRecordFormScreenState
     setState(() => _loading = true);
     try {
       final record = await ref
-          .read(serviceRecordRepositoryProvider)
+          .read(serviceRecordRepositoryModeProvider)
           .getRecordById(widget.automobileId, widget.recordId!);
       _existing = record;
       _mileageCtrl.text = record.mileage.toString();
@@ -103,7 +104,7 @@ class _ServiceRecordFormScreenState
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(dioErrorMessage(next.error!)),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );

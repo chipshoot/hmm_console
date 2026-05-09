@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/network/dio_error_message.dart';
 import '../../states/_records_automobile_id_provider.dart';
 import '../../states/insurance_policies_state.dart';
 import '../../states/scheduled_services_state.dart';
@@ -75,7 +76,7 @@ class _InsuranceSummaryCard extends ConsumerWidget {
           context.push('/automobiles/manage/$automobileId/insurance'),
       child: activeAsync.when(
         loading: () => const _Loading(),
-        error: (e, _) => _Subtle('Could not load: $e'),
+        error: (e, _) => _Subtle('Could not load: ${dioErrorMessage(e)}'),
         data: (policy) {
           if (policy == null) {
             return _Subtle(l10n.automobileRecordsNoActivePolicy);
@@ -127,7 +128,7 @@ class _ServiceSummaryCard extends ConsumerWidget {
           context.push('/automobiles/manage/$automobileId/services'),
       child: recordsAsync.when(
         loading: () => const _Loading(),
-        error: (e, _) => _Subtle('Could not load: $e'),
+        error: (e, _) => _Subtle('Could not load: ${dioErrorMessage(e)}'),
         data: (records) {
           if (records.isEmpty) {
             return _Subtle(l10n.automobileRecordsNoServiceRecords);
@@ -173,7 +174,7 @@ class _ScheduleSummaryCard extends ConsumerWidget {
           .push('/automobiles/manage/$automobileId/scheduled-services'),
       child: soonestAsync.when(
         loading: () => const _Loading(),
-        error: (e, _) => _Subtle('Could not load: $e'),
+        error: (e, _) => _Subtle('Could not load: ${dioErrorMessage(e)}'),
         data: (soonest) {
           final total = allAsync.value?.length ?? 0;
           if (soonest == null) {

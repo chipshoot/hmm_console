@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../gas_log/states/automobiles_state.dart';
 import '../../domain/entities/auto_scheduled_service.dart';
@@ -48,7 +49,7 @@ class _ScheduledServicesScreenState
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(dioErrorMessage(next.error!)),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -276,7 +277,7 @@ class _ErrorState extends StatelessWidget {
           Text('Failed to load schedules',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          Text(error.toString(),
+          Text(dioErrorMessage(error),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 16),

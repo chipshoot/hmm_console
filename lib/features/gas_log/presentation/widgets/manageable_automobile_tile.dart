@@ -73,26 +73,20 @@ class ManageableAutomobileTile extends StatelessWidget {
               '${automobile.meterReading} $distanceLabel',
             ].join(' \u2022 '),
           ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Edit',
-                onPressed: onEdit,
-              ),
-              IconButton(
-                icon: Icon(
-                  isInactive
-                      ? Icons.toggle_off_outlined
-                      : Icons.toggle_on_outlined,
-                  color: isInactive ? colorScheme.error : colorScheme.primary,
-                ),
-                tooltip: isInactive ? 'Reactivate' : 'Deactivate',
-                onPressed: onToggleActive,
-              ),
-            ],
+          trailing: IconButton(
+            icon: Icon(
+              isInactive
+                  ? Icons.toggle_off_outlined
+                  : Icons.toggle_on_outlined,
+              color: isInactive ? colorScheme.error : colorScheme.primary,
+            ),
+            tooltip: isInactive ? 'Reactivate' : 'Deactivate',
+            onPressed: onToggleActive,
           ),
+          // Tapping the card opens the vehicle details (read-only at top,
+          // records summary, mileage). The dedicated +/edit affordances live
+          // on those screens — this list is for navigation, not inline edit.
+          onTap: onEdit,
         ),
       ),
     );
