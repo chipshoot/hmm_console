@@ -18,5 +18,14 @@
 
   "commonCancel": "取消",
   "commonSave": "保存",
-  "commonDelete": "删除"
+  "commonDelete": "删除",
+
+  "automobileRecordsInsurance": "保险",
+  "automobileRecordsServiceHistory": "维修保养记录",
+  "automobileRecordsScheduledService": "保养计划",
+  "automobileRecordsManage": "管理",
+  "automobileRecordsViewHistory": "查看记录",
+  "automobileRecordsNoActivePolicy": "没有有效的保单",
+  "automobileRecordsNoServiceRecords": "暂无保养记录",
+  "automobileRecordsNoSchedules": "尚未设置保养计划"
 }

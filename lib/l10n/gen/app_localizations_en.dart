@@ -52,4 +52,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonDelete => 'Delete';
+
+  @override
+  String get automobileRecordsInsurance => 'Insurance';
+
+  @override
+  String get automobileRecordsServiceHistory => 'Service history';
+
+  @override
+  String get automobileRecordsScheduledService => 'Scheduled service';
+
+  @override
+  String get automobileRecordsManage => 'Manage';
+
+  @override
+  String get automobileRecordsViewHistory => 'View history';
+
+  @override
+  String get automobileRecordsNoActivePolicy => 'No active policy on file';
+
+  @override
+  String get automobileRecordsNoServiceRecords => 'No service records yet';
+
+  @override
+  String get automobileRecordsNoSchedules => 'No schedules set up';
 }

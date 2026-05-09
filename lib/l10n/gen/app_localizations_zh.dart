@@ -52,4 +52,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonDelete => '删除';
+
+  @override
+  String get automobileRecordsInsurance => '保险';
+
+  @override
+  String get automobileRecordsServiceHistory => '维修保养记录';
+
+  @override
+  String get automobileRecordsScheduledService => '保养计划';
+
+  @override
+  String get automobileRecordsManage => '管理';
+
+  @override
+  String get automobileRecordsViewHistory => '查看记录';
+
+  @override
+  String get automobileRecordsNoActivePolicy => '没有有效的保单';
+
+  @override
+  String get automobileRecordsNoServiceRecords => '暂无保养记录';
+
+  @override
+  String get automobileRecordsNoSchedules => '尚未设置保养计划';
 }

@@ -8,6 +8,7 @@ import '../../../../core/widgets/numeric_input.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../../auth/providers/current_user_provider.dart';
+import '../../../automobile_records/presentation/widgets/automobile_records_summary.dart';
 import '../../domain/entities/automobile.dart';
 import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../domain/validators/automobile_validator.dart';
@@ -170,6 +171,15 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // --- At-a-glance records summary ---
+              // Shows current insurance, last service, and soonest schedule
+              // sourced from the dedicated record endpoints, with deep-links
+              // to the dedicated history / management screens. Lives at the
+              // top of the screen so users can find these one tap from the
+              // vehicle list.
+              AutomobileRecordsSummary(automobileId: widget.automobileId),
+              GapWidgets.h24,
+
               // --- Normally-immutable identity fields ---
               // Long-press anywhere on this section to open the
               // edit-confirmation popup. Hidden by design — this is for

@@ -187,6 +187,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get commonDelete;
+
+  /// No description provided for @automobileRecordsInsurance.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance'**
+  String get automobileRecordsInsurance;
+
+  /// No description provided for @automobileRecordsServiceHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Service history'**
+  String get automobileRecordsServiceHistory;
+
+  /// No description provided for @automobileRecordsScheduledService.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled service'**
+  String get automobileRecordsScheduledService;
+
+  /// No description provided for @automobileRecordsManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get automobileRecordsManage;
+
+  /// No description provided for @automobileRecordsViewHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'View history'**
+  String get automobileRecordsViewHistory;
+
+  /// No description provided for @automobileRecordsNoActivePolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'No active policy on file'**
+  String get automobileRecordsNoActivePolicy;
+
+  /// No description provided for @automobileRecordsNoServiceRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No service records yet'**
+  String get automobileRecordsNoServiceRecords;
+
+  /// No description provided for @automobileRecordsNoSchedules.
+  ///
+  /// In en, this message translates to:
+  /// **'No schedules set up'**
+  String get automobileRecordsNoSchedules;
 }
 
 class _AppLocalizationsDelegate

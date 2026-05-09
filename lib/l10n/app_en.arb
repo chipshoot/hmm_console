@@ -24,5 +24,14 @@
 
   "commonCancel": "Cancel",
   "commonSave": "Save",
-  "commonDelete": "Delete"
+  "commonDelete": "Delete",
+
+  "automobileRecordsInsurance": "Insurance",
+  "automobileRecordsServiceHistory": "Service history",
+  "automobileRecordsScheduledService": "Scheduled service",
+  "automobileRecordsManage": "Manage",
+  "automobileRecordsViewHistory": "View history",
+  "automobileRecordsNoActivePolicy": "No active policy on file",
+  "automobileRecordsNoServiceRecords": "No service records yet",
+  "automobileRecordsNoSchedules": "No schedules set up"
 }

@@ -4,6 +4,12 @@ import 'package:hmm_console/core/navigation/auth_change_provider.dart';
 import 'package:hmm_console/core/navigation/route_names.dart';
 import 'package:hmm_console/features/auth/presentation/presentation.dart';
 import 'package:hmm_console/features/dashboard/presentation/presentation.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/insurance_policies_screen.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/insurance_policy_form_screen.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/scheduled_service_form_screen.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/scheduled_services_screen.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/service_record_form_screen.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/service_records_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/automobile_create_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/automobile_edit_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/automobile_management_screen.dart';
@@ -74,6 +80,99 @@ final routerConfig = Provider<GoRouter>(
                   final id = int.parse(state.pathParameters['id']!);
                   return AutomobileEditScreen(automobileId: id);
                 },
+              ),
+              GoRoute(
+                path: ':id/insurance',
+                name: RouterNames.insurancePolicies.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return InsurancePoliciesScreen(automobileId: id);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    name: RouterNames.insurancePolicyCreate.name,
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      return InsurancePolicyFormScreen(automobileId: id);
+                    },
+                  ),
+                  GoRoute(
+                    path: ':policyId/edit',
+                    name: RouterNames.insurancePolicyEdit.name,
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      final policyId =
+                          int.parse(state.pathParameters['policyId']!);
+                      return InsurancePolicyFormScreen(
+                        automobileId: id,
+                        policyId: policyId,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: ':id/services',
+                name: RouterNames.serviceRecords.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return ServiceRecordsScreen(automobileId: id);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    name: RouterNames.serviceRecordCreate.name,
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      return ServiceRecordFormScreen(automobileId: id);
+                    },
+                  ),
+                  GoRoute(
+                    path: ':recordId/edit',
+                    name: RouterNames.serviceRecordEdit.name,
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      final recordId =
+                          int.parse(state.pathParameters['recordId']!);
+                      return ServiceRecordFormScreen(
+                        automobileId: id,
+                        recordId: recordId,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: ':id/scheduled-services',
+                name: RouterNames.scheduledServices.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return ScheduledServicesScreen(automobileId: id);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    name: RouterNames.scheduledServiceCreate.name,
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      return ScheduledServiceFormScreen(automobileId: id);
+                    },
+                  ),
+                  GoRoute(
+                    path: ':scheduleId/edit',
+                    name: RouterNames.scheduledServiceEdit.name,
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      final scheduleId =
+                          int.parse(state.pathParameters['scheduleId']!);
+                      return ScheduledServiceFormScreen(
+                        automobileId: id,
+                        scheduleId: scheduleId,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
