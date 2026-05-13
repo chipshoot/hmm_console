@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/gas_log/data/repositories/automobile_repository.dart';
 import '../../../features/gas_log/domain/entities/automobile.dart';
-import '../hmm_note_input.dart';
 import '../../../features/notes/data/models/hmm_note.dart';
-import 'local_note_catalog_repository.dart';
+import '../attachments/attachment_ref.dart';
+import '../hmm_note_input.dart';
 import 'local_hmm_note_repository.dart';
+import 'local_note_catalog_repository.dart';
 
 const _autoCatalogName = 'Hmm.AutomobileMan.AutomobileInfo';
 const _autoCatalogSchema = '{}';
@@ -53,6 +54,10 @@ class LocalAutomobileRepository implements IAutomobileRepository {
       subject: _subjectFor(automobile),
       content: content,
       catalogId: catalog.id,
+      // Attachments are read-through on the Automobile entity but
+      // live on the note. Pass the projected payload through to the
+      // note layer so the row's `attachments` column carries them.
+      attachments: _attachmentsFor(automobile),
     ));
 
     return _deserialize(note)!;
@@ -73,7 +78,17 @@ class LocalAutomobileRepository implements IAutomobileRepository {
   @override
   Future<void> updateAutomobile(int id, Automobile automobile) async {
     final content = _serialize(automobile);
-    await _noteRepo.updateNote(id, HmmNoteUpdate(content: content));
+    await _noteRepo.updateNote(
+      id,
+      HmmNoteUpdate(
+        content: content,
+        // Pass the full attachment state every time. An automobile
+        // with no primary image and no gallery clears the column
+        // (writes SQL NULL); otherwise the column is replaced with
+        // the current set.
+        attachments: _attachmentsFor(automobile),
+      ),
+    );
   }
 
   @override
@@ -166,6 +181,16 @@ class LocalAutomobileRepository implements IAutomobileRepository {
     return jsonEncode({'note': {'content': {'AutomobileInfo': data}}});
   }
 
+  NoteAttachments _attachmentsFor(Automobile auto) {
+    if (auto.primaryImage == null && auto.images.isEmpty) {
+      return NoteAttachments.empty;
+    }
+    return NoteAttachments(
+      primaryImage: auto.primaryImage,
+      images: auto.images,
+    );
+  }
+
   Automobile? _deserialize(HmmNote note) {
     if (note.content == null) return null;
     try {
@@ -209,6 +234,10 @@ class LocalAutomobileRepository implements IAutomobileRepository {
         notes: d['notes'] as String?,
         createdDate: note.createDate,
         lastModifiedDate: note.lastModifiedDate,
+        // Read-through projection: pull attachments from the owning
+        // note's `attachments` column.
+        primaryImage: note.effectiveAttachments.primaryImage,
+        images: note.effectiveAttachments.images,
         auditLog: ((d['auditLog'] as List?) ?? const [])
             .map((e) {
               final m = e as Map<String, dynamic>;

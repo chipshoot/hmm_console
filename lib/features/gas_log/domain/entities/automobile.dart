@@ -1,3 +1,5 @@
+import '../../../../core/data/attachments/attachment_ref.dart';
+
 class Automobile {
   final int id;
 
@@ -58,6 +60,19 @@ class Automobile {
   /// content blob.
   final List<AutomobileAuditEntry> auditLog;
 
+  /// Headline photo of the vehicle. Read-through projection of the
+  /// owning note's `attachments` column — `Automobile` doesn't store
+  /// its own attachment bytes, the note does. `null` means no photo.
+  ///
+  /// Disjoint with [images]: a photo lives in this slot OR in
+  /// [images], never both (enforced by NoteAttachments).
+  final AttachmentRef? primaryImage;
+
+  /// Additional photos / files attached to the vehicle's note.
+  /// Read-through projection of the owning note's `attachments`
+  /// column. Empty list means no extras.
+  final List<AttachmentRef> images;
+
   const Automobile({
     required this.id,
     this.vin,
@@ -95,6 +110,8 @@ class Automobile {
     this.createdDate,
     this.lastModifiedDate,
     this.auditLog = const [],
+    this.primaryImage,
+    this.images = const [],
   });
 
   String get displayName {
