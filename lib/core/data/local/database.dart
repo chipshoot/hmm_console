@@ -58,6 +58,14 @@ class Notes extends Table {
   DateTimeColumn get createDate => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get lastModifiedDate => dateTime().nullable()();
   TextColumn get description => text().withLength(min: 0, max: 1000).nullable()();
+
+  // Note-level attachments — JSON value matching the NoteAttachments
+  // wrapper schema. NULL = no attachments. See
+  // docs/attachments-design.md (in the Hmm repo). The old Attachments
+  // child table still exists alongside this column for the sync
+  // orchestrator's benefit; that table will be retired in a follow-up
+  // phase once the sync orchestrator moves to the vault + this column.
+  TextColumn get attachments => text().nullable()();
 }
 
 @TableIndex(name: 'idx_attachments_note', columns: {#noteId})
@@ -102,7 +110,7 @@ class HmmDatabase extends _$HmmDatabase {
   HmmDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -195,6 +203,13 @@ class HmmDatabase extends _$HmmDatabase {
           'CREATE UNIQUE INDEX IF NOT EXISTS idx_attachments_uuid '
               'ON attachments (uuid)',
         );
+      }
+      if (from < 4) {
+        // v4: note-level attachments column (sidecar JSON on Notes).
+        // The old Attachments child table is left in place — it's
+        // still used by SyncOrchestrator and will be retired in a
+        // follow-up phase once the sync layer moves to the new model.
+        await m.addColumn(notes, notes.attachments);
       }
     },
   );

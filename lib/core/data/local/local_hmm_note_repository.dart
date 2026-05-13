@@ -5,6 +5,7 @@ import '../../../features/notes/data/mappers/hmm_note_mapper.dart';
 import '../../../features/notes/data/models/hmm_note.dart';
 import '../../auth/current_author_account_name_provider.dart';
 import '../../network/pagination.dart';
+import '../attachments/attachment_ref_codec.dart';
 import '../hmm_note_input.dart';
 import 'database.dart';
 
@@ -124,6 +125,14 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
           createDate: Value(now),
           lastModifiedDate: Value(now),
           version: Value(_versionStamp()),
+          // NoteAttachmentsCodec.encode returns null for an empty
+          // payload (or for a null input), which is exactly the
+          // SQL-NULL we want in the column.
+          attachments: Value(
+            input.attachments == null
+                ? null
+                : NoteAttachmentsCodec.encode(input.attachments!),
+          ),
         ));
     return (await getNoteById(id))!;
   }
@@ -140,6 +149,11 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
       content: patch.content != null ? Value(patch.content) : const Value.absent(),
       description: patch.description != null
           ? Value(patch.description)
+          : const Value.absent(),
+      // null = "don't touch"; an empty payload encodes to null and
+      // clears the column; a non-empty payload replaces it.
+      attachments: patch.attachments != null
+          ? Value(NoteAttachmentsCodec.encode(patch.attachments!))
           : const Value.absent(),
       lastModifiedDate: Value(now),
       version: Value(_versionStamp()),

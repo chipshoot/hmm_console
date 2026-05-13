@@ -8,7 +8,6 @@ import '../../features/gas_log/data/repositories/gas_log_api_repository.dart';
 import '../../features/gas_log/data/repositories/gas_station_repository.dart';
 import '../../features/gas_log/data/repositories/i_gas_log_repository.dart';
 import 'data_mode.dart';
-import 'local/local_attachment_repository.dart';
 import 'local/local_automobile_repository.dart';
 import 'local/local_author_repository.dart';
 import 'local/local_gas_log_repository.dart';
@@ -48,12 +47,6 @@ final noteCatalogRepositoryProvider = Provider<INoteCatalogRepository>((ref) {
   final mode = ref.watch(dataModeProvider);
   if (_useLocal(mode)) return ref.watch(localNoteCatalogRepositoryProvider);
   throw UnimplementedError('API note catalog repository not yet implemented');
-});
-
-final attachmentRepositoryProvider = Provider<IAttachmentRepository>((ref) {
-  final mode = ref.watch(dataModeProvider);
-  if (_useLocal(mode)) return ref.watch(localAttachmentRepositoryProvider);
-  throw UnimplementedError('API attachment repository not yet implemented');
 });
 
 final gasLogRepositoryModeProvider = Provider<IGasLogRepository>((ref) {

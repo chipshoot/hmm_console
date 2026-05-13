@@ -998,6 +998,17 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _attachmentsMeta = const VerificationMeta(
+    'attachments',
+  );
+  @override
+  late final GeneratedColumn<String> attachments = GeneratedColumn<String>(
+    'attachments',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1012,6 +1023,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     createDate,
     lastModifiedDate,
     description,
+    attachments,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1107,6 +1119,15 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         ),
       );
     }
+    if (data.containsKey('attachments')) {
+      context.handle(
+        _attachmentsMeta,
+        attachments.isAcceptableOrUnknown(
+          data['attachments']!,
+          _attachmentsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1164,6 +1185,10 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       ),
+      attachments: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attachments'],
+      ),
     );
   }
 
@@ -1186,6 +1211,7 @@ class Note extends DataClass implements Insertable<Note> {
   final DateTime createDate;
   final DateTime? lastModifiedDate;
   final String? description;
+  final String? attachments;
   const Note({
     required this.id,
     this.uuid,
@@ -1199,6 +1225,7 @@ class Note extends DataClass implements Insertable<Note> {
     required this.createDate,
     this.lastModifiedDate,
     this.description,
+    this.attachments,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1231,6 +1258,9 @@ class Note extends DataClass implements Insertable<Note> {
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    if (!nullToAbsent || attachments != null) {
+      map['attachments'] = Variable<String>(attachments);
+    }
     return map;
   }
 
@@ -1262,6 +1292,9 @@ class Note extends DataClass implements Insertable<Note> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      attachments: attachments == null && nullToAbsent
+          ? const Value.absent()
+          : Value(attachments),
     );
   }
 
@@ -1285,6 +1318,7 @@ class Note extends DataClass implements Insertable<Note> {
         json['lastModifiedDate'],
       ),
       description: serializer.fromJson<String?>(json['description']),
+      attachments: serializer.fromJson<String?>(json['attachments']),
     );
   }
   @override
@@ -1303,6 +1337,7 @@ class Note extends DataClass implements Insertable<Note> {
       'createDate': serializer.toJson<DateTime>(createDate),
       'lastModifiedDate': serializer.toJson<DateTime?>(lastModifiedDate),
       'description': serializer.toJson<String?>(description),
+      'attachments': serializer.toJson<String?>(attachments),
     };
   }
 
@@ -1319,6 +1354,7 @@ class Note extends DataClass implements Insertable<Note> {
     DateTime? createDate,
     Value<DateTime?> lastModifiedDate = const Value.absent(),
     Value<String?> description = const Value.absent(),
+    Value<String?> attachments = const Value.absent(),
   }) => Note(
     id: id ?? this.id,
     uuid: uuid.present ? uuid.value : this.uuid,
@@ -1334,6 +1370,7 @@ class Note extends DataClass implements Insertable<Note> {
         ? lastModifiedDate.value
         : this.lastModifiedDate,
     description: description.present ? description.value : this.description,
+    attachments: attachments.present ? attachments.value : this.attachments,
   );
   Note copyWithCompanion(NotesCompanion data) {
     return Note(
@@ -1357,6 +1394,9 @@ class Note extends DataClass implements Insertable<Note> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      attachments: data.attachments.present
+          ? data.attachments.value
+          : this.attachments,
     );
   }
 
@@ -1374,7 +1414,8 @@ class Note extends DataClass implements Insertable<Note> {
           ..write('version: $version, ')
           ..write('createDate: $createDate, ')
           ..write('lastModifiedDate: $lastModifiedDate, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('attachments: $attachments')
           ..write(')'))
         .toString();
   }
@@ -1393,6 +1434,7 @@ class Note extends DataClass implements Insertable<Note> {
     createDate,
     lastModifiedDate,
     description,
+    attachments,
   );
   @override
   bool operator ==(Object other) =>
@@ -1409,7 +1451,8 @@ class Note extends DataClass implements Insertable<Note> {
           $driftBlobEquality.equals(other.version, this.version) &&
           other.createDate == this.createDate &&
           other.lastModifiedDate == this.lastModifiedDate &&
-          other.description == this.description);
+          other.description == this.description &&
+          other.attachments == this.attachments);
 }
 
 class NotesCompanion extends UpdateCompanion<Note> {
@@ -1425,6 +1468,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   final Value<DateTime> createDate;
   final Value<DateTime?> lastModifiedDate;
   final Value<String?> description;
+  final Value<String?> attachments;
   const NotesCompanion({
     this.id = const Value.absent(),
     this.uuid = const Value.absent(),
@@ -1438,6 +1482,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     this.createDate = const Value.absent(),
     this.lastModifiedDate = const Value.absent(),
     this.description = const Value.absent(),
+    this.attachments = const Value.absent(),
   });
   NotesCompanion.insert({
     this.id = const Value.absent(),
@@ -1452,6 +1497,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     this.createDate = const Value.absent(),
     this.lastModifiedDate = const Value.absent(),
     this.description = const Value.absent(),
+    this.attachments = const Value.absent(),
   }) : subject = Value(subject),
        authorId = Value(authorId);
   static Insertable<Note> custom({
@@ -1467,6 +1513,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     Expression<DateTime>? createDate,
     Expression<DateTime>? lastModifiedDate,
     Expression<String>? description,
+    Expression<String>? attachments,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1481,6 +1528,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
       if (createDate != null) 'create_date': createDate,
       if (lastModifiedDate != null) 'last_modified_date': lastModifiedDate,
       if (description != null) 'description': description,
+      if (attachments != null) 'attachments': attachments,
     });
   }
 
@@ -1497,6 +1545,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     Value<DateTime>? createDate,
     Value<DateTime?>? lastModifiedDate,
     Value<String?>? description,
+    Value<String?>? attachments,
   }) {
     return NotesCompanion(
       id: id ?? this.id,
@@ -1511,6 +1560,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
       createDate: createDate ?? this.createDate,
       lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
       description: description ?? this.description,
+      attachments: attachments ?? this.attachments,
     );
   }
 
@@ -1553,6 +1603,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (attachments.present) {
+      map['attachments'] = Variable<String>(attachments.value);
+    }
     return map;
   }
 
@@ -1570,7 +1623,8 @@ class NotesCompanion extends UpdateCompanion<Note> {
           ..write('version: $version, ')
           ..write('createDate: $createDate, ')
           ..write('lastModifiedDate: $lastModifiedDate, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('attachments: $attachments')
           ..write(')'))
         .toString();
   }
@@ -3483,6 +3537,7 @@ typedef $$NotesTableCreateCompanionBuilder =
       Value<DateTime> createDate,
       Value<DateTime?> lastModifiedDate,
       Value<String?> description,
+      Value<String?> attachments,
     });
 typedef $$NotesTableUpdateCompanionBuilder =
     NotesCompanion Function({
@@ -3498,6 +3553,7 @@ typedef $$NotesTableUpdateCompanionBuilder =
       Value<DateTime> createDate,
       Value<DateTime?> lastModifiedDate,
       Value<String?> description,
+      Value<String?> attachments,
     });
 
 final class $$NotesTableReferences
@@ -3644,6 +3700,11 @@ class $$NotesTableFilterComposer extends Composer<_$HmmDatabase, $NotesTable> {
 
   ColumnFilters<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get attachments => $composableBuilder(
+    column: $table.attachments,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3821,6 +3882,11 @@ class $$NotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get attachments => $composableBuilder(
+    column: $table.attachments,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$AuthorsTableOrderingComposer get authorId {
     final $$AuthorsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3930,6 +3996,11 @@ class $$NotesTableAnnotationComposer
 
   GeneratedColumn<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get attachments => $composableBuilder(
+    column: $table.attachments,
     builder: (column) => column,
   );
 
@@ -4099,6 +4170,7 @@ class $$NotesTableTableManager
                 Value<DateTime> createDate = const Value.absent(),
                 Value<DateTime?> lastModifiedDate = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<String?> attachments = const Value.absent(),
               }) => NotesCompanion(
                 id: id,
                 uuid: uuid,
@@ -4112,6 +4184,7 @@ class $$NotesTableTableManager
                 createDate: createDate,
                 lastModifiedDate: lastModifiedDate,
                 description: description,
+                attachments: attachments,
               ),
           createCompanionCallback:
               ({
@@ -4127,6 +4200,7 @@ class $$NotesTableTableManager
                 Value<DateTime> createDate = const Value.absent(),
                 Value<DateTime?> lastModifiedDate = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<String?> attachments = const Value.absent(),
               }) => NotesCompanion.insert(
                 id: id,
                 uuid: uuid,
@@ -4140,6 +4214,7 @@ class $$NotesTableTableManager
                 createDate: createDate,
                 lastModifiedDate: lastModifiedDate,
                 description: description,
+                attachments: attachments,
               ),
           withReferenceMapper: (p0) => p0
               .map(

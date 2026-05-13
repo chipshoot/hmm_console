@@ -1,3 +1,5 @@
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/attachment_ref_codec.dart';
 import '../../../../core/data/local/database.dart' as drift;
 import '../models/hmm_note.dart';
 
@@ -27,5 +29,14 @@ class HmmNoteMapper {
         lastModifiedDate: row.lastModifiedDate,
         deletedAt: row.deletedAt,
         version: row.version,
+        attachments: _decodeAttachments(row.attachments),
       );
+
+  static NoteAttachments? _decodeAttachments(String? raw) {
+    final value = NoteAttachmentsCodec.decode(raw);
+    // Collapse an empty payload (decoded from NULL or from "{}") to
+    // null on the domain side so callers don't have to distinguish
+    // "no attachments" from "empty wrapper."
+    return value.isEmpty ? null : value;
+  }
 }
