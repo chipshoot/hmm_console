@@ -36,7 +36,12 @@ class CreateGasLogState extends AsyncNotifier<GasLog?> {
         created = await ref
             .read(createGasLogUseCaseProvider)
             .call(autoId, logToCreate);
-        // Real-time creation updates automobile meter on backend; refresh local state
+        // Live entry bumps the parent automobile's meterReading.
+        // - cloudApi tier: the .NET backend does it server-side.
+        // - local / cloudStorage tiers: LocalGasLogRepository.createGasLog
+        //   does it in the same call.
+        // In both cases, refresh the automobiles state so the new meter
+        // appears in the UI immediately.
         ref.read(automobilesStateProvider.notifier).refresh();
       }
 
