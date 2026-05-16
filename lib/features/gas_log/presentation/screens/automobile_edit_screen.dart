@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
+import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/widgets/editable_info_card.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/numeric_input.dart';
@@ -68,6 +72,15 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   DateTime? _registrationExpiryDate;
   final _notesCtrl = TextEditingController();
 
+  // Photo card — pending primary image while the editor is open.
+  // Picker writes bytes into the vault on success, so a pending ref
+  // that diverges from the original may leave orphans on disk if the
+  // user cancels or replaces. A vault GC pass (out of scope for v1)
+  // can reclaim them later by comparing every Notes.attachments value
+  // against the on-disk vault listing.
+  AttachmentRef? _pendingPrimaryImage;
+  bool _photoBusy = false;
+
   Automobile? _original;
 
   @override
@@ -87,6 +100,11 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     _resetMileage();
     _resetRegistration();
     _resetNotes();
+    _resetPhoto();
+  }
+
+  void _resetPhoto() {
+    _pendingPrimaryImage = _original?.primaryImage;
   }
 
   void _resetIdentityFields() {
@@ -163,6 +181,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     String? ownershipStatus,
     Object? registrationExpiryDate = _kSentinel,
     Object? notes = _kSentinel,
+    Object? primaryImage = _kSentinel,
     List<AutomobileAuditEntry>? auditLog,
   }) {
     final orig = _original!;
@@ -204,6 +223,10 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       notes: identical(notes, _kSentinel) ? orig.notes : notes as String?,
       createdDate: orig.createdDate,
       lastModifiedDate: orig.lastModifiedDate,
+      primaryImage: identical(primaryImage, _kSentinel)
+          ? orig.primaryImage
+          : primaryImage as AttachmentRef?,
+      images: orig.images,
       auditLog: auditLog ?? orig.auditLog,
     );
   }
@@ -230,6 +253,77 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   Future<bool> _saveNotes() async {
     final trimmed = _notesCtrl.text.trim();
     return _persist(_cloneWith(notes: trimmed.isEmpty ? null : trimmed));
+  }
+
+  // -------------------- Photo card --------------------
+
+  Future<void> _pickPhoto({
+    AttachmentPickSource source = AttachmentPickSource.gallery,
+  }) async {
+    if (_photoBusy) return;
+    setState(() => _photoBusy = true);
+    try {
+      final picker = await ref.read(imageAttachmentPickerProvider.future);
+      final picked = await picker.pickForNote(
+        noteId: widget.automobileId,
+        source: source,
+      );
+      if (!mounted) return;
+      if (picked != null) {
+        setState(() => _pendingPrimaryImage = picked);
+      }
+    } on AttachmentPickerException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not pick photo: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
+  }
+
+  void _clearPendingPhoto() {
+    setState(() => _pendingPrimaryImage = null);
+  }
+
+  Future<bool> _savePhoto() async {
+    // Pass an explicit value (rather than _kSentinel) so a "Remove"
+    // round-trips through _cloneWith as a real null.
+    return _persist(_cloneWith(primaryImage: _pendingPrimaryImage));
+  }
+
+  void _showFullscreenPhoto(AttachmentRef ref_) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Consumer(builder: (context, ref, _) {
+        final resolverAsync = ref.watch(attachmentResolverProvider);
+        return Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          backgroundColor: Colors.transparent,
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Center(
+              child: resolverAsync.when(
+                data: (resolver) => InteractiveViewer(
+                  child: AttachmentImage(ref: ref_, resolver: resolver),
+                ),
+                loading: () => const CircularProgressIndicator(),
+                error: (e, _) => Text(
+                  'Could not load photo: $e',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
   }
 
   Future<void> _saveIdentity() async {
@@ -332,6 +426,10 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // 0. Photo (above identity per design)
+              _photoCard(context, orig),
+              GapWidgets.h16,
+
               // 1. Identity (read-only / long-press to unlock)
               _identityCard(context, orig),
               GapWidgets.h16,
@@ -413,6 +511,127 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _photoCard(BuildContext context, Automobile orig) {
+    return EditableInfoCard(
+      icon: Icons.photo_outlined,
+      title: 'Photo',
+      displayBuilder: (_) => _photoDisplay(orig.primaryImage),
+      editorBuilder: (_) => _photoEditor(),
+      onSave: _savePhoto,
+      onCancel: () => setState(_resetPhoto),
+    );
+  }
+
+  Widget _photoDisplay(AttachmentRef? ref_) {
+    if (ref_ == null) {
+      return Text(
+        'No photo',
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+    return Consumer(builder: (context, ref, _) {
+      final resolverAsync = ref.watch(attachmentResolverProvider);
+      return resolverAsync.when(
+        data: (resolver) => GestureDetector(
+          onTap: () => _showFullscreenPhoto(ref_),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 96,
+              height: 96,
+              child: AttachmentImage(ref: ref_, resolver: resolver),
+            ),
+          ),
+        ),
+        loading: () => const SizedBox(
+          width: 96,
+          height: 96,
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+        error: (e, _) => Text('Photo unavailable: $e'),
+      );
+    });
+  }
+
+  Widget _photoEditor() {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Consumer(builder: (context, ref, _) {
+          final pending = _pendingPrimaryImage;
+          if (pending == null) {
+            return Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.add_a_photo_outlined,
+                  size: 32,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            );
+          }
+          final resolverAsync = ref.watch(attachmentResolverProvider);
+          return resolverAsync.when(
+            data: (resolver) => ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: 120,
+                height: 120,
+                child: AttachmentImage(ref: pending, resolver: resolver),
+              ),
+            ),
+            loading: () => const SizedBox(
+              width: 120,
+              height: 120,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+            error: (e, _) => Text('Photo unavailable: $e'),
+          );
+        }),
+        GapWidgets.h8,
+        Row(
+          children: [
+            FilledButton.tonalIcon(
+              onPressed: _photoBusy ? null : () => _pickPhoto(),
+              icon: Icon(_pendingPrimaryImage == null
+                  ? Icons.add_photo_alternate_outlined
+                  : Icons.swap_horiz),
+              label: Text(
+                _pendingPrimaryImage == null ? 'Choose photo' : 'Replace',
+              ),
+            ),
+            if (_pendingPrimaryImage != null) ...[
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: _photoBusy ? null : _clearPendingPhoto,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Remove'),
+              ),
+            ],
+            if (_photoBusy) ...[
+              const SizedBox(width: 12),
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 
