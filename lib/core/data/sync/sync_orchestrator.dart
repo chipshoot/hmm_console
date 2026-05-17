@@ -1,9 +1,5 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../data_mode.dart';
 import '../local/database.dart';
@@ -19,7 +15,16 @@ import 'sync_models.dart';
 /// int PKs are never sent to the cloud. Cross-table references travel as:
 ///   - `catalogName` (resolved via `note_catalogs.name`, which is unique)
 ///   - `parentNoteUuid` (resolved via `notes.uuid`, requires a two-pass pull)
-///   - `noteUuid` on attachment entries (resolved via `notes.uuid`)
+///
+/// **Phase 11.5 (2026-05-17):** attachment bytes no longer travel through
+/// the orchestrator. The per-note `attachments` JSON column on the `Notes`
+/// table now carries the refs (VaultRef paths), and the bytes ride one of
+/// two transports depending on the active tier:
+/// - `cloudStorage`: the vault root sits inside the user's OneDrive /
+///   iCloud Drive folder; the OS-level sync client moves the bytes.
+/// - `cloudApi` (Phase 15, not yet implemented): the dedicated
+///   `/v1/vault/{path}` API endpoint via a future `ApiVaultStore`.
+/// The orchestrator therefore syncs **notes only**.
 class SyncOrchestrator {
   SyncOrchestrator({
     required this.provider,
@@ -53,16 +58,13 @@ class SyncOrchestrator {
 
     final errors = <SyncError>[];
     int pulledNotes = 0;
-    int pulledAttachments = 0;
     int pushedNotes = 0;
-    int pushedAttachments = 0;
 
     // -------- 0. Snapshot local deltas BEFORE pull --------
     // Avoids re-uploading rows that the pull is about to overwrite.
     final cursor = await _meta.getLastPushedAt(p.providerId) ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     final localNoteBlobs = await _collectChangedNotes(cursor);
-    final localAttachmentBlobs = await _collectChangedAttachments(cursor);
 
     // -------- 1. PULL: manifest --------
     SyncManifest? remote;
@@ -119,22 +121,12 @@ class SyncOrchestrator {
         }
       }
 
-      // -------- 3. PULL: attachments --------
-      for (final entry in remote.attachments) {
-        try {
-          final applied = await _maybePullAttachment(p, entry);
-          if (applied) pulledAttachments++;
-        } catch (e) {
-          errors.add(SyncError(
-            recordType: 'attachment',
-            recordId: entry.id,
-            message: 'Pull failed: $e',
-          ));
-        }
-      }
+      // (Attachment-byte pull retired in Phase 11.5 — bytes travel
+      // out-of-band via the OS-level cloud sync client when the vault
+      // root sits inside the user's OneDrive / iCloud Drive folder.)
     }
 
-    // -------- 4. PUSH: local changes collected before pull --------
+    // -------- 3. PUSH: local note changes --------
     for (final blob in localNoteBlobs) {
       try {
         await p.pushNoteBody(blob.id, blob.body);
@@ -148,37 +140,7 @@ class SyncOrchestrator {
       }
     }
 
-    for (final blob in localAttachmentBlobs) {
-      if (blob.deleted) {
-        pushedAttachments++;
-        continue;
-      }
-      if (blob.bytes == null) {
-        errors.add(SyncError(
-          recordType: 'attachment',
-          recordId: blob.id,
-          message: 'Local binary missing; skipping push.',
-        ));
-        continue;
-      }
-      try {
-        await p.pushAttachmentBytes(
-          id: blob.id,
-          filename: blob.filename,
-          mimeType: blob.mimeType,
-          bytes: blob.bytes!,
-        );
-        pushedAttachments++;
-      } catch (e) {
-        errors.add(SyncError(
-          recordType: 'attachment',
-          recordId: blob.id,
-          message: 'Push failed: $e',
-        ));
-      }
-    }
-
-    // -------- 5. PUSH: rewritten manifest --------
+    // -------- 4. PUSH: rewritten manifest --------
     try {
       final freshManifest = await _buildManifest();
       await p.pushManifest(freshManifest);
@@ -190,13 +152,13 @@ class SyncOrchestrator {
       ));
     }
 
-    // -------- 6. Advance cursor on a clean run --------
+    // -------- 5. Advance cursor on a clean run --------
     final completedAt = DateTime.now().toUtc();
     final result = SyncResult(
       pulledNotes: pulledNotes,
-      pulledAttachments: pulledAttachments,
+      pulledAttachments: 0,
       pushedNotes: pushedNotes,
-      pushedAttachments: pushedAttachments,
+      pushedAttachments: 0,
       completedAt: completedAt,
       errors: errors,
     );
@@ -318,113 +280,6 @@ class SyncOrchestrator {
     }
   }
 
-  Future<bool> _maybePullAttachment(
-    CloudSyncProvider provider,
-    ManifestEntry entry,
-  ) async {
-    final uuid = entry.id;
-
-    final local =
-        await (_db.select(_db.attachments)..where((a) => a.uuid.equals(uuid)))
-            .getSingleOrNull();
-    final localUpdatedAt = local?.lastModifiedDate ?? local?.createDate;
-    if (local != null &&
-        localUpdatedAt != null &&
-        !entry.updatedAt.isAfter(localUpdatedAt.toUtc())) {
-      return false;
-    }
-
-    // Resolve noteUuid → local noteId. If parent note isn't local yet, skip.
-    int? noteId;
-    if (entry.noteId != null) {
-      final parentNote = await (_db.select(_db.notes)
-            ..where((n) => n.uuid.equals(entry.noteId!)))
-          .getSingleOrNull();
-      noteId = parentNote?.id;
-    }
-    noteId ??= local?.noteId;
-    if (noteId == null) return false;
-
-    if (entry.deleted) {
-      if (local != null) {
-        await (_db.update(_db.attachments)
-              ..where((a) => a.id.equals(local.id)))
-            .write(AttachmentsCompanion(
-          deletedAt: Value(entry.updatedAt),
-          lastModifiedDate: Value(entry.updatedAt),
-        ));
-      } else {
-        await _db.into(_db.attachments).insert(AttachmentsCompanion.insert(
-              uuid: Value(uuid),
-              noteId: noteId,
-              filename: entry.filename ?? '',
-              mimeType: 'application/octet-stream',
-              size: 0,
-              deletedAt: Value(entry.updatedAt),
-              lastModifiedDate: Value(entry.updatedAt),
-              createDate: Value(entry.updatedAt),
-            ));
-      }
-      return true;
-    }
-
-    final filename = entry.filename ?? local?.filename;
-    if (filename == null || filename.isEmpty) return false;
-
-    final bytes = await provider.pullAttachmentBytes(
-      id: uuid,
-      filename: filename,
-    );
-    if (bytes == null) return false;
-
-    final localPath = await _resolveAttachmentPath(uuid, filename);
-    final file = File(localPath);
-    await file.parent.create(recursive: true);
-    await file.writeAsBytes(bytes, flush: true);
-
-    if (local != null) {
-      await (_db.update(_db.attachments)..where((a) => a.id.equals(local.id)))
-          .write(AttachmentsCompanion(
-        noteId: Value(noteId),
-        filename: Value(filename),
-        mimeType: Value(local.mimeType),
-        size: Value(bytes.length),
-        localPath: Value(localPath),
-        lastModifiedDate: Value(entry.updatedAt),
-        deletedAt: const Value(null),
-      ));
-    } else {
-      await _db.into(_db.attachments).insert(AttachmentsCompanion.insert(
-            uuid: Value(uuid),
-            noteId: noteId,
-            filename: filename,
-            mimeType: _guessMime(filename),
-            size: bytes.length,
-            localPath: Value(localPath),
-            lastModifiedDate: Value(entry.updatedAt),
-            createDate: Value(entry.updatedAt),
-          ));
-    }
-    return true;
-  }
-
-  Future<String> _resolveAttachmentPath(String uuid, String filename) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final ext = p.extension(filename);
-    return p.join(dir.path, 'attachments', '$uuid$ext');
-  }
-
-  String _guessMime(String filename) {
-    final ext = p.extension(filename).toLowerCase();
-    return switch (ext) {
-      '.jpg' || '.jpeg' => 'image/jpeg',
-      '.png' => 'image/png',
-      '.pdf' => 'application/pdf',
-      '.txt' => 'text/plain',
-      _ => 'application/octet-stream',
-    };
-  }
-
   Future<int> _defaultAuthorId() async {
     final any = await (_db.select(_db.authors)..limit(1)).getSingleOrNull();
     if (any != null) return any.id;
@@ -503,65 +358,11 @@ class SyncOrchestrator {
     );
   }
 
-  Future<List<AttachmentBlob>> _collectChangedAttachments(
-    DateTime cursor,
-  ) async {
-    final rows = await (_db.select(_db.attachments)
-          ..where((a) => a.lastModifiedDate.isBiggerThanValue(cursor)))
-        .get();
-    if (rows.isEmpty) return [];
-
-    // Batch resolve parent-note uuids for the attachment's noteId.
-    final noteIds = rows.map((r) => r.noteId).toSet();
-    final noteUuids = <int, String>{};
-    if (noteIds.isNotEmpty) {
-      final noteRows = await (_db.select(_db.notes)
-            ..where((n) => n.id.isIn(noteIds)))
-          .get();
-      for (final n in noteRows) {
-        final u = n.uuid;
-        if (u != null) noteUuids[n.id] = u;
-      }
-    }
-
-    final blobs = <AttachmentBlob>[];
-    for (final row in rows) {
-      if (row.uuid == null) continue;
-      final noteUuid = noteUuids[row.noteId];
-      if (noteUuid == null) continue;
-
-      List<int>? bytes;
-      if (row.deletedAt == null && row.localPath != null) {
-        final file = File(row.localPath!);
-        if (await file.exists()) bytes = await file.readAsBytes();
-      }
-      blobs.add(AttachmentBlob(
-        id: row.uuid!,
-        noteId: noteUuid,
-        filename: row.filename,
-        mimeType: row.mimeType,
-        size: row.size,
-        updatedAt: (row.lastModifiedDate ?? row.createDate).toUtc(),
-        deleted: row.deletedAt != null,
-        bytes: bytes,
-      ));
-    }
-    return blobs;
-  }
-
   // ==================== Manifest build ====================
 
   Future<SyncManifest> _buildManifest() async {
     final deviceId = await _meta.getOrCreateDeviceId();
     final allNotes = await _db.select(_db.notes).get();
-    final allAttachments = await _db.select(_db.attachments).get();
-
-    // noteId → note.uuid for attachment entries.
-    final noteUuidById = <int, String>{};
-    for (final n in allNotes) {
-      final u = n.uuid;
-      if (u != null) noteUuidById[n.id] = u;
-    }
 
     return SyncManifest(
       version: 1,
@@ -577,18 +378,11 @@ class SyncOrchestrator {
           deleted: n.deletedAt != null,
         );
       }).toList(),
-      attachments: allAttachments
-          .where((a) => a.uuid != null && noteUuidById.containsKey(a.noteId))
-          .map((a) {
-        final updatedAt = (a.lastModifiedDate ?? a.createDate).toUtc();
-        return ManifestEntry(
-          id: a.uuid!,
-          updatedAt: updatedAt,
-          deleted: a.deletedAt != null,
-          noteId: noteUuidById[a.noteId],
-          filename: a.filename,
-        );
-      }).toList(),
+      // Phase 11.5: attachment bytes no longer ride the manifest;
+      // the per-note `attachments` column on each note carries the
+      // refs, and the bytes travel out-of-band (cloudStorage → OS
+      // sync client; cloudApi → future ApiVaultStore).
+      attachments: const [],
     );
   }
 }

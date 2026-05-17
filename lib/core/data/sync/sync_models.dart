@@ -22,32 +22,10 @@ class NoteBlob {
   final bool deleted;
 }
 
-/// One attachment, optionally carrying its binary bytes.
-class AttachmentBlob {
-  const AttachmentBlob({
-    required this.id,
-    required this.noteId,
-    required this.filename,
-    required this.mimeType,
-    required this.size,
-    required this.updatedAt,
-    required this.deleted,
-    this.bytes,
-  });
-
-  final String id;
-  final String noteId;
-  final String filename;
-  final String mimeType;
-  final int size;
-
-  /// Binary content. Null when this blob references a remote file that hasn't
-  /// been fetched yet (manifest-only entry).
-  final List<int>? bytes;
-
-  final DateTime updatedAt;
-  final bool deleted;
-}
+// `AttachmentBlob` was retired in Phase 11.5 (2026-05-17) along with
+// the CloudSyncProvider attachment-byte methods. Attachment refs now
+// live in `Notes.attachments`; bytes travel out-of-band (OS sync
+// client for cloudStorage; future ApiVaultStore for cloudApi).
 
 /// Entry in the cloud-side `manifest.json`.
 class ManifestEntry {

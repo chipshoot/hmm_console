@@ -47,21 +47,10 @@ class ApiSyncProvider implements CloudSyncProvider {
   Future<void> pushNoteBody(String id, Map<String, dynamic> body) async =>
       throw _notImplemented('pushNoteBody');
 
-  @override
-  Future<List<int>?> pullAttachmentBytes({
-    required String id,
-    required String filename,
-  }) async =>
-      throw _notImplemented('pullAttachmentBytes');
-
-  @override
-  Future<void> pushAttachmentBytes({
-    required String id,
-    required String filename,
-    required String mimeType,
-    required List<int> bytes,
-  }) async =>
-      throw _notImplemented('pushAttachmentBytes');
+  // Attachment byte transfer was removed from the CloudSyncProvider
+  // contract in Phase 11.5. The cloudApi tier will route attachment
+  // bytes through the dedicated `/v1/vault/{path}` endpoint via the
+  // future ApiVaultStore (Phase 15).
 }
 
 final apiSyncProviderProvider =
