@@ -72,13 +72,11 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   DateTime? _registrationExpiryDate;
   final _notesCtrl = TextEditingController();
 
-  // Photo card — pending primary image while the editor is open.
-  // Picker writes bytes into the vault on success, so a pending ref
-  // that diverges from the original may leave orphans on disk if the
-  // user cancels or replaces. A vault GC pass (out of scope for v1)
-  // can reclaim them later by comparing every Notes.attachments value
-  // against the on-disk vault listing.
-  AttachmentRef? _pendingPrimaryImage;
+  // Photo banner — instant-commit picker (no draft state). Tapping
+  // pick or remove goes straight through _persist; there's no
+  // Save/Cancel for this card because there's nothing to validate.
+  // _photoBusy disables the controls while the picker / save is
+  // in flight.
   bool _photoBusy = false;
 
   Automobile? _original;
@@ -100,11 +98,6 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     _resetMileage();
     _resetRegistration();
     _resetNotes();
-    _resetPhoto();
-  }
-
-  void _resetPhoto() {
-    _pendingPrimaryImage = _original?.primaryImage;
   }
 
   void _resetIdentityFields() {
@@ -255,23 +248,20 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     return _persist(_cloneWith(notes: trimmed.isEmpty ? null : trimmed));
   }
 
-  // -------------------- Photo card --------------------
+  // -------------------- Photo banner --------------------
 
-  Future<void> _pickPhoto({
-    AttachmentPickSource source = AttachmentPickSource.gallery,
-  }) async {
+  Future<void> _pickAndSavePhoto() async {
     if (_photoBusy) return;
     setState(() => _photoBusy = true);
     try {
       final picker = await ref.read(imageAttachmentPickerProvider.future);
       final picked = await picker.pickForNote(
         noteId: widget.automobileId,
-        source: source,
+        source: AttachmentPickSource.gallery,
       );
       if (!mounted) return;
-      if (picked != null) {
-        setState(() => _pendingPrimaryImage = picked);
-      }
+      if (picked == null) return; // user cancelled
+      await _persist(_cloneWith(primaryImage: picked));
     } on AttachmentPickerException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -287,14 +277,57 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     }
   }
 
-  void _clearPendingPhoto() {
-    setState(() => _pendingPrimaryImage = null);
+  Future<void> _removePhoto() async {
+    if (_photoBusy) return;
+    setState(() => _photoBusy = true);
+    try {
+      await _persist(_cloneWith(primaryImage: null));
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
   }
 
-  Future<bool> _savePhoto() async {
-    // Pass an explicit value (rather than _kSentinel) so a "Remove"
-    // round-trips through _cloneWith as a real null.
-    return _persist(_cloneWith(primaryImage: _pendingPrimaryImage));
+  Future<void> _showPhotoActionSheet() async {
+    if (_photoBusy) return;
+    final hasPhoto = _original?.primaryImage != null;
+    final action = await showModalBottomSheet<_PhotoAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(hasPhoto ? 'Replace photo' : 'Choose photo'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(_PhotoAction.pick),
+            ),
+            if (hasPhoto)
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Remove photo',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_PhotoAction.remove),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _PhotoAction.pick:
+        await _pickAndSavePhoto();
+      case _PhotoAction.remove:
+        await _removePhoto();
+    }
   }
 
   void _showFullscreenPhoto(AttachmentRef ref_) {
@@ -426,8 +459,10 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 0. Photo (above identity per design)
-              _photoCard(context, orig),
+              // 0. Photo — full-width hero above the cards. Vehicles
+              //    carry visual information (plate, color, condition,
+              //    body style) that's worth the screen real estate.
+              _photoBanner(orig),
               GapWidgets.h16,
 
               // 1. Identity (read-only / long-press to unlock)
@@ -514,124 +549,101 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     );
   }
 
-  Widget _photoCard(BuildContext context, Automobile orig) {
-    return EditableInfoCard(
-      icon: Icons.photo_outlined,
-      title: 'Photo',
-      displayBuilder: (_) => _photoDisplay(orig.primaryImage),
-      editorBuilder: (_) => _photoEditor(),
-      onSave: _savePhoto,
-      onCancel: () => setState(_resetPhoto),
-    );
-  }
-
-  Widget _photoDisplay(AttachmentRef? ref_) {
-    if (ref_ == null) {
-      return Text(
-        'No photo',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          fontStyle: FontStyle.italic,
-        ),
-      );
-    }
-    return Consumer(builder: (context, ref, _) {
-      final resolverAsync = ref.watch(attachmentResolverProvider);
-      return resolverAsync.when(
-        data: (resolver) => GestureDetector(
-          onTap: () => _showFullscreenPhoto(ref_),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              width: 96,
-              height: 96,
-              child: AttachmentImage(ref: ref_, resolver: resolver),
-            ),
-          ),
-        ),
-        loading: () => const SizedBox(
-          width: 96,
-          height: 96,
-          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-        ),
-        error: (e, _) => Text('Photo unavailable: $e'),
-      );
-    });
-  }
-
-  Widget _photoEditor() {
+  Widget _photoBanner(Automobile orig) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Consumer(builder: (context, ref, _) {
-          final pending = _pendingPrimaryImage;
-          if (pending == null) {
-            return Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+    final photo = orig.primaryImage;
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (photo == null)
+              // No photo: the whole banner is a tap target that opens
+              // the picker.
+              InkWell(
+                onTap: _photoBusy ? null : _pickAndSavePhoto,
+                child: Container(
+                  color: cs.surfaceContainerHighest,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_a_photo_outlined,
+                        size: 40,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add photo',
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              // Photo set: tap → fullscreen; pencil overlay (below)
+              // opens the edit action sheet.
+              Consumer(
+                builder: (context, ref, _) {
+                  final resolverAsync = ref.watch(attachmentResolverProvider);
+                  return resolverAsync.when(
+                    data: (resolver) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _showFullscreenPhoto(photo),
+                      child: AttachmentImage(
+                        ref: photo,
+                        resolver: resolver,
+                        loadingPlaceholder: Container(
+                          color: cs.surfaceContainerHighest,
+                        ),
+                        errorPlaceholder: Container(
+                          color: cs.surfaceContainerHighest,
+                          alignment: Alignment.center,
+                          child: const Text('Photo unavailable'),
+                        ),
+                      ),
+                    ),
+                    loading: () =>
+                        Container(color: cs.surfaceContainerHighest),
+                    error: (_, _) => Container(
+                      color: cs.surfaceContainerHighest,
+                      alignment: Alignment.center,
+                      child: const Text('Photo unavailable'),
+                    ),
+                  );
+                },
               ),
-              child: Center(
-                child: Icon(
-                  Icons.add_a_photo_outlined,
-                  size: 32,
-                  color: cs.onSurfaceVariant,
+            if (photo != null)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: Colors.black54,
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    onPressed: _photoBusy ? null : _showPhotoActionSheet,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Edit photo',
+                  ),
                 ),
               ),
-            );
-          }
-          final resolverAsync = ref.watch(attachmentResolverProvider);
-          return resolverAsync.when(
-            data: (resolver) => ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: 120,
-                height: 120,
-                child: AttachmentImage(ref: pending, resolver: resolver),
+            if (_photoBusy)
+              Container(
+                color: Colors.black26,
+                alignment: Alignment.center,
+                child: const CircularProgressIndicator(
+                  color: Colors.white,
+                ),
               ),
-            ),
-            loading: () => const SizedBox(
-              width: 120,
-              height: 120,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-            ),
-            error: (e, _) => Text('Photo unavailable: $e'),
-          );
-        }),
-        GapWidgets.h8,
-        Row(
-          children: [
-            FilledButton.tonalIcon(
-              onPressed: _photoBusy ? null : () => _pickPhoto(),
-              icon: Icon(_pendingPrimaryImage == null
-                  ? Icons.add_photo_alternate_outlined
-                  : Icons.swap_horiz),
-              label: Text(
-                _pendingPrimaryImage == null ? 'Choose photo' : 'Replace',
-              ),
-            ),
-            if (_pendingPrimaryImage != null) ...[
-              const SizedBox(width: 8),
-              TextButton.icon(
-                onPressed: _photoBusy ? null : _clearPendingPhoto,
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Remove'),
-              ),
-            ],
-            if (_photoBusy) ...[
-              const SizedBox(width: 12),
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ],
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -981,3 +993,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     }).toList();
   }
 }
+
+/// Result of the photo bottom-sheet — kept narrow so the caller's
+/// switch is exhaustive.
+enum _PhotoAction { pick, remove }
