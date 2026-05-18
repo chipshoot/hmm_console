@@ -80,6 +80,7 @@ void main() {
           'distanceUnit': 'Kilometer',
           'fuelUnit': 'Liter',
           'currency': 'CNY',
+          'showRegistration': true,
         });
       });
 
@@ -147,6 +148,42 @@ void main() {
         expect(restored.distanceUnit, original.distanceUnit);
         expect(restored.fuelUnit, original.fuelUnit);
         expect(restored.currency, original.currency);
+      });
+    });
+
+    group('showRegistration', () {
+      test('defaults to true', () {
+        const settings = GasLogSettings();
+        expect(settings.showRegistration, isTrue);
+      });
+
+      test('copyWith updates only showRegistration', () {
+        const original = GasLogSettings();
+        final updated = original.copyWith(showRegistration: false);
+
+        expect(updated.showRegistration, isFalse);
+        // Other fields unchanged.
+        expect(updated.distanceUnit, original.distanceUnit);
+        expect(updated.fuelUnit, original.fuelUnit);
+        expect(updated.currency, original.currency);
+      });
+
+      test('round-trips through JSON', () {
+        const original = GasLogSettings(showRegistration: false);
+        final restored = GasLogSettings.fromJsonString(original.toJsonString());
+        expect(restored.showRegistration, isFalse);
+      });
+
+      test('legacy JSON without the key defaults to true', () {
+        // Pre-2026-05-18 stored payloads. Loader must default to
+        // true so existing installs don't lose the card silently.
+        final legacyJson = jsonEncode({
+          'distanceUnit': 'Mile',
+          'fuelUnit': 'Gallon',
+          'currency': 'CAD',
+        });
+        final settings = GasLogSettings.fromJsonString(legacyJson);
+        expect(settings.showRegistration, isTrue);
       });
     });
   });

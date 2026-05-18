@@ -335,6 +335,32 @@ class SettingsScreen extends ConsumerWidget {
             const Divider(),
             GapWidgets.h24,
             Text(
+              'Vehicle Information',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            GapWidgets.h8,
+            SwitchListTile(
+              title: const Text('Show Registration card'),
+              subtitle: const Text(
+                'Turn off if your jurisdiction no longer requires '
+                'periodic vehicle-registration renewal (e.g. Ontario '
+                'retired the renewal sticker in 2022).',
+              ),
+              isThreeLine: true,
+              contentPadding: EdgeInsets.zero,
+              value: settings.showRegistration,
+              onChanged: (v) {
+                ref
+                    .read(gasLogSettingsProvider.notifier)
+                    .update(showRegistration: v);
+              },
+            ),
+            GapWidgets.h24,
+            const Divider(),
+            GapWidgets.h24,
+            Text(
               'Gas Log Defaults',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,

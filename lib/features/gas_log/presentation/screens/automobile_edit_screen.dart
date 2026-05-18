@@ -487,26 +487,31 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               ),
               GapWidgets.h16,
 
-              // 3. Registration
-              EditableInfoCard(
-                icon: Icons.assignment_outlined,
-                title: 'Registration',
-                displayBuilder: (_) => _readOnlyRow(
-                  'Expiry',
-                  orig.registrationExpiryDate != null
-                      ? _formatDate(orig.registrationExpiryDate!)
-                      : 'Not set',
+              // 3. Registration — hidden when the user disables it in
+              // Settings (e.g. Ontario retired the renewal sticker
+              // in 2022, so this card is just noise there).
+              if (settings.showRegistration) ...[
+                EditableInfoCard(
+                  icon: Icons.assignment_outlined,
+                  title: 'Registration',
+                  displayBuilder: (_) => _readOnlyRow(
+                    'Expiry',
+                    orig.registrationExpiryDate != null
+                        ? _formatDate(orig.registrationExpiryDate!)
+                        : 'Not set',
+                  ),
+                  editorBuilder: (_) => _optionalDatePicker(
+                    context,
+                    label: 'Registration Expiry',
+                    date: _registrationExpiryDate,
+                    onChanged: (d) =>
+                        setState(() => _registrationExpiryDate = d),
+                  ),
+                  onSave: _saveRegistration,
+                  onCancel: () => setState(_resetRegistration),
                 ),
-                editorBuilder: (_) => _optionalDatePicker(
-                  context,
-                  label: 'Registration Expiry',
-                  date: _registrationExpiryDate,
-                  onChanged: (d) => setState(() => _registrationExpiryDate = d),
-                ),
-                onSave: _saveRegistration,
-                onCancel: () => setState(_resetRegistration),
-              ),
-              GapWidgets.h16,
+                GapWidgets.h16,
+              ],
 
               // 4. Insurance / Service / Scheduled-service summary cards
               AutomobileRecordsSummary(automobileId: widget.automobileId),
