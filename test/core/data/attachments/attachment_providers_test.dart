@@ -7,6 +7,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
+import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/core/data/vault/api_vault_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -77,4 +79,29 @@ void main() {
           equals('/a/b/c'));
     });
   });
+
+  // Phase 15: vaultStoreProvider routes to ApiVaultStore when the
+  // active tier is cloudApi. Local + cloudStorage cases need a real
+  // path_provider binding, which lives in an integration test; the
+  // cloudApi case is pure code (no filesystem) so it slots in here.
+  group('vaultStoreProvider × dataMode', () {
+    test('cloudApi mode returns an ApiVaultStore', () async {
+      final container = ProviderContainer(overrides: [
+        dataModeProvider.overrideWith(_FixedDataModeNotifier.new),
+      ]);
+      addTearDown(container.dispose);
+
+      final store = await container.read(vaultStoreProvider.future);
+
+      expect(store, isA<ApiVaultStore>());
+      // Sanity: the dedicated provider returns the same instance.
+      expect(store, same(container.read(apiVaultStoreProvider)));
+    });
+  });
+}
+
+/// Override that pins [dataModeProvider] to [DataMode.cloudApi].
+class _FixedDataModeNotifier extends DataModeNotifier {
+  @override
+  DataMode build() => DataMode.cloudApi;
 }

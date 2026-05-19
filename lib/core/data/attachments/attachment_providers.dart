@@ -11,8 +11,10 @@
 //                         back — iOS doesn't surface a desktop-style
 //                         OneDrive folder; iCloud Drive ubiquity
 //                         containers are a Phase-19 follow-up.
-//   - `cloudApi`        → not yet implemented (ApiVaultStore lands
-//                         in Phase 15).
+//   - `cloudApi`        → ApiVaultStore (Phase 15) — bytes go
+//                         straight to /v1/notes/{noteId}/vault/{filename}.
+//                         No on-disk root, so the directory provider
+//                         is skipped entirely.
 
 import 'dart:io';
 
@@ -24,6 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data_mode.dart';
 import 'picker/image_attachment_picker.dart';
 import 'resolver/attachment_resolver.dart';
+import '../vault/api_vault_store.dart';
 import '../vault/local_vault_store.dart';
 import '../vault/vault_store.dart';
 
@@ -82,8 +85,13 @@ final vaultRootDirectoryProvider = FutureProvider<Directory>((ref) async {
       }
       return root;
     case DataMode.cloudApi:
-      throw UnimplementedError(
-        'cloudApi vault root requires ApiVaultStore (Phase 15).',
+      // No on-disk vault in cloudApi mode — bytes live server-side.
+      // The vault root provider should never be read in this tier;
+      // callers go through vaultStoreProvider (which short-circuits
+      // to ApiVaultStore before touching this provider).
+      throw StateError(
+        'vaultRootDirectoryProvider must not be read in cloudApi mode; '
+        'use vaultStoreProvider, which returns an ApiVaultStore.',
       );
   }
 });
@@ -97,8 +105,18 @@ Future<Directory> _appDocsVault() async {
   return root;
 }
 
-/// Mode-aware [IVaultStore].
+/// Mode-aware [IVaultStore]. Local + cloudStorage share the
+/// filesystem-backed [LocalVaultStore] (only the root differs);
+/// cloudApi swaps in [ApiVaultStore] which talks straight to
+/// `/v1/notes/{noteId}/vault/...` and never touches local disk.
 final vaultStoreProvider = FutureProvider<IVaultStore>((ref) async {
+  final mode = ref.watch(dataModeProvider);
+  if (mode == DataMode.cloudApi) {
+    // Direct passthrough — no async setup needed, no directory
+    // provider to await. Reuses the shared apiClientProvider so the
+    // existing auth + logging interceptors fire on every request.
+    return ref.watch(apiVaultStoreProvider);
+  }
   final root = await ref.watch(vaultRootDirectoryProvider.future);
   return LocalVaultStore(rootDir: root);
 });
