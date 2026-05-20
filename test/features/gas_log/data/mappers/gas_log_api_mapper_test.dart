@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/features/gas_log/data/mappers/gas_log_api_mapper.dart';
+import 'package:hmm_console/features/gas_log/data/models/api_automobile.dart';
+import 'package:hmm_console/features/gas_log/domain/entities/automobile.dart';
 
 import '../../helpers/gas_log_fixtures.dart';
 
@@ -123,6 +126,137 @@ void main() {
       expect(domain.plate, api.plate);
       expect(domain.meterReading, api.meterReading);
       expect(domain.isActive, api.isActive);
+    });
+  });
+
+  // ============================================================
+  // Phase 12.5: attachment refs round-trip across the wire so the
+  // cloudApi-tier vehicle photo flow can persist server-side.
+  // ============================================================
+
+  group('automobile photo round-trip', () {
+    test('ApiAutomobile.fromJson decodes primaryImage + images', () {
+      final json = <String, dynamic>{
+        'id': 7,
+        'year': 2020,
+        'meterReading': 0,
+        'isActive': true,
+        'primaryImage': {
+          'kind': 'vault',
+          'path': 'attachments/note-7/main.jpg',
+          'contentType': 'image/jpeg',
+          'byteSize': 100,
+        },
+        'images': [
+          {
+            'kind': 'vault',
+            'path': 'attachments/note-7/a.jpg',
+            'contentType': 'image/png',
+            'byteSize': 50,
+          },
+        ],
+      };
+
+      final api = ApiAutomobile.fromJson(json);
+
+      expect(api.primaryImage, isA<VaultRef>());
+      expect((api.primaryImage as VaultRef).path,
+          'attachments/note-7/main.jpg');
+      expect(api.images, hasLength(1));
+      expect((api.images.first as VaultRef).path, 'attachments/note-7/a.jpg');
+    });
+
+    test('automobileFromApi forwards primaryImage + images', () {
+      final ref = VaultRef(
+        path: 'attachments/note-3/photo.jpg',
+        contentType: 'image/jpeg',
+        byteSize: 200,
+      );
+      final api = ApiAutomobile(
+        id: 3,
+        year: 2024,
+        meterReading: 0,
+        isActive: true,
+        primaryImage: ref,
+        images: [ref],
+      );
+
+      final domain = GasLogApiMapper.automobileFromApi(api);
+
+      expect(domain.primaryImage, same(ref));
+      expect(domain.images, hasLength(1));
+      expect(domain.images.first, same(ref));
+    });
+
+    test('automobileToUpdateDto serialises primaryImage on the wire',
+        () {
+      final auto = Automobile(
+        id: 5,
+        year: 2024,
+        isActive: true,
+        meterReading: 1000,
+        primaryImage: VaultRef(
+          path: 'attachments/note-5/main.jpg',
+          contentType: 'image/jpeg',
+          byteSize: 100,
+        ),
+      );
+
+      final dto = GasLogApiMapper.automobileToUpdateDto(auto);
+      final body = dto.toJson();
+
+      // Both keys always present so the server treats absence as
+      // explicit "no attachments" rather than "leave as-is."
+      expect(body, contains('primaryImage'));
+      expect(body, contains('images'));
+      expect(body['primaryImage'], isA<Map>());
+      expect((body['primaryImage'] as Map)['path'],
+          'attachments/note-5/main.jpg');
+      expect(body['images'], isA<List>());
+      expect((body['images'] as List), isEmpty);
+    });
+
+    test('automobileToUpdateDto sends null primaryImage when cleared',
+        () {
+      final auto = Automobile(
+        id: 5,
+        year: 2024,
+        isActive: true,
+        meterReading: 1000,
+        primaryImage: null,
+      );
+
+      final body = GasLogApiMapper.automobileToUpdateDto(auto).toJson();
+
+      expect(body.containsKey('primaryImage'), isTrue);
+      expect(body['primaryImage'], isNull);
+    });
+
+    test('automobileToCreateDto emits primaryImage when present', () {
+      final auto = Automobile(
+        id: 0,
+        vin: '1HGBH41JXMN109186',
+        maker: 'Subaru',
+        brand: 'Outback',
+        model: 'Limited',
+        year: 2024,
+        plate: 'ABC123',
+        engineType: 'Gasoline',
+        fuelType: 'Regular',
+        isActive: true,
+        meterReading: 0,
+        primaryImage: VaultRef(
+          path: 'attachments/note-9/init.jpg',
+          contentType: 'image/jpeg',
+          byteSize: 50,
+        ),
+      );
+
+      final body = GasLogApiMapper.automobileToCreateDto(auto).toJson();
+
+      expect(body['primaryImage'], isA<Map>());
+      expect((body['primaryImage'] as Map)['path'],
+          'attachments/note-9/init.jpg');
     });
   });
 }

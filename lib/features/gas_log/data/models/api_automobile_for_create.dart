@@ -1,3 +1,6 @@
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/attachment_ref_codec.dart';
+
 class ApiAutomobileForCreate {
   final String vin;
   final String maker;
@@ -24,6 +27,13 @@ class ApiAutomobileForCreate {
   final String? insurancePolicyNumber;
   final String? notes;
 
+  // Attachments — optional on create. Bytes are typically POSTed
+  // to the per-note vault endpoint first; the resulting VaultRef
+  // is supplied here so the server can persist it alongside the
+  // automobile body in one round-trip.
+  final AttachmentRef? primaryImage;
+  final List<AttachmentRef> images;
+
   const ApiAutomobileForCreate({
     required this.vin,
     required this.maker,
@@ -49,6 +59,8 @@ class ApiAutomobileForCreate {
     this.insuranceProvider,
     this.insurancePolicyNumber,
     this.notes,
+    this.primaryImage,
+    this.images = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -82,6 +94,14 @@ class ApiAutomobileForCreate {
       if (insurancePolicyNumber != null)
         'insurancePolicyNumber': insurancePolicyNumber,
       if (notes != null) 'notes': notes,
+      // Attachments — omit when there's nothing to send so the
+      // body stays compact; server defaults to no attachments on
+      // create when these keys are absent.
+      if (primaryImage != null)
+        'primaryImage': AttachmentRefCodec.toJson(primaryImage!),
+      if (images.isNotEmpty)
+        'images':
+            images.map(AttachmentRefCodec.toJson).toList(growable: false),
     };
   }
 }
