@@ -1,3 +1,6 @@
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/attachment_ref_codec.dart';
+
 class ApiAutomobile {
   final int id;
 
@@ -51,6 +54,13 @@ class ApiAutomobile {
   final DateTime? createdDate;
   final DateTime? lastModifiedDate;
 
+  // Attachments (Phase 12.5) — server projects these from the
+  // underlying note's Notes.attachments column. Server only emits
+  // vault-kind refs; the client treats them as the abstract
+  // AttachmentRef so the existing resolver chain works untouched.
+  final AttachmentRef? primaryImage;
+  final List<AttachmentRef> images;
+
   const ApiAutomobile({
     required this.id,
     this.vin,
@@ -87,6 +97,8 @@ class ApiAutomobile {
     this.notes,
     this.createdDate,
     this.lastModifiedDate,
+    this.primaryImage,
+    this.images = const [],
   });
 
   factory ApiAutomobile.fromJson(Map<String, dynamic> json) {
@@ -142,6 +154,15 @@ class ApiAutomobile {
       lastModifiedDate: json['lastModifiedDate'] != null
           ? DateTime.parse(json['lastModifiedDate'] as String)
           : null,
+      primaryImage: json['primaryImage'] is Map<String, dynamic>
+          ? AttachmentRefCodec.fromJson(
+              json['primaryImage'] as Map<String, dynamic>)
+          : null,
+      images: (json['images'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(AttachmentRefCodec.fromJson)
+              .toList(growable: false) ??
+          const [],
     );
   }
 }

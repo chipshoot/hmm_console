@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/onedrive_config.dart';
@@ -43,6 +46,52 @@ class SettingsScreen extends ConsumerWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Reset to default location. Restart app to apply.')),
+      );
+    }
+  }
+
+  Future<void> _pickVaultFolder(BuildContext context, WidgetRef ref) async {
+    final result = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Choose vault folder (e.g. inside your OneDrive)',
+    );
+    if (result == null) return;
+
+    await setCloudStorageVaultPath(result);
+    ref.invalidate(cloudStorageVaultPathProvider);
+    // The vault root + every downstream provider (store, resolver,
+    // picker) reads from this; invalidate so they pick up the change.
+    ref.invalidate(vaultRootDirectoryProvider);
+    ref.invalidate(vaultStoreProvider);
+    ref.invalidate(attachmentResolverProvider);
+    ref.invalidate(imageAttachmentPickerProvider);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Vault folder set to $result/vault. New photos will land there.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _resetVaultFolder(BuildContext context, WidgetRef ref) async {
+    await setCloudStorageVaultPath(null);
+    ref.invalidate(cloudStorageVaultPathProvider);
+    ref.invalidate(vaultRootDirectoryProvider);
+    ref.invalidate(vaultStoreProvider);
+    ref.invalidate(attachmentResolverProvider);
+    ref.invalidate(imageAttachmentPickerProvider);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Vault folder reset to default (app docs). '
+            'cloudStorage byte sync will not work until you choose a folder.',
+          ),
+        ),
       );
     }
   }
@@ -196,7 +245,20 @@ class SettingsScreen extends ConsumerWidget {
                   }
                 },
               ),
-              GapWidgets.h8,
+              GapWidgets.h16,
+              // Vault folder picker. Photos / attachment bytes land
+              // here; pointing this inside the user's OneDrive folder
+              // is what makes multi-device sync work (the OS-level
+              // OneDrive client moves the files). Hidden on iOS, which
+              // doesn't surface a desktop-style OneDrive folder; iOS
+              // cloudStorage falls back to the app's docs directory.
+              if (!Platform.isIOS) ...[
+                _VaultFolderRow(
+                  onPick: () => _pickVaultFolder(context, ref),
+                  onReset: () => _resetVaultFolder(context, ref),
+                ),
+                GapWidgets.h16,
+              ],
               if (!OneDriveConfig.isConfigured)
                 Text(
                   'OneDrive client ID not set. Rebuild with --dart-define=ONEDRIVE_CLIENT_ID=<app-id> (see docs/cloud_storage_setup.md §1).',
@@ -273,6 +335,32 @@ class SettingsScreen extends ConsumerWidget {
             const Divider(),
             GapWidgets.h24,
             Text(
+              'Vehicle Information',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            GapWidgets.h8,
+            SwitchListTile(
+              title: const Text('Show Registration card'),
+              subtitle: const Text(
+                'Turn off if your jurisdiction no longer requires '
+                'periodic vehicle-registration renewal (e.g. Ontario '
+                'retired the renewal sticker in 2022).',
+              ),
+              isThreeLine: true,
+              contentPadding: EdgeInsets.zero,
+              value: settings.showRegistration,
+              onChanged: (v) {
+                ref
+                    .read(gasLogSettingsProvider.notifier)
+                    .update(showRegistration: v);
+              },
+            ),
+            GapWidgets.h24,
+            const Divider(),
+            GapWidgets.h24,
+            Text(
               'Gas Log Defaults',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
@@ -344,6 +432,75 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Vault folder UI for cloudStorage tier: shows the current path and
+/// the pick / reset actions. Pulled out so SettingsScreen's build
+/// stays readable; the Consumer here is so the row reactively
+/// rebuilds when the path changes.
+class _VaultFolderRow extends ConsumerWidget {
+  const _VaultFolderRow({required this.onPick, required this.onReset});
+
+  final VoidCallback onPick;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pathAsync = ref.watch(cloudStorageVaultPathProvider);
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        pathAsync.when(
+          data: (path) => InputDecorator(
+            decoration: const InputDecoration(
+              labelText: 'Vault folder (for photos)',
+              border: OutlineInputBorder(),
+              helperText:
+                  'Point this inside your OneDrive folder so vehicle '
+                  'photos sync across devices automatically.',
+              helperMaxLines: 3,
+            ),
+            child: Text(
+              path == null || path.isEmpty
+                  ? 'Default (app sandbox — no cross-device sync)'
+                  : '$path/vault',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontStyle:
+                        path == null ? FontStyle.italic : FontStyle.normal,
+                    color: path == null ? cs.onSurfaceVariant : null,
+                  ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+          ),
+          loading: () => const LinearProgressIndicator(),
+          error: (e, _) => Text('Vault path error: $e'),
+        ),
+        GapWidgets.h8,
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: onPick,
+              icon: const Icon(Icons.folder_open, size: 18),
+              label: const Text('Choose Folder'),
+            ),
+            GapWidgets.w8,
+            pathAsync.when(
+              data: (path) => path == null || path.isEmpty
+                  ? const SizedBox.shrink()
+                  : TextButton(
+                      onPressed: onReset,
+                      child: const Text('Reset to Default'),
+                    ),
+              loading: () => const SizedBox.shrink(),
+              error: (_, _) => const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -134,6 +134,8 @@ class GasLogApiMapper {
       notes: api.notes,
       createdDate: api.createdDate,
       lastModifiedDate: api.lastModifiedDate,
+      primaryImage: api.primaryImage,
+      images: api.images,
     );
   }
 
@@ -163,6 +165,8 @@ class GasLogApiMapper {
       insuranceProvider: auto.insuranceProvider,
       insurancePolicyNumber: auto.insurancePolicyNumber,
       notes: auto.notes,
+      primaryImage: auto.primaryImage,
+      images: auto.images,
     );
   }
 
@@ -185,6 +189,8 @@ class GasLogApiMapper {
       nextServiceDueDate: auto.nextServiceDueDate,
       nextServiceDueMeterReading: auto.nextServiceDueMeterReading,
       notes: auto.notes,
+      primaryImage: auto.primaryImage,
+      images: auto.images,
     );
   }
 

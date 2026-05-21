@@ -26,11 +26,13 @@ class GasLogSettingsNotifier extends Notifier<GasLogSettings> {
     DistanceUnit? distanceUnit,
     FuelUnit? fuelUnit,
     CurrencyCode? currency,
+    bool? showRegistration,
   }) async {
     state = state.copyWith(
       distanceUnit: distanceUnit,
       fuelUnit: fuelUnit,
       currency: currency,
+      showRegistration: showRegistration,
     );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, state.toJsonString());

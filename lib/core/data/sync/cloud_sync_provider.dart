@@ -40,19 +40,10 @@ abstract class CloudSyncProvider {
   /// Upload the JSON body of one note (creates or overwrites).
   Future<void> pushNoteBody(String id, Map<String, dynamic> body);
 
-  // ---- Attachments ----
-
-  /// Fetch the binary content of one attachment, or null if missing.
-  Future<List<int>?> pullAttachmentBytes({
-    required String id,
-    required String filename,
-  });
-
-  /// Upload the binary content of one attachment.
-  Future<void> pushAttachmentBytes({
-    required String id,
-    required String filename,
-    required String mimeType,
-    required List<int> bytes,
-  });
+  // Attachment byte transfer was removed in Phase 11.5 (2026-05-17).
+  // Attachment refs now travel inside the note body (via the
+  // `Notes.attachments` JSON column); attachment bytes travel
+  // out-of-band — cloudStorage relies on the OS-level OneDrive /
+  // iCloud Drive sync client, cloudApi will route through the
+  // future `ApiVaultStore` (Phase 15) when it lands.
 }

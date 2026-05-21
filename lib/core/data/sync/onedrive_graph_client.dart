@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 
 import 'onedrive_auth.dart';
 import 'sync_models.dart';
@@ -114,58 +113,10 @@ class OneDriveGraphClient {
     _throwIfBad(resp);
   }
 
-  // ---- Attachments ----
-
-  Future<List<int>?> getAttachment({
-    required String id,
-    required String filename,
-  }) async {
-    final ext = p.extension(filename);
-    final resp = await _dio.get<List<int>>(
-      '$_approot:/attachments/$id$ext:/content',
-      options: Options(responseType: ResponseType.bytes),
-    );
-    if (resp.statusCode == 404) return null;
-    _throwIfBad(resp);
-    return resp.data;
-  }
-
-  Future<void> putAttachment({
-    required String id,
-    required String filename,
-    required String mimeType,
-    required List<int> bytes,
-  }) async {
-    // OneDrive's simple upload caps at 4 MiB. Anything larger must go through
-    // an upload session — leave that for a follow-up (see sync_contract.md §10).
-    if (bytes.length > 4 * 1024 * 1024) {
-      throw const OneDriveGraphException(
-        statusCode: 413,
-        message:
-            'Attachment exceeds 4 MiB simple-upload limit; resumable upload session not yet implemented.',
-      );
-    }
-    final ext = p.extension(filename);
-    final resp = await _dio.put(
-      '$_approot:/attachments/$id$ext:/content',
-      data: Stream.fromIterable([bytes]),
-      options: Options(
-        contentType: mimeType,
-        headers: {Headers.contentLengthHeader: bytes.length},
-      ),
-    );
-    _throwIfBad(resp);
-  }
-
-  Future<void> deleteAttachment({
-    required String id,
-    required String filename,
-  }) async {
-    final ext = p.extension(filename);
-    final resp = await _dio.delete<void>('$_approot:/attachments/$id$ext');
-    if (resp.statusCode == 404) return;
-    _throwIfBad(resp);
-  }
+  // Attachment-byte uploads / downloads were removed in Phase 11.5.
+  // cloudStorage replicates bytes via the OS-level OneDrive client
+  // (the vault root lives inside the user's OneDrive folder); we no
+  // longer need Graph API endpoints for individual attachment files.
 
   // ---- Helpers ----
 

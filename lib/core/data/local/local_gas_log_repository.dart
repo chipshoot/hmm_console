@@ -2,23 +2,27 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../features/gas_log/data/repositories/automobile_repository.dart';
 import '../../../features/gas_log/data/repositories/i_gas_log_repository.dart';
+import '../../../features/gas_log/domain/entities/automobile.dart';
 import '../../../features/gas_log/domain/entities/discount_info.dart';
 import '../../../features/gas_log/domain/entities/gas_log.dart';
 import '../../network/pagination.dart';
 import '../hmm_note_input.dart';
 import '../../../features/notes/data/models/hmm_note.dart';
-import 'local_note_catalog_repository.dart';
+import 'local_automobile_repository.dart';
 import 'local_hmm_note_repository.dart';
+import 'local_note_catalog_repository.dart';
 
 const _gasLogCatalogName = 'Hmm.AutomobileMan.GasLog';
 const _gasLogCatalogSchema = '{}';
 
 class LocalGasLogRepository implements IGasLogRepository {
-  LocalGasLogRepository(this._noteRepo, this._catalogRepo);
+  LocalGasLogRepository(this._noteRepo, this._catalogRepo, this._autoRepo);
 
   final IHmmNoteRepository _noteRepo;
   final INoteCatalogRepository _catalogRepo;
+  final IAutomobileRepository _autoRepo;
 
   @override
   Future<PaginatedResponse<GasLog>> getGasLogs(
@@ -54,6 +58,28 @@ class LocalGasLogRepository implements IGasLogRepository {
 
   @override
   Future<GasLog> createGasLog(int autoId, GasLog gasLog) async {
+    final created = await _createGasLogNote(autoId, gasLog);
+
+    // Live entry: propagate the new odometer to the parent automobile.
+    // On the API tier the .NET backend handles this server-side
+    // (`createGasLog` POST updates the automobile's meterReading); in
+    // local / cloudStorage we have to do it here. Monotonic — only
+    // bumps the meter, never lowers it.
+    final newMeter = gasLog.odometer.round();
+    final auto = await _autoRepo.getAutomobileById(autoId);
+    if (newMeter > auto.meterReading) {
+      await _autoRepo.updateAutomobile(
+        autoId,
+        _withMeterReading(auto, newMeter),
+      );
+    }
+
+    return created;
+  }
+
+  /// Shared helper: create the gas-log note without touching the parent
+  /// automobile's meter. Live and historical paths both call this.
+  Future<GasLog> _createGasLogNote(int autoId, GasLog gasLog) async {
     final catalog = await _catalogRepo.getOrCreateCatalog(
       _gasLogCatalogName,
       _gasLogCatalogSchema,
@@ -65,9 +91,53 @@ class LocalGasLogRepository implements IGasLogRepository {
       catalogId: catalog.id,
       parentNoteId: gasLog.automobileId,
     ));
-
     return _deserializeGasLog(note)!;
   }
+
+  /// Build an [Automobile] copy with a swapped [meterReading]. Mirrors
+  /// the pattern used elsewhere in the codebase that constructs a full
+  /// instance with one field changed (the entity has no `copyWith`).
+  Automobile _withMeterReading(Automobile auto, int meterReading) =>
+      Automobile(
+        id: auto.id,
+        vin: auto.vin,
+        maker: auto.maker,
+        brand: auto.brand,
+        model: auto.model,
+        trim: auto.trim,
+        year: auto.year,
+        color: auto.color,
+        plate: auto.plate,
+        engineType: auto.engineType,
+        fuelType: auto.fuelType,
+        fuelTankCapacity: auto.fuelTankCapacity,
+        cityMPG: auto.cityMPG,
+        highwayMPG: auto.highwayMPG,
+        combinedMPG: auto.combinedMPG,
+        meterReading: meterReading,
+        purchaseMeterReading: auto.purchaseMeterReading,
+        purchaseDate: auto.purchaseDate,
+        purchasePrice: auto.purchasePrice,
+        ownershipStatus: auto.ownershipStatus,
+        isActive: auto.isActive,
+        soldDate: auto.soldDate,
+        soldMeterReading: auto.soldMeterReading,
+        soldPrice: auto.soldPrice,
+        registrationExpiryDate: auto.registrationExpiryDate,
+        insuranceExpiryDate: auto.insuranceExpiryDate,
+        insuranceProvider: auto.insuranceProvider,
+        insurancePolicyNumber: auto.insurancePolicyNumber,
+        lastServiceDate: auto.lastServiceDate,
+        lastServiceMeterReading: auto.lastServiceMeterReading,
+        nextServiceDueDate: auto.nextServiceDueDate,
+        nextServiceDueMeterReading: auto.nextServiceDueMeterReading,
+        notes: auto.notes,
+        createdDate: auto.createdDate,
+        lastModifiedDate: auto.lastModifiedDate,
+        auditLog: auto.auditLog,
+        primaryImage: auto.primaryImage,
+        images: auto.images,
+      );
 
   String _subjectFor(GasLog log) {
     final date = log.date.toIso8601String().substring(0, 10);
@@ -78,8 +148,11 @@ class LocalGasLogRepository implements IGasLogRepository {
   }
 
   @override
-  Future<GasLog> createHistoryGasLog(int autoId, GasLog gasLog) async {
-    return createGasLog(autoId, gasLog);
+  Future<GasLog> createHistoryGasLog(int autoId, GasLog gasLog) {
+    // Historical fill-up = backfilling a past entry. By contract this
+    // MUST NOT touch the parent automobile's meterReading (mirrors the
+    // .NET API's separate `/historical` endpoint).
+    return _createGasLogNote(autoId, gasLog);
   }
 
   @override
@@ -189,5 +262,6 @@ final localGasLogRepositoryProvider = Provider<IGasLogRepository>((ref) {
   return LocalGasLogRepository(
     ref.watch(localHmmNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),
+    ref.watch(localAutomobileRepositoryProvider),
   );
 });

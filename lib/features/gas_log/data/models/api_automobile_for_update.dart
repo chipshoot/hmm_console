@@ -1,3 +1,6 @@
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/attachment_ref_codec.dart';
+
 class ApiAutomobileForUpdate {
   final String? color;
   final String? plate;
@@ -17,6 +20,12 @@ class ApiAutomobileForUpdate {
   final int? nextServiceDueMeterReading;
   final String? notes;
 
+  // Attachments — null primaryImage means "clear the photo"; an
+  // empty images list clears the gallery. Server only persists
+  // vault-kind refs.
+  final AttachmentRef? primaryImage;
+  final List<AttachmentRef> images;
+
   const ApiAutomobileForUpdate({
     this.color,
     this.plate,
@@ -35,6 +44,8 @@ class ApiAutomobileForUpdate {
     this.nextServiceDueDate,
     this.nextServiceDueMeterReading,
     this.notes,
+    this.primaryImage,
+    this.images = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -60,6 +71,13 @@ class ApiAutomobileForUpdate {
         'nextServiceDueDate': nextServiceDueDate!.toIso8601String(),
       'nextServiceDueMeterReading': nextServiceDueMeterReading,
       'notes': notes,
+      // Attachments — always emit both keys (even when null /
+      // empty) so the server treats an absent ref as an explicit
+      // clear, not a partial update.
+      'primaryImage':
+          primaryImage == null ? null : AttachmentRefCodec.toJson(primaryImage!),
+      'images':
+          images.map(AttachmentRefCodec.toJson).toList(growable: false),
     };
   }
 }

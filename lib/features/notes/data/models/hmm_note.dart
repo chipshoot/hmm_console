@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import '../../../../core/data/attachments/attachment_ref.dart';
+
 /// Domain entity for HmmNote — matches the server-side
 /// `Hmm.Core.HmmNote` shape. See Phase 3.5 in
 /// `docs/data-layer-unification-plan.md`.
@@ -24,6 +26,7 @@ class HmmNote {
     this.description,
     this.deletedAt,
     this.version,
+    this.attachments,
   });
 
   /// Local int primary key. Per-device — never crosses the wire.
@@ -62,4 +65,16 @@ class HmmNote {
   /// Optimistic-concurrency token. Server-side equivalent:
   /// `VersionedEntity.Version` (SQL Server ROWVERSION).
   final Uint8List? version;
+
+  /// Note-level attachments (primary image + gallery). `null` means
+  /// the `Notes.attachments` column is SQL NULL — i.e. no
+  /// attachments. Treat `null` and [NoteAttachments.empty] as
+  /// equivalent on read; use [effectiveAttachments] to skip the
+  /// null check.
+  final NoteAttachments? attachments;
+
+  /// Convenience accessor that collapses `null` to
+  /// [NoteAttachments.empty].
+  NoteAttachments get effectiveAttachments =>
+      attachments ?? NoteAttachments.empty;
 }

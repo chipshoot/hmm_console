@@ -58,24 +58,20 @@ class Notes extends Table {
   DateTimeColumn get createDate => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get lastModifiedDate => dateTime().nullable()();
   TextColumn get description => text().withLength(min: 0, max: 1000).nullable()();
+
+  // Note-level attachments — JSON value matching the NoteAttachments
+  // wrapper schema. NULL = no attachments. See
+  // docs/attachments-design.md in the Hmm repo. The old per-row
+  // `Attachments` child table was retired in schema v5 (Phase 11.5);
+  // attachment refs now ride in this column and the bytes live in
+  // the vault directory.
+  TextColumn get attachments => text().nullable()();
 }
 
-@TableIndex(name: 'idx_attachments_note', columns: {#noteId})
-@TableIndex(name: 'idx_attachments_last_modified', columns: {#lastModifiedDate})
-@TableIndex(name: 'idx_attachments_uuid', columns: {#uuid}, unique: true)
-class Attachments extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get uuid => text().nullable().clientDefault(generateUuid)();
-  IntColumn get noteId => integer().references(Notes, #id)();
-  TextColumn get filename => text().withLength(min: 1, max: 500)();
-  TextColumn get mimeType => text().withLength(min: 1, max: 200)();
-  IntColumn get size => integer()();
-  TextColumn get localPath => text().nullable()();
-  TextColumn get remotePath => text().nullable()();
-  DateTimeColumn get createDate => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get lastModifiedDate => dateTime().nullable()();
-  DateTimeColumn get deletedAt => dateTime().nullable()();
-}
+// The `Attachments` child table was retired in schema v5 (Phase 11.5
+// of the note-attachments feature). Migrations referring to the old
+// table use raw SQL via `customStatement` so the migrator no longer
+// needs a typed table reference.
 
 class Tags extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -96,13 +92,13 @@ class NoteTagRefs extends Table {
 }
 
 @DriftDatabase(
-  tables: [Authors, NoteCatalogs, Notes, Tags, NoteTagRefs, Attachments],
+  tables: [Authors, NoteCatalogs, Notes, Tags, NoteTagRefs],
 )
 class HmmDatabase extends _$HmmDatabase {
   HmmDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -124,8 +120,24 @@ class HmmDatabase extends _$HmmDatabase {
            WHERE is_deleted = 1 AND deleted_at IS NULL
         ''');
 
-        // Create attachments table + indexes declared via @TableIndex.
-        await m.createTable(attachments);
+        // v2 historically created the `attachments` child table. We
+        // re-create it here with raw SQL (the typed class was removed
+        // in v5) so anyone upgrading from v1 still has the table
+        // available for the v3 / v4 work before v5 drops it.
+        await customStatement('''
+          CREATE TABLE IF NOT EXISTS attachments (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            note_id INTEGER NOT NULL REFERENCES notes(id),
+            filename TEXT NOT NULL,
+            mime_type TEXT NOT NULL,
+            size INTEGER NOT NULL,
+            local_path TEXT,
+            remote_path TEXT,
+            create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_modified_date DATETIME,
+            deleted_at DATETIME
+          )
+        ''');
         await m.createIndex(
           Index(
             'idx_notes_last_modified',
@@ -147,25 +159,21 @@ class HmmDatabase extends _$HmmDatabase {
                 'ON notes (parent_note_id)',
           ),
         );
-        await m.createIndex(
-          Index(
-            'idx_attachments_note',
-            'CREATE INDEX IF NOT EXISTS idx_attachments_note '
-                'ON attachments (note_id)',
-          ),
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_attachments_note '
+              'ON attachments (note_id)',
         );
-        await m.createIndex(
-          Index(
-            'idx_attachments_last_modified',
-            'CREATE INDEX IF NOT EXISTS idx_attachments_last_modified '
-                'ON attachments (last_modified_date)',
-          ),
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_attachments_last_modified '
+              'ON attachments (last_modified_date)',
         );
       }
       if (from < 3) {
         // v3: cross-device record identity.
         await m.addColumn(notes, notes.uuid);
-        await m.addColumn(attachments, attachments.uuid);
+        await customStatement(
+          'ALTER TABLE attachments ADD COLUMN uuid TEXT',
+        );
         // Backfill one UUID per existing row. Small volumes expected during
         // upgrade (this is still pre-release), so per-row UPDATE is fine.
         final pendingNotes = await customSelect(
@@ -180,7 +188,6 @@ class HmmDatabase extends _$HmmDatabase {
         }
         final pendingAttachments = await customSelect(
           'SELECT id FROM attachments WHERE uuid IS NULL',
-          readsFrom: {attachments},
         ).get();
         for (final row in pendingAttachments) {
           await customStatement(
@@ -195,6 +202,20 @@ class HmmDatabase extends _$HmmDatabase {
           'CREATE UNIQUE INDEX IF NOT EXISTS idx_attachments_uuid '
               'ON attachments (uuid)',
         );
+      }
+      if (from < 4) {
+        // v4: note-level attachments JSON column on Notes — the new
+        // home for attachment refs (the old child table is dropped in
+        // v5 below).
+        await m.addColumn(notes, notes.attachments);
+      }
+      if (from < 5) {
+        // v5 (Phase 11.5, 2026-05-17): retire the old `Attachments`
+        // child table. Attachment refs now live in `Notes.attachments`
+        // (JSON column added in v4); bytes live in the vault directory
+        // and travel via the OS-level cloud sync client (cloudStorage)
+        // or the future ApiVaultStore (cloudApi, Phase 15).
+        await customStatement('DROP TABLE IF EXISTS attachments');
       }
     },
   );

@@ -1,3 +1,5 @@
+import 'attachments/attachment_ref.dart';
+
 /// Parameter objects for `IHmmNoteRepository.createNote` and `updateNote`.
 ///
 /// Mirror the Hmm.ServiceApi DTOs (`ApiNoteForCreate`, `ApiNoteForUpdate`):
@@ -7,9 +9,9 @@
 ///   resolves it from the signed-in user (matches the server's POST flow,
 ///   where `CurrentUserAuthorProvider` derives the author from the JWT).
 /// * [HmmNoteUpdate] carries only the fields the API allows mutating on
-///   PUT/PATCH: subject, content, description. Author and catalog are
-///   immutable after create on both sides; passing them in is a bug and
-///   `LocalHmmNoteRepository.updateNote` throws ArgumentError.
+///   PUT/PATCH: subject, content, description, attachments. Author and
+///   catalog are immutable after create on both sides; passing them in is a
+///   bug and `LocalHmmNoteRepository.updateNote` throws ArgumentError.
 class HmmNoteCreate {
   const HmmNoteCreate({
     required this.subject,
@@ -17,6 +19,7 @@ class HmmNoteCreate {
     this.content,
     this.parentNoteId,
     this.description,
+    this.attachments,
   });
 
   final String subject;
@@ -24,6 +27,10 @@ class HmmNoteCreate {
   final String? content;
   final int? parentNoteId;
   final String? description;
+
+  /// Optional initial attachments payload. `null` (the default) and
+  /// [NoteAttachments.empty] both produce a SQL-NULL column.
+  final NoteAttachments? attachments;
 }
 
 class HmmNoteUpdate {
@@ -31,12 +38,22 @@ class HmmNoteUpdate {
     this.subject,
     this.content,
     this.description,
+    this.attachments,
   });
 
   final String? subject;
   final String? content;
   final String? description;
 
+  /// Patch semantics:
+  /// * `null`                  — don't touch the attachments column.
+  /// * [NoteAttachments.empty] — clear (write SQL NULL).
+  /// * any non-empty value     — replace.
+  final NoteAttachments? attachments;
+
   bool get isEmpty =>
-      subject == null && content == null && description == null;
+      subject == null &&
+      content == null &&
+      description == null &&
+      attachments == null;
 }

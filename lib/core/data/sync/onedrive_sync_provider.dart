@@ -42,26 +42,12 @@ class OneDriveSyncProvider implements CloudSyncProvider {
   Future<void> pushNoteBody(String id, Map<String, dynamic> body) =>
       _graph.putNoteBlob(id, body);
 
-  @override
-  Future<List<int>?> pullAttachmentBytes({
-    required String id,
-    required String filename,
-  }) =>
-      _graph.getAttachment(id: id, filename: filename);
-
-  @override
-  Future<void> pushAttachmentBytes({
-    required String id,
-    required String filename,
-    required String mimeType,
-    required List<int> bytes,
-  }) =>
-      _graph.putAttachment(
-        id: id,
-        filename: filename,
-        mimeType: mimeType,
-        bytes: bytes,
-      );
+  // Attachment byte transfer was retired from the CloudSyncProvider
+  // contract in Phase 11.5. For cloudStorage tier the vault root sits
+  // inside the user's OneDrive folder; the OS-level OneDrive client
+  // moves the bytes. OneDriveGraphClient's getAttachment /
+  // putAttachment / deleteAttachment helpers were removed in the same
+  // change.
 }
 
 final oneDriveSyncProviderProvider = Provider<CloudSyncProvider>((ref) {
