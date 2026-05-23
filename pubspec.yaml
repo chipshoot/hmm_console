@@ -63,7 +63,15 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.28
   path_provider: ^2.1.5
   path: ^1.9.1
-  flutter_appauth: ^12.0.0
+  # OAuth flow for OneDrive (and any future PKCE-based cloud provider). We
+  # used flutter_appauth originally; debugging showed the AppAuth-iOS bridge
+  # silently drops the ASWebAuthenticationSession callback on iOS 18 + 26
+  # with flutter_appauth 12.0.0 — sign-in completes, redirect lands at
+  # LaunchServices, Dart Future never resolves. flutter_web_auth_2 is a
+  # thin wrapper around the same native ASWebAuthenticationSession but does
+  # the callback handoff itself; we handle the /token POST manually via dio.
+  flutter_web_auth_2: ^5.0.2
+  crypto: ^3.0.6      # SHA-256 for PKCE code_challenge
 
 dev_dependencies:
   flutter_test:

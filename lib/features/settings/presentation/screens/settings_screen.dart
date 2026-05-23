@@ -111,6 +111,16 @@ class SettingsScreen extends ConsumerWidget {
           duration: const Duration(seconds: 6),
         ),
       );
+    } catch (e) {
+      // Catch-all so an unexpected error type (e.g., raw PlatformException
+      // from the appauth bridge) still surfaces in the UI instead of
+      // disappearing silently.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('OneDrive sign-in failed: $e'),
+          duration: const Duration(seconds: 6),
+        ),
+      );
     }
   }
 
