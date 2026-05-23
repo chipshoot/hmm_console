@@ -17,6 +17,15 @@ class OneDriveAuthException implements Exception {
   String toString() => 'OneDriveAuthException: $message';
 }
 
+/// Shape of `FlutterWebAuth2.authenticate` — extracted as a typedef so unit
+/// tests can swap in a fake without touching the static `flutter_web_auth_2`
+/// API. Production code passes the real method reference; tests pass any
+/// `(url, callbackUrlScheme) → Future<String>`.
+typedef WebAuthRunner = Future<String> Function({
+  required String url,
+  required String callbackUrlScheme,
+});
+
 /// OAuth 2.0 + PKCE flow against Microsoft identity platform.
 ///
 /// We hand-roll the flow on top of `flutter_web_auth_2` rather than using
@@ -37,11 +46,25 @@ class OneDriveAuth {
   OneDriveAuth({
     Dio? dio,
     FlutterSecureStorage? storage,
+    WebAuthRunner? webAuthRunner,
   })  : _dio = dio ?? Dio(),
-        _storage = storage ?? const FlutterSecureStorage();
+        _storage = storage ?? const FlutterSecureStorage(),
+        _runWebAuth = webAuthRunner ?? _defaultWebAuthRunner;
 
   final Dio _dio;
   final FlutterSecureStorage _storage;
+  final WebAuthRunner _runWebAuth;
+
+  /// Production runner — thin proxy to `FlutterWebAuth2.authenticate`. Kept
+  /// as a `static` so unit tests don't have to construct it.
+  static Future<String> _defaultWebAuthRunner({
+    required String url,
+    required String callbackUrlScheme,
+  }) =>
+      FlutterWebAuth2.authenticate(
+        url: url,
+        callbackUrlScheme: callbackUrlScheme,
+      );
 
   static const _accessTokenKey = 'onedrive_access_token';
   static const _refreshTokenKey = 'onedrive_refresh_token';
@@ -95,7 +118,7 @@ class OneDriveAuth {
       // the full callback URL (e.g.
       // com.homemademessage.hmm://auth?code=...&state=...) once iOS captures
       // a navigation matching `callbackUrlScheme`.
-      final resultUrl = await FlutterWebAuth2.authenticate(
+      final resultUrl = await _runWebAuth(
         url: authUrl,
         callbackUrlScheme: _callbackScheme,
       );
