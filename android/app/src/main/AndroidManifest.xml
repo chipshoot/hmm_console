@@ -4,7 +4,8 @@
     <application
         android:label="hmm_console"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -32,6 +33,23 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- flutter_web_auth_2 callback activity. Captures the redirect from
+             Microsoft / Dropbox / Google after OAuth sign-in and routes it
+             back to Dart. Scheme must match OneDriveConfig.redirectUri
+             (com.homemademessage.hmm://auth) — only the scheme part is
+             registered; the host (`auth`) is matched in code. -->
+        <activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter android:label="flutter_web_auth_2">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.homemademessage.hmm" />
+            </intent-filter>
+        </activity>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
