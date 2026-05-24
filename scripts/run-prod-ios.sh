@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
-# Run the Flutter app on iOS simulator against production environment
+# Run the Flutter app on iOS Simulator against the PRODUCTION backend.
+# This is a debug build — useful for poking at the real Microsoft / IDP / API
+# endpoints from a fast dev loop, but NOT what ships to TestFlight or to a
+# physical phone. For a release build + install on a connected iPhone use
+# scripts/deploy-prod-ios-device.sh instead.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
+
+# Entra ID / Azure AD app registration "Application (client) ID".
+# Passed explicitly here rather than relying on the default in
+# lib/core/data/sync/onedrive_config.dart so a future change to that default
+# can't silently leak into prod runs.
+ONEDRIVE_CLIENT_ID="3056e225-6965-4c36-8542-db02f614e084"
 
 echo "==> Checking for running iOS Simulator..."
 if ! pgrep -x "Simulator" > /dev/null 2>&1; then
@@ -47,11 +57,12 @@ sys.exit(1)
 fi
 
 echo "==> Using simulator: $BOOTED_DEVICE"
-echo "==> Running Flutter app against PRODUCTION environment"
+echo "==> Running Flutter app against PRODUCTION environment (debug build)"
 echo "    IDP: https://idp.homemademessage.com"
-echo "    API: https://api.homemademessage.com/api/v1"
+echo "    API: https://api.homemademessage.com/v1"
 echo ""
 
 flutter run \
   -d "$BOOTED_DEVICE" \
-  --dart-define=API_ENV=production
+  --dart-define=API_ENV=production \
+  --dart-define=ONEDRIVE_CLIENT_ID="$ONEDRIVE_CLIENT_ID"
