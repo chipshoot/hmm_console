@@ -19,6 +19,7 @@ import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_automobile_repository.dart';
+import 'package:hmm_console/core/data/local/local_gas_station_repository.dart';
 import 'package:hmm_console/core/data/local/local_gas_log_repository.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
@@ -101,7 +102,13 @@ void main() {
     noteRepo = LocalHmmNoteRepository(db, () async => author);
     catalogRepo = LocalNoteCatalogRepository(db);
     autoRepo = LocalAutomobileRepository(noteRepo, catalogRepo);
-    gasLogRepo = LocalGasLogRepository(noteRepo, catalogRepo, autoRepo);
+    final stationRepo = LocalGasStationRepository(noteRepo, catalogRepo);
+    gasLogRepo = LocalGasLogRepository(
+      noteRepo,
+      catalogRepo,
+      autoRepo,
+      stationRepo,
+    );
     vaultStore = LocalVaultStore(rootDir: tmpVault);
     picker = VaultImageAttachmentPicker(vaultStore: vaultStore);
     resolver = VaultResolver(vaultStore: vaultStore);

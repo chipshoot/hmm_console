@@ -9,6 +9,7 @@ import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_automobile_repository.dart';
 import 'package:hmm_console/core/data/local/local_gas_log_repository.dart';
+import 'package:hmm_console/core/data/local/local_gas_station_repository.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/automobile.dart';
@@ -84,7 +85,13 @@ void main() {
     final noteRepo = LocalHmmNoteRepository(db, () async => author);
     final catalogRepo = LocalNoteCatalogRepository(db);
     autoRepo = LocalAutomobileRepository(noteRepo, catalogRepo);
-    gasLogRepo = LocalGasLogRepository(noteRepo, catalogRepo, autoRepo);
+    final stationRepo = LocalGasStationRepository(noteRepo, catalogRepo);
+    gasLogRepo = LocalGasLogRepository(
+      noteRepo,
+      catalogRepo,
+      autoRepo,
+      stationRepo,
+    );
 
     final created = await autoRepo.createAutomobile(_seedAuto());
     autoId = created.id;

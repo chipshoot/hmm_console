@@ -3,14 +3,17 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/gas_log/data/repositories/automobile_repository.dart';
+import '../../../features/gas_log/data/repositories/gas_station_repository.dart';
 import '../../../features/gas_log/data/repositories/i_gas_log_repository.dart';
 import '../../../features/gas_log/domain/entities/automobile.dart';
 import '../../../features/gas_log/domain/entities/discount_info.dart';
 import '../../../features/gas_log/domain/entities/gas_log.dart';
+import '../../../features/gas_log/domain/entities/gas_station.dart';
 import '../../network/pagination.dart';
 import '../hmm_note_input.dart';
 import '../../../features/notes/data/models/hmm_note.dart';
 import 'local_automobile_repository.dart';
+import 'local_gas_station_repository.dart';
 import 'local_hmm_note_repository.dart';
 import 'local_note_catalog_repository.dart';
 
@@ -18,11 +21,17 @@ const _gasLogCatalogName = 'Hmm.AutomobileMan.GasLog';
 const _gasLogCatalogSchema = '{}';
 
 class LocalGasLogRepository implements IGasLogRepository {
-  LocalGasLogRepository(this._noteRepo, this._catalogRepo, this._autoRepo);
+  LocalGasLogRepository(
+    this._noteRepo,
+    this._catalogRepo,
+    this._autoRepo,
+    this._stationRepo,
+  );
 
   final IHmmNoteRepository _noteRepo;
   final INoteCatalogRepository _catalogRepo;
   final IAutomobileRepository _autoRepo;
+  final IGasStationRepository _stationRepo;
 
   @override
   Future<PaginatedResponse<GasLog>> getGasLogs(
@@ -41,8 +50,15 @@ class LocalGasLogRepository implements IGasLogRepository {
       pageSize: pageSize,
     );
 
+    // One fetch for the whole page — avoids N+1 station lookups. Fixes the
+    // bug where renaming a gas station left old gas-log entries showing the
+    // pre-rename name (the name is denormalized into each note's JSON at
+    // write time; the station note is the source of truth for the current
+    // name). See _deserializeGasLog for the fallback policy.
+    final stationsById = await _currentStationsById();
+
     final gasLogs = result.items
-        .map((note) => _deserializeGasLog(note))
+        .map((note) => _deserializeGasLog(note, stationsById))
         .whereType<GasLog>()
         .toList();
 
@@ -53,7 +69,20 @@ class LocalGasLogRepository implements IGasLogRepository {
   Future<GasLog> getGasLogById(int autoId, int id) async {
     final note = await _noteRepo.getNoteById(id);
     if (note == null) throw Exception('Gas log $id not found');
-    return _deserializeGasLog(note)!;
+    final stationsById = await _currentStationsById();
+    return _deserializeGasLog(note, stationsById)!;
+  }
+
+  /// Snapshot of all currently-known stations keyed by id. Used by reads to
+  /// resolve a gas log's `stationId` to the station's current name (the name
+  /// stored in the gas-log note may be stale if the station was renamed
+  /// since the gas log was written).
+  Future<Map<int, GasStation>> _currentStationsById() async {
+    final stations = await _stationRepo.getGasStations();
+    return {
+      for (final s in stations)
+        if (s.id != null) s.id!: s,
+    };
   }
 
   @override
@@ -198,7 +227,16 @@ class LocalGasLogRepository implements IGasLogRepository {
     return jsonEncode({'note': {'content': {'GasLog': gasLogData}}});
   }
 
-  GasLog? _deserializeGasLog(HmmNote note) {
+  /// Deserialize a gas-log note. When [stationsById] is provided AND the
+  /// log carries a `stationId` matching a known live station, the returned
+  /// `GasLog.stationName` is the station's CURRENT name (not the value
+  /// baked into the note at write time). Falls back to the stored name for:
+  ///   - logs from before stationId was tracked (no id to look up by);
+  ///   - stations that have since been deleted (preserves historical name);
+  ///   - create/update return paths that pass `stationsById == null`
+  ///     (the name they just wrote is by definition current).
+  GasLog? _deserializeGasLog(HmmNote note,
+      [Map<int, GasStation>? stationsById]) {
     if (note.content == null) return null;
     try {
       final json = jsonDecode(note.content!) as Map<String, dynamic>;
@@ -241,8 +279,12 @@ class LocalGasLogRepository implements IGasLogRepository {
             amount: (amt?['amount'] as num?)?.toDouble() ?? 0,
           );
         }).toList(),
-        stationId: station?['id'] as int?,
-        stationName: station?['name'] as String?,
+        stationId: (station?['id'] as int?),
+        stationName: _resolveStationName(
+          stationId: station?['id'] as int?,
+          storedName: station?['name'] as String?,
+          stationsById: stationsById,
+        ),
         location: gasLogJson['location'] as String?,
         cityDrivingPercentage: gasLogJson['cityDrivingPercentage'] as int?,
         highwayDrivingPercentage: gasLogJson['highwayDrivingPercentage'] as int?,
@@ -256,6 +298,21 @@ class LocalGasLogRepository implements IGasLogRepository {
       return null;
     }
   }
+
+  /// Pick the right station name to surface on a deserialized gas log.
+  /// See `_deserializeGasLog`'s doc for the rules; this is factored out to
+  /// keep the deserializer call site readable.
+  static String? _resolveStationName({
+    required int? stationId,
+    required String? storedName,
+    required Map<int, GasStation>? stationsById,
+  }) {
+    if (stationId != null && stationsById != null) {
+      final live = stationsById[stationId];
+      if (live != null) return live.name;
+    }
+    return storedName;
+  }
 }
 
 final localGasLogRepositoryProvider = Provider<IGasLogRepository>((ref) {
@@ -263,5 +320,6 @@ final localGasLogRepositoryProvider = Provider<IGasLogRepository>((ref) {
     ref.watch(localHmmNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),
     ref.watch(localAutomobileRepositoryProvider),
+    ref.watch(localGasStationRepositoryProvider),
   );
 });
