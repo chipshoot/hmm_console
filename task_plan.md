@@ -1,7 +1,9 @@
 # Task Plan — Cloud-sync improvements
 
-**Status:** Phase A in progress · all 8 decisions locked in (user accepted recommendations 2026-05-24)
-**Branches:** Phase A on `feat/per-user-onedrive-isolation` (off `main`)
+**Status:** Phase B implementation complete · Phase A awaiting A.8 manual verification
+**Branches:**
+- Phase A: `feat/per-user-onedrive-isolation` (off `main`) — pushed
+- Phase B: `feat/auto-sync-controller` (stacked on Phase A) — pushed
 **Last update:** 2026-05-24
 
 ## Goal
@@ -68,14 +70,14 @@ A → B → C, in that order:
 
 ### Tasks
 
-- [ ] **B.1** New `lib/core/data/sync/sync_controller.dart`: `SyncController extends WidgetsBindingObserver`. Owns periodic `Timer`, throttle state (`_lastSyncStartedAt`), in-flight flag (`_isSyncing`).
-- [ ] **B.2** Expose `triggerAutoSync(SyncTriggerReason reason)` — drops trigger silently if `_isSyncing || (now - _lastSyncStartedAt < throttleWindow)`.
-- [ ] **B.3** `didChangeAppLifecycleState`: on `resumed` → 250 ms debounce → trigger; on `paused` → trigger immediately. Cancel periodic timer on `paused`, reschedule on `resumed`.
-- [ ] **B.4** Periodic timer: every 10 min while app is in `resumed`. Cancel on `paused` + on logout.
-- [ ] **B.5** Add `lastSyncAt`, `lastSyncError`, `isSyncing` getters to `SyncOrchestrator` (or a sibling state holder).
-- [ ] **B.6** Register `SyncController` as a binding observer in `main.dart` *after* auth resolves.
-- [ ] **B.7** New `test/core/data/sync/sync_controller_test.dart`: fake clock + fake orchestrator. Cases: foreground fires, background fires, periodic fires every 10 min, throttle prevents double-fire, coalescing drops trigger when busy, periodic cancelled on background.
-- [ ] **B.8** New `lib/features/settings/presentation/widgets/sync_status_card.dart`: displays sync state (syncing… / last synced N ago / failed with retry). Wires to the orchestrator getters.
+- [x] **B.1** New `lib/core/data/sync/sync_controller.dart`: `SyncController extends ChangeNotifier with WidgetsBindingObserver`. Owns periodic `Timer`, foreground-debounce `Timer`, throttle state (`_lastSyncStartedAt`), in-flight flag (read from `_status.isSyncing`).
+- [x] **B.2** Both `triggerAutoSync(SyncTriggerReason)` and `triggerManualSync()` implemented. Auto-trigger drops silently when in-flight OR inside the 30-s throttle window; manual bypasses throttle but still respects in-flight (returns null when busy).
+- [x] **B.3** `didChangeAppLifecycleState`: `resumed` → 250-ms debounce → trigger + restart periodic; `paused` → cancel periodic + cancel debounce + fire `appBackground` immediately; `inactive`/`detached`/`hidden` ignored (too noisy on iOS).
+- [x] **B.4** Periodic timer: `Timer.periodic(10 min)`. Cancelled on `paused` + on `stop()` (which `dispose()` calls).
+- [x] **B.5** State held on `SyncController` itself (a `ChangeNotifier`) as `SyncStatus { isSyncing, lastSyncAt, lastResult, lastReason, consecutiveFailures }`. Decided against putting it on `SyncOrchestrator` because the orchestrator is intentionally stateless — `syncNow()` just runs the algorithm.
+- [x] **B.6** Wired in `lib/main.dart` — converted `MainApp` from `ConsumerWidget` → `ConsumerStatefulWidget` so we have `initState`/`dispose`. `ref.read(syncControllerProvider).start()` in initState, `.stop()` in dispose.
+- [x] **B.7** New `test/core/data/sync/sync_controller_test.dart` — 13 tests. Uses real `TestWidgetsFlutterBinding` + `handleAppLifecycleStateChanged` for lifecycle dispatch, fake clock for throttle, fake action for in-flight coalescing.
+- [x] **B.8** New `lib/features/settings/presentation/widgets/sync_status_card.dart` + embedded in Settings screen. Renders "Syncing…" / "Synced N ago" / "Last sync failed" / "Sync failing — last 3 attempts" (persistent badge after 3 fails, per B2 decision). `ListenableBuilder` rebinds on every `notifyListeners()`.
 - [ ] **B.9** Manual smoke test on iOS sim + Android emulator: background → foreground → confirm sync fires; wait 10 min → confirm periodic fires.
 
 ### Files touched

@@ -2,6 +2,19 @@
 
 Newest entries at the top.
 
+## 2026-05-24 — Phase B implementation complete (B.9 manual verification pending)
+
+- Branch `feat/auto-sync-controller` stacked on `feat/per-user-onedrive-isolation`.
+- New `lib/core/data/sync/sync_controller.dart` — single class `SyncController extends ChangeNotifier with WidgetsBindingObserver`. Owns periodic timer, foreground debounce timer, throttle state, `SyncStatus` value object. Public API: `start()`, `stop()`, `triggerAutoSync(reason)`, `triggerManualSync()`, `status` getter, plus standard `ChangeNotifier` `addListener` for UI binding.
+- Decided to keep state on the controller (a `ChangeNotifier`) rather than on `SyncOrchestrator`. Reasoning: orchestrator is stateless by design (each `syncNow()` is its own algorithm pass). Status is a consumer-of-orchestrator concept that lives one layer up.
+- Lifecycle handling: `resumed` → 250 ms debounce → fire (avoids iOS resumed→inactive→resumed bouncing during notifications); `paused` → cancel timers + fire `appBackground` immediately; `inactive`/`detached`/`hidden` ignored (too noisy on iOS).
+- Throttle: 30 s minimum gap between auto-fires; manual bypasses but still respects in-flight.
+- `main.dart` converted from `ConsumerWidget` → `ConsumerStatefulWidget` so initState/dispose can `.start()` and `.stop()` the controller.
+- New `lib/features/settings/presentation/widgets/sync_status_card.dart` — `ListenableBuilder`-driven card with four visual states: syncing, idle (with relative time), last-sync-failed (transient), persistent-failure-badge (≥3 consecutive fails). Embedded above the existing manual Sync Now button in the Settings screen.
+- 13 new tests in `test/core/data/sync/sync_controller_test.dart`. Tests use `TestWidgetsFlutterBinding.ensureInitialized()` + `WidgetsBinding.instance.handleAppLifecycleStateChanged(...)` to drive real lifecycle dispatch through the registered observer. Throttle + clock are injected via `ClockNow` typedef.
+- Full suite: **523 / 523 passing** (+13 from Phase B, no regressions). Lint clean.
+- **B.9 (two-device lifecycle smoke test) is the only Phase B item left.** Needs manual verification on iOS sim + Android emulator: background the app, foreground it, confirm a sync runs; wait 10 min in foreground, confirm the periodic fires. Code is committed + pushed.
+
 ## 2026-05-24 — Phase A implementation complete (A.8 manual verification pending)
 
 - Branch `feat/per-user-onedrive-isolation` off main.

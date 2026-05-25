@@ -12,6 +12,7 @@ import '../../../../core/data/sync/onedrive_config.dart';
 import '../../../../core/data/sync/sync_orchestrator.dart';
 import '../../../../core/i18n/locale_provider.dart';
 import '../../../../core/widgets/gaps.dart';
+import '../widgets/sync_status_card.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../domain/gas_log_units.dart';
@@ -295,6 +296,13 @@ class SettingsScreen extends ConsumerWidget {
             ],
             if (dataMode != DataMode.local) ...[
               GapWidgets.h16,
+              // SyncStatusCard renders the live status line + an
+              // embedded "Sync now" button wired to SyncController, so
+              // the in-flight state is shared with auto-sync. The
+              // standalone FilledButton below is kept as a fallback
+              // entry point for accessibility / legacy flows.
+              const SyncStatusCard(),
+              GapWidgets.h8,
               FilledButton.icon(
                 onPressed: () => _syncNow(context, ref),
                 icon: const Icon(Icons.sync),
