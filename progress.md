@@ -2,6 +2,19 @@
 
 Newest entries at the top.
 
+## 2026-05-24 — Phase C implementation complete (C.10 manual verification pending)
+
+- Branch `feat/wifi-only-sync` stacked on `feat/auto-sync-controller`.
+- `connectivity_plus: ^7.1.1` added. The package exposes `Connectivity().checkConnectivity()` returning `Future<List<ConnectivityResult>>` — list because a device can have multiple active interfaces (mobile + vpn, satellite + mobile, etc.). WiFi-allowed check is just `results.contains(ConnectivityResult.wifi)`.
+- `lib/features/settings/domain/sync_settings.dart`: `SyncNetworkPolicy { wifiOnly, anyNetwork }` enum + `SyncSettings` value object. Settings is wrapped in a value type rather than a bare enum so future expansion (periodic-interval override, retry-budget) doesn't change the provider shape.
+- `lib/features/settings/providers/sync_settings_provider.dart`: `Notifier<SyncSettings>` mirroring `DataModeNotifier`'s pattern (synchronous default in `build()` + async `_loadFromPrefs` to hydrate). Default `wifiOnly` (decision C2). **Caught a real bug while testing**: the original `_loadFromPrefs` didn't check `ref.mounted` before writing `state` after the async `SharedPreferences.getInstance()` gap. Riverpod 3 throws on writes-after-dispose, and in tests `addTearDown(container.dispose)` could fire before the load completed. Added `if (!ref.mounted) return;` guard.
+- `SyncController` adds `CanAutoSyncCheck` typedef constructor param + `SyncStatus.lastAutoTriggerSkippedForNetwork` field. **Required a refactor**: the original `triggerAutoSync` checked `_status.isSyncing` synchronously and then did `_runSync` which set `isSyncing=true` synchronously. With Phase C's `await _canAutoSync()` between those, two parallel triggers could both pass the in-flight check (both see `isSyncing=false`). Fix: claim `isSyncing=true` synchronously at trigger entry, defer `notifyListeners()` until either the gate passes (show "Syncing…") or it fails (show "Waiting for WiFi") — no UI flicker.
+- Production wiring composes `syncSettingsProvider` + `Connectivity().checkConnectivity()` via `ref.read` (per-call) so flipping the radio in Settings → Sync over takes effect on the very next auto-trigger.
+- Settings UI: new `_SyncNetworkPolicySection` widget (`RadioGroup<SyncNetworkPolicy>` — modern post-Flutter-3.32 ancestor; got off deprecated per-tile `groupValue`/`onChanged`). `confirmManualSyncIfOnCellular(context, ref)` helper in `sync_status_card.dart` is shared between the embedded card button and the legacy `_syncNow` flow.
+- `SyncStatusCard` gets a new "Waiting for WiFi to sync" visual state (Icons.wifi_off) when `lastAutoTriggerSkippedForNetwork == true`.
+- 9 new tests: 4 in `sync_settings_provider_test.dart`, 5 added to `sync_controller_test.dart`. Full suite: **532 / 532 passing** (+9 from Phase C, no regressions). Lint clean.
+- **C.10 (cellular smoke test) is the only Phase C item left.** Needs human-driven verification on iOS sim + Android emulator: WiFi-only policy + airplane mode → confirm auto-sync skips with banner; manual Sync now → confirm dialog appears.
+
 ## 2026-05-24 — Phase B implementation complete (B.9 manual verification pending)
 
 - Branch `feat/auto-sync-controller` stacked on `feat/per-user-onedrive-isolation`.

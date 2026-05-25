@@ -5,7 +5,6 @@ import 'package:hmm_console/core/data/sync/onedrive_auth.dart';
 import 'package:hmm_console/core/data/sync/onedrive_graph_client.dart';
 import 'package:hmm_console/core/data/sync/onedrive_sync_provider.dart';
 import 'package:hmm_console/core/network/idp_token_service.dart';
-import 'package:hmm_console/core/network/token_storage.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 /// Coverage for the one-time legacy-data migration introduced in Phase A.
@@ -255,13 +254,12 @@ class _FakeIdpTokenService implements IdpTokenService {
     return {'sub': sub!};
   }
 
-  // Everything else is unused for the migration code path.
+  // Everything else is unused for the migration code path. The
+  // noSuchMethod fallback covers any IdpTokenService member we don't
+  // explicitly override — keeps the fake compact when the interface
+  // grows.
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-
-  @override
-  TokenStorage get tokenStorage =>
-      throw UnimplementedError('not used in migration tests');
 
   @override
   Future<void> clearTokens() async {}

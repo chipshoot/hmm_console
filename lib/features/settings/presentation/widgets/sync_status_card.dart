@@ -1,7 +1,10 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/sync/sync_controller.dart';
+import '../../domain/sync_settings.dart';
+import '../../providers/sync_settings_provider.dart';
 
 /// Shows the live sync state and surfaces a manual "Sync Now" button.
 /// Binds to [SyncController] (a [ChangeNotifier]) so it rebuilds whenever
@@ -9,9 +12,12 @@ import '../../../../core/data/sync/sync_controller.dart';
 /// needed.
 ///
 /// States rendered:
-///   - Idle  ("Synced 3 minutes ago" / "Never synced")
 ///   - Syncing… (spinner)
-///   - Failure (snackbar-style banner, persistent badge after 3+ in a row)
+///   - Synced N ago (idle, success)
+///   - Waiting for WiFi (auto-sync was skipped by WiFi-only policy)
+///   - Last sync failed (transient banner)
+///   - Sync failing — persistent badge after 3+ consecutive failures
+///   - Never synced (idle, fresh app)
 class SyncStatusCard extends ConsumerWidget {
   const SyncStatusCard({super.key});
 
@@ -25,13 +31,13 @@ class SyncStatusCard extends ConsumerWidget {
   }
 }
 
-class _Body extends StatelessWidget {
+class _Body extends ConsumerWidget {
   const _Body({required this.controller});
 
   final SyncController controller;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final status = controller.status;
     final theme = Theme.of(context);
 
@@ -52,6 +58,12 @@ class _Body extends StatelessWidget {
       leading = Icon(Icons.error, color: theme.colorScheme.error);
       headline = 'Sync failing — last ${status.consecutiveFailures} attempts';
       headlineColor = theme.colorScheme.error;
+    } else if (status.lastAutoTriggerSkippedForNetwork) {
+      // WiFi-only policy blocked the most recent auto-trigger. Stays
+      // visible until the next real sync runs (manual or auto when
+      // WiFi comes back).
+      leading = Icon(Icons.wifi_off, color: theme.colorScheme.tertiary);
+      headline = 'Waiting for WiFi to sync';
     } else if (status.lastResult != null && !status.lastResult!.success) {
       leading = Icon(Icons.warning_amber, color: theme.colorScheme.tertiary);
       headline = 'Last sync failed';
@@ -81,6 +93,7 @@ class _Body extends StatelessWidget {
                       )),
                   if (status.lastResult != null &&
                       !status.isSyncing &&
+                      !status.lastAutoTriggerSkippedForNetwork &&
                       status.lastResult!.errors.isNotEmpty)
                     Text(
                       status.lastResult!.errors.first.message,
@@ -95,7 +108,12 @@ class _Body extends StatelessWidget {
             FilledButton.tonal(
               onPressed: status.isSyncing
                   ? null
-                  : () => controller.triggerManualSync(),
+                  : () async {
+                      final proceed =
+                          await confirmManualSyncIfOnCellular(context, ref);
+                      if (!proceed) return;
+                      await controller.triggerManualSync();
+                    },
               child: const Text('Sync now'),
             ),
           ],
@@ -120,4 +138,50 @@ class _Body extends StatelessWidget {
     final d = delta.inDays;
     return '$d day${d == 1 ? '' : 's'} ago';
   }
+}
+
+/// Shared confirm-dialog flow for any "manual sync" entry point. Returns
+/// `true` when the caller should proceed (policy permits OR the user
+/// tapped "Sync anyway"), `false` when the user cancelled.
+///
+/// Decision C1 in `task_plan.md`: a manual tap bypasses the WiFi-only
+/// policy because the user just asked — but with a confirm dialog so a
+/// fat-finger doesn't burn cellular data unexpectedly.
+///
+/// Lives at the top of this file (and not in `sync_controller.dart`) so
+/// the controller stays UI-free; both the [SyncStatusCard]'s embedded
+/// button and the standalone "Sync now" button in the Settings screen
+/// route through this same helper.
+Future<bool> confirmManualSyncIfOnCellular(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final policy = ref.read(syncSettingsProvider).networkPolicy;
+  if (policy == SyncNetworkPolicy.anyNetwork) return true;
+
+  final results = await Connectivity().checkConnectivity();
+  if (results.contains(ConnectivityResult.wifi)) return true;
+
+  if (!context.mounted) return false;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Sync over cellular?'),
+      content: const Text(
+        'Your network policy is set to "WiFi only", but you tapped Sync '
+        'now. Proceeding will use cellular data.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Sync anyway'),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
 }

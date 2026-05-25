@@ -1,9 +1,10 @@
 # Task Plan — Cloud-sync improvements
 
-**Status:** Phase B implementation complete · Phase A awaiting A.8 manual verification
+**Status:** All three phases implemented · A.8 + B.9 + C.10 manual verification pending
 **Branches:**
 - Phase A: `feat/per-user-onedrive-isolation` (off `main`) — pushed
 - Phase B: `feat/auto-sync-controller` (stacked on Phase A) — pushed
+- Phase C: `feat/wifi-only-sync` (stacked on Phase B) — pushed
 **Last update:** 2026-05-24
 
 ## Goal
@@ -101,15 +102,16 @@ A → B → C, in that order:
 
 ### Tasks
 
-- [ ] **C.1** Add `connectivity_plus` dependency to `pubspec.yaml`
-- [ ] **C.2** New `lib/features/settings/domain/sync_settings.dart`: `enum SyncNetworkPolicy { wifiOnly, anyNetwork }` + `SyncSettings` value object
-- [ ] **C.3** New `lib/features/settings/providers/sync_settings_provider.dart`: Notifier-backed by `shared_preferences`, default `wifiOnly`
-- [ ] **C.4** `SyncController.triggerAutoSync()`: query `connectivity_plus`, skip with logged `SyncResult.skipped('WiFi-only, current: cellular')` when policy blocks
-- [ ] **C.5** Settings UI: radio group "Sync over: WiFi only / Any network" in Settings screen
-- [ ] **C.6** `_syncNow` (manual): if WiFi-only is on AND on cellular, show confirm dialog ("Sync over cellular?"); if confirmed, bypass policy
-- [ ] **C.7** `SyncStatusCard` shows "Waiting for WiFi" state when last auto-sync was skipped for that reason
-- [ ] **C.8** New `test/features/settings/providers/sync_settings_provider_test.dart`
-- [ ] **C.9** Modify `test/core/data/sync/sync_controller_test.dart`: fake connectivity, assert WiFi-only blocks auto-sync on cellular
+- [x] **C.1** Added `connectivity_plus: ^7.1.1` to `pubspec.yaml`
+- [x] **C.2** New `lib/features/settings/domain/sync_settings.dart` — `enum SyncNetworkPolicy { wifiOnly, anyNetwork }` + `SyncSettings` value object with `copyWith`/`==`/`hashCode`
+- [x] **C.3** New `lib/features/settings/providers/sync_settings_provider.dart` — `Notifier<SyncSettings>` backed by `SharedPreferences`, default `wifiOnly` (decision C2). `_loadFromPrefs` guards on `ref.mounted` after async gap (caught a real production bug — Riverpod 3 throws on disposed-state writes).
+- [x] **C.4** `SyncController` gains `CanAutoSyncCheck` typedef + optional constructor parameter. `triggerAutoSync()` calls the gate after the synchronous in-flight/throttle check, sets `lastAutoTriggerSkippedForNetwork=true` when blocked. Production-wires composes `syncSettingsProvider` + `connectivity_plus`. Required a refactor to claim `isSyncing` synchronously (before the gate's `await`) so parallel triggers don't both pass the in-flight check.
+- [x] **C.5** Settings UI: `_SyncNetworkPolicySection` with `RadioGroup<SyncNetworkPolicy>` (the post-Flutter-3.32 ancestor pattern — got off deprecated `groupValue`/`onChanged` per-tile API). Hidden when DataMode == local.
+- [x] **C.6** `_syncNow` in Settings + the embedded button on `SyncStatusCard` both route through `confirmManualSyncIfOnCellular(context, ref)` helper before bypassing the WiFi-only policy. Manual still bypasses (decision C1) but the user is asked first via AlertDialog.
+- [x] **C.7** `SyncStatusCard` adds "Waiting for WiFi to sync" state (with `Icons.wifi_off`) when `status.lastAutoTriggerSkippedForNetwork == true`. State clears on next real sync.
+- [x] **C.8** New `test/features/settings/providers/sync_settings_provider_test.dart` — 4 tests (default, persisted-anyNetwork-read, fallback on typo, setNetworkPolicy persistence across containers).
+- [x] **C.9** Extended `test/core/data/sync/sync_controller_test.dart` with 5 WiFi-gate tests (skip when false, run when true, success clears flag, manual bypasses, dedup of repeated-skip notifyListeners).
+- [ ] **C.10** Manual smoke test on iOS sim + Android emulator: set WiFi-only, disconnect WiFi → confirm auto-sync skips; tap Sync now → confirm cellular dialog appears; confirm → sync proceeds.
 
 ### Files touched
 

@@ -72,6 +72,10 @@ dependencies:
   # the callback handoff itself; we handle the /token POST manually via dio.
   flutter_web_auth_2: ^5.0.2
   crypto: ^3.0.6      # SHA-256 for PKCE code_challenge
+  # Network-type probe — used by SyncController to gate auto-sync on the
+  # WiFi-only policy (Settings → Sync over). Manual sync always runs (with
+  # a confirm dialog on cellular per decision C1 in task_plan.md).
+  connectivity_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:

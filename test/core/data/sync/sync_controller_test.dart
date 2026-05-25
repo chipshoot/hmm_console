@@ -32,9 +32,11 @@ void main() {
     Duration throttle = const Duration(seconds: 30),
     Duration periodic = const Duration(minutes: 10),
     Duration debounce = const Duration(milliseconds: 250),
+    CanAutoSyncCheck? canAutoSync,
   }) =>
       SyncController(
         syncAction: action.call,
+        canAutoSync: canAutoSync,
         throttle: throttle,
         periodicInterval: periodic,
         foregroundDebounce: debounce,
@@ -202,6 +204,74 @@ void main() {
       c.stop(); // no throw, no double-unregister
       // No assertion to make beyond "didn't throw" — the framework
       // would log a duplicate-removal error if our guard were broken.
+    });
+  });
+
+  group('canAutoSync gate (Phase C — WiFi-only policy)', () {
+    test('skips when gate returns false; flag set on SyncStatus', () async {
+      final c = buildController(canAutoSync: () async => false);
+
+      final result = await c.triggerAutoSync(SyncTriggerReason.periodic);
+      expect(result, isNull);
+      expect(action.callCount, equals(0));
+      expect(c.status.lastAutoTriggerSkippedForNetwork, isTrue);
+      c.dispose();
+    });
+
+    test('runs when gate returns true', () async {
+      final c = buildController(canAutoSync: () async => true);
+      final result = await c.triggerAutoSync(SyncTriggerReason.periodic);
+      expect(result, isNotNull);
+      expect(action.callCount, equals(1));
+      expect(c.status.lastAutoTriggerSkippedForNetwork, isFalse);
+      c.dispose();
+    });
+
+    test('successful sync clears a prior network-skip flag', () async {
+      var allow = false;
+      final c =
+          buildController(canAutoSync: () async => allow, throttle: Duration.zero);
+
+      await c.triggerAutoSync(SyncTriggerReason.periodic);
+      expect(c.status.lastAutoTriggerSkippedForNetwork, isTrue);
+
+      allow = true;
+      await c.triggerAutoSync(SyncTriggerReason.periodic);
+      expect(c.status.lastAutoTriggerSkippedForNetwork, isFalse,
+          reason: 'a real sync run wipes the transient WiFi-waiting banner');
+      c.dispose();
+    });
+
+    test('manual trigger BYPASSES the gate (decision C1)', () async {
+      final c = buildController(canAutoSync: () async => false);
+
+      final result = await c.triggerManualSync();
+      expect(result, isNotNull,
+          reason: 'manual taps must run even when auto would be blocked');
+      expect(action.callCount, equals(1));
+      c.dispose();
+    });
+
+    test('only the first network-skip in a row emits a notification',
+        () async {
+      // The "Waiting for WiFi" banner shouldn't flicker rebuilds on
+      // every periodic tick — once the flag is set, subsequent skips
+      // for the same reason should be no-ops as far as the
+      // ChangeNotifier is concerned.
+      final c =
+          buildController(canAutoSync: () async => false, throttle: Duration.zero);
+      var notifyCount = 0;
+      c.addListener(() => notifyCount++);
+
+      await c.triggerAutoSync(SyncTriggerReason.periodic);
+      final afterFirst = notifyCount;
+
+      await c.triggerAutoSync(SyncTriggerReason.periodic);
+      await c.triggerAutoSync(SyncTriggerReason.periodic);
+
+      expect(notifyCount, equals(afterFirst),
+          reason: 'repeat skips for the same reason should not re-notify');
+      c.dispose();
     });
   });
 

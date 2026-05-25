@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../features/settings/domain/sync_settings.dart';
+import '../../../features/settings/providers/sync_settings_provider.dart';
 import 'sync_models.dart';
 import 'sync_orchestrator.dart';
 
@@ -35,6 +38,7 @@ class SyncStatus {
     this.lastResult,
     this.lastReason,
     this.consecutiveFailures = 0,
+    this.lastAutoTriggerSkippedForNetwork = false,
   });
 
   /// True while a sync is in flight (between [SyncController._runSync]
@@ -57,12 +61,20 @@ class SyncStatus {
   /// task_plan.md).
   final int consecutiveFailures;
 
+  /// True if the most recent auto-trigger was suppressed by the
+  /// WiFi-only network policy (device is on cellular / no network).
+  /// Drives the "Waiting for WiFi" state of [SyncStatusCard]. Cleared
+  /// to false whenever a sync actually runs (success or failure) —
+  /// it's a transient banner, not a sticky error.
+  final bool lastAutoTriggerSkippedForNetwork;
+
   SyncStatus _copyWith({
     bool? isSyncing,
     DateTime? lastSyncAt,
     SyncResult? lastResult,
     SyncTriggerReason? lastReason,
     int? consecutiveFailures,
+    bool? lastAutoTriggerSkippedForNetwork,
   }) {
     return SyncStatus(
       isSyncing: isSyncing ?? this.isSyncing,
@@ -70,6 +82,8 @@ class SyncStatus {
       lastResult: lastResult ?? this.lastResult,
       lastReason: lastReason ?? this.lastReason,
       consecutiveFailures: consecutiveFailures ?? this.consecutiveFailures,
+      lastAutoTriggerSkippedForNetwork: lastAutoTriggerSkippedForNetwork ??
+          this.lastAutoTriggerSkippedForNetwork,
     );
   }
 }
@@ -78,6 +92,13 @@ class SyncStatus {
 /// Production-wired to `() => orchestrator.syncNow()`; tests pass a fake
 /// that returns canned [SyncResult]s and counts invocations.
 typedef SyncAction = Future<SyncResult> Function();
+
+/// Returns `true` when an auto-trigger is allowed to fire right now.
+/// Production wiring composes WiFi-only network policy + connectivity
+/// probe (Phase C); the default `(() async => true)` opts every controller
+/// into "always allowed", which keeps tests + non-network-aware callers
+/// simple.
+typedef CanAutoSyncCheck = Future<bool> Function();
 
 /// Pluggable clock so tests can drive throttle + periodic timing without
 /// `await Future.delayed(...)`.
@@ -110,18 +131,23 @@ DateTime _defaultNow() => DateTime.now().toUtc();
 class SyncController extends ChangeNotifier with WidgetsBindingObserver {
   SyncController({
     required SyncAction syncAction,
+    CanAutoSyncCheck? canAutoSync,
     this.throttle = const Duration(seconds: 30),
     this.periodicInterval = const Duration(minutes: 10),
     this.foregroundDebounce = const Duration(milliseconds: 250),
     ClockNow now = _defaultNow,
   })  : _syncAction = syncAction,
+        _canAutoSync = canAutoSync ?? _alwaysAllow,
         _now = now;
 
   final SyncAction _syncAction;
+  final CanAutoSyncCheck _canAutoSync;
   final Duration throttle;
   final Duration periodicInterval;
   final Duration foregroundDebounce;
   final ClockNow _now;
+
+  static Future<bool> _alwaysAllow() async => true;
 
   Timer? _periodicTimer;
   Timer? _foregroundDebounceTimer;
@@ -193,34 +219,74 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Fire a sync triggered by lifecycle / timer. Drops silently if a
-  /// sync is in flight OR if the throttle window hasn't elapsed.
+  /// Fire a sync triggered by lifecycle / timer. Drops silently when:
+  ///   - a sync is already in flight
+  ///   - the 30-s throttle window hasn't elapsed
+  ///   - the injected [CanAutoSyncCheck] returns false (production wires
+  ///     this to "WiFi-only policy is on AND device is on cellular")
   /// Returns the [SyncResult] when it actually ran, null when skipped.
+  /// When the network policy was the reason for the skip, sets
+  /// [SyncStatus.lastAutoTriggerSkippedForNetwork] so the UI can show
+  /// "Waiting for WiFi". Throttle / in-flight skips don't touch that
+  /// flag — they're invisible to the UI.
   Future<SyncResult?> triggerAutoSync(SyncTriggerReason reason) async {
     if (_status.isSyncing) return null;
     if (_lastSyncStartedAt != null &&
         _now().difference(_lastSyncStartedAt!) < throttle) {
       return null;
     }
-    return _runSync(reason);
+    // Claim the in-flight slot synchronously, BEFORE awaiting the gate.
+    // Otherwise a manual-or-auto trigger that fires while we're paused
+    // at `await _canAutoSync()` would see `isSyncing == false` and
+    // double-run the sync. We don't notify yet — the UI shouldn't
+    // flicker "Syncing…" when the gate is about to reject.
+    _status = _status._copyWith(isSyncing: true, lastReason: reason);
+    return _executeWithGate(reason);
   }
 
-  /// User-initiated sync. Bypasses the throttle (the user just asked,
-  /// it'd be confusing to silently drop it) but still respects
-  /// in-flight — if a sync is already running, the manual trigger waits
-  /// for it via the returned Future and the caller sees the same
-  /// result.
+  /// User-initiated sync. Bypasses the throttle and the auto-sync gate
+  /// (the user just asked — see decision C1 in `task_plan.md`; the
+  /// settings UI handles the cellular-warn confirm dialog before calling
+  /// us). Still respects in-flight: if a sync is already running, this
+  /// returns null immediately.
   Future<SyncResult?> triggerManualSync() async {
     if (_status.isSyncing) return null;
-    return _runSync(SyncTriggerReason.manual);
+    _lastSyncStartedAt = _now();
+    _status = _status._copyWith(
+      isSyncing: true,
+      lastReason: SyncTriggerReason.manual,
+    );
+    notifyListeners();
+    return _executeAction(SyncTriggerReason.manual);
   }
 
-  Future<SyncResult?> _runSync(SyncTriggerReason reason) async {
+  /// Auto-sync's two-phase tail after the synchronous claim: first
+  /// award the network gate, then either skip with the "Waiting for
+  /// WiFi" flag or proceed to the action.
+  Future<SyncResult?> _executeWithGate(SyncTriggerReason reason) async {
+    final allowed = await _canAutoSync();
+    if (!allowed) {
+      final wasAlreadyFlagged = _status.lastAutoTriggerSkippedForNetwork;
+      _status = _status._copyWith(
+        isSyncing: false,
+        lastAutoTriggerSkippedForNetwork: true,
+      );
+      // Only notify if the flag actually changed — avoids per-tick
+      // rebuild storms when periodic timers keep firing while
+      // cellular-only.
+      if (!wasAlreadyFlagged) notifyListeners();
+      return null;
+    }
     _lastSyncStartedAt = _now();
-    _status = _status._copyWith(isSyncing: true, lastReason: reason);
-    notifyListeners();
+    notifyListeners(); // Now the UI shows the spinner.
+    return _executeAction(reason);
+  }
 
-    SyncResult? result;
+  /// Calls the injected [SyncAction] and wires the result back into
+  /// [SyncStatus]. Assumes the caller has already claimed `isSyncing`
+  /// and called `notifyListeners()` (or chose not to — for skip paths).
+  Future<SyncResult> _executeAction(SyncTriggerReason reason) async {
+    SyncResult result;
     try {
       result = await _syncAction();
     } catch (e) {
@@ -245,6 +311,9 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
       lastResult: result,
       lastReason: reason,
       consecutiveFailures: ok ? 0 : _status.consecutiveFailures + 1,
+      // A real sync just ran — any prior "Waiting for WiFi" banner is
+      // stale, clear it.
+      lastAutoTriggerSkippedForNetwork: false,
     );
     notifyListeners();
     return result;
@@ -262,10 +331,25 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
 /// sync orchestrator changes (i.e. when the user switches DataMode in
 /// settings — the new orchestrator might point at a different cloud
 /// provider). The root widget calls `.start()` after auth resolves.
+///
+/// The `canAutoSync` callback re-reads the current `SyncSettings` on every
+/// invocation via `ref.read` — that way a user flipping the radio in
+/// Settings → Sync over takes effect on the very next auto-trigger
+/// without rebuilding the controller.
 final syncControllerProvider = Provider<SyncController>((ref) {
   final orchestrator = ref.watch(syncOrchestratorProvider);
+  final connectivity = Connectivity();
   final controller = SyncController(
     syncAction: orchestrator.syncNow,
+    canAutoSync: () async {
+      final policy = ref.read(syncSettingsProvider).networkPolicy;
+      if (policy == SyncNetworkPolicy.anyNetwork) return true;
+      // WiFi-only policy: only allow when the device reports WiFi in
+      // its list of active connections. Cellular / none / VPN-on-cell
+      // all block.
+      final results = await connectivity.checkConnectivity();
+      return results.contains(ConnectivityResult.wifi);
+    },
   );
   ref.onDispose(controller.stop);
   return controller;
