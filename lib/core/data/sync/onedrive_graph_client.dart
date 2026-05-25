@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../network/idp_token_service.dart';
 import 'onedrive_auth.dart';
 import 'sync_models.dart';
 
@@ -23,16 +24,34 @@ class OneDriveGraphException implements Exception {
       'OneDriveGraphException($statusCode): $message${responseBody == null ? '' : '\n$responseBody'}';
 }
 
+/// Returns the Hmm IDP `sub` claim of the currently-signed-in user, or
+/// null when nobody is signed in. Extracted as a typedef so tests can pass
+/// a fake without dragging the full `IdpTokenService` (and its token
+/// storage + JWT decoding) into the test harness.
+typedef CurrentUserSubResolver = Future<String?> Function();
+
 /// Thin Microsoft Graph REST client scoped to the app folder
 /// (`/drive/special/approot`). Pairs with [OneDriveAuth]; a request-time
 /// interceptor attaches a fresh bearer token.
 ///
-/// Endpoint shape reference:
-/// - `PUT /me/drive/special/approot:/notes/{id}.json:/content`
-/// - `GET /me/drive/special/approot:/manifest.json:/content`
+/// **Per-user namespacing.** All notes + manifest live under
+/// `approot/users/{sub}/`, where `{sub}` is the Hmm IDP user's `sub`
+/// claim. Two Hmm users signed in to the same Microsoft / OneDrive
+/// account therefore get separate subtrees and cannot clobber each
+/// other. The legacy single-user layout (notes at `approot/notes/`) is
+/// preserved in place; the orchestrator migrates it into the current
+/// user's subtree on first post-upgrade sync (see
+/// [OneDriveSyncProvider.migrateLegacyIfNeeded]).
+///
+/// Endpoint shape reference (after this layout change):
+/// - `PUT /me/drive/special/approot:/users/{sub}/notes/{id}.json:/content`
+/// - `GET /me/drive/special/approot:/users/{sub}/manifest.json:/content`
 class OneDriveGraphClient {
-  OneDriveGraphClient(this._auth, {Dio? dio})
-      : _dio = dio ??
+  OneDriveGraphClient(
+    this._auth,
+    this._currentUserSub, {
+    Dio? dio,
+  }) : _dio = dio ??
             Dio(BaseOptions(
               baseUrl: 'https://graph.microsoft.com/v1.0',
               responseType: ResponseType.json,
@@ -63,24 +82,58 @@ class OneDriveGraphClient {
   }
 
   final OneDriveAuth _auth;
+  final CurrentUserSubResolver _currentUserSub;
   final Dio _dio;
 
+  /// Top of the Microsoft Graph "special app folder" addressing scheme.
+  /// The `:` is the delimiter between the special-folder selector and
+  /// the relative path that follows; per-call helpers below append the
+  /// rest. Kept as a single constant so the legacy + user-scoped paths
+  /// stay textually consistent.
   static const _approot = '/me/drive/special/approot';
+
+  // ---- Per-user path builders ----
+
+  /// Builds a path of the form
+  ///   `/me/drive/special/approot:/users/{sub}/{rel}[:/action]`
+  /// for the currently-signed-in Hmm user. Throws
+  /// [OneDriveGraphException] (401) if no user is signed in — callers
+  /// must surface this as an "auth" sync error rather than fall through
+  /// to an unscoped path.
+  Future<String> _userPath(String relative, {String? action}) async {
+    final sub = await _currentUserSub();
+    if (sub == null || sub.isEmpty) {
+      throw const OneDriveGraphException(
+        statusCode: 401,
+        message:
+            'Cannot sync to OneDrive: no authenticated Hmm user (sub claim '
+            'missing). Sign back in to the app and retry.',
+      );
+    }
+    // URL-encode the sub even though current IDP issues hex-only claims —
+    // a future change to UUID-with-dashes or anything else would otherwise
+    // silently traverse outside the intended namespace.
+    final safeSub = Uri.encodeComponent(sub);
+    final actionSuffix = action != null ? ':/$action' : '';
+    return '$_approot:/users/$safeSub/$relative$actionSuffix';
+  }
 
   // ---- Manifest ----
 
-  /// Returns the remote manifest, or `null` if none exists yet (fresh app
-  /// folder).
+  /// Returns the remote manifest for the current user, or `null` if none
+  /// exists yet (fresh per-user folder OR not-yet-migrated install).
   Future<SyncManifest?> getManifest() async {
-    final resp = await _dio.get<Map<String, dynamic>>('$_approot:/manifest.json:/content');
+    final path = await _userPath('manifest.json', action: 'content');
+    final resp = await _dio.get<Map<String, dynamic>>(path);
     if (resp.statusCode == 404) return null;
     _throwIfBad(resp);
     return _decodeManifest(resp.data!);
   }
 
   Future<void> putManifest(SyncManifest manifest) async {
+    final path = await _userPath('manifest.json', action: 'content');
     final resp = await _dio.put(
-      '$_approot:/manifest.json:/content',
+      path,
       data: _encodeManifest(manifest),
       options: Options(contentType: Headers.jsonContentType),
     );
@@ -90,17 +143,17 @@ class OneDriveGraphClient {
   // ---- Notes ----
 
   Future<Map<String, dynamic>?> getNoteBlob(String id) async {
-    final resp = await _dio.get<Map<String, dynamic>>(
-      '$_approot:/notes/$id.json:/content',
-    );
+    final path = await _userPath('notes/$id.json', action: 'content');
+    final resp = await _dio.get<Map<String, dynamic>>(path);
     if (resp.statusCode == 404) return null;
     _throwIfBad(resp);
     return resp.data;
   }
 
   Future<void> putNoteBlob(String id, Map<String, dynamic> body) async {
+    final path = await _userPath('notes/$id.json', action: 'content');
     final resp = await _dio.put(
-      '$_approot:/notes/$id.json:/content',
+      path,
       data: body,
       options: Options(contentType: Headers.jsonContentType),
     );
@@ -108,7 +161,8 @@ class OneDriveGraphClient {
   }
 
   Future<void> deleteNoteBlob(String id) async {
-    final resp = await _dio.delete<void>('$_approot:/notes/$id.json');
+    final path = await _userPath('notes/$id.json');
+    final resp = await _dio.delete<void>(path);
     if (resp.statusCode == 404) return; // Already gone — GC tolerates it.
     _throwIfBad(resp);
   }
@@ -117,6 +171,70 @@ class OneDriveGraphClient {
   // cloudStorage replicates bytes via the OS-level OneDrive client
   // (the vault root lives inside the user's OneDrive folder); we no
   // longer need Graph API endpoints for individual attachment files.
+
+  // ---- Legacy (pre per-user) data access for one-time migration ----
+  //
+  // These read the OLD unscoped paths so the orchestrator can copy them
+  // into the current user's subtree on first post-upgrade sync. After
+  // the migration marker is written they're never called again. None of
+  // these write back to the legacy paths — legacy data is left in place
+  // as a rollback safety net.
+
+  /// Manifest from the legacy unscoped path (`approot/manifest.json`).
+  Future<SyncManifest?> getLegacyManifest() async {
+    final resp = await _dio
+        .get<Map<String, dynamic>>('$_approot:/manifest.json:/content');
+    if (resp.statusCode == 404) return null;
+    _throwIfBad(resp);
+    return _decodeManifest(resp.data!);
+  }
+
+  /// Note body from the legacy unscoped path (`approot/notes/{id}.json`).
+  Future<Map<String, dynamic>?> getLegacyNoteBlob(String id) async {
+    final resp = await _dio
+        .get<Map<String, dynamic>>('$_approot:/notes/$id.json:/content');
+    if (resp.statusCode == 404) return null;
+    _throwIfBad(resp);
+    return resp.data;
+  }
+
+  // ---- Legacy-migration marker ----
+  //
+  // A single JSON file at `approot/users/.legacy_migrated.json` marks
+  // that migration has been attempted globally for this Microsoft
+  // account. Single marker (not per-user) because only one user can
+  // "own" the pre-upgrade single-user data — once migration runs, every
+  // other Hmm user signing in on the same Microsoft account starts with
+  // a clean per-user subtree.
+
+  Future<bool> hasLegacyMigrationMarker() async {
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '$_approot:/users/.legacy_migrated.json:/content',
+    );
+    if (resp.statusCode == 404) return false;
+    _throwIfBad(resp);
+    return true;
+  }
+
+  /// Writes the marker with audit info (when, for which sub, how many
+  /// note files were copied). Body is intentionally tiny — this is a
+  /// flag, not a journal.
+  Future<void> writeLegacyMigrationMarker({
+    required String forSub,
+    required int copiedNoteCount,
+  }) async {
+    final resp = await _dio.put(
+      '$_approot:/users/.legacy_migrated.json:/content',
+      data: {
+        'migrated_at': DateTime.now().toUtc().toIso8601String(),
+        'for_sub': forSub,
+        'copied_note_count': copiedNoteCount,
+        '_v': 1,
+      },
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    _throwIfBad(resp);
+  }
 
   // ---- Helpers ----
 
@@ -176,5 +294,9 @@ class OneDriveGraphClient {
 }
 
 final oneDriveGraphClientProvider = Provider<OneDriveGraphClient>((ref) {
-  return OneDriveGraphClient(ref.watch(oneDriveAuthProvider));
+  final tokenService = ref.watch(idpTokenServiceProvider);
+  return OneDriveGraphClient(
+    ref.watch(oneDriveAuthProvider),
+    () async => (await tokenService.getStoredClaims())?['sub'] as String?,
+  );
 });

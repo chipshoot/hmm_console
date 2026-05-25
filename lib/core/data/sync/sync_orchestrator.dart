@@ -60,7 +60,32 @@ class SyncOrchestrator {
     int pulledNotes = 0;
     int pushedNotes = 0;
 
-    // -------- 0. Snapshot local deltas BEFORE pull --------
+    // -------- 0a. Migrate legacy OneDrive layout if needed --------
+    // OneDrive used to write notes at `approot/notes/{id}.json` (single
+    // shared path for the Microsoft account). After the per-user-isolation
+    // change the path is `approot/users/{sub}/notes/{id}.json` — so on
+    // first sync after upgrade, the user's pre-existing data would be
+    // invisible at the new path. migrateLegacyIfNeeded() copies it into
+    // the current user's subtree and writes a marker so it never runs
+    // again. Marker check is one HTTP call when the marker exists
+    // (cheap). Cast is honest: this is a OneDrive-specific concern that
+    // doesn't belong on the abstract CloudSyncProvider interface.
+    if (p is OneDriveSyncProvider) {
+      try {
+        await p.migrateLegacyIfNeeded();
+      } catch (e) {
+        // Migration failure shouldn't block a regular sync — log it as
+        // an error in the result but continue. Worst case: the user has
+        // to re-import legacy data manually; the live sync still works.
+        errors.add(SyncError(
+          recordType: 'manifest',
+          recordId: 'legacy-migration',
+          message: 'Legacy OneDrive migration failed (continuing): $e',
+        ));
+      }
+    }
+
+    // -------- 0b. Snapshot local deltas BEFORE pull --------
     // Avoids re-uploading rows that the pull is about to overwrite.
     final cursor = await _meta.getLastPushedAt(p.providerId) ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
