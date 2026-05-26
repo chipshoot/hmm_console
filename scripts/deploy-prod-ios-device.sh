@@ -32,20 +32,34 @@ flutter build ios --release \
   --dart-define=API_ENV=production \
   --dart-define=ONEDRIVE_CLIENT_ID="$ONEDRIVE_CLIENT_ID"
 
-# Pick the first paired + connected iPhone. devicectl's JSON schema is
-# `{"result":{"devices":[{...}]}}` with a `connectionProperties.pairingState`
-# of `paired` and `connectionProperties.tunnelState` of `connected` when the
-# phone is reachable. Falls back to a clear error so the user knows what to
-# fix (cable / trust / Xcode prep) instead of staring at a Python traceback.
-DEVICE_ID=$(xcrun devicectl list devices --json-output - 2>/dev/null | \
-  python3 -c "
+# Pick the first paired iPhone. Two `xcrun devicectl` quirks to navigate:
+#
+#   1. `--json-output -` does NOT route JSON to stdout (despite the
+#      manpage hinting that `-` is the stdout sentinel). Verified on
+#      macOS Tahoe + Xcode 17: it silently emits the human-readable
+#      table to stdout and writes nothing. Route through a temp file.
+#
+#   2. `connectionProperties.tunnelState` is `"disconnected"` for a
+#      healthy idle device sitting on USB and only flips to
+#      `"connected"` mid-install. Don't gate on it. The right readiness
+#      signal is `pairingState == "paired"` alone, optionally combined
+#      with `hardwareProperties.deviceType == "iPhone"` (so a paired
+#      iPad on the same Mac doesn't get picked).
+DEVICE_JSON=$(mktemp /tmp/devicectl-XXXXXX.json)
+trap 'rm -f "$DEVICE_JSON"' EXIT
+xcrun devicectl list devices --json-output "$DEVICE_JSON" >/dev/null 2>&1 || true
+
+DEVICE_ID=$(python3 -c "
 import json, sys
-data = json.load(sys.stdin)
+try:
+    with open('$DEVICE_JSON') as f:
+        data = json.load(f)
+except (OSError, json.JSONDecodeError):
+    sys.exit(1)
 for d in data.get('result', {}).get('devices', []):
     conn = d.get('connectionProperties', {}) or {}
-    paired    = conn.get('pairingState')  == 'paired'
-    reachable = conn.get('tunnelState')   == 'connected'
-    if paired and reachable:
+    hw   = d.get('hardwareProperties', {}) or {}
+    if conn.get('pairingState') == 'paired' and hw.get('deviceType') == 'iPhone':
         print(d['identifier'])
         sys.exit(0)
 sys.exit(1)
@@ -53,7 +67,7 @@ sys.exit(1)
 
 if [ -z "$DEVICE_ID" ]; then
   echo ""
-  echo "ERROR: No connected + paired iPhone found via xcrun devicectl."
+  echo "ERROR: No paired iPhone found via xcrun devicectl."
   echo "  - Cable plugged in?"
   echo "  - Phone unlocked + 'Trust this computer' accepted?"
   echo "  - Xcode → Devices and Simulators → your phone shows up clean?"
