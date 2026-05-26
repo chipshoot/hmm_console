@@ -85,6 +85,25 @@ adapter = DioAdapter(dio: dio);
 
 Will hit the same trap when writing Phase B's `sync_controller_test.dart` if it instantiates a real graph client. Heads-up captured here so the next session doesn't lose time on it.
 
+## 2026-05-25 — Sync push is cursor-only, so cursor drift silently loses notes
+
+**Reported symptom (user):** "Click Sync Now. Only the gas log I just updated lands in OneDrive. The automobile note and the settings (default units, etc.) are NOT in the cloud — and the cloud doesn't contain them at all."
+
+**Root cause (note side — actionable):**
+
+`SyncOrchestrator._collectChangedNotes(cursor)` is a pure filter on `lastModifiedDate > cursor`. Once `cursor` advances past a row's mtime, that row is silently never pushed again — even if it's missing from the remote manifest. There's no self-healing fallback. Combined with Phase A's per-user-path migration (which copied only what was in the *legacy* manifest into `users/{sub}/`) and any in-flight failed pushes that nevertheless advanced the cursor, this turns into "local has the data, cloud doesn't, no error surfaces, user assumes it's a one-off and re-taps Sync — but Sync only re-pushes what's *changed*, not what's *missing*."
+
+**Fix shape (Phase D.1):** after pulling the remote manifest, additively push any local note whose UUID is NOT present in `remote.notes`. Asymmetric to the pull leg's LWW (which only handles "remote has it, local stale-or-missing"). Self-healing — picks up anything cursor-skipping left behind.
+
+**Out-of-scope sister bug (Phase D.2 — bigger):**
+
+Settings (default units, network policy, locale, theme, DataMode, etc.) live in `SharedPreferences` and have **no sync path at all**. The orchestrator only knows about the `notes` table. So "settings don't sync" is not a regression — it's a feature gap that's been there since the cloudStorage tier shipped. Logged as a separate task (D.2) because the right design (serialize SharedPreferences keys → a `settings.json` blob in the user subtree, with explicit allow-list of syncable keys + conflict-resolution policy) is its own piece of work.
+
+**Why this took a while to surface:**
+- Single-user single-device → no symptom; everything's already where you put it.
+- Two devices on the same Hmm user → the LWW pull side covers the common case (anything in cloud gets to both devices).
+- Only the corner cases — cursor drift, post-Phase-A migration gaps, a transient push failure that still bumps the cursor — hit it.
+
 ## 2026-05-24 — `_approot` segment-joining subtlety (Phase A)
 
 Microsoft Graph's "address an item under a special folder" syntax is:

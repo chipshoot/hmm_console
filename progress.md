@@ -2,6 +2,18 @@
 
 Newest entries at the top.
 
+## 2026-05-25 — Phase D.1: self-healing push for notes missing from remote
+
+- User-reported bug: "Sync Now only pushes the gas log I updated; the automobile note never reaches OneDrive even though it's in the local DB." Logged + analyzed in `findings.md` (same date).
+- Two distinct bugs surfaced from one symptom:
+  - **D.1** (this commit): cursor-drift in the note push leg. `_collectChangedNotes` filters strictly on `mtime > cursor`; any note whose mtime fell below the cursor after a prior sync (regardless of why) gets silently skipped forever.
+  - **D.2** (deferred): settings live in `SharedPreferences`, not the DB. They've never had a sync path. Scoped as a separate task in `task_plan.md`.
+- Fix: after pulling the remote manifest, additively push any local note whose UUID is NOT in `remote.notes`. Self-healing — asymmetric to the pull leg's LWW (which only handles "remote has it, local stale-or-missing"). New `_collectMissingFromRemote({remoteUuids, alreadyQueued})` helper, merged into the existing push queue.
+- Safe placement: AFTER the manifest pull (need `remote` to diff against), BEFORE the body-pull loop (no concern about overwriting just-pulled content because the body-pull only touches notes that ARE in the remote manifest — the disjoint set we're collecting is untouched by pull).
+- 4 new regression tests in `test/core/data/sync/sync_orchestrator_missing_from_remote_test.dart` — first orchestrator-level tests in the codebase. Includes a `_FakeCloudSyncProvider` that captures pushes for assertion.
+- Full suite **536 / 536** (+4 from this fix, no regressions). Lint clean.
+- Branch `fix/sync-push-missing-from-remote` off main.
+
 ## 2026-05-24 — Phase C implementation complete (C.10 manual verification pending)
 
 - Branch `feat/wifi-only-sync` stacked on `feat/auto-sync-controller`.

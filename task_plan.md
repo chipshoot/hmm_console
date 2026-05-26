@@ -130,6 +130,39 @@ A → B → C, in that order:
 
 **Low** — bolted on after auto-sync exists. Only edge case: connectivity_plus's behavior on iOS simulator (may always report WiFi) — handle in tests via the connectivity fake.
 
+## Phase D — Sync gaps (post-A/B/C bug reports)
+
+**Owner:** TBD · **Branch:** `fix/sync-push-missing-from-remote` (D.1 only) · **Status:** D.1 in progress, D.2 deferred
+
+User reported on 2026-05-25 that "Sync Now only pushes changed gas logs — the automobile note never makes it to the cloud, and the settings (default units, etc.) are missing entirely." Two distinct bugs sharing one symptom. See `findings.md` for the full diagnosis.
+
+### D.1 — Self-healing push for notes missing from remote manifest
+
+**Bug:** `SyncOrchestrator._collectChangedNotes(cursor)` is a pure filter on `mtime > cursor`. Cursor drift (Phase A migration timing, failed pushes that still advance the cursor, etc.) silently loses local notes — they never get re-pushed.
+
+**Fix:** after pulling the remote manifest, also push any local note whose UUID is NOT in `remote.notes`. Self-healing — picks up anything cursor-skipping left behind.
+
+Tasks:
+- [ ] **D.1.1** Refactor `_collectChangedNotes` to accept the pulled `remote` manifest + take the manifest-diff into account, OR keep that method as-is and add a sibling `_collectMissingFromRemote(remote)` that merges into the same push queue
+- [ ] **D.1.2** Move the push-collection call to AFTER the manifest pull (so we have the remote set to diff against) — but BEFORE pulling note bodies (so we don't push back what we're about to overwrite via LWW). Verify the existing ordering invariant
+- [ ] **D.1.3** Add regression test: setUp DB with a note whose mtime < cursor + an empty remote manifest → assert it gets pushed
+- [ ] **D.1.4** Add regression test: same note but remote manifest DOES contain it → assert it does NOT get re-pushed
+- [ ] **D.1.5** Add regression test: note with mtime < cursor, remote manifest has it deleted=true, local is alive → don't double-push (LWW still applies); local will get tombstoned on pull instead
+- [ ] **D.1.6** Manual smoke test on iOS sim: create automobile, sync, manually delete the `users/{sub}/notes/{auto-uuid}.json` file in OneDrive via Graph Explorer, sync again → automobile should reappear
+
+### D.2 — Settings sync (default units, locale, network policy, etc.) — DEFERRED
+
+**Bug:** settings live in `SharedPreferences`, not in the `notes` table. `SyncOrchestrator` only knows about notes. So no settings ever travel to the cloud. Has been the case since cloudStorage tier shipped.
+
+**Fix shape (when picked up):** serialize a whitelisted set of SharedPreferences keys to a `settings.json` blob, push/pull it as a sibling to `manifest.json` in the user subtree, with explicit conflict-resolution policy.
+
+Tasks (will be expanded when this is picked up):
+- [ ] **D.2.1** Decide which settings should sync (default units yes, theme yes, DataMode probably no, vault path definitely no, …)
+- [ ] **D.2.2** Add a `SyncableSettings` value object + serializer
+- [ ] **D.2.3** Add push/pull leg to orchestrator for settings (separate from notes — different cadence + conflict semantics)
+- [ ] **D.2.4** Tests
+- [ ] **D.2.5** Manual smoke test
+
 ## Scope summary
 
 | Phase | New files | Modified files | Approx LOC (prod + test) | Risk |

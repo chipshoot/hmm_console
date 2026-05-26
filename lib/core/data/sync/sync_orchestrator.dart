@@ -106,6 +106,26 @@ class SyncOrchestrator {
       );
     }
 
+    // -------- 1b. Backfill push queue with notes missing from remote --------
+    // Self-healing patch for cursor drift: any local note whose UUID is
+    // NOT present in the remote manifest gets added to the push queue,
+    // independent of `lastModifiedDate > cursor`. Catches notes that
+    // were created/modified between a successful prior sync (cursor
+    // advanced) and a subsequent failed-then-retry sync that never
+    // re-collected them. See `findings.md` 2026-05-25.
+    //
+    // Safe to do AFTER the manifest pull and BEFORE the body-pull loop
+    // because the body-pull only touches notes that ARE in the remote
+    // manifest — by definition we're collecting the disjoint set, so
+    // there's no concern about overwriting just-pulled content.
+    final remoteUuids =
+        remote?.notes.map((e) => e.id).toSet() ?? const <String>{};
+    final missingFromRemote = await _collectMissingFromRemote(
+      remoteUuids: remoteUuids,
+      alreadyQueued: localNoteBlobs.map((b) => b.id).toSet(),
+    );
+    localNoteBlobs.addAll(missingFromRemote);
+
     // Queue of (childLocalId, parentUuid) for pass 2 resolution.
     final pendingParents = <({int childId, String parentUuid})>[];
 
@@ -352,6 +372,62 @@ class SyncOrchestrator {
       blobs.add(_noteRowToBlob(n, catalogNames, parentUuids));
     }
     return blobs;
+  }
+
+  /// Self-healing fallback for the cursor-drift bug (`findings.md`
+  /// 2026-05-25). Iterates every local non-deleted note and returns
+  /// blobs for the ones whose UUID is NOT in [remoteUuids] AND NOT
+  /// already queued in [alreadyQueued] — i.e., the disjoint set that
+  /// `_collectChangedNotes` would silently skip because their mtime
+  /// already fell below the cursor.
+  ///
+  /// Deleted-locally + missing-from-remote is intentionally INCLUDED:
+  /// pushing the tombstone propagates the deletion to other devices
+  /// (and matches what `_buildManifest` already does — it serialises
+  /// tombstones into the outgoing manifest).
+  Future<List<NoteBlob>> _collectMissingFromRemote({
+    required Set<String> remoteUuids,
+    required Set<String> alreadyQueued,
+  }) async {
+    final allRows = await _db.select(_db.notes).get();
+    final missing = <Note>[];
+    for (final n in allRows) {
+      final uuid = n.uuid;
+      if (uuid == null) continue;
+      if (remoteUuids.contains(uuid)) continue;
+      if (alreadyQueued.contains(uuid)) continue;
+      missing.add(n);
+    }
+    if (missing.isEmpty) return const [];
+
+    // Same catalog/parent-uuid batch resolution as
+    // `_collectChangedNotes`. Factored out so this stays readable; if
+    // we end up with a third caller it's worth extracting properly.
+    final catalogIds = missing.map((r) => r.catalogId).whereType<int>().toSet();
+    final parentIds = missing.map((r) => r.parentNoteId).whereType<int>().toSet();
+
+    final catalogNames = <int, String>{};
+    if (catalogIds.isNotEmpty) {
+      final cats = await (_db.select(_db.noteCatalogs)
+            ..where((c) => c.id.isIn(catalogIds)))
+          .get();
+      for (final c in cats) {
+        catalogNames[c.id] = c.name;
+      }
+    }
+
+    final parentUuids = <int, String>{};
+    if (parentIds.isNotEmpty) {
+      final parents = await (_db.select(_db.notes)
+            ..where((n) => n.id.isIn(parentIds)))
+          .get();
+      for (final parent in parents) {
+        final u = parent.uuid;
+        if (u != null) parentUuids[parent.id] = u;
+      }
+    }
+
+    return [for (final n in missing) _noteRowToBlob(n, catalogNames, parentUuids)];
   }
 
   NoteBlob _noteRowToBlob(
