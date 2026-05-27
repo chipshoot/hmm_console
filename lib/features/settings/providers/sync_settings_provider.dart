@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/syncable_settings_repository.dart';
 import '../domain/sync_settings.dart';
+import 'settings_bus_provider.dart';
 
 /// Mirrors the pattern in `lib/core/data/data_mode.dart`'s
 /// [DataModeNotifier]: synchronous `build()` returns the default so the
@@ -13,6 +15,10 @@ class SyncSettingsNotifier extends Notifier<SyncSettings> {
 
   @override
   SyncSettings build() {
+    // Same settings-bus subscription as the other settings notifiers
+    // so a remotely-pulled SyncableSettings bundle propagates into the
+    // in-memory state without needing an app restart.
+    ref.watch(settingsBusProvider);
     _loadFromPrefs();
     // Default per decision C2: WiFi only. Conservative — matches the
     // OneDrive desktop client's default behavior and keeps a metered
@@ -43,6 +49,7 @@ class SyncSettingsNotifier extends Notifier<SyncSettings> {
     state = state.copyWith(networkPolicy: policy);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_networkPolicyKey, policy.name);
+    await ref.read(syncableSettingsRepositoryProvider).bumpLastModified();
   }
 }
 

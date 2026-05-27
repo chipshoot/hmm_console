@@ -40,6 +40,26 @@ abstract class CloudSyncProvider {
   /// Upload the JSON body of one note (creates or overwrites).
   Future<void> pushNoteBody(String id, Map<String, dynamic> body);
 
+  // ---- Settings ----
+  //
+  // The user's preference bundle (units, locale, network policy)
+  // travels as a single JSON blob sibling to the manifest, so it
+  // syncs alongside notes via the same `syncNow()` pass. See Phase
+  // D.2 in `task_plan.md`.
+  //
+  // Default impls return null / no-op so providers that don't speak
+  // settings (e.g., the cloudApi `ApiSyncProvider` for now) can stay
+  // untouched. The OneDrive impl actually writes to
+  // `users/{sub}/settings.json`.
+
+  /// Fetch the raw settings blob (the SyncableSettings JSON map), or
+  /// null when the cloud hasn't been seeded with settings yet.
+  Future<Map<String, dynamic>?> pullSettings() async => null;
+
+  /// Push the settings blob. No-op default so non-OneDrive providers
+  /// remain transparent until they're ready to implement this.
+  Future<void> pushSettings(Map<String, dynamic> body) async {}
+
   // Attachment byte transfer was removed in Phase 11.5 (2026-05-17).
   // Attachment refs now travel inside the note body (via the
   // `Notes.attachments` JSON column); attachment bytes travel

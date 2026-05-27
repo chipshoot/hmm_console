@@ -2,6 +2,23 @@
 
 Newest entries at the top.
 
+## 2026-05-26 — Phase D.2: settings sync (default units, locale, network policy)
+
+- Branch `feat/settings-sync` off main.
+- Closes the second half of the user bug report from 2026-05-25 ("settings don't sync").
+- Architecture:
+  - `SyncableSettings` value object (`lib/features/settings/domain/syncable_settings.dart`) aggregates gas-log units + currency + showRegistration, sync network policy, UI locale, and a `lastModified` stamp. JSON-roundtrippable.
+  - `SyncableSettingsRepository` (`lib/features/settings/data/syncable_settings_repository.dart`) reads/writes the bundle against the SAME SharedPreferences keys the per-feature notifiers already own (`gas_log_settings`, `sync.network_policy`, `app_locale`), plus a new `settings.last_modified` key that every setter bumps.
+  - `SettingsBus` (`lib/features/settings/providers/settings_bus_provider.dart`) — counter-style notifier the orchestrator bumps after a remote pull-apply. Per-feature notifiers `ref.watch` it in `build()`, so a pulled bundle propagates into in-memory state without an app restart.
+- `CloudSyncProvider` interface gained `pullSettings()` / `pushSettings(body)`. OneDrive impl routes through the existing graph client (new `getSettings` / `putSettings` methods, target `users/{sub}/settings.json`). The cloudApi (`ApiSyncProvider`) stubs them as no-ops until a `/v1/settings` endpoint lands on the .NET side.
+- `SyncOrchestrator.syncNow()` gets a new step 0b before the note legs. LWW branches: cloud empty + local at epoch → no-op (don't seed defaults); cloud empty + local has changes → push; cloud newer → apply to prefs + fire `onSettingsApplied`; local newer → push; equal → no-op.
+- Per-feature notifier setters (`GasLogSettingsNotifier.update`, `SyncSettingsNotifier.setNetworkPolicy`, `LocaleNotifier.setLocale`) all call `repo.bumpLastModified()` after writing their slice. Their `build()` methods `ref.watch(settingsBusProvider)` so a remote-apply triggers reload.
+- 13 new tests, all green:
+  - 7 `SyncableSettingsRepository` (defaults, hydrate from existing prefs keys, garbage-blob tolerance, null-locale apply, bumpLastModified)
+  - 6 orchestrator LWW branches (fresh+empty=no-op, local-new+cloud-empty=push, cloud-newer=apply+bump, local-newer=push, equal=no-op, pull-throws=non-fatal SyncError)
+- Full suite **549 / 549** (+13 from this fix, no regressions). Lint clean.
+- D.2.5 (cross-device manual smoke) is the only remaining task — needs two real devices, can be done before or after merge.
+
 ## 2026-05-25 — Phase D.1: self-healing push for notes missing from remote
 
 - User-reported bug: "Sync Now only pushes the gas log I updated; the automobile note never reaches OneDrive even though it's in the local DB." Logged + analyzed in `findings.md` (same date).

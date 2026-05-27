@@ -150,18 +150,20 @@ Tasks:
 - [ ] **D.1.5** Add regression test: note with mtime < cursor, remote manifest has it deleted=true, local is alive → don't double-push (LWW still applies); local will get tombstoned on pull instead
 - [ ] **D.1.6** Manual smoke test on iOS sim: create automobile, sync, manually delete the `users/{sub}/notes/{auto-uuid}.json` file in OneDrive via Graph Explorer, sync again → automobile should reappear
 
-### D.2 — Settings sync (default units, locale, network policy, etc.) — DEFERRED
+### D.2 — Settings sync (default units, locale, network policy, etc.)
 
 **Bug:** settings live in `SharedPreferences`, not in the `notes` table. `SyncOrchestrator` only knows about notes. So no settings ever travel to the cloud. Has been the case since cloudStorage tier shipped.
 
-**Fix shape (when picked up):** serialize a whitelisted set of SharedPreferences keys to a `settings.json` blob, push/pull it as a sibling to `manifest.json` in the user subtree, with explicit conflict-resolution policy.
+**Fix:** new `SyncableSettings` value object aggregating gas-log units + currency + showRegistration toggle, sync network policy, and UI locale. Persists as `users/{sub}/settings.json` sibling to the manifest. Whole-bundle LWW keyed by `lastModified`. Per-feature notifier setters bump the stamp; a `SettingsBus` notifier ticks after remote pull-apply so the in-memory state of every settings notifier reloads from prefs without an app restart.
 
-Tasks (will be expanded when this is picked up):
-- [ ] **D.2.1** Decide which settings should sync (default units yes, theme yes, DataMode probably no, vault path definitely no, …)
-- [ ] **D.2.2** Add a `SyncableSettings` value object + serializer
-- [ ] **D.2.3** Add push/pull leg to orchestrator for settings (separate from notes — different cadence + conflict semantics)
-- [ ] **D.2.4** Tests
-- [ ] **D.2.5** Manual smoke test
+Excluded from sync (intentional, device-specific): `DataMode`, `CloudProvider`, vault folder path, DB path, auth tokens, sync cursor + device id. Documented in `SyncableSettings`'s doc comment.
+
+Tasks:
+- [x] **D.2.1** Whitelist decided (see exclusion list above)
+- [x] **D.2.2** `SyncableSettings` value object + JSON serializer + defaults factory (`lib/features/settings/domain/syncable_settings.dart`)
+- [x] **D.2.3** Orchestrator push/pull leg via new `CloudSyncProvider.pullSettings()` / `pushSettings()` (defaulted no-op for the cloudApi tier — server endpoint doesn't exist yet). LWW branches: cloud empty + local at epoch → no-op; cloud empty + local has changes → push; cloud newer → apply + bump bus; local newer → push; equal → no-op.
+- [x] **D.2.4** Tests: 7 `SyncableSettingsRepository` round-trip + 6 orchestrator LWW branches. Full suite 549/549 passing.
+- [ ] **D.2.5** Manual smoke test: change a setting (e.g., distance unit to km) on device 1, Sync Now, verify the bundle appears at `users/{sub}/settings.json` in Graph Explorer. On device 2, Sync Now, verify the unit flips to km in the Settings screen without an app restart.
 
 ## Scope summary
 

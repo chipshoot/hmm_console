@@ -241,4 +241,12 @@ class _FakeCloudSyncProvider implements CloudSyncProvider {
   Future<void> pushNoteBody(String id, Map<String, dynamic> body) async {
     pushedBodies[id] = body;
   }
+
+  // Settings (Phase D.2) — these tests don't exercise the settings
+  // leg, so just stub them out.
+  @override
+  Future<Map<String, dynamic>?> pullSettings() async => null;
+
+  @override
+  Future<void> pushSettings(Map<String, dynamic> body) async {}
 }

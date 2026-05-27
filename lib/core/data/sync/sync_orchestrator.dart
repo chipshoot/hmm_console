@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../features/settings/data/syncable_settings_repository.dart';
+import '../../../features/settings/domain/syncable_settings.dart';
+import '../../../features/settings/providers/settings_bus_provider.dart';
 import '../data_mode.dart';
 import '../local/database.dart';
 import 'api_sync_provider.dart';
@@ -30,14 +33,26 @@ class SyncOrchestrator {
     required this.provider,
     required HmmDatabase db,
     required SyncMetaRepository meta,
+    SyncableSettingsRepository? settingsRepo,
+    void Function()? onSettingsApplied,
   })  : _db = db,
-        _meta = meta;
+        _meta = meta,
+        _settingsRepo = settingsRepo ?? SyncableSettingsRepository(),
+        _onSettingsApplied = onSettingsApplied;
 
   /// Null when the current DataMode is Local — no sync.
   final CloudSyncProvider? provider;
 
   final HmmDatabase _db;
   final SyncMetaRepository _meta;
+  final SyncableSettingsRepository _settingsRepo;
+
+  /// Fires after a remote settings bundle is applied to local prefs.
+  /// In production this calls `SettingsBus.bump()` so the Riverpod
+  /// settings notifiers reload from prefs. Optional so tests +
+  /// settings-unaware callers (the local-only tier) don't have to
+  /// supply a callback.
+  final void Function()? _onSettingsApplied;
 
   bool get isActive => provider != null;
 
@@ -85,7 +100,23 @@ class SyncOrchestrator {
       }
     }
 
-    // -------- 0b. Snapshot local deltas BEFORE pull --------
+    // -------- 0b. Settings (Phase D.2) --------
+    // SyncableSettings is a single sibling-file at
+    // users/{sub}/settings.json. LWW on the whole bundle keyed by
+    // `lastModified`. Independent of note sync — runs first so a
+    // settings change can land even if the note legs throw later in
+    // the algorithm.
+    try {
+      await _syncSettings(p, errors);
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'manifest',
+        recordId: 'settings',
+        message: 'Settings sync threw: $e',
+      ));
+    }
+
+    // -------- 0c. Snapshot local deltas BEFORE pull --------
     // Avoids re-uploading rows that the pull is about to overwrite.
     final cursor = await _meta.getLastPushedAt(p.providerId) ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
@@ -333,6 +364,75 @@ class SyncOrchestrator {
         );
   }
 
+  // ==================== SETTINGS sync (Phase D.2) ====================
+
+  /// Pull-then-push the user's settings bundle with whole-bundle LWW
+  /// keyed by `lastModified`. Path: `users/{sub}/settings.json`.
+  ///
+  /// Three outcomes, no errors:
+  ///   - Cloud has nothing → push local (seed)
+  ///   - Cloud has a newer bundle → apply to local prefs + fire
+  ///     `_onSettingsApplied` so the UI reloads
+  ///   - Local has a newer bundle → push local (overwrites cloud)
+  ///   - Both equal → no-op
+  Future<void> _syncSettings(
+    CloudSyncProvider p,
+    List<SyncError> errors,
+  ) async {
+    final localSettings = await _settingsRepo.read();
+
+    Map<String, dynamic>? remoteJson;
+    try {
+      remoteJson = await p.pullSettings();
+    } catch (e) {
+      // Surface as a non-fatal error and continue with notes — pulled
+      // settings can wait until the next sync.
+      errors.add(SyncError(
+        recordType: 'manifest',
+        recordId: 'settings',
+        message: 'Failed to pull settings: $e',
+      ));
+      return;
+    }
+
+    if (remoteJson == null) {
+      // Cloud is empty; seed it with local. Skip if local is itself
+      // still at epoch zero (i.e. fresh install, user hasn't touched
+      // any setting yet) — no point uploading an all-defaults blob.
+      if (localSettings.lastModified == SyncableSettings.epochZero) return;
+      await _pushSettings(p, localSettings, errors);
+      return;
+    }
+
+    final remote = SyncableSettings.fromJson(remoteJson);
+    if (remote.lastModified.isAfter(localSettings.lastModified)) {
+      await _settingsRepo.apply(remote);
+      _onSettingsApplied?.call();
+      return;
+    }
+    if (localSettings.lastModified.isAfter(remote.lastModified)) {
+      await _pushSettings(p, localSettings, errors);
+      return;
+    }
+    // Equal — no-op.
+  }
+
+  Future<void> _pushSettings(
+    CloudSyncProvider p,
+    SyncableSettings local,
+    List<SyncError> errors,
+  ) async {
+    try {
+      await p.pushSettings(local.toJson());
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'manifest',
+        recordId: 'settings',
+        message: 'Failed to push settings: $e',
+      ));
+    }
+  }
+
   // ==================== PUSH collection ====================
 
   Future<List<NoteBlob>> _collectChangedNotes(DateTime cursor) async {
@@ -508,5 +608,14 @@ final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
       };
       break;
   }
-  return SyncOrchestrator(provider: provider, db: db, meta: meta);
+  return SyncOrchestrator(
+    provider: provider,
+    db: db,
+    meta: meta,
+    settingsRepo: ref.watch(syncableSettingsRepositoryProvider),
+    // After a pulled settings bundle is applied to prefs, bump the
+    // bus so the per-feature settings notifiers reload from disk and
+    // the UI reflects the new values immediately.
+    onSettingsApplied: () => ref.read(settingsBusProvider.notifier).bump(),
+  );
 });

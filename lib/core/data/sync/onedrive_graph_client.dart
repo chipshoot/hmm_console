@@ -167,6 +167,31 @@ class OneDriveGraphClient {
     _throwIfBad(resp);
   }
 
+  // ---- Settings ----
+
+  /// Fetch the user's settings JSON blob from `users/{sub}/settings.json`,
+  /// or null when the file doesn't exist yet (first sync).
+  Future<Map<String, dynamic>?> getSettings() async {
+    final path = await _userPath('settings.json', action: 'content');
+    final resp = await _dio.get<Map<String, dynamic>>(path);
+    if (resp.statusCode == 404) return null;
+    _throwIfBad(resp);
+    return resp.data;
+  }
+
+  /// Push the user's settings JSON blob to `users/{sub}/settings.json`.
+  /// Single-file LWW — callers (orchestrator) compare timestamps before
+  /// deciding to write.
+  Future<void> putSettings(Map<String, dynamic> body) async {
+    final path = await _userPath('settings.json', action: 'content');
+    final resp = await _dio.put(
+      path,
+      data: body,
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    _throwIfBad(resp);
+  }
+
   // Attachment-byte uploads / downloads were removed in Phase 11.5.
   // cloudStorage replicates bytes via the OS-level OneDrive client
   // (the vault root lives inside the user's OneDrive folder); we no

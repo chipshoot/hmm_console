@@ -381,6 +381,22 @@ class ApiSyncProvider implements CloudSyncProvider {
       'deletedAt': isDeleted ? modifiedRaw : null,
     };
   }
+
+  // ---- Settings (Phase D.2) ----
+  //
+  // The .NET ApiSyncProvider doesn't speak settings yet — the server
+  // has no `/v1/settings` endpoint. Until one lands, settings-sync is
+  // a no-op on the cloudApi tier (the orchestrator's LWW logic treats
+  // "remote returned null" as "cloud has nothing yet, push local").
+  // The OneDrive tier handles settings via the file-blob path.
+
+  @override
+  Future<Map<String, dynamic>?> pullSettings() async => null;
+
+  @override
+  Future<void> pushSettings(Map<String, dynamic> body) async {
+    // Intentional no-op — see comment above.
+  }
 }
 
 /// Riverpod provider for [ApiSyncProvider]. Fresh per container read
