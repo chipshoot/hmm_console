@@ -165,6 +165,22 @@ Tasks:
 - [x] **D.2.4** Tests: 7 `SyncableSettingsRepository` round-trip + 6 orchestrator LWW branches. Full suite 549/549 passing.
 - [ ] **D.2.5** Manual smoke test: change a setting (e.g., distance unit to km) on device 1, Sync Now, verify the bundle appears at `users/{sub}/settings.json` in Graph Explorer. On device 2, Sync Now, verify the unit flips to km in the Settings screen without an app restart.
 
+## Phase E — Onboarding flow (post-D feedback)
+
+**Owner:** TBD · **Branch:** `feat/onboarding-flow` · **Status:** code complete, manual smoke pending
+
+Background: D.1 + D.2 closed the "Sync Now is incomplete" bug, but the user flagged a residual UX gap — a second device joining the cloud tier is too easy to leave on local mode by accident, building up its own data silo + creating semantic duplicates after a later tier switch.
+
+**Approach:** one-shot post-IDP-sign-in screen with two choices: "New to Hmm" (defaults, no cloud) or "I already use Hmm on another device" (guided OneDrive sign-in + immediate Sync Now). NOT a force (we can't reliably detect server-side that a user "uses cloud") but a strong nudge that catches the common case.
+
+Tasks:
+- [x] **E.1** `OnboardingCompletedNotifier` (`Notifier<bool>` backed by SharedPreferences `onboarding_completed` key). Per-install, NOT synced — onboarding is a fresh-install decision, syncing it would re-show on every device which defeats the point.
+- [x] **E.2** `OnboardingScreen` with two-choice RadioGroup + Continue button + "Skip for now" escape hatch (only visible after a failed migration so users are never stranded).
+- [x] **E.3** Router redirect extension: authenticated + !onboardingDone + !onPath → /onboarding; authenticated + onboardingDone + onPath → /. New `/onboarding` GoRoute + `RouterNames.onboarding` enum entry.
+- [x] **E.4** Migrating branch flow: setMode(cloudStorage) → OneDriveAuth.signIn() → SyncController.triggerManualSync() → markCompleted() → context.go('/'). New-user branch: just markCompleted() → '/'. Sync-error path lets user retry OR skip.
+- [x] **E.5** Tests: 4 OnboardingCompletedNotifier (default, hydrate, persist, reset). Full suite **553 / 553**.
+- [ ] **E.6** Manual smoke: install fresh on iOS sim, sign up new user → see onboarding screen with two choices. Pick "New to Hmm" → land on dashboard, DataMode stays local. Restart, clear flag, pick "I already use Hmm" → OneDrive OAuth runs → Sync Now fires → dashboard appears with synced data. Verify retry + skip paths after a forced sync failure.
+
 ## Scope summary
 
 | Phase | New files | Modified files | Approx LOC (prod + test) | Risk |

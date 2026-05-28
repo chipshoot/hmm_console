@@ -4,6 +4,8 @@ import 'package:hmm_console/core/navigation/auth_change_provider.dart';
 import 'package:hmm_console/core/navigation/route_names.dart';
 import 'package:hmm_console/features/auth/presentation/presentation.dart';
 import 'package:hmm_console/features/dashboard/presentation/presentation.dart';
+import 'package:hmm_console/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:hmm_console/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/insurance_policies_screen.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/insurance_policy_form_screen.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/scheduled_service_form_screen.dart';
@@ -30,6 +32,22 @@ final routerConfig = Provider<GoRouter>(
       if (!isAuthenticated && !isAuthPath) {
         return '/auth';
       }
+      // Phase E onboarding gate: authenticated user who hasn't picked
+      // a path yet (new install / migrating from another device) gets
+      // routed to the onboarding screen before they can reach the
+      // dashboard. The screen marks the flag itself and goes home on
+      // either branch.
+      final onboardingDone = ref.watch(onboardingCompletedProvider);
+      final isOnboardingPath = state.fullPath == '/onboarding';
+      if (isAuthenticated && !onboardingDone && !isOnboardingPath) {
+        return '/onboarding';
+      }
+      // Conversely, if the user lands back on /onboarding after it's
+      // done (e.g. via a deep link), bounce them home — the flow is
+      // one-shot.
+      if (isAuthenticated && onboardingDone && isOnboardingPath) {
+        return '/';
+      }
       return null;
     },
     initialLocation: '/',
@@ -55,6 +73,11 @@ final routerConfig = Provider<GoRouter>(
             builder: (context, state) => const ForgotPasswordScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: RouterNames.onboarding.name,
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/automobiles',

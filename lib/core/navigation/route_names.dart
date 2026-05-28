@@ -20,4 +20,5 @@ enum RouterNames {
   gasLogForm,
   gasStationManagement,
   settings,
+  onboarding,
 }

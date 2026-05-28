@@ -2,6 +2,18 @@
 
 Newest entries at the top.
 
+## 2026-05-27 — Phase E: post-sign-in onboarding flow
+
+- Branch `feat/onboarding-flow` off main.
+- Triggered by user feedback after D.1+D.2 merged: "If user is in cloud tier, when he uses second device to login, we should force him to login to cloud and sync data" — to avoid a second device building up a local-only data silo that creates semantic duplicates on a later tier switch.
+- Pushed back gently on the word "force" — we have no reliable server-side signal that a Hmm user "uses cloud tier" (no JWT claim, no IDP column). Implementing true force needs IDP work (Option B). Instead landed Option A: an onboarding screen that asks once, defaults the user toward the right configuration based on their answer.
+- Implementation:
+  - `OnboardingCompletedNotifier` (`Notifier<bool>`) backed by `SharedPreferences` key `onboarding_completed`. Per-install (NOT synced — syncing it would re-show on every device, defeating the point).
+  - `OnboardingScreen` (`lib/features/onboarding/presentation/screens/onboarding_screen.dart`) — two-choice RadioGroup (New to Hmm / I already use Hmm on another device), Continue button. Migrating branch runs the full guided setup: setMode(cloudStorage) → OneDriveAuth.signIn() → SyncController.triggerManualSync() → markCompleted() → context.go('/'). New-user branch just markCompleted() → '/'. Error path on the migrating branch shows the message + a "Skip for now" escape so the user is never stranded.
+  - Router (`router_config.dart`) gains a third redirect condition: authenticated + !onboardingDone + !onOnboardingPath → /onboarding. Conversely, authenticated + onboardingDone + onPath → / (one-shot, prevents loop / deep-link re-entry).
+- 4 new tests in `test/features/onboarding/providers/onboarding_provider_test.dart`. Full suite **553 / 553** (+4 from this branch, no regressions). Lint clean.
+- **E.6 (manual smoke test) is the only remaining task.** Need to install a fresh build on iOS sim, watch the onboarding screen render after sign-up, click through both branches, and verify the redirect doesn't re-fire after completion.
+
 ## 2026-05-26 — Phase D.2: settings sync (default units, locale, network policy)
 
 - Branch `feat/settings-sync` off main.
