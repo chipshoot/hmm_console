@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/data/local/database.dart';
+import '../../../../core/data/vault/vault_gc.dart';
 import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/onedrive_config.dart';
 import '../../../../core/data/sync/sync_controller.dart';
@@ -97,6 +99,81 @@ class SettingsScreen extends ConsumerWidget {
         ),
       );
     }
+  }
+
+  /// Reclaim vault bytes no note references any more (orphans left by
+  /// cancel-after-pick / replace / remove). Filesystem tiers only —
+  /// the entry point is hidden in cloudApi mode. Previews the count
+  /// with a dry-run, confirms, then deletes.
+  Future<void> _cleanUpVault(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final store = await ref.read(vaultStoreProvider.future);
+      final db = ref.read(hmmDatabaseProvider);
+      final gc = VaultGarbageCollector(store);
+      final referenced = await collectReferencedVaultPaths(db);
+      final preview = await gc.sweep(referenced, dryRun: true);
+
+      if (preview.isClean) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('No unused photo files to clean up.')),
+        );
+        return;
+      }
+
+      if (!context.mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Clean up unused photos?'),
+          content: Text(
+            'Found ${preview.deletedCount} unused file'
+            '${preview.deletedCount == 1 ? '' : 's'} '
+            '(${_formatBytes(preview.bytesReclaimed)}) left behind by '
+            'cancelled or replaced photo picks. These are not referenced '
+            'by any vehicle and can be safely deleted.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+
+      // Re-collect in case anything changed while the dialog was open,
+      // then delete for real.
+      final fresh = await collectReferencedVaultPaths(db);
+      final result = await gc.sweep(fresh);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Reclaimed ${result.deletedCount} file'
+            '${result.deletedCount == 1 ? '' : 's'} '
+            '(${_formatBytes(result.bytesReclaimed)}).',
+          ),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Clean-up failed: $e'),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    }
+  }
+
+  static String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Future<void> _signInOneDrive(BuildContext context, WidgetRef ref) async {
@@ -368,6 +445,18 @@ class SettingsScreen extends ConsumerWidget {
                     child: const Text('Reset to Default'),
                   ),
                 ],
+              ),
+            ],
+            // Vault maintenance — reclaim photo bytes orphaned by
+            // cancelled / replaced picks. Filesystem tiers only; in
+            // cloudApi mode the bytes live server-side and there's no
+            // local vault to sweep.
+            if (dataMode != DataMode.cloudApi) ...[
+              GapWidgets.h16,
+              OutlinedButton.icon(
+                onPressed: () => _cleanUpVault(context, ref),
+                icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+                label: const Text('Clean up unused photos'),
               ),
             ],
             GapWidgets.h24,

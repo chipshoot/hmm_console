@@ -62,6 +62,12 @@
 	<string>This app uses your location to find nearby gas stations.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Hmm uses your photo library so you can attach photos to your vehicles and other records.</string>
+	<!-- Phase 19: expose the attachment vault in the iOS Files app so
+	     users can browse / back up their photo bytes directly. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
