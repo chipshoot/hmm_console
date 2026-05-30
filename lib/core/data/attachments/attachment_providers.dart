@@ -25,6 +25,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data_mode.dart';
 import 'picker/image_attachment_picker.dart';
+import 'picker/image_downsizer.dart';
 import 'resolver/attachment_resolver.dart';
 import '../vault/api_vault_store.dart';
 import '../vault/local_vault_store.dart';
@@ -136,5 +137,11 @@ final attachmentResolverProvider =
 final imageAttachmentPickerProvider =
     FutureProvider<IImageAttachmentPicker>((ref) async {
   final store = await ref.watch(vaultStoreProvider.future);
-  return VaultImageAttachmentPicker(vaultStore: store);
+  // Production downsizes on copy via native codecs (handles HEIC,
+  // re-encodes to JPEG). Tests/headless construction default to the
+  // no-op downsizer.
+  return VaultImageAttachmentPicker(
+    vaultStore: store,
+    downsizer: const NativeImageDownsizer(),
+  );
 });

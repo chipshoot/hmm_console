@@ -1,10 +1,13 @@
-// Picker glue: open the platform image picker, copy bytes into the
-// vault, return a VaultRef the caller writes onto the note.
+// Picker glue: open the platform image picker, downsize + copy bytes
+// into the vault, return a VaultRef the caller writes onto the note.
 //
-// v1 always emits VaultRef and copies bytes. Phases 16/17 add the
-// smart-reference shortcuts (PhAssetRef on iOS, CloudFileRef on
-// macOS/Windows) that point at bytes already syncing through iCloud
-// Photos / OneDrive — they layer on top of this entry point.
+// v1 always emits VaultRef and copies bytes (never a link to the
+// originating photo — see the "link vs copy" decision in
+// docs/attachments-design.md "Storage policy"). Before storing, the
+// bytes pass through an [ImageDownsizer] so the vault holds a
+// reasonably-sized JPEG, not the full-resolution original. Phases
+// 16/17 add the smart-reference shortcuts (PhAssetRef on iOS,
+// CloudFileRef on macOS/Windows) on top of this entry point.
 
 import 'dart:typed_data';
 
@@ -15,6 +18,7 @@ import '../../../util/uuid.dart';
 import '../../vault/vault_path.dart';
 import '../../vault/vault_store.dart';
 import '../attachment_ref.dart';
+import 'image_downsizer.dart';
 
 /// Source of an image pick.
 enum AttachmentPickSource { gallery, camera }
@@ -58,10 +62,13 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
   VaultImageAttachmentPicker({
     required this.vaultStore,
     ImagePicker? picker,
-  }) : _picker = picker ?? ImagePicker();
+    ImageDownsizer downsizer = const NoopImageDownsizer(),
+  })  : _picker = picker ?? ImagePicker(),
+        _downsizer = downsizer;
 
   final IVaultStore vaultStore;
   final ImagePicker _picker;
+  final ImageDownsizer _downsizer;
 
   @override
   Future<VaultRef?> pickForNote({
@@ -105,27 +112,36 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
       );
     }
 
-    final contentType = _resolveContentType(originalName, contentTypeHint);
-    if (!_allowedContentTypes.contains(contentType)) {
+    final inputContentType = _resolveContentType(originalName, contentTypeHint);
+    if (!_allowedContentTypes.contains(inputContentType)) {
       throw AttachmentPickerException(
-        'content type "$contentType" not allowed; expected one of '
+        'content type "$inputContentType" not allowed; expected one of '
         '$_allowedContentTypes',
       );
     }
 
-    final ext = _extFor(contentType);
+    // Downsize-on-copy: shrink before we persist. The downsizer may
+    // transcode to JPEG, so the STORED bytes, content type, and
+    // byteSize all come from its result — not the original pick.
+    final downsized =
+        await _downsizer.downsize(bytes, contentType: inputContentType);
+    final storedBytes = downsized.bytes;
+    final storedContentType = downsized.contentType;
+
+    final ext = _extFor(storedContentType);
     final path = vaultRelativePathJoin([
       'attachments',
       'note-$noteId',
       '${generateUuid()}.$ext',
     ]);
-    await vaultStore.putBytes(path, bytes, contentType: contentType);
+    await vaultStore.putBytes(path, storedBytes,
+        contentType: storedContentType);
 
     return VaultRef(
       path: path,
       originalName: originalName.isEmpty ? null : originalName,
-      contentType: contentType,
-      byteSize: bytes.lengthInBytes,
+      contentType: storedContentType,
+      byteSize: storedBytes.lengthInBytes,
     );
   }
 
