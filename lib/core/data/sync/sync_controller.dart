@@ -157,6 +157,11 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
 
   SyncStatus get status => _status;
 
+  /// Whether [start] has registered the lifecycle observer + periodic
+  /// timer for this instance. Exposed so the wiring that re-starts a
+  /// recreated controller (root widget) can be regression-tested.
+  bool get isStarted => _started;
+
   /// Register the binding observer + start the periodic timer. Idempotent
   /// — repeat calls are no-ops. Call from the root widget's
   /// `initState()` once auth has resolved.

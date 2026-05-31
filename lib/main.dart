@@ -61,6 +61,20 @@ class _MainAppState extends ConsumerState<MainApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Auto-sync lifecycle. `syncControllerProvider` watches the sync
+    // orchestrator, so switching DataMode (local ↔ cloudStorage ↔
+    // cloudApi) rebuilds it into a BRAND-NEW SyncController. `initState`
+    // started only the first instance, so without this the recreated
+    // controller never registers its WidgetsBindingObserver or periodic
+    // timer — background + periodic auto-sync silently die after any mode
+    // switch until app restart. Re-start each new instance here.
+    // (`ref.onDispose(controller.stop)` in the provider stops the old
+    // one; `start()` is idempotent; listening also keeps the provider
+    // alive so the recreation is eager rather than lazy.)
+    ref.listen<SyncController>(syncControllerProvider, (previous, next) {
+      next.start();
+    });
+
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
