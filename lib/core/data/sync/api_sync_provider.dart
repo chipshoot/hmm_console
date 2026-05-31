@@ -384,18 +384,30 @@ class ApiSyncProvider implements CloudSyncProvider {
 
   // ---- Settings (Phase D.2) ----
   //
-  // The .NET ApiSyncProvider doesn't speak settings yet — the server
-  // has no `/v1/settings` endpoint. Until one lands, settings-sync is
-  // a no-op on the cloudApi tier (the orchestrator's LWW logic treats
-  // "remote returned null" as "cloud has nothing yet, push local").
-  // The OneDrive tier handles settings via the file-blob path.
+  // Bundle sync against the server's `/v1/profile/settings` endpoint
+  // (Phase P1/P2). The bundle is the same `SyncableSettings` shape the
+  // OneDrive tier file-syncs; the server stores it opaquely and the
+  // orchestrator's step-0b LWW logic drives both legs unchanged. A 204
+  // ("cloud has nothing yet") maps to null → orchestrator seeds local.
 
   @override
-  Future<Map<String, dynamic>?> pullSettings() async => null;
+  Future<Map<String, dynamic>?> pullSettings() async {
+    try {
+      final resp = await _dio.get<dynamic>('/profile/settings');
+      if (resp.statusCode == 204) return null;
+      final data = resp.data;
+      return data is Map<String, dynamic> ? data : null;
+    } on DioException catch (e) {
+      // The server returns 204 (not 404) for absence, but treat a 404
+      // as "nothing stored yet" defensively rather than failing sync.
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
 
   @override
   Future<void> pushSettings(Map<String, dynamic> body) async {
-    // Intentional no-op — see comment above.
+    await _dio.put<void>('/profile/settings', data: body);
   }
 }
 

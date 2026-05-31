@@ -447,6 +447,75 @@ void main() {
       ));
     });
   });
+
+  // ============================================================
+  // settings (Phase P3 — /profile/settings)
+  // ============================================================
+
+  group('settings', () {
+    test('pullSettings 200 returns the bundle map', () async {
+      adapter.onGet(
+        '/profile/settings',
+        (server) => server.reply(200, {
+          'gasLog': <String, dynamic>{},
+          'lastModified': '2026-05-29T18:04:11.000Z',
+          '_v': 1,
+        }),
+      );
+
+      final body = await provider.pullSettings();
+
+      expect(body, isNotNull);
+      expect(body!['_v'], 1);
+      expect(body['lastModified'], '2026-05-29T18:04:11.000Z');
+    });
+
+    test('pullSettings 204 returns null (cloud empty → seed local)',
+        () async {
+      adapter.onGet(
+        '/profile/settings',
+        (server) => server.reply(204, null),
+      );
+
+      expect(await provider.pullSettings(), isNull);
+    });
+
+    test('pullSettings 404 returns null defensively', () async {
+      adapter.onGet(
+        '/profile/settings',
+        (server) => server.reply(404, {'detail': 'not found'}),
+      );
+
+      expect(await provider.pullSettings(), isNull);
+    });
+
+    test('pushSettings PUTs the bundle to /profile/settings', () async {
+      adapter.onPut(
+        '/profile/settings',
+        (server) => server.reply(200, {'ok': true}),
+        data: Matchers.any,
+      );
+      Map<String, dynamic>? captured;
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.method == 'PUT') {
+            captured = options.data as Map<String, dynamic>?;
+          }
+          handler.next(options);
+        },
+      ));
+
+      await provider.pushSettings({
+        'gasLog': <String, dynamic>{},
+        'lastModified': '2026-05-29T18:04:11.000Z',
+        '_v': 1,
+      });
+
+      expect(captured, isNotNull);
+      expect(captured!['_v'], 1);
+      expect(captured!['lastModified'], '2026-05-29T18:04:11.000Z');
+    });
+  });
 }
 
 /// Minimal IdpTokenService stand-in. The full service hits
