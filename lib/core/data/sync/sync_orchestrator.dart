@@ -404,7 +404,20 @@ class SyncOrchestrator {
       return;
     }
 
-    final remote = SyncableSettings.fromJson(remoteJson);
+    // A malformed / partial remote bundle must not crash the whole
+    // sync. Decode defensively: surface a non-fatal error and skip the
+    // settings leg, leaving notes to sync normally.
+    final SyncableSettings remote;
+    try {
+      remote = SyncableSettings.fromJson(remoteJson);
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'manifest',
+        recordId: 'settings',
+        message: 'Ignored malformed remote settings: $e',
+      ));
+      return;
+    }
     if (remote.lastModified.isAfter(localSettings.lastModified)) {
       await _settingsRepo.apply(remote);
       _onSettingsApplied?.call();

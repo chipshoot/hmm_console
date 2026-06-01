@@ -44,10 +44,26 @@ class GasLogSettings {
       };
 
   factory GasLogSettings.fromJson(Map<String, dynamic> json) {
+    // Tolerate missing keys: the settings bundle is stored opaquely on
+    // the server and synced across client versions, so a partial or
+    // older payload must default each field rather than crash the whole
+    // settings sync (an unguarded `as String` on a null value used to
+    // throw "Null is not a subtype of String"). Falls back to the
+    // const-constructor defaults.
+    const defaults = GasLogSettings();
+    final distanceRaw = json['distanceUnit'] as String?;
+    final fuelRaw = json['fuelUnit'] as String?;
+    final currencyRaw = json['currency'] as String?;
     return GasLogSettings(
-      distanceUnit: DistanceUnit.fromApiValue(json['distanceUnit'] as String),
-      fuelUnit: FuelUnit.fromApiValue(json['fuelUnit'] as String),
-      currency: CurrencyCode.fromApiValue(json['currency'] as String),
+      distanceUnit: distanceRaw != null
+          ? DistanceUnit.fromApiValue(distanceRaw)
+          : defaults.distanceUnit,
+      fuelUnit: fuelRaw != null
+          ? FuelUnit.fromApiValue(fuelRaw)
+          : defaults.fuelUnit,
+      currency: currencyRaw != null
+          ? CurrencyCode.fromApiValue(currencyRaw)
+          : defaults.currency,
       // Older payloads (pre-2026-05-18) won't have this key; default
       // to true so existing installs don't silently lose the card.
       showRegistration: json['showRegistration'] as bool? ?? true,

@@ -98,6 +98,31 @@ void main() {
         expect(settings.currency, CurrencyCode.usd);
       });
 
+      test('fromJson defaults missing fields instead of crashing', () {
+        // A partial bundle (e.g. an older / hand-written remote
+        // payload) used to throw "Null is not a subtype of String" on
+        // the unguarded `as String` for fuelUnit/currency. It must now
+        // default each absent field.
+        final settings = GasLogSettings.fromJson({
+          'distanceUnit': 'Kilometer',
+        });
+
+        expect(settings.distanceUnit, DistanceUnit.kilometer);
+        expect(settings.fuelUnit, FuelUnit.gallon); // default
+        expect(settings.currency, CurrencyCode.cad); // default
+        expect(settings.showRegistration, isTrue); // default
+      });
+
+      test('fromJson on an empty payload returns all defaults', () {
+        final settings = GasLogSettings.fromJson(<String, dynamic>{});
+
+        const defaults = GasLogSettings();
+        expect(settings.distanceUnit, defaults.distanceUnit);
+        expect(settings.fuelUnit, defaults.fuelUnit);
+        expect(settings.currency, defaults.currency);
+        expect(settings.showRegistration, defaults.showRegistration);
+      });
+
       test('toJson/fromJson round-trip preserves values', () {
         const original = GasLogSettings(
           distanceUnit: DistanceUnit.kilometer,

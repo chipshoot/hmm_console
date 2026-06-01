@@ -189,6 +189,42 @@ void main() {
     // chain reached the manifest push).
     expect(provider.pushedManifestCount, equals(1));
   });
+
+  test('malformed remote bundle → non-fatal, local kept, notes still sync',
+      () async {
+    // A corrupt/partial remote bundle (here gasLog is not an object, so
+    // SyncableSettings.fromJson throws) must NOT crash the whole sync —
+    // the regression behind the on-device "Null is not a subtype of
+    // String" crash. The settings leg is skipped with a logged error;
+    // local stays put and the rest of the sync runs.
+    final localBundle = SyncableSettings(
+      gasLog: const GasLogSettings(distanceUnit: DistanceUnit.mile),
+      syncSettings: const SyncSettings(),
+      localeCode: 'en',
+      lastModified: DateTime.utc(2026, 5, 26, 8),
+    );
+    await settingsRepo.apply(localBundle);
+
+    // Newer-than-local stamp so the orchestrator would try to apply it,
+    // plus a gasLog value that makes fromJson throw.
+    provider.remoteSettings = {
+      'gasLog': 'corrupt-not-an-object',
+      'lastModified': '2026-05-27T00:00:00.000Z',
+      '_v': 1,
+    };
+
+    final result = await orchestrator.syncNow();
+
+    // Non-fatal: a settings error is recorded but syncNow didn't throw.
+    expect(result.errors.any((e) => e.recordId == 'settings'), isTrue);
+    // Local settings were not clobbered by the bad bundle.
+    final applied = await settingsRepo.read();
+    expect(applied.gasLog.distanceUnit, DistanceUnit.mile);
+    expect(applied.localeCode, 'en');
+    expect(onSettingsAppliedCalls, equals(0));
+    // The rest of the sync still ran.
+    expect(provider.pushedManifestCount, equals(1));
+  });
 }
 
 /// Fake CloudSyncProvider focused on the settings leg.
