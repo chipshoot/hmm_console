@@ -53,3 +53,6 @@ nul
 android/key.properties
 *.jks
 *.keystore
+
+# Superpowers brainstorming mockups
+.superpowers/
