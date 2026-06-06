@@ -79,6 +79,7 @@ dependencies:
   # WiFi-only policy (Settings → Sync over). Manual sync always runs (with
   # a confirm dialog on cellular per decision C1 in task_plan.md).
   connectivity_plus: ^7.1.1
+  flutter_markdown: ^0.7.7+1
 
 dev_dependencies:
   flutter_test:
