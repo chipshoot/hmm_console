@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**hmm_console** is a cross-platform Flutter app (Android, iOS, Web, Windows, macOS, Linux) serving as the client for the HomeMadeMessage (Hmm) backend API. It provides personal note management, vehicle expense tracking, and productivity features. Auth is via Firebase; local storage uses Hive; the app will integrate with a REST API at `api.homemademessage.com`.
+**hmm_console** is a cross-platform Flutter app (Android, iOS, Web, Windows, macOS, Linux) serving as the client for the HomeMadeMessage (Hmm) backend API. It provides personal note management, vehicle records/expense tracking, and productivity features. Auth is via Firebase; local storage uses a **Drift (SQLite)** database; data can run fully local, sync to a personal cloud (OneDrive), or sync with the Hmm REST API at `api.homemademessage.com` — selectable at runtime via the `DataMode` system.
 
 ## Common Commands
 
@@ -24,8 +24,8 @@ flutter test
 # Run a single test file
 flutter test test/widget_test.dart
 
-# Generate Hive adapters (after modifying @HiveType models)
-dart run build_runner build
+# Generate code (Drift database, Riverpod providers) after modifying tables/annotations
+dart run build_runner build --delete-conflicting-outputs
 
 # Watch mode for code generation
 dart run build_runner watch
@@ -48,36 +48,48 @@ Data (Repositories, Data Sources, Mappers, Models)
 
 ### Key architectural decisions
 
-- **Dual DI system (migration in progress):** Auth features use **Riverpod** providers exclusively. Older features (messages, gas log) use **GetIt** via `ServiceLocator` (`lib/core/di/service_locator.dart`). New code should prefer Riverpod.
-- **State management:** Riverpod `AsyncNotifierProvider` for async operations (auth), `ChangeNotifier` for animation-coupled UI (messages). Prefer Riverpod for new features.
+- **DI / state management: Riverpod only.** The former GetIt/`ServiceLocator` setup has been fully removed (no `lib/core/di/`). Use Riverpod for all dependency injection and state: `AsyncNotifierProvider`/`Notifier` for async + mutable state, plain `Provider` for wiring. Some `riverpod_annotation` code generation is in use.
+- **Local storage: Drift (SQLite).** `lib/core/data/local/database.dart` defines the schema (`Authors`, notes, tags, automobile, insurance, scheduled-service, service-record, gas-log, gas-station tables); generated code lives in `database.g.dart`. Local SQLite is the source of truth for offline-first features. (Hive has been fully removed; `README_HIVE_SETUP.md` is legacy.)
+- **Data mode (local / cloudStorage / cloudApi):** `lib/core/data/data_mode.dart` defines a `DataMode` enum and `DataModeNotifier` (persisted via `shared_preferences`). `lib/core/data/repository_providers.dart` selects each repository implementation by mode — local Drift repos back both `local` and `cloudStorage` (the latter layers a sync engine on top of the same store), while `cloudApi` uses API-backed repositories. See the Data layer & sync section below.
 - **Routing:** GoRouter with auth-based redirect. Routes defined in `lib/core/navigation/`. Unauthenticated users redirect to `/auth`.
-- **Local storage:** Hive for offline-first features (gas log). Models annotated with `@HiveType` require code generation via `build_runner`.
+- **Localization:** Flutter gen-l10n (`l10n.yaml`, ARB files in `lib/l10n/`, generated `AppLocalizations` in `lib/l10n/gen/`). Locale is driven by `lib/core/i18n/locale_provider.dart`. Currently `en` and `zh`.
 - **Error handling:** Sealed `AppException` hierarchy in `lib/core/exceptions/app_exceptions.dart`. Firebase errors map to `AppFirebaseException`. Errors propagate through Riverpod's `AsyncValue`.
 
 ### Feature modules (`lib/features/`)
 
-| Feature | Data Source | DI |
-|---------|------------|-----|
-| `auth/` | Firebase Auth (remote) | Riverpod |
-| `gas_log/` | Hive (local, offline-first) | GetIt |
-| `message_management/` | In-memory mock (placeholder) | GetIt |
-| `dashboard/` | Composites above | Mixed |
+All features use Riverpod for DI/state. Data source depends on the active `DataMode` (local Drift vs Hmm API).
+
+| Feature | Purpose | Data Source |
+|---------|---------|-------------|
+| `auth/` | Firebase login (email/password, Google, reset) | Firebase Auth (remote) |
+| `onboarding/` | First-run onboarding flow | — |
+| `notes/` | Personal note management | Drift / Hmm API (by mode) |
+| `gas_log/` | Fuel logs, stations, discounts | Drift / Hmm API (by mode) |
+| `automobile_records/` | Vehicles, insurance policies, scheduled services, service records | Drift / Hmm API (by mode) |
+| `geocoding/` | Address lookup (backed by the API geocoding endpoint) | Hmm API |
+| `settings/` | App settings incl. data-mode selection | local prefs |
+| `message_management/` | Messages (placeholder) | local repository (mock) |
+| `dashboard/` | Composites the above | Mixed |
 
 ### Shared code (`lib/core/`)
 
-- `di/` — GetIt service locator setup
+- `data/` — the data layer (see Data layer & sync below): `local/` (Drift DB + repositories), `sync/` (cloud sync engine), `vault/` + `attachments/` (note attachment storage), `data_mode.dart`, `repository_providers.dart`, `result.dart`
+- `network/` — Dio-based Hmm API client: `api_client.dart`, `api_config.dart`, IDP token handling (`idp_token_service.dart`, `idp_config.dart`, `jwt_utils.dart`, `token_storage.dart`), `pagination.dart`, and `interceptors/` (auth, error, logging)
+- `auth/` — cross-feature auth helpers (e.g. `current_author_account_name_provider.dart`)
 - `navigation/` — GoRouter config, auth redirect, route names
+- `i18n/` — locale provider (pairs with `lib/l10n/` ARB files)
+- `services/` — shared services (e.g. date/time providers)
 - `theme/` — Light/dark theme definitions (deep purple / green seed colors)
+- `util/` — shared utilities (e.g. `uuid.dart`)
 - `widgets/` — Reusable UI components (button, text field, gaps, scaffold)
 - `exceptions/` — App exception hierarchy
 
 ### App initialization sequence (main.dart)
 
 1. `WidgetsFlutterBinding.ensureInitialized()`
-2. `Firebase.initializeApp()`
-3. `ServiceLocator.setupDependencies()` (GetIt)
-4. `runApp(ProviderScope(child: MainApp()))` (Riverpod)
-5. `MaterialApp.router` with GoRouter watching auth state
+2. `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`
+3. `runApp(ProviderScope(...))` (Riverpod root scope)
+4. `MaterialApp.router` with GoRouter watching auth state, plus `AppLocalizations` for localization
 
 ### Auth flow
 
@@ -85,17 +97,31 @@ Login → `LoginState` (AsyncNotifier) → `LoginUseCase` → `AuthRepository` �
 
 Supports: email/password, Google Sign-In, password reset.
 
-### Data model pattern (Gas Log example)
+### Data model pattern
 
-Domain entity (`GasLog`) ↔ `GasLogMapper` ↔ Hive data model (`GasLogRecord` with `@HiveType`) ↔ `GasLogHiveRepository` ↔ Hive Box. Follow this pattern for new Hive-backed features.
+Each domain area defines an abstract repository interface (e.g. `IHmmNoteRepository`) with two implementations:
+- A **local** impl in `lib/core/data/local/` (e.g. `local_hmm_note_repository.dart`) backed by the Drift database.
+- An **API** impl (e.g. `gas_log/data/repositories/gas_log_api_repository.dart`) backed by the Dio `api_client`.
+
+`repository_providers.dart` exposes one Provider per interface that returns the right impl for the active `DataMode`. Feature models/entities are mapped to/from the data source via mappers (e.g. `features/notes/data/mappers/hmm_note_mapper.dart`). Follow this interface-plus-two-impls pattern for new data-backed features.
 
 ## Firebase
 
 Project ID: `home-made-message`. Firebase emulators configured in `firebase.json` (auth:9099, firestore:8082, storage:9199). Emulator usage is commented out in `main.dart`.
 
-## Backend API (planned integration)
+## Backend API integration
 
-REST API at `https://api.homemademessage.com/v1/` with endpoints for notes, authors, tags, note catalogs, and gas logs. Auth uses Firebase JWT exchanged for Hmm access token as Bearer header. See `docs/SYSTEM_DESIGN.md` for full endpoint list and architecture diagram.
+Implemented in `lib/core/network/` against the REST API at `https://api.homemademessage.com/v1/` (notes, authors, tags, note catalogs, automobiles + insurance/scheduled-services/service-records, gas logs/stations/discounts, geocoding, currency, profile settings, note vault). A Dio `api_client` with auth/error/logging interceptors handles requests; `idp_token_service` exchanges credentials for a Hmm access token (via the IDP) and `token_storage` persists it, attached as a Bearer header by `auth_interceptor`. See `docs/SYSTEM_DESIGN.md` for the full endpoint list and architecture diagram.
+
+## Data layer & sync
+
+`lib/core/data/` is the heart of the app's storage strategy:
+
+- **`local/`** — Drift (SQLite) database (`database.dart` + generated `database.g.dart`) and one local repository per domain area. This is the offline-first source of truth.
+- **`data_mode.dart`** — `DataMode` enum (`local`, `cloudStorage`, `cloudApi`) and `DataModeNotifier` (persisted via `shared_preferences`; legacy `api` value maps to `cloudApi`).
+- **`repository_providers.dart`** — selects each repository impl by mode. `local` and `cloudStorage` both use the local Drift store; `cloudApi` uses API-backed repositories.
+- **`sync/`** — the cloud-sync engine for `cloudStorage` mode: `CloudSyncProvider` (abstract) with `onedrive_sync_provider` (OneDrive via `onedrive_graph_client`/`onedrive_auth`) and `api_sync_provider`, coordinated by `sync_orchestrator` / `sync_controller`, with `sync_meta_repository` and `sync_models` tracking state. See `docs/sync_contract.md`, `docs/cloud_storage_setup.md`, and `docs/data-layer-unification-plan.md`.
+- **`vault/` + `attachments/`** — note attachment storage mirroring the backend `Hmm.Core.Vault`: `vault_store` interface with `local_vault_store` / `api_vault_store`, `vault_gc` for garbage collection, and attachment ref codecs/providers.
 
 ## Local Testing Environment
 1. Backend start: run ../hmm/docker/test-env.ps1 or test-env.sh, based on current platform
