@@ -33,4 +33,20 @@ void main() {
     expect(find.byType(NotesListScreen), findsOneWidget);
     expect(find.text('Select a note'), findsOneWidget);
   });
+
+  testWidgets('narrow screen shows a single pane (no detail placeholder)',
+      (tester) async {
+    tester.view.physicalSize = const Size(500, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
+      child: const MaterialApp(home: NotesShellScreen()),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotesListScreen), findsOneWidget);
+    expect(find.text('Select a note'), findsNothing);
+  });
 }

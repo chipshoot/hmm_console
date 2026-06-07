@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'note_detail_screen.dart';
 import 'notes_list_screen.dart';
 
+/// Minimum width (logical px) at which the notes UI uses a two-pane layout.
+const double kNotesWideBreakpoint = 720;
+
 /// Selected note id for the wide-screen detail pane (null = nothing selected).
 class _SelectedNoteNotifier extends Notifier<int?> {
   @override
@@ -19,13 +22,11 @@ final selectedNoteIdProvider = NotifierProvider<_SelectedNoteNotifier, int?>(
 class NotesShellScreen extends ConsumerWidget {
   const NotesShellScreen({super.key});
 
-  static const double _wideBreakpoint = 720;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= _wideBreakpoint;
+        final isWide = constraints.maxWidth >= kNotesWideBreakpoint;
         if (!isWide) return const NotesListScreen();
 
         final selectedId = ref.watch(selectedNoteIdProvider);

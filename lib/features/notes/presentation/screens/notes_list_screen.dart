@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/notes/catalog_palette.dart';
 import '../../states/notes_list_state.dart';
 import '../widgets/catalog_filter_sheet.dart';
-import 'notes_shell_screen.dart' show selectedNoteIdProvider;
+import 'notes_shell_screen.dart' show kNotesWideBreakpoint, selectedNoteIdProvider;
 import '../widgets/note_list_tile.dart';
 import '../widgets/sort_sheet.dart';
 
@@ -88,7 +88,7 @@ class NotesListScreen extends ConsumerWidget {
                                 : data.catalogsById[note.catalogId],
                             onTap: () {
                               final isWide =
-                                  MediaQuery.of(context).size.width >= 720;
+                                  MediaQuery.of(context).size.width >= kNotesWideBreakpoint;
                               if (isWide) {
                                 ref
                                     .read(selectedNoteIdProvider.notifier)
