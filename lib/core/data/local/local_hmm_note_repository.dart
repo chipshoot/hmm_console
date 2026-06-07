@@ -45,6 +45,12 @@ abstract interface class IHmmNoteRepository {
   Future<HmmNote> updateNote(int id, HmmNoteUpdate patch);
 
   Future<void> deleteNote(int id);
+
+  /// Streams the current author's live (non-deleted) notes, emitting a fresh
+  /// list whenever the underlying Notes table changes — no matter which feature
+  /// wrote it. This keeps the notes list in sync with notes created by domain
+  /// features (e.g. gas logs) that don't go through the notes mutation path.
+  Stream<List<HmmNote>> watchNotes();
 }
 
 class LocalHmmNoteRepository implements IHmmNoteRepository {
@@ -171,6 +177,16 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
       deletedAt: Value(now),
       lastModifiedDate: Value(now),
     ));
+  }
+
+  @override
+  Stream<List<HmmNote>> watchNotes() async* {
+    final author = await _currentAuthor();
+    yield* (_db.select(_db.notes)
+          ..where((n) => n.authorId.equals(author.id) & n.deletedAt.isNull())
+          ..orderBy([(n) => OrderingTerm.desc(n.createDate)]))
+        .watch()
+        .map((rows) => rows.map(HmmNoteMapper.fromDriftRow).toList());
   }
 
   Uint8List _versionStamp() => Uint8List.fromList(

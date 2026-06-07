@@ -15,6 +15,10 @@ abstract interface class INoteCatalogRepository {
   Future<NoteCatalog> updateCatalog(int id, NoteCatalogsCompanion catalog);
 
   Future<NoteCatalog> getOrCreateCatalog(String name, String schema);
+
+  /// Streams all catalogs, emitting whenever the NoteCatalogs table changes
+  /// (e.g. the first time a domain feature creates its catalog).
+  Stream<List<NoteCatalog>> watchCatalogs();
 }
 
 class LocalNoteCatalogRepository implements INoteCatalogRepository {
@@ -26,6 +30,10 @@ class LocalNoteCatalogRepository implements INoteCatalogRepository {
   Future<List<NoteCatalog>> getCatalogs() async {
     return await _db.select(_db.noteCatalogs).get();
   }
+
+  @override
+  Stream<List<NoteCatalog>> watchCatalogs() =>
+      _db.select(_db.noteCatalogs).watch();
 
   @override
   Future<NoteCatalog?> getCatalogById(int id) async {

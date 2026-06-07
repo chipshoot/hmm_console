@@ -53,6 +53,8 @@ class _FakeNoteRepo implements IHmmNoteRepository {
       PageList(items: const [],
           meta: const PaginationMeta(
               totalCount: 0, pageSize: 20, currentPage: 1, totalPages: 0));
+  @override
+  Stream<List<HmmNote>> watchNotes() => Stream.value(const []);
 }
 
 class _FakeCatalogRepo implements INoteCatalogRepository {
@@ -72,6 +74,8 @@ class _FakeCatalogRepo implements INoteCatalogRepository {
   @override
   Future<NoteCatalog> updateCatalog(int id, NoteCatalogsCompanion c) =>
       createCatalog(c);
+  @override
+  Stream<List<NoteCatalog>> watchCatalogs() => Stream.value(const []);
 }
 
 class _FakePicker implements IImageAttachmentPicker {

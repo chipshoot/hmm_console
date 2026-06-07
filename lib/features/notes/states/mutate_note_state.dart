@@ -7,7 +7,6 @@ import '../../../core/data/hmm_note_input.dart';
 import '../../../core/data/repository_providers.dart';
 import '../data/general_catalog.dart';
 import '../data/models/hmm_note.dart';
-import 'notes_list_state.dart';
 
 class MutateNote {
   MutateNote(this.ref);
@@ -25,7 +24,8 @@ class MutateNote {
             content: markdownBody,
           ),
         );
-    ref.invalidate(notesListStateProvider);
+    // The notes list watches the Notes table reactively, so no manual
+    // invalidation is needed here (see notes_list_state.dart).
     return note;
   }
 
@@ -38,13 +38,11 @@ class MutateNote {
           id,
           HmmNoteUpdate(subject: subject?.trim(), content: markdownBody),
         );
-    ref.invalidate(notesListStateProvider);
     return note;
   }
 
   Future<void> delete(int id) async {
     await ref.read(hmmNoteRepositoryProvider).deleteNote(id);
-    ref.invalidate(notesListStateProvider);
   }
 
   /// Picks an image for [noteId] (which must already exist), appends it, and
@@ -70,7 +68,6 @@ class MutateNote {
     );
     final note =
         await repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
-    ref.invalidate(notesListStateProvider);
     return note;
   }
 }

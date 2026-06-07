@@ -77,39 +77,63 @@ class NotesListData {
   }
 }
 
+/// Reactive feed of the current author's live notes. Emits on every change to
+/// the Notes table — so notes written by ANY feature (gas log, automobile, …)
+/// flow into the list without manual invalidation.
+final _notesStreamProvider = StreamProvider.autoDispose<List<HmmNote>>((ref) {
+  return ref.watch(hmmNoteRepositoryProvider).watchNotes();
+});
+
+/// Reactive feed of catalogs (a domain feature creates its catalog lazily on
+/// first write, so the catalog set can change too).
+final _catalogsStreamProvider =
+    StreamProvider.autoDispose<List<NoteCatalog>>((ref) {
+  return ref.watch(noteCatalogRepositoryProvider).watchCatalogs();
+});
+
 class NotesListState extends AsyncNotifier<NotesListData> {
-  Future<NotesListData> _load() async {
-    final page =
-        await ref.read(hmmNoteRepositoryProvider).getNotes(pageSize: 500);
-    final catalogs =
-        await ref.read(noteCatalogRepositoryProvider).getCatalogs();
+  // View criteria live on the notifier so they survive reactive data
+  // emissions (which refresh the data, not the user's filter/sort/search).
+  Set<int>? _filter;
+  NoteSort _sort = NoteSort.dateNewest;
+  String _query = '';
+
+  @override
+  Future<NotesListData> build() async {
+    final notes = await ref.watch(_notesStreamProvider.future);
+    final catalogs = await ref.watch(_catalogsStreamProvider.future);
     return NotesListData(
-      all: page.items,
+      all: notes,
       catalogsById: {for (final c in catalogs) c.id: c},
+      catalogFilter: _filter,
+      sort: _sort,
+      query: _query,
     );
   }
 
-  @override
-  Future<NotesListData> build() => _load();
-
   void setSort(NoteSort sort) {
+    _sort = sort;
     final v = state.value;
     if (v != null) state = AsyncData(v.copyWith(sort: sort));
   }
 
   void setQuery(String query) {
+    _query = query;
     final v = state.value;
     if (v != null) state = AsyncData(v.copyWith(query: query));
   }
 
   void setFilter(Set<int>? catalogIds) {
+    _filter = catalogIds;
     final v = state.value;
     if (v != null) state = AsyncData(v.copyWith(catalogFilter: catalogIds));
   }
 
+  /// Pull-to-refresh hook. The list already updates reactively, so this just
+  /// re-subscribes the underlying streams; harmless if invoked.
   Future<void> refresh() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(_load);
+    ref.invalidate(_notesStreamProvider);
+    ref.invalidate(_catalogsStreamProvider);
   }
 }
 
