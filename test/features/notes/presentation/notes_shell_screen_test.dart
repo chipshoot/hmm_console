@@ -5,6 +5,7 @@ import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_list_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_shell_screen.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _StubListState extends NotesListState {
   @override
@@ -19,6 +20,8 @@ class _StubListState extends NotesListState {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets('wide screen shows two panes; narrow shows one', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1.0;

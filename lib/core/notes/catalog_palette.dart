@@ -34,4 +34,32 @@ class CatalogPalette {
     final seg = catalogName.split('.').last;
     return CatalogStyle(seg.isEmpty ? catalogName : seg, _default);
   }
+
+  // ---- Domain grouping --------------------------------------------------
+  // Catalog names are namespaced as `<prefix>.<DomainMan>.<Entity>`
+  // (e.g. `Hmm.AutomobileMan.GasLog`). The middle segment is the domain, so
+  // every automobile-related catalog groups under one "Automobile" domain.
+  // Names without that shape (e.g. `General`) are their own domain.
+
+  static const Map<String, Color> _domainColors = {
+    'AutomobileMan': Color(0xFF0A84FF), // Automobile
+    kGeneralCatalogName: Color(0xFF34C759), // General
+  };
+
+  /// Domain key for a catalog name. `Hmm.AutomobileMan.GasLog` -> `AutomobileMan`;
+  /// `General` -> `General`; null -> `Other`.
+  static String domainKeyFor(String? catalogName) {
+    if (catalogName == null || catalogName.isEmpty) return 'Other';
+    final parts = catalogName.split('.');
+    return parts.length >= 3 ? parts[parts.length - 2] : catalogName;
+  }
+
+  /// Friendly label + color for a domain key. Strips a trailing "Man"
+  /// (`AutomobileMan` -> `Automobile`).
+  static CatalogStyle domainStyle(String domainKey) {
+    final name = domainKey.endsWith('Man') && domainKey.length > 3
+        ? domainKey.substring(0, domainKey.length - 3)
+        : domainKey;
+    return CatalogStyle(name, _domainColors[domainKey] ?? _default);
+  }
 }

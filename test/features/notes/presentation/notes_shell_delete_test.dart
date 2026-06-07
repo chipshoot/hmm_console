@@ -8,6 +8,7 @@ import 'package:hmm_console/features/notes/presentation/screens/notes_shell_scre
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
 import 'package:hmm_console/features/notes/states/note_selection.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _StubListState extends NotesListState {
   @override
@@ -29,6 +30,8 @@ class _FakeMutate implements MutateNote {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets('wide-mode delete clears the detail pane (no stale error)',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 900);

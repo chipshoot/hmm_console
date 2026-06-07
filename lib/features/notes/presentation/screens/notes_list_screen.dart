@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/notes/catalog_palette.dart';
+import 'package:flutter/foundation.dart' show setEquals;
+
+import '../../states/filter_usage.dart';
 import '../../states/notes_list_state.dart';
+import '../../states/note_selection.dart'
+    show kNotesWideBreakpoint, selectedNoteIdProvider;
 import '../widgets/catalog_filter_sheet.dart';
-import '../../states/note_selection.dart' show kNotesWideBreakpoint, selectedNoteIdProvider;
+import '../widgets/domain_groups.dart';
 import '../widgets/note_list_tile.dart';
 import '../widgets/sort_sheet.dart';
 
@@ -38,15 +42,25 @@ class NotesListScreen extends ConsumerWidget {
             tooltip: 'Filter',
             icon: const Icon(Icons.filter_list),
             onPressed: async.hasValue
-                ? () => showModalBottomSheet<void>(
+                ? () {
+                    final data = async.value!;
+                    final usage =
+                        ref.read(filterUsageProvider).value ?? const {};
+                    final groups = groupByDomain(
+                        data.catalogsById.values, data.countsByCatalog, usage);
+                    showModalBottomSheet<void>(
                       context: context,
                       builder: (_) => CatalogFilterSheet(
-                        catalogs: async.value!.catalogsById.values.toList(),
-                        counts: async.value!.countsByCatalog,
-                        selected: async.value!.catalogFilter,
+                        groups: groups,
+                        counts: data.countsByCatalog,
+                        selected: data.catalogFilter,
                         onApply: notifier.setFilter,
+                        onRecordDomain: (key) => ref
+                            .read(filterUsageProvider.notifier)
+                            .record(key),
                       ),
-                    )
+                    );
+                  }
                 : null,
           ),
         ],
@@ -73,7 +87,7 @@ class NotesListScreen extends ConsumerWidget {
                   onChanged: notifier.setQuery,
                 ),
               ),
-              _Chips(data: data, onSelect: notifier.setFilter),
+              _Chips(data: data),
               Expanded(
                 child: data.visible.isEmpty
                     ? const Center(child: Text('No notes'))
@@ -109,14 +123,30 @@ class NotesListScreen extends ConsumerWidget {
   }
 }
 
-class _Chips extends StatelessWidget {
-  const _Chips({required this.data, required this.onSelect});
+/// Inline quick filters: "All" + the most-used DOMAIN chips (ordered by tracked
+/// usage, then note count). Tapping a domain filters to all its catalogs and
+/// records the tap so the order adapts. The full per-catalog list lives in the
+/// grouped filter sheet (funnel).
+class _Chips extends ConsumerWidget {
+  const _Chips({required this.data});
   final NotesListData data;
-  final ValueChanged<Set<int>?> onSelect;
+
+  static const int _maxInline = 4;
 
   @override
-  Widget build(BuildContext context) {
-    final catalogs = data.catalogsById.values.toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final usage = ref.watch(filterUsageProvider).value ?? const {};
+    final groups =
+        groupByDomain(data.catalogsById.values, data.countsByCatalog, usage)
+            .take(_maxInline)
+            .toList();
+
+    bool isSelected(DomainGroup g) {
+      final f = data.catalogFilter;
+      return f != null && f.isNotEmpty && setEquals(f, g.catalogIds);
+    }
+
     return SizedBox(
       height: 44,
       child: ListView(
@@ -128,19 +158,20 @@ class _Chips extends StatelessWidget {
             child: ChoiceChip(
               label: const Text('All'),
               selected: data.catalogFilter == null,
-              onSelected: (_) => onSelect(null),
+              onSelected: (_) => notifier.setFilter(null),
             ),
           ),
-          for (final c in catalogs)
+          for (final g in groups)
             Padding(
               padding: const EdgeInsets.only(right: 6),
               child: ChoiceChip(
-                avatar: CircleAvatar(
-                    radius: 5,
-                    backgroundColor: CatalogPalette.styleFor(c.name).color),
-                label: Text(CatalogPalette.styleFor(c.name).displayName),
-                selected: data.catalogFilter?.contains(c.id) ?? false,
-                onSelected: (_) => onSelect({c.id}),
+                avatar: CircleAvatar(radius: 5, backgroundColor: g.style.color),
+                label: Text(g.style.displayName),
+                selected: isSelected(g),
+                onSelected: (_) {
+                  ref.read(filterUsageProvider.notifier).record(g.key);
+                  notifier.setFilter(g.catalogIds);
+                },
               ),
             ),
         ],
