@@ -19,6 +19,10 @@ import 'package:hmm_console/features/gas_log/presentation/screens/automobile_sel
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_log_form_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_log_list_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_station_management_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/notes_list_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/raw_content_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
 
 final routerConfig = Provider<GoRouter>(
@@ -227,6 +231,44 @@ final routerConfig = Provider<GoRouter>(
               final id = int.parse(state.pathParameters['id']!);
               return GasLogFormScreen(gasLogId: id);
             },
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/notes',
+        name: RouterNames.notesList.name,
+        builder: (context, state) => const NotesListScreen(),
+        routes: [
+          GoRoute(
+            path: 'new',
+            name: RouterNames.noteCreate.name,
+            builder: (context, state) => const NoteEditorScreen(),
+          ),
+          GoRoute(
+            path: ':id',
+            name: RouterNames.noteDetail.name,
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return NoteDetailScreen(noteId: id);
+            },
+            routes: [
+              GoRoute(
+                path: 'edit',
+                name: RouterNames.noteEdit.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return NoteEditorScreen(noteId: id);
+                },
+              ),
+              GoRoute(
+                path: 'raw',
+                name: RouterNames.noteRaw.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return RawContentScreen(noteId: id);
+                },
+              ),
+            ],
           ),
         ],
       ),

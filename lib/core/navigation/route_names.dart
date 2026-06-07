@@ -21,4 +21,9 @@ enum RouterNames {
   gasStationManagement,
   settings,
   onboarding,
+  notesList,
+  noteCreate,
+  noteDetail,
+  noteEdit,
+  noteRaw,
 }

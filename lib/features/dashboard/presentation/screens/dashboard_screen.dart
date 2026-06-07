@@ -408,6 +408,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     switch (function.route) {
       case 'gas-log':
         context.push('/automobiles');
+      case 'notes':
+        context.push('/notes');
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
