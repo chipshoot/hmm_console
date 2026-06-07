@@ -3,14 +3,14 @@ import 'package:hmm_console/core/notes/rendering/generic_json_renderer.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 
 HmmNote _note({String? content, String? description}) => HmmNote(
-      id: 1,
-      uuid: 'u',
-      subject: 's',
-      authorId: 1,
-      createDate: DateTime(2026, 1, 1),
-      content: content,
-      description: description,
-    );
+  id: 1,
+  uuid: 'u',
+  subject: 's',
+  authorId: 1,
+  createDate: DateTime(2026, 1, 1),
+  content: content,
+  description: description,
+);
 
 void main() {
   const r = GenericJsonRenderer();
