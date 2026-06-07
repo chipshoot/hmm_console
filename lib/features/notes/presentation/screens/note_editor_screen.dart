@@ -1,15 +1,147 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
+import '../../../../core/data/repository_providers.dart';
+import '../../states/mutate_note_state.dart';
+import '../screens/note_detail_screen.dart' show noteDetailProvider;
 
 class NoteEditorScreen extends ConsumerStatefulWidget {
   const NoteEditorScreen({super.key, this.noteId});
   final int? noteId; // null = create
+  bool get isNew => noteId == null;
+
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
+  final _subjectCtrl = TextEditingController();
+  final _bodyCtrl = TextEditingController();
+  int? _noteId; // becomes non-null once persisted
+  bool _busy = false;
+  bool _loaded = false;
+
   @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('Editor')));
+  void initState() {
+    super.initState();
+    _noteId = widget.noteId;
+  }
+
+  @override
+  void dispose() {
+    _subjectCtrl.dispose();
+    _bodyCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadExisting() async {
+    if (_loaded || widget.noteId == null) return;
+    _loaded = true;
+    final note =
+        await ref.read(hmmNoteRepositoryProvider).getNoteById(widget.noteId!);
+    if (note != null && mounted) {
+      _subjectCtrl.text = note.subject;
+      _bodyCtrl.text = note.content ?? '';
+      setState(() {});
+    }
+  }
+
+  /// Persists the note (create or update) and returns its id.
+  Future<int?> _save() async {
+    final subject = _subjectCtrl.text.trim();
+    if (subject.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Subject is required')));
+      return null;
+    }
+    final mutate = ref.read(mutateNoteProvider);
+    setState(() => _busy = true);
+    try {
+      if (_noteId == null) {
+        final note = await mutate.createGeneral(
+            subject: subject, markdownBody: _bodyCtrl.text);
+        _noteId = note.id;
+      } else {
+        await mutate.updateGeneral(_noteId!,
+            subject: subject, markdownBody: _bodyCtrl.text);
+        ref.invalidate(noteDetailProvider(_noteId!));
+      }
+      return _noteId;
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _addImage() async {
+    final id = await _save(); // ensure the note exists first
+    if (id == null) return;
+    try {
+      await ref.read(mutateNoteProvider).addImage(id);
+      ref.invalidate(noteDetailProvider(id));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Image added')));
+      }
+    } on AttachmentPickerException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _loadExisting();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.isNew ? 'New note' : 'Edit note'),
+        actions: [
+          IconButton(
+            tooltip: 'Add image',
+            icon: const Icon(Icons.image),
+            onPressed: _busy ? null : _addImage,
+          ),
+          TextButton(
+            onPressed: _busy
+                ? null
+                : () async {
+                    final id = await _save();
+                    if (id != null && context.mounted) context.pop();
+                  },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _subjectCtrl,
+              decoration: const InputDecoration(
+                  labelText: 'Subject', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: TextField(
+                controller: _bodyCtrl,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: const InputDecoration(
+                  labelText: 'Body (markdown)',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
