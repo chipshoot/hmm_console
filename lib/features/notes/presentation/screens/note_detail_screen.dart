@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../states/note_selection.dart';
+
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/local/database.dart';
 import '../../../../core/data/repository_providers.dart';
@@ -62,7 +64,14 @@ class NoteDetailScreen extends ConsumerWidget {
                       context.push('/notes/$noteId/raw');
                     case _MenuAction.delete:
                       await ref.read(mutateNoteProvider).delete(noteId);
-                      if (context.mounted) context.pop();
+                      if (!context.mounted) return;
+                      final isWide = MediaQuery.of(context).size.width >=
+                          kNotesWideBreakpoint;
+                      if (isWide) {
+                        ref.read(selectedNoteIdProvider.notifier).select(null);
+                      } else {
+                        context.pop();
+                      }
                   }
                 },
                 itemBuilder: (context) => [
