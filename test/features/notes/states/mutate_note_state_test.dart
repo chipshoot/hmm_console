@@ -129,6 +129,27 @@ void main() {
     expect(repo.lastUpdatedWith, isNull);
   });
 
+  test('addImage appends to gallery when a primary image already exists',
+      () async {
+    final repo = _FakeNoteRepo();
+    repo.stored = HmmNote(
+      id: 7, uuid: 'u7', subject: 's', authorId: 1,
+      createDate: DateTime(2026, 1, 1),
+      attachments: NoteAttachments(
+        primaryImage: _ref('primary.jpg'),
+        images: [_ref('existing.jpg')],
+      ),
+    );
+    final c = _container(repo, picked: _ref('new.jpg'));
+    addTearDown(c.dispose);
+
+    final out = await c.read(mutateNoteProvider).addImage(7);
+    expect(out, isNotNull);
+    final att = repo.lastUpdatedWith!.attachments!;
+    expect(att.primaryImage, _ref('primary.jpg')); // unchanged
+    expect(att.images, [_ref('existing.jpg'), _ref('new.jpg')]); // appended
+  });
+
   test('delete calls through', () async {
     final repo = _FakeNoteRepo();
     final c = _container(repo);
