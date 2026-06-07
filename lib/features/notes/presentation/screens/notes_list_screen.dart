@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/notes/catalog_palette.dart';
 import '../../states/notes_list_state.dart';
 import '../widgets/catalog_filter_sheet.dart';
+import 'notes_shell_screen.dart' show selectedNoteIdProvider;
 import '../widgets/note_list_tile.dart';
 import '../widgets/sort_sheet.dart';
 
@@ -85,7 +86,17 @@ class NotesListScreen extends ConsumerWidget {
                             catalog: note.catalogId == null
                                 ? null
                                 : data.catalogsById[note.catalogId],
-                            onTap: () => context.push('/notes/${note.id}'),
+                            onTap: () {
+                              final isWide =
+                                  MediaQuery.of(context).size.width >= 720;
+                              if (isWide) {
+                                ref
+                                    .read(selectedNoteIdProvider.notifier)
+                                    .select(note.id);
+                              } else {
+                                context.push('/notes/${note.id}');
+                              }
+                            },
                           );
                         },
                       ),

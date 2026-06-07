@@ -21,7 +21,7 @@ import 'package:hmm_console/features/gas_log/presentation/screens/gas_log_list_s
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_station_management_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
-import 'package:hmm_console/features/notes/presentation/screens/notes_list_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/notes_shell_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/raw_content_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
 
@@ -237,7 +237,7 @@ final routerConfig = Provider<GoRouter>(
       GoRoute(
         path: '/notes',
         name: RouterNames.notesList.name,
-        builder: (context, state) => const NotesListScreen(),
+        builder: (context, state) => const NotesShellScreen(),
         routes: [
           GoRoute(
             path: 'new',
