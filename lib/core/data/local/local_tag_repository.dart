@@ -92,6 +92,87 @@ class LocalTagRepository implements ITagRepository {
           ..where((r) => r.noteId.equals(noteId) & r.tagId.equals(tagId)))
         .go();
   }
+
+  // ---- Sync support (cloudStorage tag sync) ----
+
+  /// All tags including inactive and tombstoned ones (for definition merge).
+  Future<List<Tag>> getTagsWithMeta() => _db.select(_db.tags).get();
+
+  /// Create or update a tag by normalized name.
+  Future<void> upsertTagByName(
+    String name, {
+    String? description,
+    required bool isActivated,
+    required DateTime lastModified,
+    DateTime? deletedAt,
+  }) async {
+    final existing = await getTagByName(name);
+    if (existing == null) {
+      await _db.into(_db.tags).insert(TagsCompanion.insert(
+            name: name.trim(),
+            description: Value(description),
+            isActivated: Value(isActivated),
+            lastModified: Value(lastModified),
+            deletedAt: Value(deletedAt),
+          ));
+    } else {
+      await (_db.update(_db.tags)..where((t) => t.id.equals(existing.id)))
+          .write(TagsCompanion(
+        description: Value(description),
+        isActivated: Value(isActivated),
+        lastModified: Value(lastModified),
+        deletedAt: Value(deletedAt),
+      ));
+    }
+  }
+
+  /// Set the sync tombstone for a tag by name (no-op if it doesn't exist).
+  Future<void> tombstoneTagByName(String name, DateTime deletedAt) async {
+    final existing = await getTagByName(name);
+    if (existing == null) return;
+    await (_db.update(_db.tags)..where((t) => t.id.equals(existing.id)))
+        .write(TagsCompanion(
+      deletedAt: Value(deletedAt),
+      lastModified: Value(deletedAt),
+    ));
+  }
+
+  /// Active (non-deleted, activated) tag names applied to a note.
+  Future<List<String>> tagNamesForNote(int noteId) async {
+    final tags = await getTagsForNote(noteId); // already filters isActivated
+    return tags.where((t) => t.deletedAt == null).map((t) => t.name).toList();
+  }
+
+  /// Set-replace the note's tag refs to exactly [names], creating any missing
+  /// tags by name. Membership has no sync metadata — the note body is the
+  /// source of truth, so absence means removal.
+  Future<void> setTagsForNote(int noteId, List<String> names) async {
+    final desiredIds = <int>{};
+    for (final raw in names) {
+      final name = raw.trim();
+      if (name.isEmpty) continue;
+      final tag = await getTagByName(name) ??
+          await createTag(TagsCompanion.insert(name: name));
+      desiredIds.add(tag.id);
+    }
+
+    final currentRefs = await (_db.select(_db.noteTagRefs)
+          ..where((r) => r.noteId.equals(noteId)))
+        .get();
+    final currentIds = currentRefs.map((r) => r.tagId).toSet();
+
+    final toRemove = currentIds.difference(desiredIds);
+    if (toRemove.isNotEmpty) {
+      await (_db.delete(_db.noteTagRefs)
+            ..where((r) => r.noteId.equals(noteId) & r.tagId.isIn(toRemove)))
+          .go();
+    }
+    for (final tagId in desiredIds.difference(currentIds)) {
+      await _db.into(_db.noteTagRefs).insertOnConflictUpdate(
+            NoteTagRefsCompanion.insert(noteId: noteId, tagId: tagId),
+          );
+    }
+  }
 }
 
 final localTagRepositoryProvider = Provider<ITagRepository>((ref) {
