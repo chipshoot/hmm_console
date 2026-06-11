@@ -1691,8 +1691,38 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _lastModifiedMeta = const VerificationMeta(
+    'lastModified',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, description, isActivated];
+  late final GeneratedColumn<DateTime> lastModified = GeneratedColumn<DateTime>(
+    'last_modified',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    description,
+    isActivated,
+    lastModified,
+    deletedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1734,6 +1764,21 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
         ),
       );
     }
+    if (data.containsKey('last_modified')) {
+      context.handle(
+        _lastModifiedMeta,
+        lastModified.isAcceptableOrUnknown(
+          data['last_modified']!,
+          _lastModifiedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -1763,6 +1808,14 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_activated'],
       )!,
+      lastModified: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_modified'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -1777,11 +1830,15 @@ class Tag extends DataClass implements Insertable<Tag> {
   final String name;
   final String? description;
   final bool isActivated;
+  final DateTime lastModified;
+  final DateTime? deletedAt;
   const Tag({
     required this.id,
     required this.name,
     this.description,
     required this.isActivated,
+    required this.lastModified,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1792,6 +1849,10 @@ class Tag extends DataClass implements Insertable<Tag> {
       map['description'] = Variable<String>(description);
     }
     map['is_activated'] = Variable<bool>(isActivated);
+    map['last_modified'] = Variable<DateTime>(lastModified);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     return map;
   }
 
@@ -1803,6 +1864,10 @@ class Tag extends DataClass implements Insertable<Tag> {
           ? const Value.absent()
           : Value(description),
       isActivated: Value(isActivated),
+      lastModified: Value(lastModified),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -1816,6 +1881,8 @@ class Tag extends DataClass implements Insertable<Tag> {
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
       isActivated: serializer.fromJson<bool>(json['isActivated']),
+      lastModified: serializer.fromJson<DateTime>(json['lastModified']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -1826,6 +1893,8 @@ class Tag extends DataClass implements Insertable<Tag> {
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
       'isActivated': serializer.toJson<bool>(isActivated),
+      'lastModified': serializer.toJson<DateTime>(lastModified),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
@@ -1834,11 +1903,15 @@ class Tag extends DataClass implements Insertable<Tag> {
     String? name,
     Value<String?> description = const Value.absent(),
     bool? isActivated,
+    DateTime? lastModified,
+    Value<DateTime?> deletedAt = const Value.absent(),
   }) => Tag(
     id: id ?? this.id,
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
     isActivated: isActivated ?? this.isActivated,
+    lastModified: lastModified ?? this.lastModified,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   Tag copyWithCompanion(TagsCompanion data) {
     return Tag(
@@ -1850,6 +1923,10 @@ class Tag extends DataClass implements Insertable<Tag> {
       isActivated: data.isActivated.present
           ? data.isActivated.value
           : this.isActivated,
+      lastModified: data.lastModified.present
+          ? data.lastModified.value
+          : this.lastModified,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -1859,13 +1936,16 @@ class Tag extends DataClass implements Insertable<Tag> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
-          ..write('isActivated: $isActivated')
+          ..write('isActivated: $isActivated, ')
+          ..write('lastModified: $lastModified, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, description, isActivated);
+  int get hashCode =>
+      Object.hash(id, name, description, isActivated, lastModified, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1873,7 +1953,9 @@ class Tag extends DataClass implements Insertable<Tag> {
           other.id == this.id &&
           other.name == this.name &&
           other.description == this.description &&
-          other.isActivated == this.isActivated);
+          other.isActivated == this.isActivated &&
+          other.lastModified == this.lastModified &&
+          other.deletedAt == this.deletedAt);
 }
 
 class TagsCompanion extends UpdateCompanion<Tag> {
@@ -1881,29 +1963,39 @@ class TagsCompanion extends UpdateCompanion<Tag> {
   final Value<String> name;
   final Value<String?> description;
   final Value<bool> isActivated;
+  final Value<DateTime> lastModified;
+  final Value<DateTime?> deletedAt;
   const TagsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.description = const Value.absent(),
     this.isActivated = const Value.absent(),
+    this.lastModified = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   });
   TagsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.description = const Value.absent(),
     this.isActivated = const Value.absent(),
+    this.lastModified = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Tag> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? description,
     Expression<bool>? isActivated,
+    Expression<DateTime>? lastModified,
+    Expression<DateTime>? deletedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (description != null) 'description': description,
       if (isActivated != null) 'is_activated': isActivated,
+      if (lastModified != null) 'last_modified': lastModified,
+      if (deletedAt != null) 'deleted_at': deletedAt,
     });
   }
 
@@ -1912,12 +2004,16 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     Value<String>? name,
     Value<String?>? description,
     Value<bool>? isActivated,
+    Value<DateTime>? lastModified,
+    Value<DateTime?>? deletedAt,
   }) {
     return TagsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
       isActivated: isActivated ?? this.isActivated,
+      lastModified: lastModified ?? this.lastModified,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
@@ -1936,6 +2032,12 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     if (isActivated.present) {
       map['is_activated'] = Variable<bool>(isActivated.value);
     }
+    if (lastModified.present) {
+      map['last_modified'] = Variable<DateTime>(lastModified.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     return map;
   }
 
@@ -1945,7 +2047,9 @@ class TagsCompanion extends UpdateCompanion<Tag> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
-          ..write('isActivated: $isActivated')
+          ..write('isActivated: $isActivated, ')
+          ..write('lastModified: $lastModified, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -3595,6 +3699,8 @@ typedef $$TagsTableCreateCompanionBuilder =
       required String name,
       Value<String?> description,
       Value<bool> isActivated,
+      Value<DateTime> lastModified,
+      Value<DateTime?> deletedAt,
     });
 typedef $$TagsTableUpdateCompanionBuilder =
     TagsCompanion Function({
@@ -3602,6 +3708,8 @@ typedef $$TagsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> description,
       Value<bool> isActivated,
+      Value<DateTime> lastModified,
+      Value<DateTime?> deletedAt,
     });
 
 final class $$TagsTableReferences
@@ -3652,6 +3760,16 @@ class $$TagsTableFilterComposer extends Composer<_$HmmDatabase, $TagsTable> {
 
   ColumnFilters<bool> get isActivated => $composableBuilder(
     column: $table.isActivated,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastModified => $composableBuilder(
+    column: $table.lastModified,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3708,6 +3826,16 @@ class $$TagsTableOrderingComposer extends Composer<_$HmmDatabase, $TagsTable> {
     column: $table.isActivated,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get lastModified => $composableBuilder(
+    column: $table.lastModified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TagsTableAnnotationComposer
@@ -3734,6 +3862,14 @@ class $$TagsTableAnnotationComposer
     column: $table.isActivated,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get lastModified => $composableBuilder(
+    column: $table.lastModified,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   Expression<T> noteTagRefsRefs<T extends Object>(
     Expression<T> Function($$NoteTagRefsTableAnnotationComposer a) f,
@@ -3793,11 +3929,15 @@ class $$TagsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<bool> isActivated = const Value.absent(),
+                Value<DateTime> lastModified = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
               }) => TagsCompanion(
                 id: id,
                 name: name,
                 description: description,
                 isActivated: isActivated,
+                lastModified: lastModified,
+                deletedAt: deletedAt,
               ),
           createCompanionCallback:
               ({
@@ -3805,11 +3945,15 @@ class $$TagsTableTableManager
                 required String name,
                 Value<String?> description = const Value.absent(),
                 Value<bool> isActivated = const Value.absent(),
+                Value<DateTime> lastModified = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
               }) => TagsCompanion.insert(
                 id: id,
                 name: name,
                 description: description,
                 isActivated: isActivated,
+                lastModified: lastModified,
+                deletedAt: deletedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(

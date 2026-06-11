@@ -78,6 +78,10 @@ class Tags extends Table {
   TextColumn get name => text().withLength(min: 1, max: 200)();
   TextColumn get description => text().withLength(min: 0, max: 1000).nullable()();
   BoolColumn get isActivated => boolean().withDefault(const Constant(true))();
+  // v6: sync metadata. lastModified drives per-name last-writer-wins;
+  // deletedAt is the sync tombstone (distinct from the isActivated flag).
+  DateTimeColumn get lastModified => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
   List<Set<Column>> get uniqueKeys => [{name}];
@@ -98,7 +102,7 @@ class HmmDatabase extends _$HmmDatabase {
   HmmDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -216,6 +220,12 @@ class HmmDatabase extends _$HmmDatabase {
         // and travel via the OS-level cloud sync client (cloudStorage)
         // or the future ApiVaultStore (cloudApi, Phase 15).
         await customStatement('DROP TABLE IF EXISTS attachments');
+      }
+      if (from < 6) {
+        // v6: tag sync metadata. Existing rows get currentDateAndTime as
+        // lastModified and NULL deletedAt (live).
+        await m.addColumn(tags, tags.lastModified);
+        await m.addColumn(tags, tags.deletedAt);
       }
     },
   );
