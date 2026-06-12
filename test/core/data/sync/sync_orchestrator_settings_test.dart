@@ -270,4 +270,10 @@ class _FakeProvider implements CloudSyncProvider {
   Future<void> pushSettings(Map<String, dynamic> body) async {
     pushedSettings = body;
   }
+
+  @override
+  Future<Map<String, dynamic>?> pullTags() async => null;
+
+  @override
+  Future<void> pushTags(Map<String, dynamic> doc) async {}
 }

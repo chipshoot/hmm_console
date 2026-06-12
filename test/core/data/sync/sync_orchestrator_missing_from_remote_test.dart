@@ -249,4 +249,11 @@ class _FakeCloudSyncProvider implements CloudSyncProvider {
 
   @override
   Future<void> pushSettings(Map<String, dynamic> body) async {}
+
+  // Tags (Phase D.3) — not exercised by these tests.
+  @override
+  Future<Map<String, dynamic>?> pullTags() async => null;
+
+  @override
+  Future<void> pushTags(Map<String, dynamic> doc) async {}
 }
