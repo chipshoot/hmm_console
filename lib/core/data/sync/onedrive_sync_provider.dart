@@ -51,6 +51,12 @@ class OneDriveSyncProvider implements CloudSyncProvider {
   Future<void> pushSettings(Map<String, dynamic> body) =>
       _graph.putSettings(body);
 
+  @override
+  Future<Map<String, dynamic>?> pullTags() => _graph.getTags();
+
+  @override
+  Future<void> pushTags(Map<String, dynamic> doc) => _graph.putTags(doc);
+
   /// One-time copy of pre-per-user-isolation data into the current user's
   /// subtree. Idempotent: a marker file at `approot/users/.legacy_migrated.json`
   /// is checked first; once present, this method returns immediately.

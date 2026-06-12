@@ -192,6 +192,27 @@ class OneDriveGraphClient {
     _throwIfBad(resp);
   }
 
+  /// Fetch the user's tag-definitions blob from `users/{sub}/tags.json`,
+  /// or null when the file doesn't exist yet.
+  Future<Map<String, dynamic>?> getTags() async {
+    final path = await _userPath('tags.json', action: 'content');
+    final resp = await _dio.get<Map<String, dynamic>>(path);
+    if (resp.statusCode == 404) return null;
+    _throwIfBad(resp);
+    return resp.data;
+  }
+
+  /// Push the user's tag-definitions blob to `users/{sub}/tags.json`.
+  Future<void> putTags(Map<String, dynamic> body) async {
+    final path = await _userPath('tags.json', action: 'content');
+    final resp = await _dio.put(
+      path,
+      data: body,
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    _throwIfBad(resp);
+  }
+
   // Attachment-byte uploads / downloads were removed in Phase 11.5.
   // cloudStorage replicates bytes via the OS-level OneDrive client
   // (the vault root lives inside the user's OneDrive folder); we no

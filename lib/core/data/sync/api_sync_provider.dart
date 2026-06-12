@@ -409,6 +409,18 @@ class ApiSyncProvider implements CloudSyncProvider {
   Future<void> pushSettings(Map<String, dynamic> body) async {
     await _dio.put<void>('/profile/settings', data: body);
   }
+
+  // ---- Tags (Phase 4) ----
+  //
+  // The API tier does not have a tags endpoint yet. The default no-ops on
+  // [CloudSyncProvider] are not inherited because this class uses `implements`
+  // (not `extends`), so we forward to the same no-op semantics explicitly.
+
+  @override
+  Future<Map<String, dynamic>?> pullTags() async => null;
+
+  @override
+  Future<void> pushTags(Map<String, dynamic> doc) async {}
 }
 
 /// Riverpod provider for [ApiSyncProvider]. Fresh per container read

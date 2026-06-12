@@ -60,6 +60,13 @@ abstract class CloudSyncProvider {
   /// remain transparent until they're ready to implement this.
   Future<void> pushSettings(Map<String, dynamic> body) async {}
 
+  /// Fetch the tag-definitions document (`tags.json`), or null if absent.
+  /// No-op default so providers that don't sync tags stay transparent.
+  Future<Map<String, dynamic>?> pullTags() async => null;
+
+  /// Push the tag-definitions document. No-op default.
+  Future<void> pushTags(Map<String, dynamic> doc) async {}
+
   // Attachment byte transfer was removed in Phase 11.5 (2026-05-17).
   // Attachment refs now travel inside the note body (via the
   // `Notes.attachments` JSON column); attachment bytes travel
