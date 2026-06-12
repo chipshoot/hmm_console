@@ -6,11 +6,13 @@ import '../../../features/settings/domain/syncable_settings.dart';
 import '../../../features/settings/providers/settings_bus_provider.dart';
 import '../data_mode.dart';
 import '../local/database.dart';
+import '../local/local_tag_repository.dart';
 import 'api_sync_provider.dart';
 import 'cloud_sync_provider.dart';
 import 'onedrive_sync_provider.dart';
 import 'sync_meta_repository.dart';
 import 'sync_models.dart';
+import 'tag_sync_service.dart';
 
 /// Drives the full sync algorithm (see `docs/sync_contract.md` §4–§6).
 ///
@@ -38,7 +40,8 @@ class SyncOrchestrator {
   })  : _db = db,
         _meta = meta,
         _settingsRepo = settingsRepo ?? SyncableSettingsRepository(),
-        _onSettingsApplied = onSettingsApplied;
+        _onSettingsApplied = onSettingsApplied,
+        _tagRepo = LocalTagRepository(db);
 
   /// Null when the current DataMode is Local — no sync.
   final CloudSyncProvider? provider;
@@ -46,6 +49,7 @@ class SyncOrchestrator {
   final HmmDatabase _db;
   final SyncMetaRepository _meta;
   final SyncableSettingsRepository _settingsRepo;
+  final LocalTagRepository _tagRepo;
 
   /// Fires after a remote settings bundle is applied to local prefs.
   /// In production this calls `SettingsBus.bump()` so the Riverpod
@@ -113,6 +117,18 @@ class SyncOrchestrator {
         recordType: 'manifest',
         recordId: 'settings',
         message: 'Settings sync threw: $e',
+      ));
+    }
+
+    // Tag definitions sync (independent of notes; non-fatal). Membership
+    // rides with the note sync below.
+    try {
+      await _syncTags(p, errors);
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'tags',
+        recordId: 'tags.json',
+        message: 'Tag sync threw: $e',
       ));
     }
 
@@ -444,6 +460,27 @@ class SyncOrchestrator {
         message: 'Failed to push settings: $e',
       ));
     }
+  }
+
+  // ==================== TAGS sync ====================
+
+  Future<void> _syncTags(CloudSyncProvider p, List<SyncError> errors) async {
+    Map<String, dynamic>? remote;
+    try {
+      remote = await p.pullTags();
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'tags',
+        recordId: 'tags.json',
+        message: 'Failed to pull tags: $e',
+      ));
+      return;
+    }
+
+    final deviceId = await _meta.getOrCreateDeviceId();
+    final merged = await TagSyncService(_tagRepo)
+        .mergeDefinitions(remote, deviceId: deviceId, now: DateTime.now());
+    await p.pushTags(merged);
   }
 
   // ==================== PUSH collection ====================
