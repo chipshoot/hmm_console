@@ -152,7 +152,14 @@ class LocalTagRepository implements ITagRepository {
       final name = raw.trim();
       if (name.isEmpty) continue;
       final tag = await getTagByName(name) ??
-          await createTag(TagsCompanion.insert(name: name));
+          await createTag(TagsCompanion.insert(
+            name: name,
+            // Auto-created from a note body before its real definition has
+            // synced: stamp at epoch 0 so any real tags.json definition
+            // (with a real timestamp) always wins the merge.
+            lastModified: Value(
+                DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)),
+          ));
       desiredIds.add(tag.id);
     }
 
