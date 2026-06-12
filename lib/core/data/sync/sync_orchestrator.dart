@@ -370,6 +370,13 @@ class SyncOrchestrator {
     if (parentUuid != null && parentUuid.isNotEmpty) {
       pendingParents.add((childId: childId, parentUuid: parentUuid));
     }
+
+    // Rebuild tag membership from the note body (set-replace). The body's
+    // tag list is the complete current set; absence means removal.
+    final tagNames =
+        (body['tags'] as List?)?.whereType<String>().toList() ??
+            const <String>[];
+    await _tagRepo.setTagsForNote(childId, tagNames);
   }
 
   Future<int> _defaultAuthorId() async {
@@ -519,7 +526,8 @@ class SyncOrchestrator {
     final blobs = <NoteBlob>[];
     for (final n in rows) {
       if (n.uuid == null) continue; // Shouldn't happen post-migration.
-      blobs.add(_noteRowToBlob(n, catalogNames, parentUuids));
+      final tagNames = await _tagRepo.tagNamesForNote(n.id);
+      blobs.add(_noteRowToBlob(n, catalogNames, parentUuids, tagNames));
     }
     return blobs;
   }
@@ -577,13 +585,19 @@ class SyncOrchestrator {
       }
     }
 
-    return [for (final n in missing) _noteRowToBlob(n, catalogNames, parentUuids)];
+    final blobs = <NoteBlob>[];
+    for (final n in missing) {
+      final tagNames = await _tagRepo.tagNamesForNote(n.id);
+      blobs.add(_noteRowToBlob(n, catalogNames, parentUuids, tagNames));
+    }
+    return blobs;
   }
 
   NoteBlob _noteRowToBlob(
     Note n,
     Map<int, String> catalogNames,
     Map<int, String> parentUuids,
+    List<String> tagNames,
   ) {
     final updatedAt = (n.lastModifiedDate ?? n.createDate).toUtc();
     final uuid = n.uuid!;
@@ -603,6 +617,7 @@ class SyncOrchestrator {
         'createDate': n.createDate.toUtc().toIso8601String(),
         'lastModifiedDate': updatedAt.toIso8601String(),
         'deletedAt': n.deletedAt?.toUtc().toIso8601String(),
+        'tags': tagNames,
       },
       updatedAt: updatedAt,
       deleted: n.deletedAt != null,
