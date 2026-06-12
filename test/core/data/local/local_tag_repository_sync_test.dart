@@ -13,7 +13,7 @@ void main() {
   });
   tearDown(() => db.close());
 
-  Future<int> _note() async => db.into(db.notes).insert(
+  Future<int> note() async => db.into(db.notes).insert(
         NotesCompanion.insert(subject: 's', authorId: await _author(db)),
       );
 
@@ -41,7 +41,7 @@ void main() {
   });
 
   test('setTagsForNote set-replaces refs and auto-creates tags', () async {
-    final noteId = await _note();
+    final noteId = await note();
     await repo.setTagsForNote(noteId, ['work', 'urgent']);
     expect((await repo.tagNamesForNote(noteId)).toSet(), {'work', 'urgent'});
 
