@@ -55,6 +55,11 @@ class _FakeNoteRepo implements IHmmNoteRepository {
               totalCount: 0, pageSize: 20, currentPage: 1, totalPages: 0));
   @override
   Stream<List<HmmNote>> watchNotes() => Stream.value(const []);
+  @override
+  Future<HmmNote> setParentNote(int id, int? parentNoteId) async =>
+      throw UnimplementedError();
+  @override
+  Future<List<HmmNote>> getUnattachedNotes(int catalogId) async => const [];
 }
 
 class _FakeCatalogRepo implements INoteCatalogRepository {

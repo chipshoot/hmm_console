@@ -46,6 +46,15 @@ abstract interface class IHmmNoteRepository {
 
   Future<void> deleteNote(int id);
 
+  /// Re-link a note to a new parent (or detach with null). Mutates
+  /// parentNoteId — the one field updateNote intentionally won't touch —
+  /// bumping lastModifiedDate so sync collects it; the wire already carries
+  /// parentNoteUuid.
+  Future<HmmNote> setParentNote(int id, int? parentNoteId);
+
+  /// Notes of [catalogId] with no parent (attachable candidates).
+  Future<List<HmmNote>> getUnattachedNotes(int catalogId);
+
   /// Streams the current author's live (non-deleted) notes, emitting a fresh
   /// list whenever the underlying Notes table changes — no matter which feature
   /// wrote it. This keeps the notes list in sync with notes created by domain
@@ -131,6 +140,7 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
           createDate: Value(now),
           lastModifiedDate: Value(now),
           version: Value(_versionStamp()),
+          uuid: input.uuid == null ? const Value.absent() : Value(input.uuid),
           // NoteAttachmentsCodec.encode returns null for an empty
           // payload (or for a null input), which is exactly the
           // SQL-NULL we want in the column.
@@ -177,6 +187,34 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
       deletedAt: Value(now),
       lastModifiedDate: Value(now),
     ));
+  }
+
+  @override
+  Future<HmmNote> setParentNote(int id, int? parentNoteId) async {
+    final author = await _currentAuthor();
+    final now = DateTime.now().toUtc();
+    await (_db.update(_db.notes)
+          ..where((n) => n.id.equals(id) & n.authorId.equals(author.id)))
+        .write(NotesCompanion(
+      parentNoteId: Value(parentNoteId),
+      lastModifiedDate: Value(now),
+      version: Value(_versionStamp()),
+    ));
+    return (await getNoteById(id))!;
+  }
+
+  @override
+  Future<List<HmmNote>> getUnattachedNotes(int catalogId) async {
+    final author = await _currentAuthor();
+    final rows = await (_db.select(_db.notes)
+          ..where((n) =>
+              n.authorId.equals(author.id) &
+              n.deletedAt.isNull() &
+              n.parentNoteId.isNull() &
+              n.catalogId.equals(catalogId))
+          ..orderBy([(n) => OrderingTerm.desc(n.createDate)]))
+        .get();
+    return rows.map(HmmNoteMapper.fromDriftRow).toList();
   }
 
   @override

@@ -20,6 +20,7 @@ class HmmNoteCreate {
     this.parentNoteId,
     this.description,
     this.attachments,
+    this.uuid,
   });
 
   final String subject;
@@ -27,6 +28,11 @@ class HmmNoteCreate {
   final String? content;
   final int? parentNoteId;
   final String? description;
+
+  /// Optional explicit stable uuid. When null, the DB assigns a v4 uuid via
+  /// the column's clientDefault. Used to seed records with a deterministic id
+  /// (e.g. subsystem anchors).
+  final String? uuid;
 
   /// Optional initial attachments payload. `null` (the default) and
   /// [NoteAttachments.empty] both produce a SQL-NULL column.
