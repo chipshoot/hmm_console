@@ -15,6 +15,7 @@ class MutateNote {
   Future<HmmNote> createGeneral({
     required String subject,
     String? markdownBody,
+    int? parentNoteId,
   }) async {
     final catalog = await ensureGeneralCatalog(ref);
     final note = await ref.read(hmmNoteRepositoryProvider).createNote(
@@ -22,12 +23,21 @@ class MutateNote {
             subject: subject.trim(),
             catalogId: catalog.id,
             content: markdownBody,
+            parentNoteId: parentNoteId,
           ),
         );
     // The notes list watches the Notes table reactively, so no manual
     // invalidation is needed here (see notes_list_state.dart).
     return note;
   }
+
+  /// Re-link an existing note onto [parentNoteId].
+  Future<HmmNote> attachExisting(int noteId, int parentNoteId) =>
+      ref.read(hmmNoteRepositoryProvider).setParentNote(noteId, parentNoteId);
+
+  /// Detach a note (back to standalone).
+  Future<HmmNote> detachNote(int noteId) =>
+      ref.read(hmmNoteRepositoryProvider).setParentNote(noteId, null);
 
   Future<HmmNote> updateGeneral(
     int id, {
