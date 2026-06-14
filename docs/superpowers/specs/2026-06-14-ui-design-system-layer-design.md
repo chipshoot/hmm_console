@@ -159,6 +159,25 @@ styles, or (where a widget's spacing is layout-significant) raw spacing literals
 canonical widgets — route everything through the tokens/theme. That keeps the cheap
 path open.
 
+## Localization independence
+
+Theme and language are fully separate axes — separate providers, separate
+`MaterialApp` params (`theme`/`darkTheme` vs `locale`/`localizationsDelegates`), no
+cross-references. Any theme works with any locale. This spec entangles neither.
+
+The one place locale touches the **widgets** (not the theme) is layout:
+
+- **Text direction.** Locale drives `Directionality` (RTL for Arabic/Hebrew). The
+  canonical widgets must use **`EdgeInsetsDirectional` + `start`/`end`**, never
+  `left`/`right` — e.g. the `AppListRow`/`AppListSection` separator inset is a
+  directional *start* inset. Only `en`/`zh` (both LTR) ship today, but writing the
+  widgets direction-aware now is nearly free and avoids a rework if RTL ever lands.
+- **String length.** Translations vary text length; rows already handle this with
+  ellipsis + `Flexible` and make no fixed-width assumptions.
+
+Both are widget-layout disciplines, independent of both the theme and the locale
+systems.
+
 ## Out of scope (explicit)
 
 - Migration of `automobile_records`, `gas_log`, `dashboard`, `settings` (follow-up plans).
