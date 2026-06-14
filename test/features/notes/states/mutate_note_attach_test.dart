@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
-import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

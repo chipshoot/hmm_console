@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
-import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/notes/data/subsystem_anchor.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,7 +23,7 @@ void main() {
           .overrideWithValue(LocalHmmNoteRepository(db, () async => author)),
     ]);
     addTearDown(container.dispose);
-    container.listen(notesListStateProvider, (_, __) {});
+    container.listen(notesListStateProvider, (_, _) {});
 
     // Seed the Automobile anchor (an anchor-catalog note) + a real general note.
     await container.read(automobileAnchorProvider.future);
