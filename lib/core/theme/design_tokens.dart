@@ -81,6 +81,20 @@ abstract final class DesignTokens {
   static const FontWeight fontWeightBold = FontWeight.bold;
 
   // ---------------------------------------------------------------------------
+  // Semantic Type Scale (color applied at use site via AppColors)
+  // ---------------------------------------------------------------------------
+  static const TextStyle titleLarge =
+      TextStyle(fontSize: 30, fontWeight: FontWeight.w700, letterSpacing: -0.5);
+  static const TextStyle rowTitle =
+      TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.25);
+  static const TextStyle rowPrimary =
+      TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.3);
+  static const TextStyle rowSecondary =
+      TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.3);
+  static const TextStyle caption =
+      TextStyle(fontSize: 13, fontWeight: FontWeight.w400);
+
+  // ---------------------------------------------------------------------------
   // Component Sizes
   // ---------------------------------------------------------------------------
   static const double buttonMinHeight = 48.0;
