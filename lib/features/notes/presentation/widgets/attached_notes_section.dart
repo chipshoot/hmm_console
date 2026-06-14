@@ -43,7 +43,10 @@ class AttachedNotesSection extends ConsumerWidget {
               IconButton(
                 tooltip: 'Add note',
                 icon: const Icon(Icons.add),
-                onPressed: () => context.push('/notes/new?parent=$parentId'),
+                onPressed: () async {
+                  await context.push('/notes/new?parent=$parentId');
+                  ref.invalidate(attachedNotesProvider(parentId));
+                },
               ),
             ],
           ),
