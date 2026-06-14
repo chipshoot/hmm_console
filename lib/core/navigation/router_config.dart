@@ -253,7 +253,11 @@ final routerConfig = Provider<GoRouter>(
           GoRoute(
             path: 'new',
             name: RouterNames.noteCreate.name,
-            builder: (context, state) => const NoteEditorScreen(),
+            builder: (context, state) {
+              final p = state.uri.queryParameters['parent'];
+              return NoteEditorScreen(
+                  presetParentId: p == null ? null : int.tryParse(p));
+            },
           ),
           GoRoute(
             path: 'subsystems',

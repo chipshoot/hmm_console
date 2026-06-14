@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../data/subsystem_anchor.dart';
 import '../../states/mutate_note_state.dart';
 import '../screens/note_detail_screen.dart' show noteDetailProvider;
 
 class NoteEditorScreen extends ConsumerStatefulWidget {
-  const NoteEditorScreen({super.key, this.noteId});
+  const NoteEditorScreen({super.key, this.noteId, this.presetParentId});
   final int? noteId; // null = create
+  final int? presetParentId; // preset attach target for a new note
   bool get isNew => noteId == null;
 
   @override
@@ -20,6 +22,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   final _subjectCtrl = TextEditingController();
   final _bodyCtrl = TextEditingController();
   int? _noteId; // becomes non-null once persisted
+  int? _parentId;
   bool _busy = false;
   bool _loaded = false;
 
@@ -27,6 +30,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   void initState() {
     super.initState();
     _noteId = widget.noteId;
+    _parentId = widget.presetParentId;
   }
 
   @override
@@ -61,11 +65,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     try {
       if (_noteId == null) {
         final note = await mutate.createGeneral(
-            subject: subject, markdownBody: _bodyCtrl.text);
+            subject: subject, markdownBody: _bodyCtrl.text,
+            parentNoteId: _parentId);
         _noteId = note.id;
       } else {
         await mutate.updateGeneral(_noteId!,
             subject: subject, markdownBody: _bodyCtrl.text);
+        if (_parentId != null) {
+          await ref.read(mutateNoteProvider).attachExisting(_noteId!, _parentId!);
+        }
         ref.invalidate(noteDetailProvider(_noteId!));
       }
       return _noteId;
@@ -120,6 +128,25 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Consumer(builder: (context, ref, _) {
+              final anchorsAsync = ref.watch(subsystemAnchorsProvider);
+              return anchorsAsync.maybeWhen(
+                data: (anchors) => DropdownButtonFormField<int?>(
+                  initialValue: anchors.any((a) => a.id == _parentId) ? _parentId : null,
+                  decoration: const InputDecoration(
+                      labelText: 'Attach to subsystem',
+                      border: OutlineInputBorder()),
+                  items: [
+                    const DropdownMenuItem<int?>(value: null, child: Text('None')),
+                    for (final a in anchors)
+                      DropdownMenuItem<int?>(value: a.id, child: Text(a.subject)),
+                  ],
+                  onChanged: (v) => setState(() => _parentId = v),
+                ),
+                orElse: () => const SizedBox.shrink(),
+              );
+            }),
+            const SizedBox(height: 12),
             TextField(
               controller: _subjectCtrl,
               decoration: const InputDecoration(
