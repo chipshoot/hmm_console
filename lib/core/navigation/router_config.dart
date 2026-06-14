@@ -24,6 +24,8 @@ import 'package:hmm_console/features/notes/presentation/screens/note_detail_scre
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_shell_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/raw_content_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/subsystems_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
 
 final routerConfig = Provider<GoRouter>(
@@ -252,6 +254,22 @@ final routerConfig = Provider<GoRouter>(
             path: 'new',
             name: RouterNames.noteCreate.name,
             builder: (context, state) => const NoteEditorScreen(),
+          ),
+          GoRoute(
+            path: 'subsystems',
+            name: RouterNames.subsystems.name,
+            builder: (context, state) => const SubsystemsScreen(),
+            routes: [
+              GoRoute(
+                path: ':anchorId',
+                name: RouterNames.subsystemNotes.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['anchorId']!);
+                  final name = state.uri.queryParameters['name'] ?? 'Subsystem';
+                  return SubsystemNotesScreen(anchorId: id, anchorName: name);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: ':id',

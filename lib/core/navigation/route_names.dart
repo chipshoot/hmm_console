@@ -27,4 +27,6 @@ enum RouterNames {
   noteEdit,
   noteRaw,
   vehicleNotes,
+  subsystems,
+  subsystemNotes,
 }
