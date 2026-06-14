@@ -135,6 +135,30 @@ No data, repository, or mapper changes.
   - `AppListRow` and `AppListSection` in **light and dark**, as the visual-regression guard.
 - Existing notes tests must stay green.
 
+## Theming readiness (future custom-UI support)
+
+This spec is not building user theming, but its structure is chosen so that future
+theming is a small change rather than a presentation-layer rewrite. Two facts to
+preserve:
+
+- **Accent + typography customization = a provider swap, no widget rework.** Colors
+  resolve through `ColorScheme` / the `AppColors` ThemeExtension and text through the
+  semantic `TextTheme`, all read from `context` at runtime. Letting a user pick an
+  accent or text size later means feeding the seed / `TextTheme` from a Riverpod
+  provider instead of a `const` — the canonical widgets need no changes because they
+  never hardcode colors or `TextStyle`s. ThemeExtension is exactly Flutter's mechanism
+  for additional/per-user theme objects.
+- **Runtime density would require promoting spacing tokens.** `GapWidgets.*` and
+  `DesignTokens.spacing*` are `const`, which is correct for a fixed design but cannot
+  vary per-user at runtime. If "custom UI" later includes a user-adjustable density
+  (compact vs comfortable), those const tokens must become a context-resolved
+  `AppDimensions` ThemeExtension. Colors/typography customization needs no such change.
+
+**Implication for this work:** keep the discipline of never hardcoding colors, text
+styles, or (where a widget's spacing is layout-significant) raw spacing literals in the
+canonical widgets — route everything through the tokens/theme. That keeps the cheap
+path open.
+
 ## Out of scope (explicit)
 
 - Migration of `automobile_records`, `gas_log`, `dashboard`, `settings` (follow-up plans).
