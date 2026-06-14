@@ -11,23 +11,38 @@ import 'package:hmm_console/features/notes/states/attached_notes_state.dart';
 void main() {
   testWidgets('SubsystemsScreen lists anchors', (tester) async {
     final anchor = HmmNote(
-        id: 5, uuid: 'hmm-subsystem-automobile', subject: 'Automobile',
-        authorId: 1, catalogId: 9, createDate: DateTime(2026, 1, 1));
-    await tester.pumpWidget(ProviderScope(
-      overrides: [subsystemAnchorsProvider.overrideWith((ref) async => [anchor])],
-      child: const MaterialApp(home: SubsystemsScreen()),
-    ));
+      id: 5,
+      uuid: 'hmm-subsystem-automobile',
+      subject: 'Automobile',
+      authorId: 1,
+      catalogId: 9,
+      createDate: DateTime(2026, 1, 1),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          subsystemAnchorsProvider.overrideWith((ref) async => [anchor]),
+        ],
+        child: const MaterialApp(home: SubsystemsScreen()),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Automobile'), findsOneWidget);
   });
 
-  testWidgets('SubsystemNotesScreen hosts the anchor notes section',
-      (tester) async {
-    await tester.pumpWidget(ProviderScope(
-      overrides: [attachedNotesProvider(5).overrideWith((ref) async => const [])],
-      child: const MaterialApp(
-          home: SubsystemNotesScreen(anchorId: 5, anchorName: 'Automobile')),
-    ));
+  testWidgets('SubsystemNotesScreen hosts the anchor notes section', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          attachedNotesProvider(5).overrideWith((ref) async => const []),
+        ],
+        child: const MaterialApp(
+          home: SubsystemNotesScreen(anchorId: 5, anchorName: 'Automobile'),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.byType(AttachedNotesSection), findsOneWidget);
     expect(find.text('Automobile notes'), findsWidgets);

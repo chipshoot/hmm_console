@@ -22,7 +22,8 @@ class SubsystemsScreen extends ConsumerWidget {
                 title: Text(a.subject),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push(
-                    '/notes/subsystems/${a.id}?name=${Uri.encodeComponent(a.subject)}'),
+                  '/notes/subsystems/${a.id}?name=${Uri.encodeComponent(a.subject)}',
+                ),
               ),
           ],
         ),

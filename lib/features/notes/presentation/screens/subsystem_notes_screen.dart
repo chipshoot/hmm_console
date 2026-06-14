@@ -18,8 +18,10 @@ class SubsystemNotesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text('$anchorName notes')),
       body: SingleChildScrollView(
-        child:
-            AttachedNotesSection(parentId: anchorId, title: '$anchorName notes'),
+        child: AttachedNotesSection(
+          parentId: anchorId,
+          title: '$anchorName notes',
+        ),
       ),
     );
   }
