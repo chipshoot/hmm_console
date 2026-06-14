@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/local/database.dart';
 import '../../../core/data/repository_providers.dart';
 import '../data/models/hmm_note.dart';
+import '../data/subsystem_anchor.dart';
 
 enum NoteSort { dateNewest, dateOldest, lastModified, subjectAZ }
 
@@ -102,9 +103,17 @@ class NotesListState extends AsyncNotifier<NotesListData> {
   Future<NotesListData> build() async {
     final notes = await ref.watch(_notesStreamProvider.future);
     final catalogs = await ref.watch(_catalogsStreamProvider.future);
+    final byId = {for (final c in catalogs) c.id: c};
+    final anchorMatches =
+        catalogs.where((c) => c.name == kSubsystemAnchorCatalogName);
+    final anchorCatalogId =
+        anchorMatches.isEmpty ? null : anchorMatches.first.id;
+    final visibleNotes = anchorCatalogId == null
+        ? notes
+        : notes.where((n) => n.catalogId != anchorCatalogId).toList();
     return NotesListData(
-      all: notes,
-      catalogsById: {for (final c in catalogs) c.id: c},
+      all: visibleNotes,
+      catalogsById: byId,
       catalogFilter: _filter,
       sort: _sort,
       query: _query,

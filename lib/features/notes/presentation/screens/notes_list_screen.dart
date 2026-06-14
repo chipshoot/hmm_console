@@ -63,6 +63,11 @@ class NotesListScreen extends ConsumerWidget {
                   }
                 : null,
           ),
+          IconButton(
+            tooltip: 'Subsystems',
+            icon: const Icon(Icons.widgets_outlined),
+            onPressed: () => context.push('/notes/subsystems'),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(

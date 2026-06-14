@@ -7,6 +7,7 @@ import 'package:hmm_console/features/dashboard/presentation/presentation.dart';
 import 'package:hmm_console/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:hmm_console/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/insurance_policies_screen.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/vehicle_notes_screen.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/insurance_policy_form_screen.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/scheduled_service_form_screen.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/scheduled_services_screen.dart';
@@ -23,6 +24,8 @@ import 'package:hmm_console/features/notes/presentation/screens/note_detail_scre
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_shell_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/raw_content_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/subsystems_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
 
 final routerConfig = Provider<GoRouter>(
@@ -201,6 +204,14 @@ final routerConfig = Provider<GoRouter>(
                   ),
                 ],
               ),
+              GoRoute(
+                path: ':id/notes',
+                name: RouterNames.vehicleNotes.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return VehicleNotesScreen(automobileId: id);
+                },
+              ),
             ],
           ),
         ],
@@ -242,7 +253,27 @@ final routerConfig = Provider<GoRouter>(
           GoRoute(
             path: 'new',
             name: RouterNames.noteCreate.name,
-            builder: (context, state) => const NoteEditorScreen(),
+            builder: (context, state) {
+              final p = state.uri.queryParameters['parent'];
+              return NoteEditorScreen(
+                  presetParentId: p == null ? null : int.tryParse(p));
+            },
+          ),
+          GoRoute(
+            path: 'subsystems',
+            name: RouterNames.subsystems.name,
+            builder: (context, state) => const SubsystemsScreen(),
+            routes: [
+              GoRoute(
+                path: ':anchorId',
+                name: RouterNames.subsystemNotes.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['anchorId']!);
+                  final name = state.uri.queryParameters['name'] ?? 'Subsystem';
+                  return SubsystemNotesScreen(anchorId: id, anchorName: name);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: ':id',
