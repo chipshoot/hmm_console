@@ -7,6 +7,7 @@ import 'package:hmm_console/features/dashboard/presentation/presentation.dart';
 import 'package:hmm_console/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:hmm_console/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/insurance_policies_screen.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/vehicle_notes_screen.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/insurance_policy_form_screen.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/scheduled_service_form_screen.dart';
 import 'package:hmm_console/features/automobile_records/presentation/screens/scheduled_services_screen.dart';
@@ -200,6 +201,14 @@ final routerConfig = Provider<GoRouter>(
                     },
                   ),
                 ],
+              ),
+              GoRoute(
+                path: ':id/notes',
+                name: RouterNames.vehicleNotes.name,
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return VehicleNotesScreen(automobileId: id);
+                },
               ),
             ],
           ),

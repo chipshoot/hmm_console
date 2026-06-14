@@ -51,6 +51,16 @@ class _AutomobileRecordsSummaryState
         _ServiceSummaryCard(automobileId: widget.automobileId),
         const SizedBox(height: 8),
         _ScheduleSummaryCard(automobileId: widget.automobileId),
+        const SizedBox(height: 8),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.sticky_note_2_outlined),
+            title: const Text('Notes'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () =>
+                context.push('/automobiles/manage/${widget.automobileId}/notes'),
+          ),
+        ),
       ],
     );
   }
