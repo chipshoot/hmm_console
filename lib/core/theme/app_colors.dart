@@ -35,6 +35,8 @@ class AppColors extends ThemeExtension<AppColors> {
     secondaryLabel: Color(0xFF8E8E93),
     tertiaryLabel: Color(0xFF636366),
     separator: Color(0xFF38383A),
+    // Pure black (OLED-friendly), intentionally deeper than iOS's
+    // systemGroupedBackground (#1C1C1E) for a truer dark surface.
     groupedBackground: Color(0xFF000000),
     accent: Color(0xFF0A84FF),
   );

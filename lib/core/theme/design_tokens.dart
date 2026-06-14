@@ -91,6 +91,9 @@ abstract final class DesignTokens {
       TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.3);
   static const TextStyle rowSecondary =
       TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.3);
+  // 13pt — the authoritative caption style for row metadata/timestamps.
+  // Distinct from the legacy `fontSizeCaption` (10pt) above, which predates
+  // this scale and should not be used in new/migrated widgets.
   static const TextStyle caption =
       TextStyle(fontSize: 13, fontWeight: FontWeight.w400);
 
