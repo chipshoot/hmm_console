@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+@Deprecated(
+  'Use AppScaffold (lib/core/widgets/app_scaffold.dart) for new/migrated '
+  'screens. Kept for un-migrated screens only.',
+)
 class CommonScreenScaffold extends StatelessWidget {
   final String title;
   final Widget child;
