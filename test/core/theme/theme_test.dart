@@ -11,10 +11,22 @@ void main() {
     expect(t.colorScheme.brightness, Brightness.light);
   });
 
-  test('dark theme registers AppColors.dark (not the old green seed)', () {
+  test('dark theme registers AppColors.dark with a blue (not green) primary', () {
     final t = AppTheme.darkThemeData;
     expect(t.extension<AppColors>()!.label, AppColors.dark.label);
     expect(t.colorScheme.brightness, Brightness.dark);
+    // Seeded from system blue → primary's hue is blue-ish: blue channel
+    // dominates and it is clearly not a green-dominant color.
+    final p = t.colorScheme.primary;
+    expect(p.b, greaterThan(p.g), reason: 'primary should read blue, not green');
+  });
+
+  test('scaffold + appbar share the grouped background; nav labels hidden', () {
+    final t = AppTheme.lightThemeData;
+    expect(t.scaffoldBackgroundColor, AppColors.light.groupedBackground);
+    expect(t.appBarTheme.backgroundColor, AppColors.light.groupedBackground);
+    expect(t.navigationBarTheme.labelBehavior,
+        NavigationDestinationLabelBehavior.alwaysHide);
   });
 
   test('text theme carries the row title size', () {

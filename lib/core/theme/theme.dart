@@ -6,14 +6,15 @@ import 'app_colors.dart';
 import 'design_tokens.dart';
 
 class AppTheme {
-  static const Color _seed = Color(0xFF0A84FF); // iOS system blue
-
   static bool get _isApplePlatform =>
       defaultTargetPlatform == TargetPlatform.iOS ||
       defaultTargetPlatform == TargetPlatform.macOS;
 
   static TextTheme _textTheme(AppColors c) => TextTheme(
         titleLarge: DesignTokens.titleLarge.copyWith(color: c.label),
+        headlineMedium: DesignTokens.titleLarge.copyWith(color: c.label),
+        headlineSmall: DesignTokens.titleLarge.copyWith(color: c.label),
+        titleSmall: DesignTokens.rowTitle.copyWith(color: c.label),
         titleMedium: DesignTokens.rowTitle.copyWith(color: c.label),
         bodyLarge: DesignTokens.rowPrimary.copyWith(color: c.label),
         bodyMedium: DesignTokens.rowSecondary.copyWith(color: c.secondaryLabel),
@@ -22,11 +23,12 @@ class AppTheme {
 
   static ThemeData _build(Brightness brightness, AppColors c) {
     return ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: _seed, brightness: brightness),
+      colorScheme: ColorScheme.fromSeed(seedColor: c.accent, brightness: brightness),
       extensions: [c],
       textTheme: _textTheme(c),
       scaffoldBackgroundColor: c.groupedBackground,
       appBarTheme: AppBarTheme(
+        backgroundColor: c.groupedBackground,
         centerTitle: _isApplePlatform,
         elevation: _isApplePlatform ? 0 : null,
         scrolledUnderElevation: _isApplePlatform ? 0.5 : null,
@@ -34,7 +36,7 @@ class AppTheme {
       navigationBarTheme: const NavigationBarThemeData(
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
       ),
-      cupertinoOverrideTheme: const CupertinoThemeData(primaryColor: _seed),
+      cupertinoOverrideTheme: CupertinoThemeData(primaryColor: c.accent),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
@@ -45,9 +47,9 @@ class AppTheme {
     );
   }
 
-  static ThemeData get lightThemeData =>
+  static final ThemeData lightThemeData =
       _build(Brightness.light, AppColors.light);
 
-  static ThemeData get darkThemeData =>
+  static final ThemeData darkThemeData =
       _build(Brightness.dark, AppColors.dark);
 }

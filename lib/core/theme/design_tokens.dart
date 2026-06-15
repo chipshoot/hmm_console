@@ -6,12 +6,6 @@ import 'package:flutter/material.dart';
 /// This ensures visual consistency and makes theming changes easy.
 abstract final class DesignTokens {
   // ---------------------------------------------------------------------------
-  // Seed Colors
-  // ---------------------------------------------------------------------------
-  static const Color lightSeedColor = Colors.deepPurple;
-  static const Color darkSeedColor = Colors.green;
-
-  // ---------------------------------------------------------------------------
   // Brand / Accent Colors (hardcoded in legacy screens – migrate to colorScheme)
   // ---------------------------------------------------------------------------
   static const Color gradientStart = Color(0xFF667EEA);
