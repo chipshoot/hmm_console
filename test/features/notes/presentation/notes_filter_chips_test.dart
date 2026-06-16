@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_list_screen.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
@@ -35,7 +36,10 @@ void main() {
   testWidgets('inline chips are DOMAINS, not individual catalogs', (tester) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-      child: const MaterialApp(home: NotesListScreen()),
+      child: MaterialApp(
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: const NotesListScreen(),
+      ),
     ));
     await tester.pumpAndSettle();
 
@@ -49,7 +53,10 @@ void main() {
       (tester) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-      child: const MaterialApp(home: NotesListScreen()),
+      child: MaterialApp(
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: const NotesListScreen(),
+      ),
     ));
     await tester.pumpAndSettle();
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_list_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_shell_screen.dart';
@@ -29,7 +30,10 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-      child: const MaterialApp(home: NotesShellScreen()),
+      child: MaterialApp(
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: const NotesShellScreen(),
+      ),
     ));
     await tester.pumpAndSettle();
 
@@ -45,7 +49,10 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-      child: const MaterialApp(home: NotesShellScreen()),
+      child: MaterialApp(
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: const NotesShellScreen(),
+      ),
     ));
     await tester.pumpAndSettle();
 
