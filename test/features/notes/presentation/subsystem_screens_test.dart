@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/data/subsystem_anchor.dart';
 import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_screen.dart';
@@ -23,7 +24,10 @@ void main() {
         overrides: [
           subsystemAnchorsProvider.overrideWith((ref) async => [anchor]),
         ],
-        child: const MaterialApp(home: SubsystemsScreen()),
+        child: MaterialApp(
+          theme: ThemeData(extensions: const [AppColors.light]),
+          home: const SubsystemsScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -38,8 +42,9 @@ void main() {
         overrides: [
           attachedNotesProvider(5).overrideWith((ref) async => const []),
         ],
-        child: const MaterialApp(
-          home: SubsystemNotesScreen(anchorId: 5, anchorName: 'Automobile'),
+        child: MaterialApp(
+          theme: ThemeData(extensions: const [AppColors.light]),
+          home: const SubsystemNotesScreen(anchorId: 5, anchorName: 'Automobile'),
         ),
       ),
     );

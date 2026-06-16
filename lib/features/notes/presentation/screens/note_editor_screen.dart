@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../../core/widgets/app_scaffold.dart';
 import '../../data/subsystem_anchor.dart';
 import '../../states/mutate_note_state.dart';
 import '../screens/note_detail_screen.dart' show noteDetailProvider;
@@ -103,72 +104,75 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     _loadExisting();
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isNew ? 'New note' : 'Edit note'),
-        actions: [
-          IconButton(
-            tooltip: 'Add image',
-            icon: const Icon(Icons.image),
-            onPressed: _busy ? null : _addImage,
-          ),
-          TextButton(
-            onPressed: _busy
-                ? null
-                : () async {
-                    final id = await _save();
-                    if (id != null && context.mounted) context.pop();
-                  },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Consumer(builder: (context, ref, _) {
-              final anchorsAsync = ref.watch(subsystemAnchorsProvider);
-              return anchorsAsync.maybeWhen(
-                data: (anchors) => DropdownButtonFormField<int?>(
-                  initialValue: anchors.any((a) => a.id == _parentId) ? _parentId : null,
-                  decoration: const InputDecoration(
-                      labelText: 'Attach to subsystem',
-                      border: OutlineInputBorder()),
-                  items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('None')),
-                    for (final a in anchors)
-                      DropdownMenuItem<int?>(value: a.id, child: Text(a.subject)),
-                  ],
-                  onChanged: (v) => setState(() => _parentId = v),
-                ),
-                orElse: () => const SizedBox.shrink(),
-              );
-            }),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _subjectCtrl,
-              decoration: const InputDecoration(
-                  labelText: 'Subject', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: TextField(
-                controller: _bodyCtrl,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  labelText: 'Body (markdown)',
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-          ],
+    return AppScaffold(
+      title: widget.isNew ? 'New note' : 'Edit note',
+      actions: [
+        IconButton(
+          tooltip: 'Add image',
+          icon: const Icon(Icons.image),
+          onPressed: _busy ? null : _addImage,
         ),
-      ),
+        TextButton(
+          onPressed: _busy
+              ? null
+              : () async {
+                  final id = await _save();
+                  if (id != null && context.mounted) context.pop();
+                },
+          child: const Text('Save'),
+        ),
+      ],
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Consumer(builder: (context, ref, _) {
+                  final anchorsAsync = ref.watch(subsystemAnchorsProvider);
+                  return anchorsAsync.maybeWhen(
+                    data: (anchors) => DropdownButtonFormField<int?>(
+                      initialValue: anchors.any((a) => a.id == _parentId) ? _parentId : null,
+                      decoration: const InputDecoration(
+                          labelText: 'Attach to subsystem',
+                          border: OutlineInputBorder()),
+                      items: [
+                        const DropdownMenuItem<int?>(value: null, child: Text('None')),
+                        for (final a in anchors)
+                          DropdownMenuItem<int?>(value: a.id, child: Text(a.subject)),
+                      ],
+                      onChanged: (v) => setState(() => _parentId = v),
+                    ),
+                    orElse: () => const SizedBox.shrink(),
+                  );
+                }),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _subjectCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Subject', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _bodyCtrl,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    decoration: const InputDecoration(
+                      labelText: 'Body (markdown)',
+                      alignLabelWithHint: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

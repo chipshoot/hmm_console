@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/data/subsystem_anchor.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
@@ -47,7 +48,10 @@ void main() {
         mutateNoteProvider.overrideWithValue(fake),
         subsystemAnchorsProvider.overrideWith((ref) async => const []),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: ThemeData(extensions: const [AppColors.light]),
+      ),
     ));
     await tester.pumpAndSettle();
 
