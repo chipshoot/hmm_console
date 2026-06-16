@@ -26,5 +26,6 @@ void main() {
     await t.pumpWidget(_host(TargetPlatform.android));
     expect(find.byType(SliverAppBar), findsOneWidget);
     expect(find.byType(CupertinoSliverNavigationBar), findsNothing);
+    expect(find.text('body'), findsOneWidget);
   });
 }

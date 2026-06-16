@@ -46,6 +46,7 @@ class AppScaffold extends StatelessWidget {
             title: Text(title),
             leading: leading,
             actions: actions,
+            backgroundColor: bg,
             pinned: true,
           );
 
