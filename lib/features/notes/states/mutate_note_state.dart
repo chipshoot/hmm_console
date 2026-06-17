@@ -39,6 +39,11 @@ class MutateNote {
   Future<HmmNote> detachNote(int noteId) =>
       ref.read(hmmNoteRepositoryProvider).setParentNote(noteId, null);
 
+  /// Set a note's parent to [parentNoteId] (non-null attaches/re-links, null
+  /// detaches). One call that covers attach, detach, and change.
+  Future<HmmNote> setParent(int noteId, int? parentNoteId) =>
+      ref.read(hmmNoteRepositoryProvider).setParentNote(noteId, parentNoteId);
+
   Future<HmmNote> updateGeneral(
     int id, {
     String? subject,

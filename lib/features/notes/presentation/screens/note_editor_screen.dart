@@ -27,6 +27,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   final _bodyCtrl = TextEditingController();
   int? _noteId; // becomes non-null once persisted
   int? _parentId;
+  bool _parentTouched = false; // user changed the subsystem dropdown
   bool _busy = false;
   bool _loaded = false;
 
@@ -58,6 +59,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       _subjectCtrl.text = note.subject;
       _bodyCtrl.text = note.content ?? '';
       _createdAt = note.createDate.toLocal();
+      // Reflect the note's real attachment so the dropdown isn't stuck on
+      // "None". Don't mark it touched — an untouched dropdown must not
+      // rewrite the parent on save.
+      if (!_parentTouched) _parentId = note.parentNoteId;
       setState(() {});
     }
   }
@@ -81,8 +86,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       } else {
         await mutate.updateGeneral(_noteId!,
             subject: subject, markdownBody: _bodyCtrl.text);
-        if (_parentId != null) {
-          await ref.read(mutateNoteProvider).attachExisting(_noteId!, _parentId!);
+        // Persist the chosen subsystem only if the user changed it — covers
+        // attach (id), detach (null), and re-link. An untouched dropdown
+        // leaves the existing parent intact (avoids the async-load race).
+        if (_parentTouched) {
+          await mutate.setParent(_noteId!, _parentId);
         }
         ref.invalidate(noteDetailProvider(_noteId!));
       }
@@ -178,7 +186,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           // Subsystem attach — a control above / outside the note page.
           _SubsystemStrip(
             parentId: _parentId,
-            onChanged: (v) => setState(() => _parentId = v),
+            onChanged: (v) => setState(() {
+              _parentId = v;
+              _parentTouched = true;
+            }),
           ),
           // The note page: borderless title · timestamp · one rule · canvas.
           Expanded(
