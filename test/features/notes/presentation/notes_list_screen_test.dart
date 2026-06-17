@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
+import 'package:hmm_console/core/widgets/app_row_separator.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_list_screen.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_list_tile.dart';
@@ -39,6 +40,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(NoteListTile), findsNWidgets(2));
+    expect(find.byType(AppRowSeparator), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'groc');
     await tester.pumpAndSettle();
