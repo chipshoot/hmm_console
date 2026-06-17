@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/design_tokens.dart';
 import 'app_list_row.dart';
+import 'app_row_separator.dart';
 
 /// A grouped list section, Apple-Mail style: an optional uppercase header label
 /// followed by [children] separated by hairline dividers inset to align under
@@ -31,12 +32,7 @@ class AppListSection extends StatelessWidget {
     for (var i = 0; i < children.length; i++) {
       rows.add(children[i]);
       if (i != children.length - 1) {
-        rows.add(Divider(
-          height: 1,
-          thickness: 0.5,
-          indent: separatorIndent,
-          color: c.separator,
-        ));
+        rows.add(AppRowSeparator(indent: separatorIndent));
       }
     }
 
