@@ -6,12 +6,6 @@ import 'package:flutter/material.dart';
 /// This ensures visual consistency and makes theming changes easy.
 abstract final class DesignTokens {
   // ---------------------------------------------------------------------------
-  // Seed Colors
-  // ---------------------------------------------------------------------------
-  static const Color lightSeedColor = Colors.deepPurple;
-  static const Color darkSeedColor = Colors.green;
-
-  // ---------------------------------------------------------------------------
   // Brand / Accent Colors (hardcoded in legacy screens – migrate to colorScheme)
   // ---------------------------------------------------------------------------
   static const Color gradientStart = Color(0xFF667EEA);
@@ -79,6 +73,23 @@ abstract final class DesignTokens {
   static const FontWeight fontWeightMedium = FontWeight.w500;
   static const FontWeight fontWeightSemiBold = FontWeight.w600;
   static const FontWeight fontWeightBold = FontWeight.bold;
+
+  // ---------------------------------------------------------------------------
+  // Semantic Type Scale (color applied at use site via AppColors)
+  // ---------------------------------------------------------------------------
+  static const TextStyle titleLarge =
+      TextStyle(fontSize: 30, fontWeight: FontWeight.w700, letterSpacing: -0.5);
+  static const TextStyle rowTitle =
+      TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.25);
+  static const TextStyle rowPrimary =
+      TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.3);
+  static const TextStyle rowSecondary =
+      TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.3);
+  // 13pt — the authoritative caption style for row metadata/timestamps.
+  // Distinct from the legacy `fontSizeCaption` (10pt) above, which predates
+  // this scale and should not be used in new/migrated widgets.
+  static const TextStyle caption =
+      TextStyle(fontSize: 13, fontWeight: FontWeight.w400);
 
   // ---------------------------------------------------------------------------
   // Component Sizes

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
@@ -21,8 +22,11 @@ class _FakeMutate implements MutateNote {
 
 void main() {
   testWidgets('Save with empty subject shows validation error', (tester) async {
-    await tester.pumpWidget(const ProviderScope(
-      child: MaterialApp(home: NoteEditorScreen()),
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: const NoteEditorScreen(),
+      ),
     ));
     await tester.tap(find.text('Save'));
     await tester.pump();
@@ -48,11 +52,14 @@ void main() {
     );
     await tester.pumpWidget(ProviderScope(
       overrides: [mutateNoteProvider.overrideWithValue(fake)],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: ThemeData(extensions: const [AppColors.light]),
+      ),
     ));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextField, 'Subject'), 'Hello');
+        find.widgetWithText(TextField, 'Title'), 'Hello');
     await tester.tap(find.text('Save'));
     await tester.pump();
     expect(fake.createdSubject, 'Hello');

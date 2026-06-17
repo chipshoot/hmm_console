@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/widgets/app_scaffold.dart';
 import '../widgets/attached_notes_section.dart';
 
 class SubsystemNotesScreen extends ConsumerWidget {
@@ -15,14 +16,19 @@ class SubsystemNotesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(title: Text('$anchorName notes')),
-      body: SingleChildScrollView(
-        child: AttachedNotesSection(
-          parentId: anchorId,
-          title: '$anchorName notes',
+    return AppScaffold(
+      title: '$anchorName notes',
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: true,
+          child: SingleChildScrollView(
+            child: AttachedNotesSection(
+              parentId: anchorId,
+              title: '$anchorName notes',
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

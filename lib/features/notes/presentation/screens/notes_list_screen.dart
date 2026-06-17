@@ -12,6 +12,9 @@ import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
 import '../widgets/note_list_tile.dart';
 import '../widgets/sort_sheet.dart';
+import '../../../../core/widgets/app_empty_state.dart';
+import '../../../../core/widgets/app_row_separator.dart';
+import '../../../../core/widgets/app_scaffold.dart';
 
 class NotesListScreen extends ConsumerWidget {
   const NotesListScreen({super.key});
@@ -21,108 +24,117 @@ class NotesListScreen extends ConsumerWidget {
     final async = ref.watch(notesListStateProvider);
     final notifier = ref.read(notesListStateProvider.notifier);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notes'),
-        actions: [
-          IconButton(
-            tooltip: 'Sort',
-            icon: const Icon(Icons.swap_vert),
-            onPressed: async.hasValue
-                ? () => showModalBottomSheet<void>(
-                      context: context,
-                      builder: (_) => SortSheet(
-                        current: async.value!.sort,
-                        onSelected: notifier.setSort,
-                      ),
-                    )
-                : null,
-          ),
-          IconButton(
-            tooltip: 'Filter',
-            icon: const Icon(Icons.filter_list),
-            onPressed: async.hasValue
-                ? () {
-                    final data = async.value!;
-                    final usage =
-                        ref.read(filterUsageProvider).value ?? const {};
-                    final groups = groupByDomain(
-                        data.catalogsById.values, data.countsByCatalog, usage);
-                    showModalBottomSheet<void>(
-                      context: context,
-                      builder: (_) => CatalogFilterSheet(
-                        groups: groups,
-                        counts: data.countsByCatalog,
-                        selected: data.catalogFilter,
-                        onApply: notifier.setFilter,
-                        onRecordDomain: (key) => ref
-                            .read(filterUsageProvider.notifier)
-                            .record(key),
-                      ),
-                    );
-                  }
-                : null,
-          ),
-          IconButton(
-            tooltip: 'Subsystems',
-            icon: const Icon(Icons.widgets_outlined),
-            onPressed: () => context.push('/notes/subsystems'),
-          ),
-        ],
-      ),
+    return AppScaffold(
+      title: 'Notes',
+      actions: [
+        IconButton(
+          tooltip: 'Sort',
+          icon: const Icon(Icons.swap_vert),
+          onPressed: async.hasValue
+              ? () => showModalBottomSheet<void>(
+                    context: context,
+                    builder: (_) => SortSheet(
+                      current: async.value!.sort,
+                      onSelected: notifier.setSort,
+                    ),
+                  )
+              : null,
+        ),
+        IconButton(
+          tooltip: 'Filter',
+          icon: const Icon(Icons.filter_list),
+          onPressed: async.hasValue
+              ? () {
+                  final data = async.value!;
+                  final usage =
+                      ref.read(filterUsageProvider).value ?? const {};
+                  final groups = groupByDomain(
+                      data.catalogsById.values, data.countsByCatalog, usage);
+                  showModalBottomSheet<void>(
+                    context: context,
+                    builder: (_) => CatalogFilterSheet(
+                      groups: groups,
+                      counts: data.countsByCatalog,
+                      selected: data.catalogFilter,
+                      onApply: notifier.setFilter,
+                      onRecordDomain: (key) => ref
+                          .read(filterUsageProvider.notifier)
+                          .record(key),
+                    ),
+                  );
+                }
+              : null,
+        ),
+        IconButton(
+          tooltip: 'Subsystems',
+          icon: const Icon(Icons.widgets_outlined),
+          onPressed: () => context.push('/notes/subsystems'),
+        ),
+      ],
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/notes/new'),
         child: const Icon(Icons.add),
       ),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed to load notes: $e')),
-        data: (data) {
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: TextField(
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search subjects',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: notifier.setQuery,
+      slivers: async.when<List<Widget>>(
+        loading: () => const [
+          SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+        ],
+        error: (e, _) => [
+          SliverFillRemaining(
+            child: Center(child: Text('Failed to load notes: $e')),
+          ),
+        ],
+        data: (data) => [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: TextField(
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  hintText: 'Search subjects',
+                  isDense: true,
+                  border: OutlineInputBorder(),
                 ),
+                onChanged: notifier.setQuery,
               ),
-              _Chips(data: data),
-              Expanded(
-                child: data.visible.isEmpty
-                    ? const Center(child: Text('No notes'))
-                    : ListView.builder(
-                        itemCount: data.visible.length,
-                        itemBuilder: (context, i) {
-                          final note = data.visible[i];
-                          return NoteListTile(
-                            note: note,
-                            catalog: note.catalogId == null
-                                ? null
-                                : data.catalogsById[note.catalogId],
-                            onTap: () {
-                              final isWide =
-                                  MediaQuery.of(context).size.width >= kNotesWideBreakpoint;
-                              if (isWide) {
-                                ref
-                                    .read(selectedNoteIdProvider.notifier)
-                                    .select(note.id);
-                              } else {
-                                context.push('/notes/${note.id}');
-                              }
-                            },
-                          );
-                        },
-                      ),
+            ),
+          ),
+          SliverToBoxAdapter(child: _Chips(data: data)),
+          if (data.visible.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: AppEmptyState(
+                icon: Icons.note_outlined,
+                message: 'No notes yet',
               ),
-            ],
-          );
-        },
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index.isOdd) return const AppRowSeparator();
+                  final i = index ~/ 2;
+                  final note = data.visible[i];
+                  return NoteListTile(
+                    note: note,
+                    catalog: note.catalogId == null
+                        ? null
+                        : data.catalogsById[note.catalogId],
+                    onTap: () {
+                      final isWide = MediaQuery.of(context).size.width >=
+                          kNotesWideBreakpoint;
+                      if (isWide) {
+                        ref.read(selectedNoteIdProvider.notifier).select(note.id);
+                      } else {
+                        context.push('/notes/${note.id}');
+                      }
+                    },
+                  );
+                },
+                childCount: data.visible.length * 2 - 1,
+              ),
+            ),
+        ],
       ),
     );
   }
