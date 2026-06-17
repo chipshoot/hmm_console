@@ -55,7 +55,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextField, 'Subject'), 'Hi');
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Hi');
     await tester.tap(find.text('Save'));
     await tester.pump();
 

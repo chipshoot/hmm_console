@@ -59,7 +59,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextField, 'Subject'), 'Hello');
+        find.widgetWithText(TextField, 'Title'), 'Hello');
     await tester.tap(find.text('Save'));
     await tester.pump();
     expect(fake.createdSubject, 'Hello');
