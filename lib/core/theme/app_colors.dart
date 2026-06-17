@@ -11,6 +11,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.tertiaryLabel,
     required this.separator,
     required this.groupedBackground,
+    required this.secondaryGroupedBackground,
     required this.accent,
   });
 
@@ -19,6 +20,10 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color tertiaryLabel;
   final Color separator;
   final Color groupedBackground;
+
+  /// Surface for grouped cells/cards sitting on top of [groupedBackground]
+  /// (iOS `secondarySystemGroupedBackground`). Used by [AppGroupedCard].
+  final Color secondaryGroupedBackground;
   final Color accent;
 
   static const AppColors light = AppColors(
@@ -27,6 +32,7 @@ class AppColors extends ThemeExtension<AppColors> {
     tertiaryLabel: Color(0xFFAEAEB2),
     separator: Color(0xFFE5E5EA),
     groupedBackground: Color(0xFFF2F2F7),
+    secondaryGroupedBackground: Color(0xFFFFFFFF),
     accent: Color(0xFF0A84FF),
   );
 
@@ -38,6 +44,9 @@ class AppColors extends ThemeExtension<AppColors> {
     // Pure black (OLED-friendly), intentionally deeper than iOS's
     // systemGroupedBackground (#1C1C1E) for a truer dark surface.
     groupedBackground: Color(0xFF000000),
+    // iOS secondarySystemGroupedBackground (dark): cards lift off the pure
+    // black page surface.
+    secondaryGroupedBackground: Color(0xFF1C1C1E),
     accent: Color(0xFF0A84FF),
   );
 
@@ -48,6 +57,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? tertiaryLabel,
     Color? separator,
     Color? groupedBackground,
+    Color? secondaryGroupedBackground,
     Color? accent,
   }) {
     return AppColors(
@@ -56,6 +66,8 @@ class AppColors extends ThemeExtension<AppColors> {
       tertiaryLabel: tertiaryLabel ?? this.tertiaryLabel,
       separator: separator ?? this.separator,
       groupedBackground: groupedBackground ?? this.groupedBackground,
+      secondaryGroupedBackground:
+          secondaryGroupedBackground ?? this.secondaryGroupedBackground,
       accent: accent ?? this.accent,
     );
   }
@@ -70,6 +82,8 @@ class AppColors extends ThemeExtension<AppColors> {
       separator: Color.lerp(separator, other.separator, t)!,
       groupedBackground:
           Color.lerp(groupedBackground, other.groupedBackground, t)!,
+      secondaryGroupedBackground: Color.lerp(
+          secondaryGroupedBackground, other.secondaryGroupedBackground, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
     );
   }

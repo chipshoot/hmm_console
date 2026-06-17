@@ -8,6 +8,8 @@ void main() {
     expect(AppColors.dark.label, const Color(0xFFFFFFFF));
     expect(AppColors.light.groupedBackground, const Color(0xFFF2F2F7));
     expect(AppColors.dark.groupedBackground, const Color(0xFF000000));
+    expect(AppColors.light.secondaryGroupedBackground, const Color(0xFFFFFFFF));
+    expect(AppColors.dark.secondaryGroupedBackground, const Color(0xFF1C1C1E));
     expect(AppColors.light.accent, AppColors.dark.accent);
     expect(AppColors.light.accent, const Color(0xFF0A84FF));
   });
