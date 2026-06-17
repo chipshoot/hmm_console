@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../../core/widgets/app_grouped_card.dart';
+import '../../../../core/widgets/app_list_row.dart' show kRowInsetNoLeading;
+import '../../../../core/widgets/app_row_separator.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../data/subsystem_anchor.dart';
 import '../../states/mutate_note_state.dart';
@@ -130,41 +133,70 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Consumer(builder: (context, ref, _) {
-                  final anchorsAsync = ref.watch(subsystemAnchorsProvider);
-                  return anchorsAsync.maybeWhen(
-                    data: (anchors) => DropdownButtonFormField<int?>(
-                      initialValue: anchors.any((a) => a.id == _parentId) ? _parentId : null,
-                      decoration: const InputDecoration(
-                          labelText: 'Attach to subsystem',
-                          border: OutlineInputBorder()),
-                      items: [
-                        const DropdownMenuItem<int?>(value: null, child: Text('None')),
-                        for (final a in anchors)
-                          DropdownMenuItem<int?>(value: a.id, child: Text(a.subject)),
-                      ],
-                      onChanged: (v) => setState(() => _parentId = v),
-                    ),
-                    orElse: () => const SizedBox.shrink(),
-                  );
-                }),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _subjectCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Subject', border: OutlineInputBorder()),
+                // Grouped card: subsystem picker + subject, hairline between.
+                AppGroupedCard(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Consumer(builder: (context, ref, _) {
+                        final anchorsAsync =
+                            ref.watch(subsystemAnchorsProvider);
+                        return anchorsAsync.maybeWhen(
+                          data: (anchors) => DropdownButtonFormField<int?>(
+                            initialValue:
+                                anchors.any((a) => a.id == _parentId)
+                                    ? _parentId
+                                    : null,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Attach to subsystem',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                            ),
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                  value: null, child: Text('None')),
+                              for (final a in anchors)
+                                DropdownMenuItem<int?>(
+                                    value: a.id, child: Text(a.subject)),
+                            ],
+                            onChanged: (v) => setState(() => _parentId = v),
+                          ),
+                          orElse: () => const SizedBox.shrink(),
+                        );
+                      }),
+                      const AppRowSeparator(indent: kRowInsetNoLeading),
+                      TextField(
+                        controller: _subjectCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Subject',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                // Body card fills the remaining space.
                 Expanded(
-                  child: TextField(
-                    controller: _bodyCtrl,
-                    maxLines: null,
-                    expands: true,
-                    textAlignVertical: TextAlignVertical.top,
-                    decoration: const InputDecoration(
-                      labelText: 'Body (markdown)',
-                      alignLabelWithHint: true,
-                      border: OutlineInputBorder(),
+                  child: AppGroupedCard(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: TextField(
+                        controller: _bodyCtrl,
+                        maxLines: null,
+                        expands: true,
+                        textAlignVertical: TextAlignVertical.top,
+                        decoration: const InputDecoration(
+                          hintText: 'Body (markdown)',
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                        ),
+                      ),
                     ),
                   ),
                 ),
