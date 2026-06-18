@@ -238,6 +238,11 @@ class _SubFilterButton extends StatelessWidget {
     required this.onSelected,
   });
 
+  // Sentinel for the "All <domain>" option. PopupMenuButton treats a tapped
+  // null-value item as a *cancel* (never firing onSelected), so the "All"
+  // option must carry a non-null value. Real catalog ids are positive.
+  static const int _allValue = -1;
+
   final DomainGroup domain;
   final int? selectedCatalogId;
   final void Function(int? catalogId) onSelected;
@@ -255,13 +260,13 @@ class _SubFilterButton extends StatelessWidget {
         }
       }
     }
-    return PopupMenuButton<int?>(
-      initialValue: selectedCatalogId,
-      onSelected: onSelected,
+    return PopupMenuButton<int>(
+      initialValue: selectedCatalogId ?? _allValue,
+      onSelected: (v) => onSelected(v == _allValue ? null : v),
       itemBuilder: (_) => [
-        PopupMenuItem<int?>(value: null, child: Text(allLabel)),
+        PopupMenuItem<int>(value: _allValue, child: Text(allLabel)),
         for (final cat in domain.catalogs)
-          PopupMenuItem<int?>(
+          PopupMenuItem<int>(
             value: cat.id,
             child: Text(CatalogPalette.styleFor(cat.name).displayName),
           ),

@@ -105,6 +105,31 @@ void main() {
     expect(find.text('Fuel up'), findsNothing); // gas-log note now filtered out
   });
 
+  testWidgets('sub-filter can be reset back to "All <domain>"',
+      (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    // Automobile -> narrow to Insurance (no notes) -> list empties.
+    await tester.tap(find.byType(ActionChip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All Automobile'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insurance').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Fuel up'), findsNothing);
+
+    // Reopen the sub-filter (now showing "Insurance") and pick "All
+    // Automobile" -> the gas-log note must come back.
+    await tester.tap(find.text('Insurance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All Automobile').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Fuel up'), findsOneWidget);
+  });
+
   testWidgets('single-catalog domain (General) shows no sub-filter',
       (tester) async {
     await tester.pumpWidget(_app());

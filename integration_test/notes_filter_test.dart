@@ -81,6 +81,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Fuel up'), findsNothing);
 
+    // Reset the sub-filter back to "All Automobile" → gas-log note returns.
+    await tester.tap(find.text('Insurance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All Automobile').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Fuel up'), findsOneWidget);
+
     // Back to All via the drawer → both notes return, sub disappears.
     await tester.tap(find.byType(ActionChip));
     await tester.pumpAndSettle();
