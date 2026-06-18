@@ -2,12 +2,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/local/database.dart';
 import '../../../core/data/repository_providers.dart';
+import '../../../core/notes/catalog_palette.dart';
 import '../data/models/hmm_note.dart';
 import '../data/subsystem_anchor.dart';
 
 enum NoteSort { dateNewest, dateOldest, lastModified, subjectAZ }
 
 const Object _unset = Object();
+
+/// Normalizes a domain key to its subsystem-anchor key form, mirroring how
+/// [CatalogPalette.domainStyle] strips a trailing "Man": `AutomobileMan` ->
+/// `automobile` (which matches the `hmm-subsystem-automobile` anchor uuid).
+String _normalizeDomainKey(String key) =>
+    (key.endsWith('Man') && key.length > 3
+            ? key.substring(0, key.length - 3)
+            : key)
+        .toLowerCase();
 
 class NotesListData {
   const NotesListData({
@@ -16,6 +26,8 @@ class NotesListData {
     this.catalogFilter,
     this.sort = NoteSort.dateNewest,
     this.query = '',
+    this.catalogDomainById = const {},
+    this.anchorDomainById = const {},
   });
 
   final List<HmmNote> all;
@@ -23,6 +35,15 @@ class NotesListData {
   final Set<int>? catalogFilter; // null = all
   final NoteSort sort;
   final String query;
+
+  /// catalog id -> its domain key (e.g. `Hmm.AutomobileMan.GasLog` ->
+  /// `AutomobileMan`). Lets the filter resolve a selection back to domains.
+  final Map<int, String> catalogDomainById;
+
+  /// Subsystem-anchor note id -> the catalog domain it represents (e.g. the
+  /// `automobile` anchor -> `AutomobileMan`). Lets the domain filter also match
+  /// General notes attached to that subsystem via parentNoteId.
+  final Map<int, String> anchorDomainById;
 
   Map<int, int> get countsByCatalog {
     final m = <int, int>{};
@@ -37,7 +58,23 @@ class NotesListData {
     Iterable<HmmNote> items = all;
     final f = catalogFilter;
     if (f != null && f.isNotEmpty) {
-      items = items.where((n) => n.catalogId != null && f.contains(n.catalogId));
+      // Domains represented by the selected catalogs. A note matches if its
+      // catalog is selected OR it's attached to a subsystem anchor whose
+      // domain is among them (so "Automobile" surfaces notes attached to the
+      // automobile subsystem, not just automobile-catalog notes).
+      final selectedDomains = <String>{
+        for (final id in f)
+          if (catalogDomainById[id] != null) catalogDomainById[id]!,
+      };
+      items = items.where((n) {
+        if (n.catalogId != null && f.contains(n.catalogId)) return true;
+        final p = n.parentNoteId;
+        if (p != null) {
+          final d = anchorDomainById[p];
+          if (d != null && selectedDomains.contains(d)) return true;
+        }
+        return false;
+      });
     }
     final q = query.trim().toLowerCase();
     if (q.isNotEmpty) {
@@ -65,6 +102,8 @@ class NotesListData {
     Object? catalogFilter = _unset,
     NoteSort? sort,
     String? query,
+    Map<int, String>? catalogDomainById,
+    Map<int, String>? anchorDomainById,
   }) {
     return NotesListData(
       all: all ?? this.all,
@@ -74,6 +113,8 @@ class NotesListData {
           : catalogFilter as Set<int>?,
       sort: sort ?? this.sort,
       query: query ?? this.query,
+      catalogDomainById: catalogDomainById ?? this.catalogDomainById,
+      anchorDomainById: anchorDomainById ?? this.anchorDomainById,
     );
   }
 }
@@ -111,12 +152,37 @@ class NotesListState extends AsyncNotifier<NotesListData> {
     final visibleNotes = anchorCatalogId == null
         ? notes
         : notes.where((n) => n.catalogId != anchorCatalogId).toList();
+
+    // catalog id -> domain key, and subsystem-anchor note id -> the domain it
+    // represents (linking the `automobile` anchor to the `AutomobileMan`
+    // domain so attached notes surface under that filter).
+    final catalogDomainById = {
+      for (final c in catalogs) c.id: CatalogPalette.domainKeyFor(c.name),
+    };
+    final anchorDomainById = <int, String>{};
+    if (anchorCatalogId != null) {
+      const prefix = 'hmm-subsystem-';
+      final domains = catalogDomainById.values.toSet();
+      for (final n in notes.where((n) => n.catalogId == anchorCatalogId)) {
+        if (!n.uuid.startsWith(prefix)) continue;
+        final anchorKey = n.uuid.substring(prefix.length);
+        for (final d in domains) {
+          if (_normalizeDomainKey(d) == anchorKey) {
+            anchorDomainById[n.id] = d;
+            break;
+          }
+        }
+      }
+    }
+
     return NotesListData(
       all: visibleNotes,
       catalogsById: byId,
       catalogFilter: _filter,
       sort: _sort,
       query: _query,
+      catalogDomainById: catalogDomainById,
+      anchorDomainById: anchorDomainById,
     );
   }
 
