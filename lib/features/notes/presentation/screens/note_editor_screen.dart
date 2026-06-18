@@ -4,13 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
+    show AttachmentPickSource;
+import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../data/subsystem_anchor.dart';
 import '../../states/mutate_note_state.dart';
 import '../screens/note_detail_screen.dart' show noteDetailProvider;
+import '../widgets/media_toolbar.dart';
+import '../widgets/note_media_card_list.dart';
 
 class NoteEditorScreen extends ConsumerStatefulWidget {
   const NoteEditorScreen({super.key, this.noteId, this.presetParentId});
@@ -30,6 +35,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool _parentTouched = false; // user changed the subsystem dropdown
   bool _busy = false;
   bool _loaded = false;
+
+  /// Images picked this session, not yet attached (attached on save).
+  final List<PickedImageBytes> _pendingPicks = [];
+
+  /// Images already attached to the note (when editing an existing note).
+  List<AttachmentRef> _savedImages = [];
 
   /// Shown under the title. For a new note this is "today" (the value it will
   /// be created with); for an existing note it's the note's create date.
@@ -59,6 +70,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       _subjectCtrl.text = note.subject;
       _bodyCtrl.text = note.content ?? '';
       _createdAt = note.createDate.toLocal();
+      _savedImages = [
+        if (note.effectiveAttachments.primaryImage != null)
+          note.effectiveAttachments.primaryImage!,
+        ...note.effectiveAttachments.images,
+      ];
       // Reflect the note's real attachment so the dropdown isn't stuck on
       // "None". Don't mark it touched — an untouched dropdown must not
       // rewrite the parent on save.
@@ -94,27 +110,26 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         }
         ref.invalidate(noteDetailProvider(_noteId!));
       }
+      // Attach any photos added this session, then clear them.
+      if (_pendingPicks.isNotEmpty && _noteId != null) {
+        for (final pick in _pendingPicks) {
+          await mutate.attachImageBytes(_noteId!, pick);
+        }
+        if (mounted) setState(() => _pendingPicks.clear());
+        ref.invalidate(noteDetailProvider(_noteId!));
+      }
       return _noteId;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _addImage() async {
-    final id = await _save(); // ensure the note exists first
-    if (id == null) return;
-    try {
-      await ref.read(mutateNoteProvider).addImage(id);
-      ref.invalidate(noteDetailProvider(id));
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Image added')));
-      }
-    } on AttachmentPickerException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
-      }
+  /// Pick an image (gallery/camera) and hold it as pending — it attaches on the
+  /// next save. No subject required to add.
+  Future<void> _addMedia(AttachmentPickSource source) async {
+    final pick = await ref.read(imageByteSourceProvider).pick(source);
+    if (pick != null && mounted) {
+      setState(() => _pendingPicks.add(pick));
     }
   }
 
@@ -136,38 +151,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       return CupertinoNavigationBar(
         backgroundColor: c.groupedBackground,
         border: null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(36, 36),
-              onPressed: _busy ? null : _addImage,
-              child: Icon(CupertinoIcons.photo, color: c.accent, size: 24),
-            ),
-            const SizedBox(width: 6),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(36, 36),
-              onPressed: _busy ? null : onSave,
-              child: Text('Save',
-                  style: TextStyle(
-                      color: c.accent,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600)),
-            ),
-          ],
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(36, 36),
+          onPressed: _busy ? null : onSave,
+          child: Text('Save',
+              style: TextStyle(
+                  color: c.accent, fontSize: 17, fontWeight: FontWeight.w600)),
         ),
       );
     }
     return AppBar(
       backgroundColor: c.groupedBackground,
       actions: [
-        IconButton(
-          tooltip: 'Add image',
-          icon: const Icon(Icons.image),
-          onPressed: _busy ? null : _addImage,
-        ),
         TextButton(onPressed: _busy ? null : onSave, child: const Text('Save')),
       ],
     );
@@ -180,6 +176,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     return Scaffold(
       backgroundColor: c.groupedBackground,
       appBar: _buildNav(context, c),
+      bottomNavigationBar: MediaToolbar(
+        onPick: _addMedia,
+        enabled: !_busy,
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -219,6 +219,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                     const SizedBox(height: 12),
                     Divider(height: 1, thickness: 1, color: c.separator),
                     const SizedBox(height: 12),
+                    NoteMediaCardList(
+                      saved: _savedImages,
+                      pending: _pendingPicks,
+                      onRemovePending: (i) =>
+                          setState(() => _pendingPicks.removeAt(i)),
+                    ),
                     Expanded(
                       child: TextField(
                         controller: _bodyCtrl,
