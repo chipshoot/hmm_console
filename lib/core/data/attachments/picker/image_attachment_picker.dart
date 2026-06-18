@@ -43,6 +43,15 @@ abstract interface class IImageAttachmentPicker {
     required int noteId,
     AttachmentPickSource source = AttachmentPickSource.gallery,
   });
+
+  /// Persist already-picked bytes into the vault for [noteId]. Used by the
+  /// editor to attach images held in state once the note is saved.
+  Future<VaultRef> persistToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    String? contentTypeHint,
+  });
 }
 
 class AttachmentPickerException implements Exception {
@@ -97,6 +106,7 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
   /// VaultRef. Exposed (rather than private) so tests and headless
   /// callers (e.g. "import from a file path") can drive the
   /// same path without going through `image_picker`.
+  @override
   Future<VaultRef> persistToVault({
     required int noteId,
     required Uint8List bytes,
