@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/attachments/attachment_ref.dart';
 import '../../../core/data/attachments/attachment_providers.dart';
 import '../../../core/data/attachments/picker/image_attachment_picker.dart';
+import '../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../core/data/hmm_note_input.dart';
 import '../../../core/data/repository_providers.dart';
 import '../data/general_catalog.dart';
@@ -58,6 +59,30 @@ class MutateNote {
 
   Future<void> delete(int id) async {
     await ref.read(hmmNoteRepositoryProvider).deleteNote(id);
+  }
+
+  /// Persist already-picked [pick] bytes into the note's vault and append the
+  /// resulting VaultRef to the note's attachments (first image becomes the
+  /// primary). Used by the editor's attach-on-save flow.
+  Future<HmmNote?> attachImageBytes(int noteId, PickedImageBytes pick) async {
+    final picker = await ref.read(imageAttachmentPickerProvider.future);
+    final added = await picker.persistToVault(
+      noteId: noteId,
+      bytes: pick.bytes,
+      originalName: pick.originalName,
+      contentTypeHint: pick.contentType,
+    );
+    final repo = ref.read(hmmNoteRepositoryProvider);
+    final current = await repo.getNoteById(noteId);
+    if (current == null) return null;
+    final existing = current.effectiveAttachments;
+    final updated = NoteAttachments(
+      primaryImage: existing.primaryImage ?? added,
+      images: existing.primaryImage == null
+          ? existing.images
+          : [...existing.images, added],
+    );
+    return repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
   }
 
   /// Picks an image for [noteId] (which must already exist), appends it, and

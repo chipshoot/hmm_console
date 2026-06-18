@@ -5,6 +5,7 @@ import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
+import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/widgets/editable_info_card.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/numeric_input.dart';
@@ -331,32 +332,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   }
 
   void _showFullscreenPhoto(AttachmentRef ref_) {
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (_) => Consumer(builder: (context, ref, _) {
-        final resolverAsync = ref.watch(attachmentResolverProvider);
-        return Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          backgroundColor: Colors.transparent,
-          child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Center(
-              child: resolverAsync.when(
-                data: (resolver) => InteractiveViewer(
-                  child: AttachmentImage(ref: ref_, resolver: resolver),
-                ),
-                loading: () => const CircularProgressIndicator(),
-                error: (e, _) => Text(
-                  'Could not load photo: $e',
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
+    showFullscreenImage(context, ref_);
   }
 
   Future<void> _saveIdentity() async {

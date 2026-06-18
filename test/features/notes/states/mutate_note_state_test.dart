@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
@@ -91,6 +93,15 @@ class _FakePicker implements IImageAttachmentPicker {
           {required int noteId,
           AttachmentPickSource source = AttachmentPickSource.gallery}) async =>
       result;
+
+  @override
+  Future<VaultRef> persistToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    String? contentTypeHint,
+  }) async =>
+      result ?? _ref('persisted');
 }
 
 VaultRef _ref(String path) =>
