@@ -1,3 +1,7 @@
+// The notes-list domain filter is a tap-toggle drawer (replacing the old
+// horizontal chip row): a single "filter" button opens a category panel;
+// picking a domain filters the list and closes the panel.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,43 +34,50 @@ class _StubListState extends NotesListState {
       );
 }
 
+Widget _app() => ProviderScope(
+      overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
+      child: MaterialApp(
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: const NotesListScreen(),
+      ),
+    );
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('inline chips are DOMAINS, not individual catalogs', (tester) async {
-    await tester.pumpWidget(ProviderScope(
-      overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-      child: MaterialApp(
-        theme: ThemeData(extensions: const [AppColors.light]),
-        home: const NotesListScreen(),
-      ),
-    ));
+  testWidgets('filter drawer lists DOMAINS, not individual catalogs',
+      (tester) async {
+    await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(ChoiceChip, 'Automobile'), findsOneWidget);
-    expect(find.widgetWithText(ChoiceChip, 'General'), findsOneWidget);
-    // Individual catalog names are NOT inline chips anymore.
-    expect(find.widgetWithText(ChoiceChip, 'Gas Log'), findsNothing);
+    // Open the filter panel.
+    await tester.tap(find.byType(ActionChip));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(ListTile, 'Automobile'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'General'), findsOneWidget);
+    // Individual catalog names are NOT in the domain drawer.
+    expect(find.widgetWithText(ListTile, 'Gas Log'), findsNothing);
   });
 
-  testWidgets('tapping a domain chip filters to all its catalogs',
+  testWidgets('picking a domain in the drawer filters the list and closes it',
       (tester) async {
-    await tester.pumpWidget(ProviderScope(
-      overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-      child: MaterialApp(
-        theme: ThemeData(extensions: const [AppColors.light]),
-        home: const NotesListScreen(),
-      ),
-    ));
+    await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
     expect(find.text('Fuel up'), findsOneWidget);
     expect(find.text('Shopping'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Automobile'));
+    await tester.tap(find.byType(ActionChip)); // open
     await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Automobile')); // pick
+    await tester.pumpAndSettle(); // filters + closes
 
     expect(find.text('Fuel up'), findsOneWidget); // automobile note kept
     expect(find.text('Shopping'), findsNothing); // general note filtered out
+    // The drawer closed, so its tiles are gone.
+    expect(find.widgetWithText(ListTile, 'General'), findsNothing);
+    // The filter button now reflects the active domain.
+    expect(find.widgetWithText(ActionChip, 'Automobile'), findsOneWidget);
   });
 }

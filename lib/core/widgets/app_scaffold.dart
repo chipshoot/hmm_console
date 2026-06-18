@@ -15,6 +15,7 @@ class AppScaffold extends StatelessWidget {
     this.leading,
     this.floatingActionButton,
     this.backgroundColor,
+    this.drawer,
   });
 
   final String title;
@@ -23,6 +24,10 @@ class AppScaffold extends StatelessWidget {
   final Widget? leading;
   final Widget? floatingActionButton;
   final Color? backgroundColor;
+
+  /// Optional left slide-in panel, opened only via a button (open-drag gesture
+  /// is disabled so it never conflicts with the iOS back-swipe).
+  final Widget? drawer;
 
   bool _isApple(TargetPlatform p) =>
       p == TargetPlatform.iOS || p == TargetPlatform.macOS;
@@ -52,6 +57,8 @@ class AppScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: bg,
+      drawer: drawer,
+      drawerEnableOpenDragGesture: false,
       floatingActionButton: floatingActionButton,
       body: CustomScrollView(slivers: [navBar, ...slivers]),
     );

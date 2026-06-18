@@ -12,6 +12,8 @@ import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
 import '../widgets/note_list_tile.dart';
 import '../widgets/sort_sheet.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_row_separator.dart';
 import '../../../../core/widgets/app_scaffold.dart';
@@ -19,13 +21,30 @@ import '../../../../core/widgets/app_scaffold.dart';
 class NotesListScreen extends ConsumerWidget {
   const NotesListScreen({super.key});
 
+  /// Label for the filter button: the active domain's name, or "All".
+  String _activeFilterLabel(NotesListData data, Map<String, int> usage) {
+    final f = data.catalogFilter;
+    if (f == null || f.isEmpty) return 'All';
+    final groups =
+        groupByDomain(data.catalogsById.values, data.countsByCatalog, usage);
+    for (final g in groups) {
+      if (setEquals(f, g.catalogIds)) return g.style.displayName;
+    }
+    return 'Filtered';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(notesListStateProvider);
     final notifier = ref.read(notesListStateProvider.notifier);
+    final usage = ref.watch(filterUsageProvider).value ?? const {};
 
     return AppScaffold(
       title: 'Notes',
+      drawer: async.maybeWhen(
+        data: (data) => _FilterDrawer(data: data),
+        orElse: () => null,
+      ),
       actions: [
         IconButton(
           tooltip: 'Sort',
@@ -99,7 +118,9 @@ class NotesListScreen extends ConsumerWidget {
               ),
             ),
           ),
-          SliverToBoxAdapter(child: _Chips(data: data)),
+          SliverToBoxAdapter(
+            child: _FilterBar(label: _activeFilterLabel(data, usage)),
+          ),
           if (data.visible.isEmpty)
             const SliverFillRemaining(
               hasScrollBody: false,
@@ -140,58 +161,97 @@ class NotesListScreen extends ConsumerWidget {
   }
 }
 
-/// Inline quick filters: "All" + the most-used DOMAIN chips (ordered by tracked
-/// usage, then note count). Tapping a domain filters to all its catalogs and
-/// records the tap so the order adapts. The full per-catalog list lives in the
-/// grouped filter sheet (funnel).
-class _Chips extends ConsumerWidget {
-  const _Chips({required this.data});
-  final NotesListData data;
+/// The single filter control that replaces the horizontal chip row. Shows the
+/// active filter and opens the category drawer on tap (no scrolling pills).
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({required this.label});
+  final String label;
 
-  static const int _maxInline = 4;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.appColors;
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
+        child: ActionChip(
+          avatar: Icon(Icons.tune, size: 18, color: c.accent),
+          label: Text(label),
+          // Opens the AppScaffold drawer; the Builder context is under the
+          // Scaffold so Scaffold.of resolves it.
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
+    );
+  }
+}
+
+/// Category panel (a left drawer) listing "All" + the note DOMAINS. Picking one
+/// applies the filter and closes the panel. Replaces the old inline chips; the
+/// per-catalog funnel sheet stays available from the nav bar.
+class _FilterDrawer extends ConsumerWidget {
+  const _FilterDrawer({required this.data});
+  final NotesListData data;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.appColors;
     final notifier = ref.read(notesListStateProvider.notifier);
     final usage = ref.watch(filterUsageProvider).value ?? const {};
     final groups =
-        groupByDomain(data.catalogsById.values, data.countsByCatalog, usage)
-            .take(_maxInline)
-            .toList();
+        groupByDomain(data.catalogsById.values, data.countsByCatalog, usage);
+    final f = data.catalogFilter;
 
-    bool isSelected(DomainGroup g) {
-      final f = data.catalogFilter;
-      return f != null && f.isNotEmpty && setEquals(f, g.catalogIds);
-    }
+    Widget dot(Color color) => Container(
+        width: 12, height: 12,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle));
 
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: ChoiceChip(
-              label: const Text('All'),
-              selected: data.catalogFilter == null,
-              onSelected: (_) => notifier.setFilter(null),
-            ),
-          ),
-          for (final g in groups)
+    Widget tile({
+      required Widget leading,
+      required String title,
+      required bool selected,
+      required VoidCallback onTap,
+    }) =>
+        ListTile(
+          leading: leading,
+          title: Text(title),
+          selected: selected,
+          trailing: selected ? Icon(Icons.check, color: c.accent) : null,
+          onTap: onTap,
+        );
+
+    return Drawer(
+      child: SafeArea(
+        child: ListView(
+          children: [
             Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: ChoiceChip(
-                avatar: CircleAvatar(radius: 5, backgroundColor: g.style.color),
-                label: Text(g.style.displayName),
-                selected: isSelected(g),
-                onSelected: (_) {
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 8),
+              child: Text('FILTER',
+                  style: DesignTokens.caption
+                      .copyWith(color: c.secondaryLabel, letterSpacing: 0.5)),
+            ),
+            tile(
+              leading: dot(c.tertiaryLabel),
+              title: 'All',
+              selected: f == null || f.isEmpty,
+              onTap: () {
+                notifier.setFilter(null);
+                Navigator.of(context).pop();
+              },
+            ),
+            for (final g in groups)
+              tile(
+                leading: dot(g.style.color),
+                title: g.style.displayName,
+                selected: f != null && setEquals(f, g.catalogIds),
+                onTap: () {
                   ref.read(filterUsageProvider.notifier).record(g.key);
                   notifier.setFilter(g.catalogIds);
+                  Navigator.of(context).pop();
                 },
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

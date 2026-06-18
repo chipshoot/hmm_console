@@ -147,11 +147,16 @@ class NotesListState extends AsyncNotifier<NotesListData> {
   Future<NotesListData> build() async {
     final notes = await ref.watch(_notesStreamProvider.future);
     final catalogs = await ref.watch(_catalogsStreamProvider.future);
-    final byId = {for (final c in catalogs) c.id: c};
     final anchorMatches =
         catalogs.where((c) => c.name == kSubsystemAnchorCatalogName);
     final anchorCatalogId =
         anchorMatches.isEmpty ? null : anchorMatches.first.id;
+    // Exclude the internal subsystem-anchor catalog from the catalog map so it
+    // never surfaces as a user-facing "System" filter.
+    final byId = {
+      for (final c in catalogs)
+        if (c.id != anchorCatalogId) c.id: c,
+    };
     final visibleNotes = anchorCatalogId == null
         ? notes
         : notes.where((n) => n.catalogId != anchorCatalogId).toList();
