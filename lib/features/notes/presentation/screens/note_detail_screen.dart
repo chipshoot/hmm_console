@@ -13,8 +13,8 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../data/models/hmm_note.dart';
 import '../../rendering/render_registry.dart';
 import '../../states/mutate_note_state.dart';
-import '../widgets/attachment_gallery.dart';
 import '../widgets/markdown_view.dart';
+import '../widgets/note_media_card_list.dart';
 
 class NoteDetailData {
   const NoteDetailData(this.note, this.catalog);
@@ -108,10 +108,9 @@ class NoteDetailScreen extends ConsumerWidget {
                   Text(d.note.subject,
                       style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 12),
-                  if (atts.isNotEmpty) ...[
-                    AttachmentGallery(refs: atts),
-                    const SizedBox(height: 12),
-                  ],
+                  if (atts.isNotEmpty)
+                    NoteMediaCardList(saved: atts, readOnly: true),
+                  const SizedBox(height: 12),
                   MarkdownView(markdown),
                 ],
               );
