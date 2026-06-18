@@ -28,7 +28,7 @@ class _StubListState extends NotesListState {
         ],
         catalogsById: {
           10: _cat(10, 'Hmm.AutomobileMan.GasLog', 2),
-          20: _cat(20, 'Hmm.AutomobileMan.AutomobileInfo', 2),
+          20: _cat(20, 'Hmm.AutomobileMan.AutoInsurancePolicy', 2),
           30: _cat(30, 'General', 3),
         },
       );
@@ -79,5 +79,44 @@ void main() {
     expect(find.widgetWithText(ListTile, 'General'), findsNothing);
     // The filter button now reflects the active domain.
     expect(find.widgetWithText(ActionChip, 'Automobile'), findsOneWidget);
+  });
+
+  testWidgets('multi-catalog domain reveals a sub-filter that narrows the list',
+      (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    // Select the Automobile domain (has Gas Log + Car Info => sub-filter).
+    await tester.tap(find.byType(ActionChip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
+    await tester.pumpAndSettle();
+
+    // Sub-filter appears, defaulting to "All Automobile".
+    expect(find.text('All Automobile'), findsOneWidget);
+    expect(find.text('Fuel up'), findsOneWidget); // gas-log note shown
+
+    // Open the sub-filter and narrow to Insurance (no notes there).
+    await tester.tap(find.text('All Automobile'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insurance').last); // menu item
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fuel up'), findsNothing); // gas-log note now filtered out
+  });
+
+  testWidgets('single-catalog domain (General) shows no sub-filter',
+      (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(ActionChip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'General'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(ActionChip, 'General'), findsOneWidget);
+    // No "All General" sub control.
+    expect(find.text('All General'), findsNothing);
   });
 }

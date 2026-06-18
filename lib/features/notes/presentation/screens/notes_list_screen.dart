@@ -12,6 +12,7 @@ import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
 import '../widgets/note_list_tile.dart';
 import '../widgets/sort_sheet.dart';
+import '../../../../core/notes/catalog_palette.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -20,18 +21,6 @@ import '../../../../core/widgets/app_scaffold.dart';
 
 class NotesListScreen extends ConsumerWidget {
   const NotesListScreen({super.key});
-
-  /// Label for the filter button: the active domain's name, or "All".
-  String _activeFilterLabel(NotesListData data, Map<String, int> usage) {
-    final f = data.catalogFilter;
-    if (f == null || f.isEmpty) return 'All';
-    final groups =
-        groupByDomain(data.catalogsById.values, data.countsByCatalog, usage);
-    for (final g in groups) {
-      if (setEquals(f, g.catalogIds)) return g.style.displayName;
-    }
-    return 'Filtered';
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -103,7 +92,35 @@ class NotesListScreen extends ConsumerWidget {
             child: Center(child: Text('Failed to load notes: $e')),
           ),
         ],
-        data: (data) => [
+        data: (data) {
+          // Resolve the active domain (main filter) and, if it has more than
+          // one catalog, the sub-filter selection within it.
+          final f = data.catalogFilter;
+          final groups = groupByDomain(
+              data.catalogsById.values, data.countsByCatalog, usage);
+          DomainGroup? activeDomain;
+          if (f != null && f.isNotEmpty) {
+            for (final g in groups) {
+              if (f.every(g.catalogIds.contains)) {
+                activeDomain = g;
+                break;
+              }
+            }
+          }
+          final mainLabel = activeDomain?.style.displayName ??
+              ((f == null || f.isEmpty) ? 'All' : 'Filtered');
+          final subDomain =
+              (activeDomain != null && activeDomain.catalogs.length > 1)
+                  ? activeDomain
+                  : null;
+          int? subSelected;
+          if (subDomain != null && f != null) {
+            subSelected = setEquals(f, subDomain.catalogIds)
+                ? null // "All <domain>"
+                : (f.length == 1 ? f.first : null);
+          }
+
+          return [
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(8),
@@ -119,7 +136,13 @@ class NotesListScreen extends ConsumerWidget {
             ),
           ),
           SliverToBoxAdapter(
-            child: _FilterBar(label: _activeFilterLabel(data, usage)),
+            child: _FilterBar(
+              mainLabel: mainLabel,
+              subDomain: subDomain,
+              subSelectedCatalogId: subSelected,
+              onSubSelected: (catId) => notifier.setFilter(
+                  catId == null ? subDomain!.catalogIds : {catId}),
+            ),
           ),
           if (data.visible.isEmpty)
             const SliverFillRemaining(
@@ -155,31 +178,110 @@ class NotesListScreen extends ConsumerWidget {
                 childCount: data.visible.length * 2 - 1,
               ),
             ),
+          ];
+        },
+      ),
+    );
+  }
+}
+
+/// The filter controls that replace the horizontal chip row: a main button
+/// (shows the active domain, opens the category drawer) and — only when the
+/// active domain has more than one catalog — a compact sub-filter dropdown.
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({
+    required this.mainLabel,
+    this.subDomain,
+    this.subSelectedCatalogId,
+    this.onSubSelected,
+  });
+
+  final String mainLabel;
+  final DomainGroup? subDomain;
+  final int? subSelectedCatalogId;
+  final void Function(int? catalogId)? onSubSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.appColors;
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
+      child: Row(
+        children: [
+          ActionChip(
+            avatar: Icon(Icons.tune, size: 18, color: c.accent),
+            label: Text(mainLabel),
+            // Opens the AppScaffold drawer; this context is under the Scaffold
+            // so Scaffold.of resolves it.
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+          if (subDomain != null && onSubSelected != null) ...[
+            const SizedBox(width: 8),
+            _SubFilterButton(
+              domain: subDomain!,
+              selectedCatalogId: subSelectedCatalogId,
+              onSelected: onSubSelected!,
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// The single filter control that replaces the horizontal chip row. Shows the
-/// active filter and opens the category drawer on tap (no scrolling pills).
-class _FilterBar extends StatelessWidget {
-  const _FilterBar({required this.label});
-  final String label;
+/// Compact dropdown for filtering within a domain. The first option is
+/// `All [domain]` (the default); the rest are the domain's catalogs.
+class _SubFilterButton extends StatelessWidget {
+  const _SubFilterButton({
+    required this.domain,
+    required this.selectedCatalogId,
+    required this.onSelected,
+  });
+
+  final DomainGroup domain;
+  final int? selectedCatalogId;
+  final void Function(int? catalogId) onSelected;
 
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
-        child: ActionChip(
-          avatar: Icon(Icons.tune, size: 18, color: c.accent),
-          label: Text(label),
-          // Opens the AppScaffold drawer; the Builder context is under the
-          // Scaffold so Scaffold.of resolves it.
-          onPressed: () => Scaffold.of(context).openDrawer(),
+    final allLabel = 'All ${domain.style.displayName}';
+    String label = allLabel;
+    if (selectedCatalogId != null) {
+      for (final cat in domain.catalogs) {
+        if (cat.id == selectedCatalogId) {
+          label = CatalogPalette.styleFor(cat.name).displayName;
+          break;
+        }
+      }
+    }
+    return PopupMenuButton<int?>(
+      initialValue: selectedCatalogId,
+      onSelected: onSelected,
+      itemBuilder: (_) => [
+        PopupMenuItem<int?>(value: null, child: Text(allLabel)),
+        for (final cat in domain.catalogs)
+          PopupMenuItem<int?>(
+            value: cat.id,
+            child: Text(CatalogPalette.styleFor(cat.name).displayName),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 7, 8, 7),
+        decoration: BoxDecoration(
+          color: c.secondaryGroupedBackground,
+          borderRadius: BorderRadius.circular(DesignTokens.radiusSmall),
+          border: Border.all(color: c.separator),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label,
+                style: DesignTokens.rowSecondary
+                    .copyWith(color: c.label, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 4),
+            Icon(Icons.expand_more, size: 18, color: c.secondaryLabel),
+          ],
         ),
       ),
     );
