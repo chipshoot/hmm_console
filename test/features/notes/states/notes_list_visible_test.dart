@@ -46,8 +46,11 @@ void main() {
     expect(_data().visible.length, 3);
   });
 
-  test('General filter shows General notes (by catalog), not the gas log', () {
+  test('General filter shows only unattached General notes (attached belong to '
+      'their subsystem, not General)', () {
     final ids = _data(filter: {_general}).visible.map((n) => n.id).toSet();
-    expect(ids, {1, 3});
+    // note 1 is a General note attached to the automobile subsystem -> it
+    // belongs to Automobile, NOT General. Only note 3 (unattached) shows.
+    expect(ids, {3});
   });
 }

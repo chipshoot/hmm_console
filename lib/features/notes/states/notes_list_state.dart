@@ -67,13 +67,16 @@ class NotesListData {
           if (catalogDomainById[id] != null) catalogDomainById[id]!,
       };
       items = items.where((n) {
-        if (n.catalogId != null && f.contains(n.catalogId)) return true;
+        // Attaching a note to a subsystem makes that subsystem its effective
+        // domain — it shows under the subsystem (e.g. Automobile), NOT under
+        // its catalog's domain (e.g. General). Unattached notes fall back to
+        // their catalog domain.
         final p = n.parentNoteId;
-        if (p != null) {
-          final d = anchorDomainById[p];
-          if (d != null && selectedDomains.contains(d)) return true;
+        final attachedDomain = p == null ? null : anchorDomainById[p];
+        if (attachedDomain != null) {
+          return selectedDomains.contains(attachedDomain);
         }
-        return false;
+        return n.catalogId != null && f.contains(n.catalogId);
       });
     }
     final q = query.trim().toLowerCase();
