@@ -56,6 +56,10 @@ class RawContentScreen extends ConsumerWidget {
                 const Divider(),
                 Text('catalog: ${d.catalog?.name ?? '(none)'}'),
                 Text('uuid: ${d.note.uuid}'),
+                Text('created (immutable): '
+                    '${d.note.createDate.toLocal().toIso8601String()}'),
+                Text('noteDate (editable): '
+                    '${(d.note.noteDate ?? d.note.createDate).toLocal().toIso8601String()}'),
                 Text('version: $version'),
               ],
             ),
