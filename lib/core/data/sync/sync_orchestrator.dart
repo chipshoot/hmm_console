@@ -335,6 +335,11 @@ class SyncOrchestrator {
         ? DateTime.tryParse(createDateRaw) ?? entry.updatedAt
         : (existing?.createDate ?? entry.updatedAt);
 
+    // Editable note date (Phase 2a). Absent (older client) ⇒ leave a stored
+    // value untouched on update, and fall back to createDate on insert.
+    final noteDateRaw = body['noteDate'] as String?;
+    final noteDate = noteDateRaw != null ? DateTime.tryParse(noteDateRaw) : null;
+
     final parentUuid = body['parentNoteUuid'] as String?;
 
     int childId;
@@ -346,6 +351,8 @@ class SyncOrchestrator {
         catalogId: Value(catalogId),
         parentNoteId: const Value(null), // resolved in pass 2
         description: Value(body['description'] as String?),
+        noteDate:
+            noteDate != null ? Value(noteDate) : const Value.absent(),
         lastModifiedDate: Value(entry.updatedAt),
         deletedAt: Value(entry.deleted ? entry.updatedAt : null),
       ));
@@ -361,6 +368,7 @@ class SyncOrchestrator {
               catalogId: Value(catalogId),
               description: Value(body['description'] as String?),
               createDate: Value(createDate),
+              noteDate: Value(noteDate ?? createDate),
               lastModifiedDate: Value(entry.updatedAt),
               deletedAt: Value(entry.deleted ? entry.updatedAt : null),
             ),
@@ -615,6 +623,9 @@ class SyncOrchestrator {
         'parentNoteUuid': parentUuid,
         'description': n.description,
         'createDate': n.createDate.toUtc().toIso8601String(),
+        // Editable note date (Phase 2a). Distinct from createDate (audit).
+        // Older clients omit it; the inbound apply falls back to createDate.
+        'noteDate': n.noteDate?.toUtc().toIso8601String(),
         'lastModifiedDate': updatedAt.toIso8601String(),
         'deletedAt': n.deletedAt?.toUtc().toIso8601String(),
         'tags': tagNames,
