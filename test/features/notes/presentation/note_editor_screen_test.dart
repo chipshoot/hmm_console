@@ -12,7 +12,7 @@ class _FakeMutate implements MutateNote {
   @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
   @override
-  Future<HmmNote> createGeneral({required String subject, String? markdownBody, int? parentNoteId}) async {
+  Future<HmmNote> createGeneral({required String subject, String? markdownBody, int? parentNoteId, DateTime? noteDate}) async {
     createdSubject = subject;
     return HmmNote(
         id: 1, uuid: 'u', subject: subject, authorId: 1,

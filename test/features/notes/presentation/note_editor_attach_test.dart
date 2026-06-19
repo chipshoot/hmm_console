@@ -15,7 +15,10 @@ class _FakeMutate implements MutateNote {
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
   @override
   Future<HmmNote> createGeneral(
-      {required String subject, String? markdownBody, int? parentNoteId}) async {
+      {required String subject,
+      String? markdownBody,
+      int? parentNoteId,
+      DateTime? noteDate}) async {
     createCalled = true;
     createdParent = parentNoteId;
     return HmmNote(

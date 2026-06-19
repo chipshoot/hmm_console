@@ -32,7 +32,7 @@ class _FakeMutate implements MutateNote {
   int? lastParentId;
   @override
   Future<HmmNote> updateGeneral(int id,
-      {String? subject, String? markdownBody}) async {
+      {String? subject, String? markdownBody, DateTime? noteDate}) async {
     return HmmNote(
         id: id, uuid: 'u', subject: subject ?? '', authorId: 1,
         createDate: DateTime(2026, 1, 1));
