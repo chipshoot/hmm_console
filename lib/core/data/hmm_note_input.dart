@@ -21,6 +21,7 @@ class HmmNoteCreate {
     this.description,
     this.attachments,
     this.uuid,
+    this.noteDate,
   });
 
   final String subject;
@@ -28,6 +29,9 @@ class HmmNoteCreate {
   final String? content;
   final int? parentNoteId;
   final String? description;
+
+  /// Optional initial note date. Null ⇒ repository stamps now.
+  final DateTime? noteDate;
 
   /// Optional explicit stable uuid. When null, the DB assigns a v4 uuid via
   /// the column's clientDefault. Used to seed records with a deterministic id
@@ -45,11 +49,15 @@ class HmmNoteUpdate {
     this.content,
     this.description,
     this.attachments,
+    this.noteDate,
   });
 
   final String? subject;
   final String? content;
   final String? description;
+
+  /// Replacement note date. Null ⇒ don't touch the column.
+  final DateTime? noteDate;
 
   /// Patch semantics:
   /// * `null`                  — don't touch the attachments column.
@@ -61,5 +69,6 @@ class HmmNoteUpdate {
       subject == null &&
       content == null &&
       description == null &&
-      attachments == null;
+      attachments == null &&
+      noteDate == null;
 }
