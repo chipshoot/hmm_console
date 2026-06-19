@@ -17,6 +17,7 @@ class MutateNote {
     required String subject,
     String? markdownBody,
     int? parentNoteId,
+    DateTime? noteDate,
   }) async {
     final catalog = await ensureGeneralCatalog(ref);
     final note = await ref.read(hmmNoteRepositoryProvider).createNote(
@@ -25,6 +26,7 @@ class MutateNote {
             catalogId: catalog.id,
             content: markdownBody,
             parentNoteId: parentNoteId,
+            noteDate: noteDate,
           ),
         );
     // The notes list watches the Notes table reactively, so no manual
@@ -49,10 +51,14 @@ class MutateNote {
     int id, {
     String? subject,
     String? markdownBody,
+    DateTime? noteDate,
   }) async {
     final note = await ref.read(hmmNoteRepositoryProvider).updateNote(
           id,
-          HmmNoteUpdate(subject: subject?.trim(), content: markdownBody),
+          HmmNoteUpdate(
+              subject: subject?.trim(),
+              content: markdownBody,
+              noteDate: noteDate),
         );
     return note;
   }
