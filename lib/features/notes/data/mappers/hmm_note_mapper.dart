@@ -26,6 +26,7 @@ class HmmNoteMapper {
         parentNoteId: row.parentNoteId,
         description: row.description,
         createDate: row.createDate,
+        noteDate: row.noteDate,
         lastModifiedDate: row.lastModifiedDate,
         deletedAt: row.deletedAt,
         version: row.version,
