@@ -86,12 +86,12 @@ class NotesListData {
     final list = items.toList();
     switch (sort) {
       case NoteSort.dateNewest:
-        list.sort((a, b) => b.createDate.compareTo(a.createDate));
+        list.sort((a, b) => b.effectiveNoteDate.compareTo(a.effectiveNoteDate));
       case NoteSort.dateOldest:
-        list.sort((a, b) => a.createDate.compareTo(b.createDate));
+        list.sort((a, b) => a.effectiveNoteDate.compareTo(b.effectiveNoteDate));
       case NoteSort.lastModified:
-        list.sort((a, b) => (b.lastModifiedDate ?? b.createDate)
-            .compareTo(a.lastModifiedDate ?? a.createDate));
+        list.sort((a, b) => (b.lastModifiedDate ?? b.effectiveNoteDate)
+            .compareTo(a.lastModifiedDate ?? a.effectiveNoteDate));
       case NoteSort.subjectAZ:
         list.sort((a, b) =>
             a.subject.toLowerCase().compareTo(b.subject.toLowerCase()));

@@ -26,7 +26,10 @@ class _FakeMutate implements MutateNote {
   int attachCalls = 0;
   @override
   Future<HmmNote> createGeneral(
-      {required String subject, String? markdownBody, int? parentNoteId}) async {
+      {required String subject,
+      String? markdownBody,
+      int? parentNoteId,
+      DateTime? noteDate}) async {
     return HmmNote(
         id: 1, uuid: 'u', subject: subject, authorId: 1,
         createDate: DateTime(2026, 1, 1));

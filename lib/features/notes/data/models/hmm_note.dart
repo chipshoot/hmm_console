@@ -20,6 +20,7 @@ class HmmNote {
     required this.authorId,
     required this.createDate,
     this.catalogId,
+    this.noteDate,
     this.lastModifiedDate,
     this.content,
     this.parentNoteId,
@@ -56,6 +57,15 @@ class HmmNote {
   final String? description;
 
   final DateTime createDate;
+
+  /// User-editable note date. Null on legacy rows pre-dating the v7
+  /// migration; use [effectiveNoteDate] which falls back to [createDate].
+  final DateTime? noteDate;
+
+  /// The date to display/sort by: the editable note date, falling back to
+  /// the immutable created-at when unset.
+  DateTime get effectiveNoteDate => noteDate ?? createDate;
+
   final DateTime? lastModifiedDate;
 
   /// Soft-delete tombstone. Server-side equivalent: `HmmNote.IsDeleted`.

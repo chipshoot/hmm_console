@@ -42,16 +42,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// Images already attached to the note (when editing an existing note).
   List<AttachmentRef> _savedImages = [];
 
-  /// Shown under the title. For a new note this is "today" (the value it will
-  /// be created with); for an existing note it's the note's create date.
-  late DateTime _createdAt;
+  /// Editable note date shown under the title. New note: defaults to now.
+  /// Existing note: the note's effectiveNoteDate. OneNote-style — tap to edit.
+  late DateTime _noteDate;
 
   @override
   void initState() {
     super.initState();
     _noteId = widget.noteId;
     _parentId = widget.presetParentId;
-    _createdAt = DateTime.now();
+    _noteDate = DateTime.now();
   }
 
   @override
@@ -69,7 +69,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     if (note != null && mounted) {
       _subjectCtrl.text = note.subject;
       _bodyCtrl.text = note.content ?? '';
-      _createdAt = note.createDate.toLocal();
+      _noteDate = note.effectiveNoteDate.toLocal();
       _savedImages = [
         if (note.effectiveAttachments.primaryImage != null)
           note.effectiveAttachments.primaryImage!,
@@ -97,11 +97,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       if (_noteId == null) {
         final note = await mutate.createGeneral(
             subject: subject, markdownBody: _bodyCtrl.text,
-            parentNoteId: _parentId);
+            parentNoteId: _parentId, noteDate: _noteDate.toUtc());
         _noteId = note.id;
       } else {
         await mutate.updateGeneral(_noteId!,
-            subject: subject, markdownBody: _bodyCtrl.text);
+            subject: subject, markdownBody: _bodyCtrl.text,
+            noteDate: _noteDate.toUtc());
         // Persist the chosen subsystem only if the user changed it — covers
         // attach (id), detach (null), and re-link. An untouched dropdown
         // leaves the existing parent intact (avoids the async-load race).
@@ -134,7 +135,69 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   String get _stampText =>
-      '${DateFormat.yMMMMd().format(_createdAt)} · ${DateFormat.jm().format(_createdAt)}';
+      '${DateFormat.yMMMMd().format(_noteDate)} · ${DateFormat.jm().format(_noteDate)}';
+
+  /// OneNote-style: tap the date line to edit the note date (date + time).
+  /// Cupertino modal on Apple; Material date-then-time on Android.
+  Future<void> _pickNoteDate() async {
+    final platform = Theme.of(context).platform;
+    final isApple =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    if (isApple) {
+      DateTime temp = _noteDate;
+      await showCupertinoModalPopup<void>(
+        context: context,
+        builder: (ctx) => Container(
+          height: 280,
+          color: CupertinoColors.systemBackground.resolveFrom(ctx),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 44,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    CupertinoButton(
+                      child: const Text('Done'),
+                      onPressed: () {
+                        setState(() => _noteDate = temp);
+                        Navigator.of(ctx).pop();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.dateAndTime,
+                  initialDateTime: _noteDate,
+                  use24hFormat: false,
+                  onDateTimeChanged: (d) => temp = d,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      final date = await showDatePicker(
+        context: context,
+        initialDate: _noteDate,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+      );
+      if (date == null || !mounted) return;
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_noteDate),
+      );
+      if (!mounted) return;
+      setState(() {
+        _noteDate = DateTime(date.year, date.month, date.day,
+            time?.hour ?? _noteDate.hour, time?.minute ?? _noteDate.minute);
+      });
+    }
+  }
 
   /// Compact nav bar (no large title — the subject *is* the page title).
   PreferredSizeWidget _buildNav(BuildContext context, AppColors c) {
@@ -213,9 +276,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(_stampText,
-                        style: DesignTokens.caption
-                            .copyWith(color: c.tertiaryLabel)),
+                    GestureDetector(
+                      onTap: _busy ? null : _pickNoteDate,
+                      behavior: HitTestBehavior.opaque,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_stampText,
+                              style: DesignTokens.caption
+                                  .copyWith(color: c.tertiaryLabel)),
+                          const SizedBox(width: 4),
+                          Icon(Icons.edit_calendar_outlined,
+                              size: 14, color: c.tertiaryLabel),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Divider(height: 1, thickness: 1, color: c.separator),
                     const SizedBox(height: 12),

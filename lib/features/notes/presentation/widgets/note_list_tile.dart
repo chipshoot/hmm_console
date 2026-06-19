@@ -19,7 +19,7 @@ class NoteListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = CatalogPalette.styleFor(catalog?.name);
     final preview = notePreview(note.content);
-    final date = note.createDate.toLocal().toString().split(' ').first;
+    final date = note.effectiveNoteDate.toLocal().toString().split(' ').first;
 
     return AppListRow(
       onTap: onTap,

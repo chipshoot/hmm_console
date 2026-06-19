@@ -138,6 +138,7 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
           parentNoteId: Value(input.parentNoteId),
           description: Value(input.description),
           createDate: Value(now),
+          noteDate: Value(input.noteDate ?? now),
           lastModifiedDate: Value(now),
           version: Value(_versionStamp()),
           uuid: input.uuid == null ? const Value.absent() : Value(input.uuid),
@@ -170,6 +171,9 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
       // clears the column; a non-empty payload replaces it.
       attachments: patch.attachments != null
           ? Value(NoteAttachmentsCodec.encode(patch.attachments!))
+          : const Value.absent(),
+      noteDate: patch.noteDate != null
+          ? Value(patch.noteDate)
           : const Value.absent(),
       lastModifiedDate: Value(now),
       version: Value(_versionStamp()),
