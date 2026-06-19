@@ -971,6 +971,17 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _noteDateMeta = const VerificationMeta(
+    'noteDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> noteDate = GeneratedColumn<DateTime>(
+    'note_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lastModifiedDateMeta = const VerificationMeta(
     'lastModifiedDate',
   );
@@ -1021,6 +1032,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     deletedAt,
     version,
     createDate,
+    noteDate,
     lastModifiedDate,
     description,
     attachments,
@@ -1101,6 +1113,12 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         createDate.isAcceptableOrUnknown(data['create_date']!, _createDateMeta),
       );
     }
+    if (data.containsKey('note_date')) {
+      context.handle(
+        _noteDateMeta,
+        noteDate.isAcceptableOrUnknown(data['note_date']!, _noteDateMeta),
+      );
+    }
     if (data.containsKey('last_modified_date')) {
       context.handle(
         _lastModifiedDateMeta,
@@ -1177,6 +1195,10 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}create_date'],
       )!,
+      noteDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}note_date'],
+      ),
       lastModifiedDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_modified_date'],
@@ -1209,6 +1231,7 @@ class Note extends DataClass implements Insertable<Note> {
   final DateTime? deletedAt;
   final Uint8List? version;
   final DateTime createDate;
+  final DateTime? noteDate;
   final DateTime? lastModifiedDate;
   final String? description;
   final String? attachments;
@@ -1223,6 +1246,7 @@ class Note extends DataClass implements Insertable<Note> {
     this.deletedAt,
     this.version,
     required this.createDate,
+    this.noteDate,
     this.lastModifiedDate,
     this.description,
     this.attachments,
@@ -1252,6 +1276,9 @@ class Note extends DataClass implements Insertable<Note> {
       map['version'] = Variable<Uint8List>(version);
     }
     map['create_date'] = Variable<DateTime>(createDate);
+    if (!nullToAbsent || noteDate != null) {
+      map['note_date'] = Variable<DateTime>(noteDate);
+    }
     if (!nullToAbsent || lastModifiedDate != null) {
       map['last_modified_date'] = Variable<DateTime>(lastModifiedDate);
     }
@@ -1286,6 +1313,9 @@ class Note extends DataClass implements Insertable<Note> {
           ? const Value.absent()
           : Value(version),
       createDate: Value(createDate),
+      noteDate: noteDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(noteDate),
       lastModifiedDate: lastModifiedDate == null && nullToAbsent
           ? const Value.absent()
           : Value(lastModifiedDate),
@@ -1314,6 +1344,7 @@ class Note extends DataClass implements Insertable<Note> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       version: serializer.fromJson<Uint8List?>(json['version']),
       createDate: serializer.fromJson<DateTime>(json['createDate']),
+      noteDate: serializer.fromJson<DateTime?>(json['noteDate']),
       lastModifiedDate: serializer.fromJson<DateTime?>(
         json['lastModifiedDate'],
       ),
@@ -1335,6 +1366,7 @@ class Note extends DataClass implements Insertable<Note> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'version': serializer.toJson<Uint8List?>(version),
       'createDate': serializer.toJson<DateTime>(createDate),
+      'noteDate': serializer.toJson<DateTime?>(noteDate),
       'lastModifiedDate': serializer.toJson<DateTime?>(lastModifiedDate),
       'description': serializer.toJson<String?>(description),
       'attachments': serializer.toJson<String?>(attachments),
@@ -1352,6 +1384,7 @@ class Note extends DataClass implements Insertable<Note> {
     Value<DateTime?> deletedAt = const Value.absent(),
     Value<Uint8List?> version = const Value.absent(),
     DateTime? createDate,
+    Value<DateTime?> noteDate = const Value.absent(),
     Value<DateTime?> lastModifiedDate = const Value.absent(),
     Value<String?> description = const Value.absent(),
     Value<String?> attachments = const Value.absent(),
@@ -1366,6 +1399,7 @@ class Note extends DataClass implements Insertable<Note> {
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     version: version.present ? version.value : this.version,
     createDate: createDate ?? this.createDate,
+    noteDate: noteDate.present ? noteDate.value : this.noteDate,
     lastModifiedDate: lastModifiedDate.present
         ? lastModifiedDate.value
         : this.lastModifiedDate,
@@ -1388,6 +1422,7 @@ class Note extends DataClass implements Insertable<Note> {
       createDate: data.createDate.present
           ? data.createDate.value
           : this.createDate,
+      noteDate: data.noteDate.present ? data.noteDate.value : this.noteDate,
       lastModifiedDate: data.lastModifiedDate.present
           ? data.lastModifiedDate.value
           : this.lastModifiedDate,
@@ -1413,6 +1448,7 @@ class Note extends DataClass implements Insertable<Note> {
           ..write('deletedAt: $deletedAt, ')
           ..write('version: $version, ')
           ..write('createDate: $createDate, ')
+          ..write('noteDate: $noteDate, ')
           ..write('lastModifiedDate: $lastModifiedDate, ')
           ..write('description: $description, ')
           ..write('attachments: $attachments')
@@ -1432,6 +1468,7 @@ class Note extends DataClass implements Insertable<Note> {
     deletedAt,
     $driftBlobEquality.hash(version),
     createDate,
+    noteDate,
     lastModifiedDate,
     description,
     attachments,
@@ -1450,6 +1487,7 @@ class Note extends DataClass implements Insertable<Note> {
           other.deletedAt == this.deletedAt &&
           $driftBlobEquality.equals(other.version, this.version) &&
           other.createDate == this.createDate &&
+          other.noteDate == this.noteDate &&
           other.lastModifiedDate == this.lastModifiedDate &&
           other.description == this.description &&
           other.attachments == this.attachments);
@@ -1466,6 +1504,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   final Value<DateTime?> deletedAt;
   final Value<Uint8List?> version;
   final Value<DateTime> createDate;
+  final Value<DateTime?> noteDate;
   final Value<DateTime?> lastModifiedDate;
   final Value<String?> description;
   final Value<String?> attachments;
@@ -1480,6 +1519,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     this.deletedAt = const Value.absent(),
     this.version = const Value.absent(),
     this.createDate = const Value.absent(),
+    this.noteDate = const Value.absent(),
     this.lastModifiedDate = const Value.absent(),
     this.description = const Value.absent(),
     this.attachments = const Value.absent(),
@@ -1495,6 +1535,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     this.deletedAt = const Value.absent(),
     this.version = const Value.absent(),
     this.createDate = const Value.absent(),
+    this.noteDate = const Value.absent(),
     this.lastModifiedDate = const Value.absent(),
     this.description = const Value.absent(),
     this.attachments = const Value.absent(),
@@ -1511,6 +1552,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     Expression<DateTime>? deletedAt,
     Expression<Uint8List>? version,
     Expression<DateTime>? createDate,
+    Expression<DateTime>? noteDate,
     Expression<DateTime>? lastModifiedDate,
     Expression<String>? description,
     Expression<String>? attachments,
@@ -1526,6 +1568,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (version != null) 'version': version,
       if (createDate != null) 'create_date': createDate,
+      if (noteDate != null) 'note_date': noteDate,
       if (lastModifiedDate != null) 'last_modified_date': lastModifiedDate,
       if (description != null) 'description': description,
       if (attachments != null) 'attachments': attachments,
@@ -1543,6 +1586,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     Value<DateTime?>? deletedAt,
     Value<Uint8List?>? version,
     Value<DateTime>? createDate,
+    Value<DateTime?>? noteDate,
     Value<DateTime?>? lastModifiedDate,
     Value<String?>? description,
     Value<String?>? attachments,
@@ -1558,6 +1602,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
       deletedAt: deletedAt ?? this.deletedAt,
       version: version ?? this.version,
       createDate: createDate ?? this.createDate,
+      noteDate: noteDate ?? this.noteDate,
       lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
       description: description ?? this.description,
       attachments: attachments ?? this.attachments,
@@ -1597,6 +1642,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     if (createDate.present) {
       map['create_date'] = Variable<DateTime>(createDate.value);
     }
+    if (noteDate.present) {
+      map['note_date'] = Variable<DateTime>(noteDate.value);
+    }
     if (lastModifiedDate.present) {
       map['last_modified_date'] = Variable<DateTime>(lastModifiedDate.value);
     }
@@ -1622,6 +1670,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
           ..write('deletedAt: $deletedAt, ')
           ..write('version: $version, ')
           ..write('createDate: $createDate, ')
+          ..write('noteDate: $noteDate, ')
           ..write('lastModifiedDate: $lastModifiedDate, ')
           ..write('description: $description, ')
           ..write('attachments: $attachments')
@@ -2955,6 +3004,7 @@ typedef $$NotesTableCreateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<Uint8List?> version,
       Value<DateTime> createDate,
+      Value<DateTime?> noteDate,
       Value<DateTime?> lastModifiedDate,
       Value<String?> description,
       Value<String?> attachments,
@@ -2971,6 +3021,7 @@ typedef $$NotesTableUpdateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<Uint8List?> version,
       Value<DateTime> createDate,
+      Value<DateTime?> noteDate,
       Value<DateTime?> lastModifiedDate,
       Value<String?> description,
       Value<String?> attachments,
@@ -3092,6 +3143,11 @@ class $$NotesTableFilterComposer extends Composer<_$HmmDatabase, $NotesTable> {
 
   ColumnFilters<DateTime> get createDate => $composableBuilder(
     column: $table.createDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get noteDate => $composableBuilder(
+    column: $table.noteDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3249,6 +3305,11 @@ class $$NotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get noteDate => $composableBuilder(
+    column: $table.noteDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get lastModifiedDate => $composableBuilder(
     column: $table.lastModifiedDate,
     builder: (column) => ColumnOrderings(column),
@@ -3365,6 +3426,9 @@ class $$NotesTableAnnotationComposer
     column: $table.createDate,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get noteDate =>
+      $composableBuilder(column: $table.noteDate, builder: (column) => column);
 
   GeneratedColumn<DateTime> get lastModifiedDate => $composableBuilder(
     column: $table.lastModifiedDate,
@@ -3519,6 +3583,7 @@ class $$NotesTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<Uint8List?> version = const Value.absent(),
                 Value<DateTime> createDate = const Value.absent(),
+                Value<DateTime?> noteDate = const Value.absent(),
                 Value<DateTime?> lastModifiedDate = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<String?> attachments = const Value.absent(),
@@ -3533,6 +3598,7 @@ class $$NotesTableTableManager
                 deletedAt: deletedAt,
                 version: version,
                 createDate: createDate,
+                noteDate: noteDate,
                 lastModifiedDate: lastModifiedDate,
                 description: description,
                 attachments: attachments,
@@ -3549,6 +3615,7 @@ class $$NotesTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<Uint8List?> version = const Value.absent(),
                 Value<DateTime> createDate = const Value.absent(),
+                Value<DateTime?> noteDate = const Value.absent(),
                 Value<DateTime?> lastModifiedDate = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<String?> attachments = const Value.absent(),
@@ -3563,6 +3630,7 @@ class $$NotesTableTableManager
                 deletedAt: deletedAt,
                 version: version,
                 createDate: createDate,
+                noteDate: noteDate,
                 lastModifiedDate: lastModifiedDate,
                 description: description,
                 attachments: attachments,

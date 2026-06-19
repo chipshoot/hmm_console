@@ -56,6 +56,10 @@ class Notes extends Table {
   DateTimeColumn get deletedAt => dateTime().nullable()();
   BlobColumn get version => blob().nullable()();
   DateTimeColumn get createDate => dateTime().withDefault(currentDateAndTime)();
+  // v7: user-editable note date (OneNote-style). Nullable so the v6→v7
+  // ADD COLUMN works; reads fall back to createDate via effectiveNoteDate.
+  // Distinct from createDate, which stays the immutable created-at audit.
+  DateTimeColumn get noteDate => dateTime().nullable()();
   DateTimeColumn get lastModifiedDate => dateTime().nullable()();
   TextColumn get description => text().withLength(min: 0, max: 1000).nullable()();
 
@@ -102,7 +106,7 @@ class HmmDatabase extends _$HmmDatabase {
   HmmDatabase(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -226,6 +230,12 @@ class HmmDatabase extends _$HmmDatabase {
         // lastModified and NULL deletedAt (live).
         await m.addColumn(tags, tags.lastModified);
         await m.addColumn(tags, tags.deletedAt);
+      }
+      if (from < 7) {
+        // v7: editable note date. Backfill from create_date so existing
+        // notes keep showing their original date.
+        await m.addColumn(notes, notes.noteDate);
+        await customStatement('UPDATE notes SET note_date = create_date');
       }
     },
   );
