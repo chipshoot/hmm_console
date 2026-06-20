@@ -21,6 +21,8 @@ const Set<String> _allowedContentTypes = {
   'image/png',
   'image/heic',
   'image/webp',
+  // Phase 3a: non-image file attachments.
+  'application/pdf',
 };
 
 const int _maxOriginalNameLength = 500;
@@ -240,8 +242,23 @@ class NoteAttachmentsCodec {
       }).toList(growable: false);
     }
 
+    var files = const <AttachmentRef>[];
+    final filesRaw = json['files'];
+    if (filesRaw != null) {
+      if (filesRaw is! List) {
+        throw const FormatException('"files" must be an array');
+      }
+      files = filesRaw.map((e) {
+        if (e is! Map<String, dynamic>) {
+          throw const FormatException('each file must be an object');
+        }
+        return AttachmentRefCodec.fromJson(e);
+      }).toList(growable: false);
+    }
+
     try {
-      return NoteAttachments(primaryImage: primary, images: images);
+      return NoteAttachments(
+          primaryImage: primary, images: images, files: files);
     } on ArgumentError catch (e) {
       // Surface disjointness as a FormatException so callers handle
       // one error type for bad input.
@@ -249,11 +266,15 @@ class NoteAttachmentsCodec {
     }
   }
 
-  /// Serialize to a JSON object.
+  /// Serialize to a JSON object. `files` is omitted when empty so existing
+  /// images-only payloads stay byte-identical to pre-Phase-3a.
   static Map<String, dynamic> toJson(NoteAttachments value) => {
         if (value.primaryImage != null)
           'primaryImage': AttachmentRefCodec.toJson(value.primaryImage!),
         'images':
             value.images.map(AttachmentRefCodec.toJson).toList(growable: false),
+        if (value.files.isNotEmpty)
+          'files':
+              value.files.map(AttachmentRefCodec.toJson).toList(growable: false),
       };
 }
