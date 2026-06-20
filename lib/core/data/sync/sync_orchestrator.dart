@@ -340,6 +340,12 @@ class SyncOrchestrator {
     final noteDateRaw = body['noteDate'] as String?;
     final noteDate = noteDateRaw != null ? DateTime.tryParse(noteDateRaw) : null;
 
+    // Phase 2b location: present key ⇒ apply (set), absent ⇒ preserve.
+    final hasLocation = body.containsKey('latitude');
+    final lat = (body['latitude'] as num?)?.toDouble();
+    final lng = (body['longitude'] as num?)?.toDouble();
+    final locLabel = body['locationLabel'] as String?;
+
     final parentUuid = body['parentNoteUuid'] as String?;
 
     int childId;
@@ -353,6 +359,9 @@ class SyncOrchestrator {
         description: Value(body['description'] as String?),
         noteDate:
             noteDate != null ? Value(noteDate) : const Value.absent(),
+        latitude: hasLocation ? Value(lat) : const Value.absent(),
+        longitude: hasLocation ? Value(lng) : const Value.absent(),
+        locationLabel: hasLocation ? Value(locLabel) : const Value.absent(),
         lastModifiedDate: Value(entry.updatedAt),
         deletedAt: Value(entry.deleted ? entry.updatedAt : null),
       ));
@@ -369,6 +378,9 @@ class SyncOrchestrator {
               description: Value(body['description'] as String?),
               createDate: Value(createDate),
               noteDate: Value(noteDate ?? createDate),
+              latitude: Value(lat),
+              longitude: Value(lng),
+              locationLabel: Value(locLabel),
               lastModifiedDate: Value(entry.updatedAt),
               deletedAt: Value(entry.deleted ? entry.updatedAt : null),
             ),
@@ -626,6 +638,11 @@ class SyncOrchestrator {
         // Editable note date (Phase 2a). Distinct from createDate (audit).
         // Older clients omit it; the inbound apply falls back to createDate.
         'noteDate': n.noteDate?.toUtc().toIso8601String(),
+        // Optional note location (Phase 2b). Older clients omit these keys;
+        // the inbound apply preserves the stored value when absent.
+        'latitude': n.latitude,
+        'longitude': n.longitude,
+        'locationLabel': n.locationLabel,
         'lastModifiedDate': updatedAt.toIso8601String(),
         'deletedAt': n.deletedAt?.toUtc().toIso8601String(),
         'tags': tagNames,

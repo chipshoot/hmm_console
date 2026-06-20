@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
+import 'package:hmm_console/core/data/note_location.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/data/subsystem_anchor.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
@@ -29,7 +30,8 @@ class _FakeMutate implements MutateNote {
       {required String subject,
       String? markdownBody,
       int? parentNoteId,
-      DateTime? noteDate}) async {
+      DateTime? noteDate,
+      NoteLocation? location}) async {
     return HmmNote(
         id: 1, uuid: 'u', subject: subject, authorId: 1,
         createDate: DateTime(2026, 1, 1));

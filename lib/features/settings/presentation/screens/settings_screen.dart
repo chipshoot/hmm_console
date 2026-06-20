@@ -20,6 +20,7 @@ import '../../../../core/widgets/screen_scaffold.dart';
 import '../../domain/gas_log_units.dart';
 import '../../domain/sync_settings.dart';
 import '../../providers/gas_log_settings_provider.dart';
+import '../../providers/geo_capture_provider.dart';
 import '../../providers/sync_settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -288,6 +289,24 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
             GapWidgets.h24,
+            const Divider(),
+            GapWidgets.h8,
+            Builder(builder: (context) {
+              final geo = ref.watch(geoCaptureEnabledProvider);
+              return SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Add location to new notes'),
+                subtitle: const Text(
+                    'Capture your location when you create a note'),
+                value: geo.asData?.value ?? false,
+                onChanged: geo.isLoading
+                    ? null
+                    : (v) => ref
+                        .read(geoCaptureEnabledProvider.notifier)
+                        .setEnabled(v),
+              );
+            }),
+            GapWidgets.h8,
             const Divider(),
             GapWidgets.h24,
             Text(

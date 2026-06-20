@@ -5,6 +5,7 @@ import '../../../core/data/attachments/attachment_providers.dart';
 import '../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../core/data/hmm_note_input.dart';
+import '../../../core/data/note_location.dart';
 import '../../../core/data/repository_providers.dart';
 import '../data/general_catalog.dart';
 import '../data/models/hmm_note.dart';
@@ -18,6 +19,7 @@ class MutateNote {
     String? markdownBody,
     int? parentNoteId,
     DateTime? noteDate,
+    NoteLocation? location,
   }) async {
     final catalog = await ensureGeneralCatalog(ref);
     final note = await ref.read(hmmNoteRepositoryProvider).createNote(
@@ -27,6 +29,7 @@ class MutateNote {
             content: markdownBody,
             parentNoteId: parentNoteId,
             noteDate: noteDate,
+            location: location,
           ),
         );
     // The notes list watches the Notes table reactively, so no manual
@@ -52,13 +55,15 @@ class MutateNote {
     String? subject,
     String? markdownBody,
     DateTime? noteDate,
+    NoteLocation? location,
   }) async {
     final note = await ref.read(hmmNoteRepositoryProvider).updateNote(
           id,
           HmmNoteUpdate(
               subject: subject?.trim(),
               content: markdownBody,
-              noteDate: noteDate),
+              noteDate: noteDate,
+              location: location),
         );
     return note;
   }

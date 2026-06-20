@@ -60,6 +60,10 @@ class Notes extends Table {
   // ADD COLUMN works; reads fall back to createDate via effectiveNoteDate.
   // Distinct from createDate, which stays the immutable created-at audit.
   DateTimeColumn get noteDate => dateTime().nullable()();
+  // v8: optional note location (Phase 2b). All-null = no location.
+  RealColumn get latitude => real().nullable()();
+  RealColumn get longitude => real().nullable()();
+  TextColumn get locationLabel => text().withLength(min: 0, max: 500).nullable()();
   DateTimeColumn get lastModifiedDate => dateTime().nullable()();
   TextColumn get description => text().withLength(min: 0, max: 1000).nullable()();
 
@@ -106,7 +110,7 @@ class HmmDatabase extends _$HmmDatabase {
   HmmDatabase(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -236,6 +240,12 @@ class HmmDatabase extends _$HmmDatabase {
         // notes keep showing their original date.
         await m.addColumn(notes, notes.noteDate);
         await customStatement('UPDATE notes SET note_date = create_date');
+      }
+      if (from < 8) {
+        // v8: optional note location. No backfill — existing notes have none.
+        await m.addColumn(notes, notes.latitude);
+        await m.addColumn(notes, notes.longitude);
+        await m.addColumn(notes, notes.locationLabel);
       }
     },
   );

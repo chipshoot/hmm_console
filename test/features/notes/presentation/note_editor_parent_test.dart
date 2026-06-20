@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
+import 'package:hmm_console/core/data/note_location.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
@@ -32,7 +33,7 @@ class _FakeMutate implements MutateNote {
   int? lastParentId;
   @override
   Future<HmmNote> updateGeneral(int id,
-      {String? subject, String? markdownBody, DateTime? noteDate}) async {
+      {String? subject, String? markdownBody, DateTime? noteDate, NoteLocation? location}) async {
     return HmmNote(
         id: id, uuid: 'u', subject: subject ?? '', authorId: 1,
         createDate: DateTime(2026, 1, 1));

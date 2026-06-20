@@ -8,7 +8,13 @@ import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/note_location.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../gas_log/providers/location_provider.dart'
+    show currentPositionProvider;
+import '../../../settings/providers/geo_capture_provider.dart';
+import '../../providers/note_location_capture.dart';
+import '../widgets/note_location_card.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../data/subsystem_anchor.dart';
@@ -46,12 +52,40 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// Existing note: the note's effectiveNoteDate. OneNote-style — tap to edit.
   late DateTime _noteDate;
 
+  /// Captured/loaded note location (Phase 2b). Null = none. Shown as a card.
+  NoteLocation? _pendingLocation;
+
+  /// True once a persisted location was removed, so an update writes the clear.
+  bool _locationCleared = false;
+
   @override
   void initState() {
     super.initState();
     _noteId = widget.noteId;
     _parentId = widget.presetParentId;
     _noteDate = DateTime.now();
+    if (widget.noteId == null) {
+      _maybeCaptureLocation();
+    }
+  }
+
+  /// For a new note, when the opt-in toggle is on, capture the current
+  /// location in the background (non-blocking). Failures leave it null.
+  Future<void> _maybeCaptureLocation() async {
+    try {
+      final enabled = await ref.read(geoCaptureEnabledProvider.future);
+      if (!enabled || !mounted) return;
+      // Force a fresh fix — both providers cache for the ProviderScope's
+      // lifetime, so without this a second note would reuse the first note's
+      // coordinates.
+      ref.invalidate(currentPositionProvider);
+      ref.invalidate(noteLocationCaptureProvider);
+      final loc = await ref.read(noteLocationCaptureProvider.future);
+      if (loc == null || !mounted) return;
+      setState(() => _pendingLocation = loc);
+    } catch (_) {
+      // Best-effort: any failure ⇒ no card, no crash.
+    }
   }
 
   @override
@@ -79,6 +113,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       // "None". Don't mark it touched — an untouched dropdown must not
       // rewrite the parent on save.
       if (!_parentTouched) _parentId = note.parentNoteId;
+      _pendingLocation = note.location;
       setState(() {});
     }
   }
@@ -97,12 +132,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       if (_noteId == null) {
         final note = await mutate.createGeneral(
             subject: subject, markdownBody: _bodyCtrl.text,
-            parentNoteId: _parentId, noteDate: _noteDate.toUtc());
+            parentNoteId: _parentId, noteDate: _noteDate.toUtc(),
+            location: _pendingLocation);
         _noteId = note.id;
       } else {
+        // 2b has no edit-to-a-new-place path: we only ever clear a removed
+        // location (NoteLocation.empty); otherwise pass null = don't touch.
         await mutate.updateGeneral(_noteId!,
             subject: subject, markdownBody: _bodyCtrl.text,
-            noteDate: _noteDate.toUtc());
+            noteDate: _noteDate.toUtc(),
+            location: _locationCleared ? NoteLocation.empty : null);
         // Persist the chosen subsystem only if the user changed it — covers
         // attach (id), detach (null), and re-link. An untouched dropdown
         // leaves the existing parent intact (avoids the async-load race).
@@ -291,6 +330,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                         ],
                       ),
                     ),
+                    if (_pendingLocation != null && !_pendingLocation!.isEmpty)
+                      NoteLocationCard(
+                        location: _pendingLocation!,
+                        onRemove: () => setState(() {
+                          _pendingLocation = null;
+                          _locationCleared = true;
+                        }),
+                      ),
                     const SizedBox(height: 12),
                     Divider(height: 1, thickness: 1, color: c.separator),
                     const SizedBox(height: 12),

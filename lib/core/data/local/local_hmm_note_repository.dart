@@ -139,6 +139,12 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
           description: Value(input.description),
           createDate: Value(now),
           noteDate: Value(input.noteDate ?? now),
+          latitude: Value(
+              input.location?.isEmpty == false ? input.location!.latitude : null),
+          longitude: Value(
+              input.location?.isEmpty == false ? input.location!.longitude : null),
+          locationLabel: Value(
+              input.location?.isEmpty == false ? input.location!.label : null),
           lastModifiedDate: Value(now),
           version: Value(_versionStamp()),
           uuid: input.uuid == null ? const Value.absent() : Value(input.uuid),
@@ -175,6 +181,17 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
       noteDate: patch.noteDate != null
           ? Value(patch.noteDate)
           : const Value.absent(),
+      // null = don't touch; NoteLocation.empty has null lat/lng/label so it
+      // writes SQL NULL (clears); a populated value sets the trio.
+      latitude: patch.location == null
+          ? const Value.absent()
+          : Value(patch.location!.latitude),
+      longitude: patch.location == null
+          ? const Value.absent()
+          : Value(patch.location!.longitude),
+      locationLabel: patch.location == null
+          ? const Value.absent()
+          : Value(patch.location!.label),
       lastModifiedDate: Value(now),
       version: Value(_versionStamp()),
     ));

@@ -1,4 +1,5 @@
 import 'attachments/attachment_ref.dart';
+import 'note_location.dart';
 
 /// Parameter objects for `IHmmNoteRepository.createNote` and `updateNote`.
 ///
@@ -22,6 +23,7 @@ class HmmNoteCreate {
     this.attachments,
     this.uuid,
     this.noteDate,
+    this.location,
   });
 
   final String subject;
@@ -32,6 +34,9 @@ class HmmNoteCreate {
 
   /// Optional initial note date. Null ⇒ repository stamps now.
   final DateTime? noteDate;
+
+  /// Optional initial location. Null or [NoteLocation.empty] ⇒ no location.
+  final NoteLocation? location;
 
   /// Optional explicit stable uuid. When null, the DB assigns a v4 uuid via
   /// the column's clientDefault. Used to seed records with a deterministic id
@@ -50,6 +55,7 @@ class HmmNoteUpdate {
     this.description,
     this.attachments,
     this.noteDate,
+    this.location,
   });
 
   final String? subject;
@@ -58,6 +64,10 @@ class HmmNoteUpdate {
 
   /// Replacement note date. Null ⇒ don't touch the column.
   final DateTime? noteDate;
+
+  /// Patch semantics: null = don't touch; [NoteLocation.empty] = clear
+  /// (write SQL NULL ×3); populated = set.
+  final NoteLocation? location;
 
   /// Patch semantics:
   /// * `null`                  — don't touch the attachments column.
@@ -70,5 +80,6 @@ class HmmNoteUpdate {
       content == null &&
       description == null &&
       attachments == null &&
-      noteDate == null;
+      noteDate == null &&
+      location == null;
 }

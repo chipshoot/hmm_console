@@ -982,6 +982,43 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _locationLabelMeta = const VerificationMeta(
+    'locationLabel',
+  );
+  @override
+  late final GeneratedColumn<String> locationLabel = GeneratedColumn<String>(
+    'location_label',
+    aliasedName,
+    true,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 0,
+      maxTextLength: 500,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lastModifiedDateMeta = const VerificationMeta(
     'lastModifiedDate',
   );
@@ -1033,6 +1070,9 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     version,
     createDate,
     noteDate,
+    latitude,
+    longitude,
+    locationLabel,
     lastModifiedDate,
     description,
     attachments,
@@ -1119,6 +1159,27 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         noteDate.isAcceptableOrUnknown(data['note_date']!, _noteDateMeta),
       );
     }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    }
+    if (data.containsKey('location_label')) {
+      context.handle(
+        _locationLabelMeta,
+        locationLabel.isAcceptableOrUnknown(
+          data['location_label']!,
+          _locationLabelMeta,
+        ),
+      );
+    }
     if (data.containsKey('last_modified_date')) {
       context.handle(
         _lastModifiedDateMeta,
@@ -1199,6 +1260,18 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}note_date'],
       ),
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      ),
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      ),
+      locationLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location_label'],
+      ),
       lastModifiedDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_modified_date'],
@@ -1232,6 +1305,9 @@ class Note extends DataClass implements Insertable<Note> {
   final Uint8List? version;
   final DateTime createDate;
   final DateTime? noteDate;
+  final double? latitude;
+  final double? longitude;
+  final String? locationLabel;
   final DateTime? lastModifiedDate;
   final String? description;
   final String? attachments;
@@ -1247,6 +1323,9 @@ class Note extends DataClass implements Insertable<Note> {
     this.version,
     required this.createDate,
     this.noteDate,
+    this.latitude,
+    this.longitude,
+    this.locationLabel,
     this.lastModifiedDate,
     this.description,
     this.attachments,
@@ -1278,6 +1357,15 @@ class Note extends DataClass implements Insertable<Note> {
     map['create_date'] = Variable<DateTime>(createDate);
     if (!nullToAbsent || noteDate != null) {
       map['note_date'] = Variable<DateTime>(noteDate);
+    }
+    if (!nullToAbsent || latitude != null) {
+      map['latitude'] = Variable<double>(latitude);
+    }
+    if (!nullToAbsent || longitude != null) {
+      map['longitude'] = Variable<double>(longitude);
+    }
+    if (!nullToAbsent || locationLabel != null) {
+      map['location_label'] = Variable<String>(locationLabel);
     }
     if (!nullToAbsent || lastModifiedDate != null) {
       map['last_modified_date'] = Variable<DateTime>(lastModifiedDate);
@@ -1316,6 +1404,15 @@ class Note extends DataClass implements Insertable<Note> {
       noteDate: noteDate == null && nullToAbsent
           ? const Value.absent()
           : Value(noteDate),
+      latitude: latitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(latitude),
+      longitude: longitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(longitude),
+      locationLabel: locationLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(locationLabel),
       lastModifiedDate: lastModifiedDate == null && nullToAbsent
           ? const Value.absent()
           : Value(lastModifiedDate),
@@ -1345,6 +1442,9 @@ class Note extends DataClass implements Insertable<Note> {
       version: serializer.fromJson<Uint8List?>(json['version']),
       createDate: serializer.fromJson<DateTime>(json['createDate']),
       noteDate: serializer.fromJson<DateTime?>(json['noteDate']),
+      latitude: serializer.fromJson<double?>(json['latitude']),
+      longitude: serializer.fromJson<double?>(json['longitude']),
+      locationLabel: serializer.fromJson<String?>(json['locationLabel']),
       lastModifiedDate: serializer.fromJson<DateTime?>(
         json['lastModifiedDate'],
       ),
@@ -1367,6 +1467,9 @@ class Note extends DataClass implements Insertable<Note> {
       'version': serializer.toJson<Uint8List?>(version),
       'createDate': serializer.toJson<DateTime>(createDate),
       'noteDate': serializer.toJson<DateTime?>(noteDate),
+      'latitude': serializer.toJson<double?>(latitude),
+      'longitude': serializer.toJson<double?>(longitude),
+      'locationLabel': serializer.toJson<String?>(locationLabel),
       'lastModifiedDate': serializer.toJson<DateTime?>(lastModifiedDate),
       'description': serializer.toJson<String?>(description),
       'attachments': serializer.toJson<String?>(attachments),
@@ -1385,6 +1488,9 @@ class Note extends DataClass implements Insertable<Note> {
     Value<Uint8List?> version = const Value.absent(),
     DateTime? createDate,
     Value<DateTime?> noteDate = const Value.absent(),
+    Value<double?> latitude = const Value.absent(),
+    Value<double?> longitude = const Value.absent(),
+    Value<String?> locationLabel = const Value.absent(),
     Value<DateTime?> lastModifiedDate = const Value.absent(),
     Value<String?> description = const Value.absent(),
     Value<String?> attachments = const Value.absent(),
@@ -1400,6 +1506,11 @@ class Note extends DataClass implements Insertable<Note> {
     version: version.present ? version.value : this.version,
     createDate: createDate ?? this.createDate,
     noteDate: noteDate.present ? noteDate.value : this.noteDate,
+    latitude: latitude.present ? latitude.value : this.latitude,
+    longitude: longitude.present ? longitude.value : this.longitude,
+    locationLabel: locationLabel.present
+        ? locationLabel.value
+        : this.locationLabel,
     lastModifiedDate: lastModifiedDate.present
         ? lastModifiedDate.value
         : this.lastModifiedDate,
@@ -1423,6 +1534,11 @@ class Note extends DataClass implements Insertable<Note> {
           ? data.createDate.value
           : this.createDate,
       noteDate: data.noteDate.present ? data.noteDate.value : this.noteDate,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      locationLabel: data.locationLabel.present
+          ? data.locationLabel.value
+          : this.locationLabel,
       lastModifiedDate: data.lastModifiedDate.present
           ? data.lastModifiedDate.value
           : this.lastModifiedDate,
@@ -1449,6 +1565,9 @@ class Note extends DataClass implements Insertable<Note> {
           ..write('version: $version, ')
           ..write('createDate: $createDate, ')
           ..write('noteDate: $noteDate, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('locationLabel: $locationLabel, ')
           ..write('lastModifiedDate: $lastModifiedDate, ')
           ..write('description: $description, ')
           ..write('attachments: $attachments')
@@ -1469,6 +1588,9 @@ class Note extends DataClass implements Insertable<Note> {
     $driftBlobEquality.hash(version),
     createDate,
     noteDate,
+    latitude,
+    longitude,
+    locationLabel,
     lastModifiedDate,
     description,
     attachments,
@@ -1488,6 +1610,9 @@ class Note extends DataClass implements Insertable<Note> {
           $driftBlobEquality.equals(other.version, this.version) &&
           other.createDate == this.createDate &&
           other.noteDate == this.noteDate &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.locationLabel == this.locationLabel &&
           other.lastModifiedDate == this.lastModifiedDate &&
           other.description == this.description &&
           other.attachments == this.attachments);
@@ -1505,6 +1630,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
   final Value<Uint8List?> version;
   final Value<DateTime> createDate;
   final Value<DateTime?> noteDate;
+  final Value<double?> latitude;
+  final Value<double?> longitude;
+  final Value<String?> locationLabel;
   final Value<DateTime?> lastModifiedDate;
   final Value<String?> description;
   final Value<String?> attachments;
@@ -1520,6 +1648,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     this.version = const Value.absent(),
     this.createDate = const Value.absent(),
     this.noteDate = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.locationLabel = const Value.absent(),
     this.lastModifiedDate = const Value.absent(),
     this.description = const Value.absent(),
     this.attachments = const Value.absent(),
@@ -1536,6 +1667,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     this.version = const Value.absent(),
     this.createDate = const Value.absent(),
     this.noteDate = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.locationLabel = const Value.absent(),
     this.lastModifiedDate = const Value.absent(),
     this.description = const Value.absent(),
     this.attachments = const Value.absent(),
@@ -1553,6 +1687,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     Expression<Uint8List>? version,
     Expression<DateTime>? createDate,
     Expression<DateTime>? noteDate,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<String>? locationLabel,
     Expression<DateTime>? lastModifiedDate,
     Expression<String>? description,
     Expression<String>? attachments,
@@ -1569,6 +1706,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
       if (version != null) 'version': version,
       if (createDate != null) 'create_date': createDate,
       if (noteDate != null) 'note_date': noteDate,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (locationLabel != null) 'location_label': locationLabel,
       if (lastModifiedDate != null) 'last_modified_date': lastModifiedDate,
       if (description != null) 'description': description,
       if (attachments != null) 'attachments': attachments,
@@ -1587,6 +1727,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     Value<Uint8List?>? version,
     Value<DateTime>? createDate,
     Value<DateTime?>? noteDate,
+    Value<double?>? latitude,
+    Value<double?>? longitude,
+    Value<String?>? locationLabel,
     Value<DateTime?>? lastModifiedDate,
     Value<String?>? description,
     Value<String?>? attachments,
@@ -1603,6 +1746,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
       version: version ?? this.version,
       createDate: createDate ?? this.createDate,
       noteDate: noteDate ?? this.noteDate,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      locationLabel: locationLabel ?? this.locationLabel,
       lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
       description: description ?? this.description,
       attachments: attachments ?? this.attachments,
@@ -1645,6 +1791,15 @@ class NotesCompanion extends UpdateCompanion<Note> {
     if (noteDate.present) {
       map['note_date'] = Variable<DateTime>(noteDate.value);
     }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (locationLabel.present) {
+      map['location_label'] = Variable<String>(locationLabel.value);
+    }
     if (lastModifiedDate.present) {
       map['last_modified_date'] = Variable<DateTime>(lastModifiedDate.value);
     }
@@ -1671,6 +1826,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
           ..write('version: $version, ')
           ..write('createDate: $createDate, ')
           ..write('noteDate: $noteDate, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('locationLabel: $locationLabel, ')
           ..write('lastModifiedDate: $lastModifiedDate, ')
           ..write('description: $description, ')
           ..write('attachments: $attachments')
@@ -3005,6 +3163,9 @@ typedef $$NotesTableCreateCompanionBuilder =
       Value<Uint8List?> version,
       Value<DateTime> createDate,
       Value<DateTime?> noteDate,
+      Value<double?> latitude,
+      Value<double?> longitude,
+      Value<String?> locationLabel,
       Value<DateTime?> lastModifiedDate,
       Value<String?> description,
       Value<String?> attachments,
@@ -3022,6 +3183,9 @@ typedef $$NotesTableUpdateCompanionBuilder =
       Value<Uint8List?> version,
       Value<DateTime> createDate,
       Value<DateTime?> noteDate,
+      Value<double?> latitude,
+      Value<double?> longitude,
+      Value<String?> locationLabel,
       Value<DateTime?> lastModifiedDate,
       Value<String?> description,
       Value<String?> attachments,
@@ -3148,6 +3312,21 @@ class $$NotesTableFilterComposer extends Composer<_$HmmDatabase, $NotesTable> {
 
   ColumnFilters<DateTime> get noteDate => $composableBuilder(
     column: $table.noteDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get locationLabel => $composableBuilder(
+    column: $table.locationLabel,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3310,6 +3489,21 @@ class $$NotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get locationLabel => $composableBuilder(
+    column: $table.locationLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get lastModifiedDate => $composableBuilder(
     column: $table.lastModifiedDate,
     builder: (column) => ColumnOrderings(column),
@@ -3429,6 +3623,17 @@ class $$NotesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get noteDate =>
       $composableBuilder(column: $table.noteDate, builder: (column) => column);
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<String> get locationLabel => $composableBuilder(
+    column: $table.locationLabel,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get lastModifiedDate => $composableBuilder(
     column: $table.lastModifiedDate,
@@ -3584,6 +3789,9 @@ class $$NotesTableTableManager
                 Value<Uint8List?> version = const Value.absent(),
                 Value<DateTime> createDate = const Value.absent(),
                 Value<DateTime?> noteDate = const Value.absent(),
+                Value<double?> latitude = const Value.absent(),
+                Value<double?> longitude = const Value.absent(),
+                Value<String?> locationLabel = const Value.absent(),
                 Value<DateTime?> lastModifiedDate = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<String?> attachments = const Value.absent(),
@@ -3599,6 +3807,9 @@ class $$NotesTableTableManager
                 version: version,
                 createDate: createDate,
                 noteDate: noteDate,
+                latitude: latitude,
+                longitude: longitude,
+                locationLabel: locationLabel,
                 lastModifiedDate: lastModifiedDate,
                 description: description,
                 attachments: attachments,
@@ -3616,6 +3827,9 @@ class $$NotesTableTableManager
                 Value<Uint8List?> version = const Value.absent(),
                 Value<DateTime> createDate = const Value.absent(),
                 Value<DateTime?> noteDate = const Value.absent(),
+                Value<double?> latitude = const Value.absent(),
+                Value<double?> longitude = const Value.absent(),
+                Value<String?> locationLabel = const Value.absent(),
                 Value<DateTime?> lastModifiedDate = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<String?> attachments = const Value.absent(),
@@ -3631,6 +3845,9 @@ class $$NotesTableTableManager
                 version: version,
                 createDate: createDate,
                 noteDate: noteDate,
+                latitude: latitude,
+                longitude: longitude,
+                locationLabel: locationLabel,
                 lastModifiedDate: lastModifiedDate,
                 description: description,
                 attachments: attachments,
