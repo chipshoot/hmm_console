@@ -14,6 +14,7 @@ import '../../data/models/hmm_note.dart';
 import '../../rendering/render_registry.dart';
 import '../../states/mutate_note_state.dart';
 import '../widgets/markdown_view.dart';
+import '../widgets/note_location_card.dart';
 import '../widgets/note_media_card_list.dart';
 
 class NoteDetailData {
@@ -110,6 +111,9 @@ class NoteDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   if (atts.isNotEmpty)
                     NoteMediaCardList(saved: atts, readOnly: true),
+                  if (d.note.location != null)
+                    NoteLocationCard(
+                        location: d.note.location!, readOnly: true),
                   const SizedBox(height: 12),
                   MarkdownView(markdown),
                 ],
