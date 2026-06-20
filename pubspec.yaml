@@ -66,6 +66,7 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.28
   path_provider: ^2.1.5
   path: ^1.9.1
+  open_filex: ^4.5.0
   # OAuth flow for OneDrive (and any future PKCE-based cloud provider). We
   # used flutter_appauth originally; debugging showed the AppAuth-iOS bridge
   # silently drops the ASWebAuthenticationSession callback on iOS 18 + 26
