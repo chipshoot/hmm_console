@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
+import 'package:hmm_console/core/data/note_location.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
@@ -12,7 +13,7 @@ class _FakeMutate implements MutateNote {
   @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
   @override
-  Future<HmmNote> createGeneral({required String subject, String? markdownBody, int? parentNoteId, DateTime? noteDate}) async {
+  Future<HmmNote> createGeneral({required String subject, String? markdownBody, int? parentNoteId, DateTime? noteDate, NoteLocation? location}) async {
     createdSubject = subject;
     return HmmNote(
         id: 1, uuid: 'u', subject: subject, authorId: 1,
