@@ -48,4 +48,38 @@ void main() {
     expect(find.byType(NoteLocationCard), findsOneWidget);
     expect(find.text('Seattle, WA'), findsOneWidget);
   });
+
+  testWidgets('capture failure shows no card and does not crash the editor',
+      (tester) async {
+    final router = GoRouter(
+      initialLocation: '/editor',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (c, s) => const Scaffold(body: Text('home')),
+          routes: [
+            GoRoute(
+                path: 'editor', builder: (c, s) => const NoteEditorScreen()),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        geoCaptureEnabledProvider.overrideWith(() => _EnabledGeo()),
+        // Simulate the GPS timeout path: the provider throws.
+        noteLocationCaptureProvider.overrideWith(
+            (ref) async => throw Exception('GPS timeout')),
+      ],
+      child: MaterialApp.router(
+        theme: ThemeData(extensions: const [AppColors.light]),
+        routerConfig: router,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NoteLocationCard), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }

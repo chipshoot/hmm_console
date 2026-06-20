@@ -18,15 +18,24 @@ String? formatPlacemark(Placemark? p) {
 /// Best-effort current-location capture: GPS fix + reverse-geocoded label.
 /// Returns null when no fix is available (denied/off/timeout). The label may
 /// be null even when coordinates are present (geocode failed).
+///
+/// The whole body is guarded: `Geolocator.getCurrentPosition` *throws*
+/// `TimeoutException` (and on some platforms permission/service exceptions),
+/// so we swallow any error and return null to honour the "best-effort, never
+/// crash the editor" contract.
 final noteLocationCaptureProvider = FutureProvider<NoteLocation?>((ref) async {
-  final pos = await ref.watch(currentPositionProvider.future);
-  if (pos == null) return null;
-  final place = await ref.watch(reverseGeocodeProvider(
-    (latitude: pos.latitude, longitude: pos.longitude),
-  ).future);
-  return NoteLocation(
-    latitude: pos.latitude,
-    longitude: pos.longitude,
-    label: formatPlacemark(place),
-  );
+  try {
+    final pos = await ref.watch(currentPositionProvider.future);
+    if (pos == null) return null;
+    final place = await ref.watch(reverseGeocodeProvider(
+      (latitude: pos.latitude, longitude: pos.longitude),
+    ).future);
+    return NoteLocation(
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+      label: formatPlacemark(place),
+    );
+  } catch (_) {
+    return null;
+  }
 });

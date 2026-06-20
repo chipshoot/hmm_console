@@ -8,6 +8,8 @@ class NoteLocation {
   final double? longitude;
   final String? label;
 
+  /// Coordinates define presence: a location with null lat/lng is "empty"
+  /// even if it carries a [label]. A label alone is never a location.
   bool get isEmpty => latitude == null && longitude == null;
 
   static const empty = NoteLocation();

@@ -10,6 +10,8 @@ import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/note_location.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../gas_log/providers/location_provider.dart'
+    show currentPositionProvider;
 import '../../../settings/providers/geo_capture_provider.dart';
 import '../../providers/note_location_capture.dart';
 import '../widgets/note_location_card.dart';
@@ -70,11 +72,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// For a new note, when the opt-in toggle is on, capture the current
   /// location in the background (non-blocking). Failures leave it null.
   Future<void> _maybeCaptureLocation() async {
-    final enabled = await ref.read(geoCaptureEnabledProvider.future);
-    if (!enabled || !mounted) return;
-    final loc = await ref.read(noteLocationCaptureProvider.future);
-    if (loc == null || !mounted) return;
-    setState(() => _pendingLocation = loc);
+    try {
+      final enabled = await ref.read(geoCaptureEnabledProvider.future);
+      if (!enabled || !mounted) return;
+      // Force a fresh fix — both providers cache for the ProviderScope's
+      // lifetime, so without this a second note would reuse the first note's
+      // coordinates.
+      ref.invalidate(currentPositionProvider);
+      ref.invalidate(noteLocationCaptureProvider);
+      final loc = await ref.read(noteLocationCaptureProvider.future);
+      if (loc == null || !mounted) return;
+      setState(() => _pendingLocation = loc);
+    } catch (_) {
+      // Best-effort: any failure ⇒ no card, no crash.
+    }
   }
 
   @override
