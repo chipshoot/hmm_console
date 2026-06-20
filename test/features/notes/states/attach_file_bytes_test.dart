@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker.dart';
-import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
+import 'package:hmm_console/core/data/attachments/picker/file_byte_source.dart';
 import 'package:hmm_console/core/data/hmm_note_input.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
@@ -13,27 +13,31 @@ import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
 
 const _ref = VaultRef(
-    path: 'attachments/note-1/a.jpg', contentType: 'image/jpeg', byteSize: 3);
+    path: 'attachments/note-1/r.pdf',
+    contentType: 'application/pdf',
+    byteSize: 3);
 
 class _FakePicker implements IImageAttachmentPicker {
   Uint8List? gotBytes;
-  @override
-  Future<VaultRef> persistToVault({
-    required int noteId,
-    required Uint8List bytes,
-    required String originalName,
-    String? contentTypeHint,
-  }) async {
-    gotBytes = bytes;
-    return _ref;
-  }
-
+  String? gotContentType;
   @override
   Future<VaultRef> persistFileToVault({
     required int noteId,
     required Uint8List bytes,
     required String originalName,
     required String contentType,
+  }) async {
+    gotBytes = bytes;
+    gotContentType = contentType;
+    return _ref;
+  }
+
+  @override
+  Future<VaultRef> persistToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    String? contentTypeHint,
   }) async =>
       _ref;
 
@@ -62,7 +66,7 @@ class _FakeRepo implements IHmmNoteRepository {
 }
 
 void main() {
-  test('attachImageBytes persists + appends a VaultRef to the note', () async {
+  test('attachFileBytes persists + appends a VaultRef to files', () async {
     final picker = _FakePicker();
     final repo = _FakeRepo(HmmNote(
         id: 1, uuid: 'u', subject: 's', authorId: 1,
@@ -74,16 +78,17 @@ void main() {
     addTearDown(container.dispose);
 
     final mutate = container.read(mutateNoteProvider);
-    await mutate.attachImageBytes(
+    await mutate.attachFileBytes(
       1,
-      PickedImageBytes(
+      PickedFileBytes(
           bytes: Uint8List.fromList([1, 2, 3]),
-          originalName: 'a.jpg',
-          contentType: 'image/jpeg'),
+          originalName: 'r.pdf',
+          contentType: 'application/pdf'),
     );
 
     expect(picker.gotBytes, isNotNull);
+    expect(picker.gotContentType, 'application/pdf');
     expect(repo.written, isNotNull);
-    expect(repo.written!.primaryImage, _ref); // first image becomes primary
+    expect(repo.written!.files, [_ref]);
   });
 }

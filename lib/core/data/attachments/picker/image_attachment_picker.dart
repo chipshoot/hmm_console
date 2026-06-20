@@ -35,6 +35,11 @@ const Set<String> _allowedContentTypes = {
   'image/webp',
 };
 
+/// Non-image file types accepted by [persistFileToVault] (Phase 3a).
+const Set<String> _allowedFileContentTypes = {
+  'application/pdf',
+};
+
 abstract interface class IImageAttachmentPicker {
   /// Open the platform picker. Returns null if the user cancels.
   /// Throws [AttachmentPickerException] for too-large files or
@@ -51,6 +56,16 @@ abstract interface class IImageAttachmentPicker {
     required Uint8List bytes,
     required String originalName,
     String? contentTypeHint,
+  });
+
+  /// Persist a non-image file (e.g. PDF) into the vault for [noteId] — stores
+  /// the bytes RAW (no downsizing/transcoding, unlike [persistToVault]).
+  /// Used by the editor to attach files held in state once the note is saved.
+  Future<VaultRef> persistFileToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    required String contentType,
   });
 }
 
@@ -155,6 +170,45 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
     );
   }
 
+  @override
+  Future<VaultRef> persistFileToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    required String contentType,
+  }) async {
+    if (bytes.lengthInBytes == 0) {
+      throw const AttachmentPickerException('empty file');
+    }
+    if (bytes.lengthInBytes > kMaxAttachmentBytes) {
+      throw AttachmentPickerException(
+        'file is ${bytes.lengthInBytes} bytes; max is $kMaxAttachmentBytes',
+      );
+    }
+    if (!_allowedFileContentTypes.contains(contentType)) {
+      throw AttachmentPickerException(
+        'content type "$contentType" not allowed; expected one of '
+        '$_allowedFileContentTypes',
+      );
+    }
+
+    // Files are stored RAW — no downsizing/transcoding.
+    final ext = _extFor(contentType);
+    final path = vaultRelativePathJoin([
+      'attachments',
+      'note-$noteId',
+      '${generateUuid()}.$ext',
+    ]);
+    await vaultStore.putBytes(path, bytes, contentType: contentType);
+
+    return VaultRef(
+      path: path,
+      originalName: originalName.isEmpty ? null : originalName,
+      contentType: contentType,
+      byteSize: bytes.lengthInBytes,
+    );
+  }
+
   String _resolveContentType(String originalName, String? hint) {
     // Trust the hint if it's in the allow-list; otherwise infer from
     // the file extension. Hint can be wrong (image_picker on Android
@@ -178,6 +232,7 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
         'image/png' => 'png',
         'image/heic' => 'heic',
         'image/webp' => 'webp',
+        'application/pdf' => 'pdf',
         _ => 'bin',
       };
 }
