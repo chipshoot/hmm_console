@@ -170,7 +170,9 @@ final class NoteAttachments {
   NoteAttachments({
     this.primaryImage,
     List<AttachmentRef> images = const [],
-  }) : images = List.unmodifiable(images) {
+    List<AttachmentRef> files = const [],
+  })  : images = List.unmodifiable(images),
+        files = List.unmodifiable(files) {
     final p = primaryImage;
     if (p != null) {
       for (final img in images) {
@@ -189,7 +191,11 @@ final class NoteAttachments {
   final AttachmentRef? primaryImage;
   final List<AttachmentRef> images;
 
-  bool get isEmpty => primaryImage == null && images.isEmpty;
+  /// Non-image attachments (PDF now, audio later). Rendered by content type.
+  final List<AttachmentRef> files;
+
+  bool get isEmpty =>
+      primaryImage == null && images.isEmpty && files.isEmpty;
   bool get isNotEmpty => !isEmpty;
 
   @override
@@ -201,13 +207,18 @@ final class NoteAttachments {
     for (var i = 0; i < images.length; i++) {
       if (other.images[i] != images[i]) return false;
     }
+    if (other.files.length != files.length) return false;
+    for (var i = 0; i < files.length; i++) {
+      if (other.files[i] != files[i]) return false;
+    }
     return true;
   }
 
   @override
-  int get hashCode => Object.hash(primaryImage, Object.hashAll(images));
+  int get hashCode =>
+      Object.hash(primaryImage, Object.hashAll(images), Object.hashAll(files));
 
   @override
-  String toString() =>
-      'NoteAttachments(primaryImage: $primaryImage, images: $images)';
+  String toString() => 'NoteAttachments(primaryImage: $primaryImage, '
+      'images: $images, files: $files)';
 }
