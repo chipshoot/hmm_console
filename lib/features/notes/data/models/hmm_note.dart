@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/note_location.dart';
 
 /// Domain entity for HmmNote — matches the server-side
 /// `Hmm.Core.HmmNote` shape. See Phase 3.5 in
@@ -21,6 +22,9 @@ class HmmNote {
     required this.createDate,
     this.catalogId,
     this.noteDate,
+    this.latitude,
+    this.longitude,
+    this.locationLabel,
     this.lastModifiedDate,
     this.content,
     this.parentNoteId,
@@ -65,6 +69,16 @@ class HmmNote {
   /// The date to display/sort by: the editable note date, falling back to
   /// the immutable created-at when unset.
   DateTime get effectiveNoteDate => noteDate ?? createDate;
+
+  final double? latitude;
+  final double? longitude;
+  final String? locationLabel;
+
+  /// Convenience: the note's location, or null when none is set.
+  NoteLocation? get location => (latitude == null && longitude == null)
+      ? null
+      : NoteLocation(
+          latitude: latitude, longitude: longitude, label: locationLabel);
 
   final DateTime? lastModifiedDate;
 
