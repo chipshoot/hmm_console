@@ -6,9 +6,15 @@ import '../../../../core/theme/app_colors.dart';
 /// Bottom media toolbar (Apple-Journal style). Phase 1: Photos + Camera. More
 /// buttons (voice, location, PDF) are added in later phases.
 class MediaToolbar extends StatelessWidget {
-  const MediaToolbar({super.key, required this.onPick, this.enabled = true});
+  const MediaToolbar({
+    super.key,
+    required this.onPick,
+    required this.onPickFile,
+    this.enabled = true,
+  });
 
   final void Function(AttachmentPickSource source) onPick;
+  final VoidCallback onPickFile;
   final bool enabled;
 
   @override
@@ -33,6 +39,11 @@ class MediaToolbar extends StatelessWidget {
             const SizedBox(width: 8),
             btn(Icons.photo_library_outlined, AttachmentPickSource.gallery),
             btn(Icons.camera_alt_outlined, AttachmentPickSource.camera),
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              color: c.accent,
+              onPressed: enabled ? onPickFile : null,
+            ),
           ],
         ),
       ),
