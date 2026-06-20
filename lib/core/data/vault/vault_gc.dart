@@ -104,6 +104,7 @@ Future<Set<String>> collectReferencedVaultPaths(HmmDatabase db) async {
     final refs = <AttachmentRef?>[
       attachments.primaryImage,
       ...attachments.images,
+      ...attachments.files,
     ];
     for (final ref in refs) {
       if (ref is VaultRef) {
