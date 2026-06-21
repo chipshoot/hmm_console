@@ -48,8 +48,9 @@ class NoteFileCardList extends ConsumerWidget {
             name: pending[i].originalName,
             byteSize: pending[i].bytes.length,
             readOnly: readOnly,
-            onRemove:
-                onRemovePending == null ? null : () => onRemovePending!(i),
+            onRemove: (readOnly || onRemovePending == null)
+                ? null
+                : () => onRemovePending!(i),
           ),
       ],
     );
