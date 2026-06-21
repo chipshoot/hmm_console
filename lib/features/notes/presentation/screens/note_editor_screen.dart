@@ -17,6 +17,7 @@ import '../../../settings/providers/geo_capture_provider.dart';
 import '../../providers/note_location_capture.dart';
 import '../widgets/note_file_card_list.dart';
 import '../widgets/note_location_card.dart';
+import '../widgets/record_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../data/subsystem_anchor.dart';
@@ -198,6 +199,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
+  /// Record a voice note (modal sheet) and hold it pending — attaches on save.
+  Future<void> _addRecording() async {
+    final pick = await showRecordSheet(context, ref);
+    if (pick != null && mounted) {
+      setState(() => _pendingFiles.add(pick));
+    }
+  }
+
   String get _stampText =>
       '${DateFormat.yMMMMd().format(_noteDate)} · ${DateFormat.jm().format(_noteDate)}';
 
@@ -306,6 +315,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       bottomNavigationBar: MediaToolbar(
         onPick: _addMedia,
         onPickFile: _addFile,
+        onRecord: _addRecording,
         enabled: !_busy,
       ),
       body: Column(
