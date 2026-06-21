@@ -10,11 +10,13 @@ class MediaToolbar extends StatelessWidget {
     super.key,
     required this.onPick,
     required this.onPickFile,
+    required this.onRecord,
     this.enabled = true,
   });
 
   final void Function(AttachmentPickSource source) onPick;
   final VoidCallback onPickFile;
+  final VoidCallback onRecord;
   final bool enabled;
 
   @override
@@ -43,6 +45,11 @@ class MediaToolbar extends StatelessWidget {
               icon: const Icon(Icons.picture_as_pdf_outlined),
               color: c.accent,
               onPressed: enabled ? onPickFile : null,
+            ),
+            IconButton(
+              icon: const Icon(Icons.mic_none_outlined),
+              color: c.accent,
+              onPressed: enabled ? onRecord : null,
             ),
           ],
         ),

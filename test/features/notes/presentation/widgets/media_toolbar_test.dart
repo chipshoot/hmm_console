@@ -12,7 +12,8 @@ void main() {
       theme: ThemeData(extensions: const [AppColors.light]),
       home: Scaffold(
         bottomNavigationBar:
-            MediaToolbar(onPick: (s) => picked = s, onPickFile: () {}),
+            MediaToolbar(
+                onPick: (s) => picked = s, onPickFile: () {}, onRecord: () {}),
       ),
     ));
     await t.tap(find.byIcon(Icons.photo_library_outlined));
@@ -27,10 +28,26 @@ void main() {
       theme: ThemeData(extensions: const [AppColors.light]),
       home: Scaffold(
         bottomNavigationBar:
-            MediaToolbar(onPick: (_) {}, onPickFile: () => tapped = true),
+            MediaToolbar(
+                onPick: (_) {},
+                onPickFile: () => tapped = true,
+                onRecord: () {}),
       ),
     ));
     await t.tap(find.byIcon(Icons.picture_as_pdf_outlined));
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('mic button fires onRecord', (t) async {
+    var tapped = false;
+    await t.pumpWidget(MaterialApp(
+      theme: ThemeData(extensions: const [AppColors.light]),
+      home: Scaffold(
+        bottomNavigationBar: MediaToolbar(
+            onPick: (_) {}, onPickFile: () {}, onRecord: () => tapped = true),
+      ),
+    ));
+    await t.tap(find.byIcon(Icons.mic_none_outlined));
     expect(tapped, isTrue);
   });
 }
