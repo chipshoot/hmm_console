@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
+import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/note_location.dart';
 import '../../../../core/data/repository_providers.dart';
@@ -14,6 +15,7 @@ import '../../../gas_log/providers/location_provider.dart'
     show currentPositionProvider;
 import '../../../settings/providers/geo_capture_provider.dart';
 import '../../providers/note_location_capture.dart';
+import '../widgets/note_file_card_list.dart';
 import '../widgets/note_location_card.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
@@ -47,6 +49,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   /// Images already attached to the note (when editing an existing note).
   List<AttachmentRef> _savedImages = [];
+
+  /// PDF/files picked this session, not yet attached (attached on save).
+  final List<PickedFileBytes> _pendingFiles = [];
+
+  /// Files already attached to the note (when editing an existing note).
+  List<AttachmentRef> _savedFiles = [];
 
   /// Editable note date shown under the title. New note: defaults to now.
   /// Existing note: the note's effectiveNoteDate. OneNote-style — tap to edit.
@@ -114,6 +122,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       // rewrite the parent on save.
       if (!_parentTouched) _parentId = note.parentNoteId;
       _pendingLocation = note.location;
+      _savedFiles = [...note.effectiveAttachments.files];
       setState(() {});
     }
   }
@@ -158,6 +167,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         if (mounted) setState(() => _pendingPicks.clear());
         ref.invalidate(noteDetailProvider(_noteId!));
       }
+      // Attach any PDFs added this session, then clear them.
+      if (_pendingFiles.isNotEmpty && _noteId != null) {
+        for (final pick in _pendingFiles) {
+          await mutate.attachFileBytes(_noteId!, pick);
+        }
+        if (mounted) setState(() => _pendingFiles.clear());
+        ref.invalidate(noteDetailProvider(_noteId!));
+      }
       return _noteId;
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -170,6 +187,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final pick = await ref.read(imageByteSourceProvider).pick(source);
     if (pick != null && mounted) {
       setState(() => _pendingPicks.add(pick));
+    }
+  }
+
+  /// Pick a PDF and hold it pending — attaches on the next save.
+  Future<void> _addFile() async {
+    final pick = await ref.read(fileByteSourceProvider).pickPdf();
+    if (pick != null && mounted) {
+      setState(() => _pendingFiles.add(pick));
     }
   }
 
@@ -280,6 +305,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       appBar: _buildNav(context, c),
       bottomNavigationBar: MediaToolbar(
         onPick: _addMedia,
+        onPickFile: _addFile,
         enabled: !_busy,
       ),
       body: Column(
@@ -346,6 +372,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       pending: _pendingPicks,
                       onRemovePending: (i) =>
                           setState(() => _pendingPicks.removeAt(i)),
+                    ),
+                    NoteFileCardList(
+                      saved: _savedFiles,
+                      pending: _pendingFiles,
+                      onRemovePending: (i) =>
+                          setState(() => _pendingFiles.removeAt(i)),
                     ),
                     Expanded(
                       child: TextField(

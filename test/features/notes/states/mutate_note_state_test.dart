@@ -102,6 +102,15 @@ class _FakePicker implements IImageAttachmentPicker {
     String? contentTypeHint,
   }) async =>
       result ?? _ref('persisted');
+
+  @override
+  Future<VaultRef> persistFileToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    required String contentType,
+  }) async =>
+      result ?? _ref('persisted');
 }
 
 VaultRef _ref(String path) =>

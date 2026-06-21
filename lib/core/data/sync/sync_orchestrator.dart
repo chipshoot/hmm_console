@@ -346,6 +346,10 @@ class SyncOrchestrator {
     final lng = (body['longitude'] as num?)?.toDouble();
     final locLabel = body['locationLabel'] as String?;
 
+    // Phase 3a attachments JSON: present key ⇒ apply, absent ⇒ preserve.
+    final hasAttachments = body.containsKey('attachments');
+    final attachmentsJson = body['attachments'] as String?;
+
     final parentUuid = body['parentNoteUuid'] as String?;
 
     int childId;
@@ -362,6 +366,8 @@ class SyncOrchestrator {
         latitude: hasLocation ? Value(lat) : const Value.absent(),
         longitude: hasLocation ? Value(lng) : const Value.absent(),
         locationLabel: hasLocation ? Value(locLabel) : const Value.absent(),
+        attachments:
+            hasAttachments ? Value(attachmentsJson) : const Value.absent(),
         lastModifiedDate: Value(entry.updatedAt),
         deletedAt: Value(entry.deleted ? entry.updatedAt : null),
       ));
@@ -381,6 +387,7 @@ class SyncOrchestrator {
               latitude: Value(lat),
               longitude: Value(lng),
               locationLabel: Value(locLabel),
+              attachments: Value(attachmentsJson),
               lastModifiedDate: Value(entry.updatedAt),
               deletedAt: Value(entry.deleted ? entry.updatedAt : null),
             ),
@@ -643,6 +650,9 @@ class SyncOrchestrator {
         'latitude': n.latitude,
         'longitude': n.longitude,
         'locationLabel': n.locationLabel,
+        // Attachment refs (images + files). Bytes ride OS-level vault sync;
+        // this carries the refs so they propagate across devices.
+        'attachments': n.attachments,
         'lastModifiedDate': updatedAt.toIso8601String(),
         'deletedAt': n.deletedAt?.toUtc().toIso8601String(),
         'tags': tagNames,

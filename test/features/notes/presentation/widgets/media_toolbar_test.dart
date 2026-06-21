@@ -11,12 +11,26 @@ void main() {
     await t.pumpWidget(MaterialApp(
       theme: ThemeData(extensions: const [AppColors.light]),
       home: Scaffold(
-        bottomNavigationBar: MediaToolbar(onPick: (s) => picked = s),
+        bottomNavigationBar:
+            MediaToolbar(onPick: (s) => picked = s, onPickFile: () {}),
       ),
     ));
     await t.tap(find.byIcon(Icons.photo_library_outlined));
     expect(picked, AttachmentPickSource.gallery);
     await t.tap(find.byIcon(Icons.camera_alt_outlined));
     expect(picked, AttachmentPickSource.camera);
+  });
+
+  testWidgets('PDF button fires onPickFile', (t) async {
+    var tapped = false;
+    await t.pumpWidget(MaterialApp(
+      theme: ThemeData(extensions: const [AppColors.light]),
+      home: Scaffold(
+        bottomNavigationBar:
+            MediaToolbar(onPick: (_) {}, onPickFile: () => tapped = true),
+      ),
+    ));
+    await t.tap(find.byIcon(Icons.picture_as_pdf_outlined));
+    expect(tapped, isTrue);
   });
 }
