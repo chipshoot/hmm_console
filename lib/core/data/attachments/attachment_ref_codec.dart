@@ -23,6 +23,8 @@ const Set<String> _allowedContentTypes = {
   'image/webp',
   // Phase 3a: non-image file attachments.
   'application/pdf',
+  // Phase 3b: voice recordings.
+  'audio/mp4',
 };
 
 const int _maxOriginalNameLength = 500;

@@ -38,6 +38,7 @@ const Set<String> _allowedContentTypes = {
 /// Non-image file types accepted by [persistFileToVault] (Phase 3a).
 const Set<String> _allowedFileContentTypes = {
   'application/pdf',
+  'audio/mp4',
 };
 
 abstract interface class IImageAttachmentPicker {
@@ -233,6 +234,7 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
         'image/heic' => 'heic',
         'image/webp' => 'webp',
         'application/pdf' => 'pdf',
+        'audio/mp4' => 'm4a',
         _ => 'bin',
       };
 }
