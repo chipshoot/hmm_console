@@ -67,7 +67,7 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.1
   open_filex: ^4.5.0
-  record: ^5.1.2
+  record: ^6.0.0
   just_audio: ^0.9.40
   # OAuth flow for OneDrive (and any future PKCE-based cloud provider). We
   # used flutter_appauth originally; debugging showed the AppAuth-iOS bridge
