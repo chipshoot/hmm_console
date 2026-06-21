@@ -24,6 +24,8 @@ class _FakeRecorder implements AudioRecorderService {
       AudioRecording(bytes: Uint8List.fromList([1, 2, 3]), fileName: 'rec.m4a');
   @override
   Future<void> cancel() async {}
+  @override
+  Future<void> dispose() async {}
 }
 
 class _FakeMutate implements MutateNote {

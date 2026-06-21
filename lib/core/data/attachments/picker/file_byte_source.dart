@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../util/uuid.dart';
+
 /// Raw picked file (PDF), held in editor state until the note is saved (then
 /// persisted to the vault). Mirrors PickedImageBytes.
 class PickedFileBytes {
@@ -10,7 +12,12 @@ class PickedFileBytes {
     required this.bytes,
     required this.originalName,
     this.contentType,
-  });
+    String? id,
+  }) : id = id ?? generateUuid();
+
+  /// Process-unique id, used to key per-pick temp files so two picks that
+  /// share a display name don't collide.
+  final String id;
   final Uint8List bytes;
   final String originalName;
   final String? contentType;

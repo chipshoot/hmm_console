@@ -107,8 +107,11 @@ class NoteFileCardList extends ConsumerWidget {
   }
 
   Future<String> _bytesToTempPath(PickedFileBytes pick) async {
+    // Key by the pick's unique id so two pending recordings that share a
+    // display name don't overwrite each other's temp file.
     final dir = await getTemporaryDirectory();
-    final outDir = Directory(p.join(dir.path, 'note-audio-pending'));
+    final outDir =
+        Directory(p.join(dir.path, 'note-audio-pending', pick.id));
     await outDir.create(recursive: true);
     final file = File(p.join(outDir.path, pick.originalName));
     await file.writeAsBytes(pick.bytes);

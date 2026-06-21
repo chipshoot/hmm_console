@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
+import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
+    show kMaxAttachmentBytes;
 import '../../../../core/data/attachments/recorder/audio_recorder.dart';
 
 /// Opens the modal record sheet. Returns a pending audio pick on Stop, or
@@ -18,7 +20,16 @@ Future<PickedFileBytes?> showRecordSheet(
     }
     return null;
   }
-  await recorder.start();
+  try {
+    await recorder.start();
+  } catch (_) {
+    await recorder.cancel();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not start recording')));
+    }
+    return null;
+  }
   if (!context.mounted) {
     await recorder.cancel();
     return null;
@@ -73,6 +84,13 @@ class _RecordSheetBodyState extends State<_RecordSheetBody> {
     final rec = await widget.recorder.stop();
     if (!mounted) return;
     if (rec == null) {
+      Navigator.of(context).pop(null);
+      return;
+    }
+    if (rec.bytes.lengthInBytes > kMaxAttachmentBytes) {
+      // Discard rather than fail at save time (recording lives only in memory).
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Recording is too long; please record a shorter one')));
       Navigator.of(context).pop(null);
       return;
     }

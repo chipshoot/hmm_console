@@ -11,6 +11,7 @@ class _FakeRecorder implements AudioRecorderService {
   _FakeRecorder({this.permission = true});
   final bool permission;
   bool started = false;
+  int cancelCount = 0;
   @override
   Future<bool> hasPermission() async => permission;
   @override
@@ -19,7 +20,9 @@ class _FakeRecorder implements AudioRecorderService {
   Future<AudioRecording?> stop() async =>
       AudioRecording(bytes: Uint8List.fromList([1, 2, 3]), fileName: 'rec.m4a');
   @override
-  Future<void> cancel() async {}
+  Future<void> cancel() async => cancelCount++;
+  @override
+  Future<void> dispose() async {}
 }
 
 Widget _harness(_FakeRecorder rec, void Function(PickedFileBytes?) onResult) {
@@ -50,6 +53,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(result, isNotNull);
     expect(result!.contentType, 'audio/mp4');
+  });
+
+  testWidgets('Cancel discards: cancel() called, returns null', (tester) async {
+    final rec = _FakeRecorder();
+    PickedFileBytes? result;
+    var called = false;
+    await tester.pumpWidget(_harness(rec, (r) {
+      result = r;
+      called = true;
+    }));
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(called, isTrue);
+    expect(result, isNull);
+    expect(rec.cancelCount, greaterThanOrEqualTo(1));
   });
 
   testWidgets('permission denied returns null without recording',

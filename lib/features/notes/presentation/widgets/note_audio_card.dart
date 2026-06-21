@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -24,7 +26,7 @@ class NoteAudioCard extends StatefulWidget {
 
 class _NoteAudioCardState extends State<NoteAudioCard> {
   AudioPlayer? _player;
-  bool _loading = false;
+  bool _preparing = false;
 
   @override
   void dispose() {
@@ -32,32 +34,38 @@ class _NoteAudioCardState extends State<NoteAudioCard> {
     super.dispose();
   }
 
-  Future<AudioPlayer> _ensure() async {
-    if (_player != null) return _player!;
-    final player = AudioPlayer();
-    final path = await widget.resolvePath();
-    await player.setFilePath(path);
-    _player = player;
-    return player;
-  }
-
   Future<void> _toggle() async {
-    if (_loading) return;
-    setState(() => _loading = true);
-    try {
-      final player = await _ensure();
+    final player = _player;
+    if (player != null) {
+      // Live player: toggle. Do NOT await play() — just_audio's play()
+      // future completes only when playback ENDS, which would block pause.
       if (player.playing) {
-        await player.pause();
+        unawaited(player.pause());
       } else {
-        if (player.position >= (player.duration ?? Duration.zero)) {
+        if (player.processingState == ProcessingState.completed) {
           await player.seek(Duration.zero);
         }
-        await player.play();
+        unawaited(player.play());
       }
+      return;
+    }
+    // First play: create + load (the only genuinely async setup), then start.
+    if (_preparing) return;
+    setState(() => _preparing = true);
+    try {
+      final created = AudioPlayer();
+      final path = await widget.resolvePath();
+      await created.setFilePath(path);
+      if (!mounted) {
+        await created.dispose();
+        return;
+      }
+      _player = created;
+      unawaited(created.play());
     } catch (_) {
-      // Playback failure → leave the card in a non-playing state.
+      // resolve/load failure → nothing playable; leave the card idle.
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _preparing = false);
     }
   }
 
@@ -78,11 +86,24 @@ class _NoteAudioCardState extends State<NoteAudioCard> {
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: Icon(
-                (player?.playing ?? false) ? Icons.pause : Icons.play_arrow),
-            onPressed: _toggle,
-          ),
+          if (player == null)
+            IconButton(
+              icon: const Icon(Icons.play_arrow),
+              onPressed: _preparing ? null : _toggle,
+            )
+          else
+            StreamBuilder<PlayerState>(
+              stream: player.playerStateStream,
+              builder: (context, snap) {
+                final state = snap.data;
+                final showPause = (state?.playing ?? false) &&
+                    state?.processingState != ProcessingState.completed;
+                return IconButton(
+                  icon: Icon(showPause ? Icons.pause : Icons.play_arrow),
+                  onPressed: _toggle,
+                );
+              },
+            ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

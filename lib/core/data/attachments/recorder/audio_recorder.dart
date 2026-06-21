@@ -29,6 +29,9 @@ abstract interface class AudioRecorderService {
 
   /// Stop and discard (delete the temp file).
   Future<void> cancel();
+
+  /// Release native recorder resources (called when the provider is disposed).
+  Future<void> dispose();
 }
 
 class RecordAudioRecorderService implements AudioRecorderService {
@@ -69,7 +72,13 @@ class RecordAudioRecorderService implements AudioRecorderService {
       if (await file.exists()) await file.delete();
     }
   }
+
+  @override
+  Future<void> dispose() => _rec.dispose();
 }
 
-final audioRecorderProvider =
-    Provider<AudioRecorderService>((ref) => RecordAudioRecorderService());
+final audioRecorderProvider = Provider<AudioRecorderService>((ref) {
+  final service = RecordAudioRecorderService();
+  ref.onDispose(service.dispose);
+  return service;
+});
