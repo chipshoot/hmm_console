@@ -62,6 +62,8 @@
 	<string>This app uses your location to find nearby gas stations.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Hmm uses your photo library so you can attach photos to your vehicles and other records.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Hmm uses your camera so you can take photos to attach to your notes and records.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Record voice notes to attach to your notes.</string>
 	<!-- Phase 19: expose the attachment vault in the iOS Files app so
