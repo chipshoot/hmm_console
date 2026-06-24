@@ -253,6 +253,46 @@ class OneDriveGraphClient {
     return resp.data == null ? null : Uint8List.fromList(resp.data!);
   }
 
+  /// Vault-relative file paths currently present under the remote `vault/`
+  /// subtree. Recurses folders; follows @odata.nextLink paging. Returns empty
+  /// when the vault folder doesn't exist yet (first sync).
+  Future<Set<String>> listAttachments() async {
+    final out = <String>{};
+    await _listInto(out, 'vault', '');
+    return out;
+  }
+
+  Future<void> _listInto(
+      Set<String> out, String graphRel, String vaultRel) async {
+    var url = await _userPath(graphRel, action: 'children');
+    while (true) {
+      final resp = await _dio.get<Map<String, dynamic>>(url);
+      if (resp.statusCode == 404) return; // folder absent → nothing here
+      _throwIfBad(resp);
+      final value = (resp.data?['value'] as List?) ?? const [];
+      for (final raw in value) {
+        final item = raw as Map<String, dynamic>;
+        final name = item['name'] as String;
+        final childVaultRel = vaultRel.isEmpty ? name : '$vaultRel/$name';
+        if (item['folder'] != null) {
+          await _listInto(out, '$graphRel/$name', childVaultRel);
+        } else {
+          out.add(childVaultRel);
+        }
+      }
+      final next = resp.data?['@odata.nextLink'] as String?;
+      if (next == null) break;
+      url = next; // absolute follow-up URL from Graph
+    }
+  }
+
+  Future<void> deleteAttachment(String relativePath) async {
+    final path = await _userPath('vault/$relativePath');
+    final resp = await _dio.delete<void>(path);
+    if (resp.statusCode == 404) return; // already gone
+    _throwIfBad(resp);
+  }
+
   // ---- Legacy (pre per-user) data access for one-time migration ----
   //
   // These read the OLD unscoped paths so the orchestrator can copy them

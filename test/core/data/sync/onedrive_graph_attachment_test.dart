@@ -48,4 +48,36 @@ void main() {
     );
     expect(await client().getAttachment('missing.jpg'), isNull);
   });
+
+  test('listAttachments returns vault-relative file paths recursively',
+      () async {
+    void folder(String atPath, List<Map<String, dynamic>> children) {
+      adapter.onGet(
+        '/me/drive/special/approot:/users/SUB-1/$atPath:/children',
+        (server) => server.reply(200, {'value': children}),
+      );
+    }
+
+    folder('vault', [
+      {'name': 'attachments', 'folder': {'childCount': 1}},
+    ]);
+    folder('vault/attachments', [
+      {'name': 'note-1', 'folder': {'childCount': 1}},
+    ]);
+    folder('vault/attachments/note-1', [
+      {'name': 'a.jpg', 'file': {'mimeType': 'image/jpeg'}},
+    ]);
+
+    final paths = await client().listAttachments();
+    expect(paths, {'attachments/note-1/a.jpg'});
+  });
+
+  test('listAttachments returns empty set when the vault folder is absent',
+      () async {
+    adapter.onGet(
+      '/me/drive/special/approot:/users/SUB-1/vault:/children',
+      (server) => server.reply(404, null),
+    );
+    expect(await client().listAttachments(), isEmpty);
+  });
 }
