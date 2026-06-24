@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'sync_models.dart';
 
 /// Provider-agnostic transport contract. See `docs/sync_contract.md` §9.
@@ -67,10 +69,23 @@ abstract class CloudSyncProvider {
   /// Push the tag-definitions document. No-op default.
   Future<void> pushTags(Map<String, dynamic> doc) async {}
 
-  // Attachment byte transfer was removed in Phase 11.5 (2026-05-17).
-  // Attachment refs now travel inside the note body (via the
-  // `Notes.attachments` JSON column); attachment bytes travel
-  // out-of-band — cloudStorage relies on the OS-level OneDrive /
-  // iCloud Drive sync client, cloudApi will route through the
-  // future `ApiVaultStore` (Phase 15) when it lands.
+  // ---- Attachments (vault bytes) ----
+  //
+  // Re-introduced for cloudStorage byte sync. Default impls make this a
+  // no-op so providers that don't move bytes (local-backed, or the
+  // cloudApi ApiSyncProvider for now) stay transparent — the
+  // orchestrator only runs the vault-reconcile pass when
+  // [supportsAttachments] is true.
+
+  /// Whether this provider transfers attachment bytes.
+  bool get supportsAttachments => false;
+
+  /// Upload raw bytes for a vault-relative [path]. Overwrite-safe.
+  Future<void> pushAttachment(String path, Uint8List bytes) async {}
+
+  /// Download raw bytes for a vault-relative [path], or null if absent.
+  Future<Uint8List?> pullAttachment(String path) async => null;
+
+  /// The set of vault-relative paths present in the remote vault.
+  Future<Set<String>> listAttachmentPaths() async => const {};
 }

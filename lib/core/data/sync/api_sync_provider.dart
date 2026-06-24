@@ -17,6 +17,7 @@
 // cycle.
 
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -421,6 +422,22 @@ class ApiSyncProvider implements CloudSyncProvider {
 
   @override
   Future<void> pushTags(Map<String, dynamic> doc) async {}
+
+  // ---- Attachments ----
+  // cloudApi bytes route through the future ApiVaultStore (Phase 15), not the
+  // sync provider. No-ops keep _reconcileVault inert for this provider.
+
+  @override
+  bool get supportsAttachments => false;
+
+  @override
+  Future<void> pushAttachment(String path, Uint8List bytes) async {}
+
+  @override
+  Future<Uint8List?> pullAttachment(String path) async => null;
+
+  @override
+  Future<Set<String>> listAttachmentPaths() async => const {};
 }
 
 /// Riverpod provider for [ApiSyncProvider]. Fresh per container read
