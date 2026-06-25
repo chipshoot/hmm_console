@@ -8,6 +8,7 @@ import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
+import 'onedrive_test_fakes.dart';
 import 'package:hmm_console/features/settings/data/syncable_settings_repository.dart';
 import 'package:hmm_console/features/settings/domain/gas_log_settings.dart';
 import 'package:hmm_console/features/settings/domain/gas_log_units.dart';
@@ -36,6 +37,7 @@ void main() {
       provider: provider,
       db: db,
       meta: meta,
+      vaultStore: noopVaultStore,
       settingsRepo: settingsRepo,
       onSettingsApplied: () => onSettingsAppliedCalls++,
     );
@@ -228,7 +230,7 @@ void main() {
 }
 
 /// Fake CloudSyncProvider focused on the settings leg.
-class _FakeProvider implements CloudSyncProvider {
+class _FakeProvider extends CloudSyncProvider {
   Map<String, dynamic>? remoteSettings;
   Map<String, dynamic>? pushedSettings;
   bool pullSettingsShouldThrow = false;

@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../attachments/attachment_providers.dart';
+import '../vault/vault_gc.dart';
+import '../vault/vault_store.dart';
 import '../../../features/settings/data/syncable_settings_repository.dart';
 import '../../../features/settings/domain/syncable_settings.dart';
 import '../../../features/settings/providers/settings_bus_provider.dart';
@@ -35,10 +38,12 @@ class SyncOrchestrator {
     required this.provider,
     required HmmDatabase db,
     required SyncMetaRepository meta,
+    required Future<IVaultStore> Function() vaultStore,
     SyncableSettingsRepository? settingsRepo,
     void Function()? onSettingsApplied,
   })  : _db = db,
         _meta = meta,
+        _vaultStore = vaultStore,
         _settingsRepo = settingsRepo ?? SyncableSettingsRepository(),
         _onSettingsApplied = onSettingsApplied,
         _tagRepo = LocalTagRepository(db);
@@ -48,6 +53,7 @@ class SyncOrchestrator {
 
   final HmmDatabase _db;
   final SyncMetaRepository _meta;
+  final Future<IVaultStore> Function() _vaultStore;
   final SyncableSettingsRepository _settingsRepo;
   final LocalTagRepository _tagRepo;
 
@@ -244,13 +250,16 @@ class SyncOrchestrator {
       ));
     }
 
+    // -------- 4b. Reconcile attachment bytes (cloudStorage) --------
+    final (pushedAtt, pulledAtt) = await _reconcileVault(p, errors);
+
     // -------- 5. Advance cursor on a clean run --------
     final completedAt = DateTime.now().toUtc();
     final result = SyncResult(
       pulledNotes: pulledNotes,
-      pulledAttachments: 0,
+      pulledAttachments: pulledAtt,
       pushedNotes: pushedNotes,
-      pushedAttachments: 0,
+      pushedAttachments: pushedAtt,
       completedAt: completedAt,
       errors: errors,
     );
@@ -664,6 +673,60 @@ class SyncOrchestrator {
 
   // ==================== Manifest build ====================
 
+  /// Push local-only referenced vault files up and eagerly pull remote-only
+  /// referenced files down. Only runs for providers that move bytes
+  /// (cloudStorage/OneDrive). Per-file failures are collected, never fatal.
+  /// Returns (pushed, pulled).
+  Future<(int, int)> _reconcileVault(
+      CloudSyncProvider p, List<SyncError> errors) async {
+    if (!p.supportsAttachments) return (0, 0);
+    final vault = await _vaultStore();
+    final referenced = await collectReferencedVaultPaths(_db);
+    final remote = await p.listAttachmentPaths();
+    var pushed = 0, pulled = 0;
+    for (final path in referenced) {
+      final localHas = await vault.exists(path);
+      final remoteHas = remote.contains(path);
+      if (localHas && !remoteHas) {
+        try {
+          await p.pushAttachment(path, await vault.getBytes(path));
+          pushed++;
+        } catch (e) {
+          errors.add(SyncError(
+              recordType: 'attachment', recordId: path,
+              message: 'push failed: $e'));
+        }
+      } else if (!localHas && remoteHas) {
+        try {
+          final bytes = await p.pullAttachment(path);
+          if (bytes != null) {
+            await vault.putBytes(path, bytes,
+                contentType: _contentTypeForPath(path));
+            pulled++;
+          }
+        } catch (e) {
+          errors.add(SyncError(
+              recordType: 'attachment', recordId: path,
+              message: 'pull failed: $e'));
+        }
+      }
+    }
+    return (pushed, pulled);
+  }
+
+  static String? _contentTypeForPath(String path) {
+    final ext = path.contains('.') ? path.split('.').last.toLowerCase() : '';
+    return switch (ext) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+      'heic' => 'image/heic',
+      'webp' => 'image/webp',
+      'pdf' => 'application/pdf',
+      'm4a' => 'audio/mp4',
+      _ => null,
+    };
+  }
+
   Future<SyncManifest> _buildManifest() async {
     final deviceId = await _meta.getOrCreateDeviceId();
     final allNotes = await _db.select(_db.notes).get();
@@ -715,6 +778,7 @@ final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
     provider: provider,
     db: db,
     meta: meta,
+    vaultStore: () => ref.read(vaultStoreProvider.future),
     settingsRepo: ref.watch(syncableSettingsRepositoryProvider),
     // After a pulled settings bundle is applied to prefs, bump the
     // bus so the per-feature settings notifiers reload from disk and

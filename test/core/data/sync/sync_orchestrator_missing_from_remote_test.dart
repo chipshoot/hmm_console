@@ -16,6 +16,7 @@ import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
+import 'onedrive_test_fakes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -38,7 +39,7 @@ void main() {
 
     provider = _FakeCloudSyncProvider();
     meta = SyncMetaRepository();
-    orchestrator = SyncOrchestrator(provider: provider, db: db, meta: meta);
+    orchestrator = SyncOrchestrator(provider: provider, db: db, meta: meta, vaultStore: noopVaultStore);
   });
 
   tearDown(() async {
@@ -204,7 +205,7 @@ void main() {
 
 /// Minimal CloudSyncProvider fake. Captures pushes into a map so the
 /// tests can assert on what would have hit the cloud.
-class _FakeCloudSyncProvider implements CloudSyncProvider {
+class _FakeCloudSyncProvider extends CloudSyncProvider {
   SyncManifest? remoteManifest;
   final Map<String, Map<String, dynamic>> pushedBodies = {};
   SyncManifest? lastPushedManifest;

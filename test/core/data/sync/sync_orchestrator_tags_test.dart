@@ -6,9 +6,10 @@ import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
+import 'onedrive_test_fakes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _FakeProvider implements CloudSyncProvider {
+class _FakeProvider extends CloudSyncProvider {
   _FakeProvider(this.tagsToReturn);
   final Map<String, dynamic>? tagsToReturn;
   Map<String, dynamic>? pushedTags;
@@ -72,7 +73,7 @@ void main() {
   tearDown(() => db.close());
 
   SyncOrchestrator orch(CloudSyncProvider p) => SyncOrchestrator(
-      provider: p, db: db, meta: SyncMetaRepository());
+      provider: p, db: db, meta: SyncMetaRepository(), vaultStore: noopVaultStore);
 
   test('remote tag is merged locally and merged doc is pushed', () async {
     final provider = _FakeProvider({
