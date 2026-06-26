@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../network/idp_token_service.dart';
@@ -56,6 +58,21 @@ class OneDriveSyncProvider implements CloudSyncProvider {
 
   @override
   Future<void> pushTags(Map<String, dynamic> doc) => _graph.putTags(doc);
+
+  // ---- Attachments (vault bytes) ----
+
+  @override
+  bool get supportsAttachments => true;
+
+  @override
+  Future<void> pushAttachment(String path, Uint8List bytes) =>
+      _graph.putAttachment(path, bytes);
+
+  @override
+  Future<Uint8List?> pullAttachment(String path) => _graph.getAttachment(path);
+
+  @override
+  Future<Set<String>> listAttachmentPaths() => _graph.listAttachments();
 
   /// One-time copy of pre-per-user-isolation data into the current user's
   /// subtree. Idempotent: a marker file at `approot/users/.legacy_migrated.json`

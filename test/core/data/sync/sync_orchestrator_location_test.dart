@@ -6,6 +6,7 @@ import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
+import 'onedrive_test_fakes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -23,7 +24,7 @@ void main() {
     await db.into(db.authors).insert(AuthorsCompanion.insert(accountName: 't'));
     provider = _FakeProvider();
     meta = SyncMetaRepository();
-    orchestrator = SyncOrchestrator(provider: provider, db: db, meta: meta);
+    orchestrator = SyncOrchestrator(provider: provider, db: db, meta: meta, vaultStore: noopVaultStore);
   });
 
   tearDown(() async => db.close());
@@ -103,7 +104,7 @@ void main() {
   });
 }
 
-class _FakeProvider implements CloudSyncProvider {
+class _FakeProvider extends CloudSyncProvider {
   SyncManifest? remoteManifest;
   final Map<String, Map<String, dynamic>> pushed = {};
   final Map<String, Map<String, dynamic>> remoteBodies = {};

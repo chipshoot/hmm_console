@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -213,10 +215,83 @@ class OneDriveGraphClient {
     _throwIfBad(resp);
   }
 
-  // Attachment-byte uploads / downloads were removed in Phase 11.5.
-  // cloudStorage replicates bytes via the OS-level OneDrive client
-  // (the vault root lives inside the user's OneDrive folder); we no
-  // longer need Graph API endpoints for individual attachment files.
+  // ---- Attachments (vault bytes) ----
+  //
+  // Re-introduced for cloudStorage byte sync: the orchestrator's
+  // _reconcileVault pushes/pulls individual vault files here so media
+  // replicates across devices via Graph (works on iOS, unlike the
+  // OS-folder-sync assumption Phase 11.5 made). Paths are immutable
+  // (UUID in the name), so a PUT is always an idempotent overwrite.
+
+  Future<void> putAttachment(String relativePath, Uint8List bytes) async {
+    final path = await _userPath('vault/$relativePath', action: 'content');
+    // Stream the bytes as a raw octet-stream body. This is the canonical Dio
+    // way to upload binary: passing a Uint8List as `data` would be
+    // JSON-encoded by the default transformer (corrupting the bytes), so we
+    // send a single-chunk stream with an explicit content length. (Not
+    // unit-testable via http_mock_adapter, which can't route a streamed
+    // request body — byte fidelity is covered by the two-device round-trip.)
+    final resp = await _dio.put(
+      path,
+      data: Stream.fromIterable([bytes]),
+      options: Options(
+        contentType: 'application/octet-stream',
+        headers: {Headers.contentLengthHeader: bytes.length},
+      ),
+    );
+    _throwIfBad(resp);
+  }
+
+  Future<Uint8List?> getAttachment(String relativePath) async {
+    final path = await _userPath('vault/$relativePath', action: 'content');
+    final resp = await _dio.get<List<int>>(
+      path,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    if (resp.statusCode == 404) return null;
+    _throwIfBad(resp);
+    return resp.data == null ? null : Uint8List.fromList(resp.data!);
+  }
+
+  /// Vault-relative file paths currently present under the remote `vault/`
+  /// subtree. Recurses folders; follows @odata.nextLink paging. Returns empty
+  /// when the vault folder doesn't exist yet (first sync).
+  Future<Set<String>> listAttachments() async {
+    final out = <String>{};
+    await _listInto(out, 'vault', '');
+    return out;
+  }
+
+  Future<void> _listInto(
+      Set<String> out, String graphRel, String vaultRel) async {
+    var url = await _userPath(graphRel, action: 'children');
+    while (true) {
+      final resp = await _dio.get<Map<String, dynamic>>(url);
+      if (resp.statusCode == 404) return; // folder absent → nothing here
+      _throwIfBad(resp);
+      final value = (resp.data?['value'] as List?) ?? const [];
+      for (final raw in value) {
+        final item = raw as Map<String, dynamic>;
+        final name = item['name'] as String;
+        final childVaultRel = vaultRel.isEmpty ? name : '$vaultRel/$name';
+        if (item['folder'] != null) {
+          await _listInto(out, '$graphRel/$name', childVaultRel);
+        } else {
+          out.add(childVaultRel);
+        }
+      }
+      final next = resp.data?['@odata.nextLink'] as String?;
+      if (next == null) break;
+      url = next; // absolute follow-up URL from Graph
+    }
+  }
+
+  Future<void> deleteAttachment(String relativePath) async {
+    final path = await _userPath('vault/$relativePath');
+    final resp = await _dio.delete<void>(path);
+    if (resp.statusCode == 404) return; // already gone
+    _throwIfBad(resp);
+  }
 
   // ---- Legacy (pre per-user) data access for one-time migration ----
   //
