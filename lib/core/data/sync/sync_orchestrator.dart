@@ -263,7 +263,14 @@ class SyncOrchestrator {
       completedAt: completedAt,
       errors: errors,
     );
-    if (result.success) {
+    // Advance the note cursor when the *metadata* sync was clean. Attachment
+    // byte transfer is best-effort and explicitly non-fatal: a transient
+    // per-file Graph error must NOT hold the cursor back (which would
+    // re-collect and re-push every changed note next sync). Such errors still
+    // surface in result.errors; the missing bytes are retried next sync.
+    final metadataClean =
+        errors.every((e) => e.recordType == 'attachment');
+    if (metadataClean) {
       await _meta.setLastPushedAt(p.providerId, completedAt);
     }
     return result;
@@ -699,6 +706,8 @@ class SyncOrchestrator {
       } else if (!localHas && remoteHas) {
         try {
           final bytes = await p.pullAttachment(path);
+          // null = listed-but-gone (deleted between list and get, or a
+          // transient null). Leave the byte missing; the next sync retries.
           if (bytes != null) {
             await vault.putBytes(path, bytes,
                 contentType: _contentTypeForPath(path));
@@ -723,7 +732,9 @@ class SyncOrchestrator {
       'webp' => 'image/webp',
       'pdf' => 'application/pdf',
       'm4a' => 'audio/mp4',
-      _ => null,
+      // Unknown extension: store a generic binary type rather than null so a
+      // future API vault store has a sensible content type to forward.
+      _ => 'application/octet-stream',
     };
   }
 

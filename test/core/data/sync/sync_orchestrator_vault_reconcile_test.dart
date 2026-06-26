@@ -71,6 +71,7 @@ void main() {
   late HmmDatabase db;
   late _MemVault vault;
   late _MemProvider provider;
+  late SyncMetaRepository meta;
   late SyncOrchestrator orchestrator;
 
   setUp(() async {
@@ -79,10 +80,11 @@ void main() {
     await db.into(db.authors).insert(AuthorsCompanion.insert(accountName: 't'));
     vault = _MemVault();
     provider = _MemProvider();
+    meta = SyncMetaRepository();
     orchestrator = SyncOrchestrator(
       provider: provider,
       db: db,
-      meta: SyncMetaRepository(),
+      meta: meta,
       vaultStore: () async => vault,
     );
   });
@@ -126,6 +128,17 @@ void main() {
     final r = await orchestrator.syncNow();
     expect(r.errors.where((e) => e.recordType == 'attachment'), isNotEmpty);
     expect(provider.remote, isEmpty);
+  });
+
+  test('an attachment failure does NOT block the note cursor', () async {
+    await seedNote('attachments/note-1/a.m4a');
+    vault.files['attachments/note-1/a.m4a'] = Uint8List.fromList([1]);
+    provider.throwOnPush = true;
+
+    await orchestrator.syncNow();
+    // Metadata sync was clean, so the cursor advances despite the
+    // attachment push failure — otherwise every note re-syncs next time.
+    expect(await meta.getLastPushedAt('fake'), isNotNull);
   });
 
   test('idempotent: a second sync pushes/pulls nothing new', () async {
