@@ -191,14 +191,26 @@ class _ServiceRecordFormScreenState
     return null;
   }
 
-  List<PartItem> get _keptItems =>
-      _items.where((p) => p.name.trim().isNotEmpty).toList();
+  /// Keep any row the user put content into (a name OR a unit cost); only
+  /// fully-blank placeholder rows are dropped. A populated-but-unnamed row is
+  /// kept so `_submit` can flag it rather than silently discard it.
+  List<PartItem> get _keptItems => _items
+      .where((p) => p.name.trim().isNotEmpty || p.unitCost != null)
+      .toList();
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Service date is required')),
+      );
+      return;
+    }
+
+    final items = _keptItems;
+    if (items.any((p) => p.name.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Each line item needs a name')),
       );
       return;
     }
@@ -212,12 +224,14 @@ class _ServiceRecordFormScreenState
       description: _descriptionCtrl.text.trim().isEmpty
           ? null
           : _descriptionCtrl.text.trim(),
-      cost: _keptItems.isEmpty ? _existing?.cost : null,
+      cost: items.isEmpty ? _existing?.cost : null,
       currency: _currency,
       shopName:
           _shopCtrl.text.trim().isEmpty ? null : _shopCtrl.text.trim(),
-      parts: _keptItems,
-      tax: _tax,
+      parts: items,
+      // Tax is only meaningful alongside items; don't persist a standalone
+      // tax on an itemless (legacy-cost) record.
+      tax: items.isEmpty ? null : _tax,
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
     );
 

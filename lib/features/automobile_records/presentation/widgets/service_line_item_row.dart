@@ -23,6 +23,7 @@ class ServiceLineItemRow extends StatefulWidget {
 }
 
 class _ServiceLineItemRowState extends State<ServiceLineItemRow> {
+  late LineItemType _type = widget.item.type;
   late final TextEditingController _name =
       TextEditingController(text: widget.item.name);
   late final TextEditingController _qty =
@@ -38,11 +39,15 @@ class _ServiceLineItemRowState extends State<ServiceLineItemRow> {
     super.dispose();
   }
 
+  /// Build the emitted item directly from the live controllers + the current
+  /// type — NOT via copyWith (which can't null-out a cleared unit cost).
   void _emit() {
-    widget.onChanged(widget.item.copyWith(
+    widget.onChanged(PartItem(
+      type: _type,
       name: _name.text,
       quantity: int.tryParse(_qty.text) ?? 1,
       unitCost: _unit.text.trim().isEmpty ? null : double.tryParse(_unit.text),
+      currency: widget.item.currency,
     ));
   }
 
@@ -57,10 +62,12 @@ class _ServiceLineItemRowState extends State<ServiceLineItemRow> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           DropdownButton<LineItemType>(
-            value: widget.item.type,
-            onChanged: (v) => v == null
-                ? null
-                : widget.onChanged(widget.item.copyWith(type: v)),
+            value: _type,
+            onChanged: (v) {
+              if (v == null) return;
+              setState(() => _type = v);
+              _emit();
+            },
             items: [
               for (final t in LineItemType.values)
                 DropdownMenuItem(value: t, child: Text(t.displayName)),
