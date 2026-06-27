@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/automobile_records/data/repositories/service_record_repository.dart';
+import '../../../features/automobile_records/domain/entities/line_item_type.dart';
 import '../../../features/automobile_records/domain/entities/part_item.dart';
 import '../../../features/automobile_records/domain/entities/service_record.dart';
 import '../../../features/automobile_records/domain/entities/service_type.dart';
@@ -61,6 +62,7 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       currency: r.currency,
       shopName: r.shopName,
       parts: r.parts,
+      tax: r.tax,
       notes: r.notes,
       createdDate: DateTime.now(),
     );
@@ -86,6 +88,7 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       currency: r.currency,
       shopName: r.shopName,
       parts: r.parts,
+      tax: r.tax,
       notes: r.notes,
       createdDate: r.createdDate,
     );
@@ -117,9 +120,11 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       if (r.description != null) 'description': r.description,
       if (r.cost != null)
         'cost': {'amount': r.cost, 'currency': r.currency},
+      if (r.tax != null) 'tax': {'amount': r.tax, 'currency': r.currency},
       if (r.shopName != null) 'shopName': r.shopName,
       'parts': r.parts
           .map((p) => {
+                'type': p.type.wireName,
                 'name': p.name,
                 'quantity': p.quantity,
                 if (p.unitCost != null)
@@ -147,6 +152,7 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       if (body == null) return null;
 
       final cost = body['cost'] as Map<String, dynamic>?;
+      final tax = body['tax'] as Map<String, dynamic>?;
       final partsJson = body['parts'] as List<dynamic>? ?? const [];
 
       return ServiceRecord(
@@ -164,12 +170,14 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
           final m = p as Map<String, dynamic>;
           final unit = m['unitCost'] as Map<String, dynamic>?;
           return PartItem(
+            type: LineItemType.fromWire(m['type'] as String?),
             name: m['name'] as String? ?? '',
             quantity: m['quantity'] as int? ?? 1,
             unitCost: (unit?['amount'] as num?)?.toDouble(),
             currency: unit?['currency'] as String? ?? 'CAD',
           );
         }).toList(),
+        tax: (tax?['amount'] as num?)?.toDouble(),
         notes: body['notes'] as String?,
         createdDate: note.createDate,
       );
