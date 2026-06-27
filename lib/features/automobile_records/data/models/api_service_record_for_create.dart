@@ -7,6 +7,7 @@ class ApiServiceRecordForCreate {
     required this.type,
     this.description,
     this.cost,
+    this.tax,
     this.currency = 'CAD',
     this.shopName,
     this.parts = const [],
@@ -18,6 +19,7 @@ class ApiServiceRecordForCreate {
   final String type;
   final String? description;
   final double? cost;
+  final double? tax;
   final String currency;
   final String? shopName;
   final List<ApiPartItem> parts;
@@ -29,6 +31,7 @@ class ApiServiceRecordForCreate {
         'type': type,
         if (description != null) 'description': description,
         if (cost != null) 'cost': cost,
+        if (tax != null) 'tax': tax,
         'currency': currency,
         if (shopName != null) 'shopName': shopName,
         'parts': parts.map((p) => p.toJson()).toList(),

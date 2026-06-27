@@ -7,6 +7,7 @@ class ApiServiceRecordForUpdate {
     this.type,
     this.description,
     this.cost,
+    this.tax,
     this.currency,
     this.shopName,
     this.parts,
@@ -18,6 +19,7 @@ class ApiServiceRecordForUpdate {
   final String? type;
   final String? description;
   final double? cost;
+  final double? tax;
   final String? currency;
   final String? shopName;
   final List<ApiPartItem>? parts;
@@ -29,6 +31,7 @@ class ApiServiceRecordForUpdate {
         if (type != null) 'type': type,
         if (description != null) 'description': description,
         if (cost != null) 'cost': cost,
+        if (tax != null) 'tax': tax,
         if (currency != null) 'currency': currency,
         if (shopName != null) 'shopName': shopName,
         if (parts != null) 'parts': parts!.map((p) => p.toJson()).toList(),

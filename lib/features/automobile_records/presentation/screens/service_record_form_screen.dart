@@ -8,11 +8,13 @@ import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../domain/entities/part_item.dart';
 import '../../domain/entities/service_record.dart';
 import '../../domain/entities/service_type.dart';
 import '../../states/_records_automobile_id_provider.dart';
 import '../../states/mutate_service_record_state.dart';
 import '../widgets/optional_date_picker.dart';
+import '../widgets/service_line_items_editor.dart';
 import '../widgets/service_type_dropdown.dart';
 
 class ServiceRecordFormScreen extends ConsumerStatefulWidget {
@@ -37,12 +39,13 @@ class _ServiceRecordFormScreenState
   final _formKey = GlobalKey<FormState>();
   final _mileageCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
-  final _costCtrl = TextEditingController();
   final _shopCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   ServiceType _type = ServiceType.oilChange;
   DateTime? _date;
-  String _currency = 'CAD';
+  final String _currency = 'CAD';
+  List<PartItem> _items = const [];
+  double? _tax;
 
   bool _loading = false;
   ServiceRecord? _existing;
@@ -67,12 +70,12 @@ class _ServiceRecordFormScreenState
       _existing = record;
       _mileageCtrl.text = record.mileage.toString();
       _descriptionCtrl.text = record.description ?? '';
-      _costCtrl.text = record.cost?.toStringAsFixed(2) ?? '';
       _shopCtrl.text = record.shopName ?? '';
       _notesCtrl.text = record.notes ?? '';
       _type = record.type;
       _date = record.date;
-      _currency = record.currency;
+      _items = [...record.parts];
+      _tax = record.tax;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -82,7 +85,6 @@ class _ServiceRecordFormScreenState
   void dispose() {
     _mileageCtrl.dispose();
     _descriptionCtrl.dispose();
-    _costCtrl.dispose();
     _shopCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
@@ -148,31 +150,13 @@ class _ServiceRecordFormScreenState
                       label: 'Description',
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: AppTextFormField(
-                            fieldController: _costCtrl,
-                            fieldValidator: (v) =>
-                                v == null || v.isEmpty ? null : _validateAmount(v),
-                            label: 'Cost (optional)',
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
-                            inputFormatters: [_decimalFormatter],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: AppTextFormField(
-                            fieldController:
-                                TextEditingController(text: _currency),
-                            fieldValidator: (_) => null,
-                            label: 'CCY',
-                          ),
-                        ),
-                      ],
+                    ServiceLineItemsEditor(
+                      initialItems: _items,
+                      initialTax: _tax,
+                      onChanged: (items, tax) {
+                        _items = items;
+                        _tax = tax;
+                      },
                     ),
                     const SizedBox(height: 16),
                     AppTextFormField(
@@ -207,21 +191,26 @@ class _ServiceRecordFormScreenState
     return null;
   }
 
-  String? _validateAmount(String? v) {
-    final n = double.tryParse(v ?? '');
-    if (n == null) return 'Invalid number';
-    if (n < 0) return 'Cannot be negative';
-    return null;
-  }
-
-  static final _decimalFormatter =
-      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'));
+  /// Keep any row the user put content into (a name OR a unit cost); only
+  /// fully-blank placeholder rows are dropped. A populated-but-unnamed row is
+  /// kept so `_submit` can flag it rather than silently discard it.
+  List<PartItem> get _keptItems => _items
+      .where((p) => p.name.trim().isNotEmpty || p.unitCost != null)
+      .toList();
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Service date is required')),
+      );
+      return;
+    }
+
+    final items = _keptItems;
+    if (items.any((p) => p.name.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Each line item needs a name')),
       );
       return;
     }
@@ -235,13 +224,14 @@ class _ServiceRecordFormScreenState
       description: _descriptionCtrl.text.trim().isEmpty
           ? null
           : _descriptionCtrl.text.trim(),
-      cost: _costCtrl.text.trim().isEmpty
-          ? null
-          : double.parse(_costCtrl.text),
+      cost: items.isEmpty ? _existing?.cost : null,
       currency: _currency,
       shopName:
           _shopCtrl.text.trim().isEmpty ? null : _shopCtrl.text.trim(),
-      parts: _existing?.parts ?? const [],
+      parts: items,
+      // Tax is only meaningful alongside items; don't persist a standalone
+      // tax on an itemless (legacy-cost) record.
+      tax: items.isEmpty ? null : _tax,
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
     );
 
