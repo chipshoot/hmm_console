@@ -102,9 +102,31 @@ The core deliverable. Keep the existing header fields (date, mileage, service ty
 
 Backend first (model + serializer + DTOs + validator), then client. The client `local`/`cloudStorage` work ships independently; `cloudApi` lights up once the backend fields land. All changes are additive with defaults, so old data and old clients interoperate.
 
-## Out of scope
+## Logged requirement — attach receipt documents (image / PDF) to a service record
 
+**Status:** Logged (added 2026-06-27) — not part of the line-items work above; its own phase when scheduled.
+
+**Requirement:** a user can attach one or more **images and/or PDFs** (e.g. a scanned/photographed service invoice) to a service record, view the image full-screen, and open the PDF in the OS viewer.
+
+**Why this is a small, well-grounded phase:** a service record is stored as an `HmmNote` (catalog `Hmm.AutomobileMan.ServiceRecord`, in the `Notes` table). Notes already carry the full attachment stack built in the note-media phases:
+- `NoteAttachments` (`primaryImage` + `images` + `files`) on the `Notes.attachments` JSON column, with codec, vault storage, and GC.
+- Image attach/view (Phase 1: `MediaToolbar`, `NoteMediaCardList`, fullscreen viewer) and PDF/file attach/open (Phase 3a: `FileByteSource`, `persistFileToVault`, `NoteFileCard`/`NoteFileCardList`, `open_filex`), with audio dispatch (3b).
+- OneDrive Graph **byte sync** so attachment bytes replicate across devices.
+
+So the service-record note can reuse all of it; the work is mostly **wiring the existing attachment widgets into the service-record form + detail**, not new infrastructure.
+
+**Sketch (for the future spec/plan):**
+- The local service-record repo already creates/updates an `HmmNote`; surface that note's `attachments` on the `ServiceRecord` domain entity (or fetch alongside) so the form can read/edit it. On the API side, the `ApiServiceRecord*` DTOs would carry the same `attachments` shape notes use (or the service-record endpoints expose the note's vault).
+- Form: add the Phase-1/3a media controls (a media toolbar with 📷/📄, pending-pick cards, attach-on-save) to `service_record_form_screen.dart`, mirroring how the note editor does it.
+- Detail/list: render `NoteMediaCardList` (images, tap → fullscreen) + `NoteFileCardList` (PDF, tap → open) for the record's attachments.
+- Sync/GC/back-compat come for free (same note-content + vault paths already synced and GC-reachable).
+
+**Open questions for that phase:** whether attachments live directly on the service-record note (simplest) vs. a child note; and whether the `cloudApi` service endpoints need to expose the vault refs (they will, once the cloudApi note path exists).
+
+## Out of scope (this line-items phase)
+
+- Attaching receipt documents (image/PDF) — **logged above** as its own follow-up phase.
 - Walk-around inspection checklist (PDF page 3) — a separate feature.
-- PDF/receipt import or OCR.
+- PDF/receipt import or OCR (auto-extracting line items from a scanned invoice).
 - Labour hours × rate (labour captured as a flat-amount line item).
 - A dedicated Drift table for service records (they remain note-content JSON, unchanged).
