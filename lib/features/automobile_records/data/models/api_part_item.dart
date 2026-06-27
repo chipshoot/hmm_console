@@ -1,11 +1,13 @@
 class ApiPartItem {
   const ApiPartItem({
     required this.name,
+    this.type = 'Part',
     this.quantity = 1,
     this.unitCost,
     this.currency,
   });
 
+  final String type;
   final String name;
   final int quantity;
   final double? unitCost;
@@ -13,6 +15,7 @@ class ApiPartItem {
 
   factory ApiPartItem.fromJson(Map<String, dynamic> json) {
     return ApiPartItem(
+      type: json['type'] as String? ?? 'Part',
       name: json['name'] as String? ?? '',
       quantity: json['quantity'] as int? ?? 1,
       unitCost: (json['unitCost'] as num?)?.toDouble(),
@@ -21,6 +24,7 @@ class ApiPartItem {
   }
 
   Map<String, dynamic> toJson() => {
+        'type': type,
         'name': name,
         'quantity': quantity,
         if (unitCost != null) 'unitCost': unitCost,

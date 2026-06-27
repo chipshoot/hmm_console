@@ -1,6 +1,7 @@
 import '../../domain/entities/auto_insurance_policy.dart';
 import '../../domain/entities/auto_scheduled_service.dart';
 import '../../domain/entities/coverage_item.dart';
+import '../../domain/entities/line_item_type.dart';
 import '../../domain/entities/part_item.dart';
 import '../../domain/entities/service_record.dart';
 import '../../domain/entities/service_type.dart';
@@ -95,6 +96,7 @@ class AutomobileRecordsApiMapper {
       type: ServiceType.fromWire(api.type),
       description: api.description,
       cost: api.cost,
+      tax: api.tax,
       currency: api.currency ?? 'CAD',
       shopName: api.shopName,
       parts: api.parts.map(_partFromApi).toList(),
@@ -110,6 +112,7 @@ class AutomobileRecordsApiMapper {
       type: r.type.wireValue,
       description: r.description,
       cost: r.cost,
+      tax: r.tax,
       currency: r.currency,
       shopName: r.shopName,
       parts: r.parts.map(_partToApi).toList(),
@@ -124,6 +127,7 @@ class AutomobileRecordsApiMapper {
       type: r.type.wireValue,
       description: r.description,
       cost: r.cost,
+      tax: r.tax,
       currency: r.currency,
       shopName: r.shopName,
       parts: r.parts.map(_partToApi).toList(),
@@ -132,6 +136,7 @@ class AutomobileRecordsApiMapper {
   }
 
   static PartItem _partFromApi(ApiPartItem p) => PartItem(
+        type: LineItemType.fromWire(p.type),
         name: p.name,
         quantity: p.quantity,
         unitCost: p.unitCost,
@@ -139,6 +144,7 @@ class AutomobileRecordsApiMapper {
       );
 
   static ApiPartItem _partToApi(PartItem p) => ApiPartItem(
+        type: p.type.wireName,
         name: p.name,
         quantity: p.quantity,
         unitCost: p.unitCost,

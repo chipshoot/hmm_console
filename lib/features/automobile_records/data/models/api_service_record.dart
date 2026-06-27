@@ -9,6 +9,7 @@ class ApiServiceRecord {
     this.type = 'Other',
     this.description,
     this.cost,
+    this.tax,
     this.currency,
     this.shopName,
     this.parts = const [],
@@ -23,6 +24,7 @@ class ApiServiceRecord {
   final String type;
   final String? description;
   final double? cost;
+  final double? tax;
   final String? currency;
   final String? shopName;
   final List<ApiPartItem> parts;
@@ -38,6 +40,7 @@ class ApiServiceRecord {
       type: json['type'] as String? ?? 'Other',
       description: json['description'] as String?,
       cost: (json['cost'] as num?)?.toDouble(),
+      tax: (json['tax'] as num?)?.toDouble(),
       currency: json['currency'] as String?,
       shopName: json['shopName'] as String?,
       parts: (json['parts'] as List<dynamic>?)
