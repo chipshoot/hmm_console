@@ -163,9 +163,11 @@ class _ServiceTile extends StatelessWidget {
             Text('${df.format(record.date)} • ${record.mileage} mi'),
             if (record.shopName != null && record.shopName!.isNotEmpty)
               Text(record.shopName!),
-            if (record.cost != null)
-              Text(
-                  '${record.currency} ${record.cost!.toStringAsFixed(2)}'),
+            Text('${record.currency} '
+                '${record.effectiveTotal.toStringAsFixed(2)}'),
+            if (record.parts.isNotEmpty)
+              Text('${record.parts.length} items',
+                  style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
         isThreeLine: true,
