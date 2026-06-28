@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../launcher/domain/launcher_prefs.dart';
 import 'gas_log_settings.dart';
 import 'sync_settings.dart';
 
@@ -33,10 +34,14 @@ class SyncableSettings {
     required this.syncSettings,
     required this.localeCode,
     required this.lastModified,
+    this.launcher = LauncherPrefs.empty,
   });
 
   final GasLogSettings gasLog;
   final SyncSettings syncSettings;
+
+  /// Launcher favorites + aliases. Synced with the rest of the bundle.
+  final LauncherPrefs launcher;
 
   /// User-selected UI locale code (e.g. 'en', 'zh'). Null = follow
   /// system. Stored as the raw language code rather than a `Locale`
@@ -59,6 +64,7 @@ class SyncableSettings {
           'networkPolicy': syncSettings.networkPolicy.name,
         },
         if (localeCode != null) 'localeCode': localeCode,
+        'launcher': launcher.toJson(),
         'lastModified': lastModified.toUtc().toIso8601String(),
         '_v': 1,
       };
@@ -80,6 +86,10 @@ class SyncableSettings {
         },
       ),
       localeCode: json['localeCode'] as String?,
+      launcher: () {
+        final l = json['launcher'] as Map<String, dynamic>?;
+        return l != null ? LauncherPrefs.fromJson(l) : LauncherPrefs.empty;
+      }(),
       lastModified: () {
         final raw = json['lastModified'] as String?;
         if (raw == null) return epochZero;
@@ -106,6 +116,7 @@ class SyncableSettings {
     SyncSettings? syncSettings,
     Object? localeCode = _sentinel,
     DateTime? lastModified,
+    LauncherPrefs? launcher,
   }) {
     return SyncableSettings(
       gasLog: gasLog ?? this.gasLog,
@@ -113,6 +124,7 @@ class SyncableSettings {
       localeCode:
           identical(localeCode, _sentinel) ? this.localeCode : localeCode as String?,
       lastModified: lastModified ?? this.lastModified,
+      launcher: launcher ?? this.launcher,
     );
   }
 }
