@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/navigation/route_names.dart';
 import 'launcher_destination.dart';
 
 /// Single source of truth for launcher destinations. Seeded from the

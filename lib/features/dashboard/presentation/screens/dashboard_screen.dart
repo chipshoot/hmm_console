@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/navigation/route_names.dart';
 import '../../../../core/network/idp_token_service.dart';
 import '../../../../domain/entities/app_function.dart';
 import '../../../auth/data/models/current_user.dart';
@@ -19,9 +20,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
-
   @override
   void initState() {
     super.initState();
@@ -84,24 +82,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       route: "calendar",
     ),
   ];
-
-  List<AppFunction> get _filteredFunctions {
-    if (_searchQuery.isEmpty) return _allFunctions;
-    final query = _searchQuery.toLowerCase();
-    return _allFunctions
-        .where(
-          (f) =>
-              f.title.toLowerCase().contains(query) ||
-              f.description.toLowerCase().contains(query),
-        )
-        .toList();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,72 +190,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildSearchBar(ColorScheme colorScheme) {
-    return TextField(
-      controller: _searchController,
-      onChanged: (value) => setState(() => _searchQuery = value),
-      onSubmitted: (value) {
-        final filtered = _filteredFunctions;
-        if (filtered.length == 1) {
-          _navigateToFunction(filtered.first);
-        }
-      },
-      decoration: InputDecoration(
-        hintText: 'Search functions...',
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: _searchQuery.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
-                },
-              )
-            : null,
-        filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(
-            color: colorScheme.outlineVariant,
+    // The home search bar is now the entry to the universal launcher.
+    // Tapping it opens the focused search route where a leading '/'
+    // triggers function search (plain text is reserved for the future
+    // AI assistant). Read-only here so the launcher owns the input.
+    return GestureDetector(
+      onTap: () => context.pushNamed(RouterNames.launcherSearch.name),
+      child: AbsorbPointer(
+        child: TextField(
+          enabled: false,
+          decoration: InputDecoration(
+            hintText: 'Type / for features · ask AI (soon)',
+            prefixIcon: const Icon(Icons.search),
+            filled: true,
+            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 14,
+            ),
           ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(
-            color: colorScheme.primary,
-            width: 2,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 14,
         ),
       ),
     );
   }
 
   Widget _buildShortcuts(ColorScheme colorScheme) {
-    final functions = _filteredFunctions;
-
-    if (functions.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 16),
-        child: Text(
-          'No matching functions',
-          style: TextStyle(color: colorScheme.onSurfaceVariant),
-        ),
-      );
-    }
-
     return Wrap(
       spacing: 24,
       runSpacing: 20,
       alignment: WrapAlignment.center,
-      children: functions.map((f) => _buildShortcutItem(f, colorScheme)).toList(),
+      children:
+          _allFunctions.map((f) => _buildShortcutItem(f, colorScheme)).toList(),
     );
   }
 

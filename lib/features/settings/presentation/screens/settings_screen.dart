@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
+
+import '../../../../core/navigation/route_names.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/data_mode.dart';
@@ -262,6 +265,16 @@ class SettingsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.apps),
+              title: const Text('Launcher'),
+              subtitle: const Text('Pin favorites and set search aliases'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.pushNamed(RouterNames.launcherManage.name),
+            ),
+            const Divider(),
+            GapWidgets.h8,
             DropdownButtonFormField<String?>(
               initialValue: selectedLocale?.languageCode,
               decoration: InputDecoration(
