@@ -10,11 +10,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Minimal router: launcher search at '/', a stub Notes target so a tap
 // has somewhere to land.
 GoRouter _router() => GoRouter(routes: [
-      GoRoute(path: '/', name: 'home', builder: (_, __) => const LauncherSearchScreen()),
+      GoRoute(path: '/', name: 'home', builder: (_, _) => const LauncherSearchScreen()),
       GoRoute(
           path: '/notes',
           name: 'notesList',
-          builder: (_, __) => const Scaffold(body: Text('NOTES SCREEN'))),
+          builder: (_, _) => const Scaffold(body: Text('NOTES SCREEN'))),
     ]);
 
 class _StubPrefs extends LauncherPrefsNotifier {
