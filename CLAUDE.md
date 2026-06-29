@@ -65,11 +65,12 @@ All features use Riverpod for DI/state. Data source depends on the active `DataM
 | `onboarding/` | First-run onboarding flow | — |
 | `notes/` | Personal note management | Drift / Hmm API (by mode) |
 | `gas_log/` | Fuel logs, stations, discounts | Drift / Hmm API (by mode) |
-| `automobile_records/` | Vehicles, insurance policies, scheduled services, service records | Drift / Hmm API (by mode) |
+| `automobile_records/` | Vehicles, insurance policies, scheduled services, service records (multi-line-item: typed labour/part/fee items + tax + computed totals) | Drift / Hmm API (by mode) |
 | `geocoding/` | Address lookup (backed by the API geocoding endpoint) | Hmm API |
 | `settings/` | App settings incl. data-mode selection | local prefs |
 | `message_management/` | Messages (placeholder) | local repository (mock) |
-| `dashboard/` | Composites the above | Mixed |
+| `launcher/` | Universal search launcher: home search box where a leading `/` triggers fuzzy "function search" over a destination registry (jump to any feature, with smart vehicle-context resolution); plain text is reserved for a future AI assistant (a stub in v1). Favorites + aliases are synced via `SyncableSettings`; recents are device-local. | local (registry + prefs) |
+| `dashboard/` | Composites the above; its search bar opens the `launcher` | Mixed |
 
 ### Shared code (`lib/core/`)
 
@@ -108,6 +109,37 @@ Each domain area defines an abstract repository interface (e.g. `IHmmNoteReposit
 ## Firebase
 
 Project ID: `home-made-message`. Firebase emulators configured in `firebase.json` (auth:9099, firestore:8082, storage:9199). Emulator usage is commented out in `main.dart`.
+
+## Target Platforms
+- iOS (primary) - iPhone and iPad
+- Android (secondary) - Phone only
+
+## Platform UI Rules
+
+### iOS
+- Use Cupertino widgets for: navigation, action sheets, date pickers, switches, alerts
+- NavigationBar style: CupertinoNavigationBar with large title
+- Bottom nav: CupertinoTabBar
+- Fonts: SF Pro via system font (no explicit font family needed on iOS)
+- Back gesture: swipe-from-left-edge must work (don't block hero transitions)
+- Safe area: always respect SafeArea, especially bottom (home indicator)
+
+### Android
+- Use Material 3 widgets
+- NavigationBar style: Material AppBar with MD3 styling
+- Bottom nav: NavigationBar (MD3, not BottomNavigationBar)
+- Fonts: system default (Roboto), no explicit override needed
+- FAB: use for primary actions on Android, avoid on iOS
+
+### Shared Rules
+- Never use a widget that looks wrong on either platform
+- Always use flutter_platform_widgets for: buttons, switches, dialogs, text fields
+- Platform check pattern: use `Theme.of(context).platform` or `dart:io Platform`
+
+## Key Packages
+- `flutter_platform_widgets`: use for ALL buttons, dialogs, switches, text fields, 
+  nav bars — never use raw CupertinoX or MaterialX widgets directly
+  - `flutter_slidable`: swipe actions on list items
 
 ## Backend API integration
 
