@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../launcher/domain/launcher_prefs.dart';
 import '../domain/gas_log_settings.dart';
 import '../domain/sync_settings.dart';
 import '../domain/syncable_settings.dart';
@@ -29,6 +30,7 @@ class SyncableSettingsRepository {
   static const _localeKey = 'app_locale';
   static const _networkPolicyKey = 'sync.network_policy';
   static const _lastModifiedKey = 'settings.last_modified';
+  static const _launcherKey = 'launcher_prefs';
 
   /// Reads the current local snapshot. Missing keys fall back to
   /// defaults — same behaviour as the per-feature notifiers' first-
@@ -65,11 +67,24 @@ class SyncableSettingsRepository {
           SyncableSettings.epochZero;
     }();
 
+    final launcherRaw = prefs.getString(_launcherKey);
+    LauncherPrefs launcher;
+    if (launcherRaw != null) {
+      try {
+        launcher = LauncherPrefs.fromJsonString(launcherRaw);
+      } catch (_) {
+        launcher = LauncherPrefs.empty;
+      }
+    } else {
+      launcher = LauncherPrefs.empty;
+    }
+
     return SyncableSettings(
       gasLog: gasLog,
       syncSettings: syncSettings,
       localeCode: (localeCode == null || localeCode.isEmpty) ? null : localeCode,
       lastModified: lastModified,
+      launcher: launcher,
     );
   }
 
@@ -92,6 +107,7 @@ class SyncableSettingsRepository {
     } else {
       await prefs.setString(_localeKey, settings.localeCode!);
     }
+    await prefs.setString(_launcherKey, settings.launcher.toJsonString());
     await prefs.setString(
       _lastModifiedKey,
       settings.lastModified.toUtc().toIso8601String(),

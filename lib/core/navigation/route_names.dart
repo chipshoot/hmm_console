@@ -29,4 +29,6 @@ enum RouterNames {
   vehicleNotes,
   subsystems,
   subsystemNotes,
+  launcherSearch,
+  launcherManage,
 }

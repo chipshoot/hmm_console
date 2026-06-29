@@ -26,6 +26,8 @@ import 'package:hmm_console/features/notes/presentation/screens/notes_shell_scre
 import 'package:hmm_console/features/notes/presentation/screens/raw_content_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/subsystems_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_screen.dart';
+import 'package:hmm_console/features/launcher/presentation/launcher_search_screen.dart';
+import 'package:hmm_console/features/launcher/presentation/launcher_manage_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
 
 final routerConfig = Provider<GoRouter>(
@@ -225,6 +227,16 @@ final routerConfig = Provider<GoRouter>(
         path: '/settings',
         name: RouterNames.settings.name,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/launcher',
+        name: RouterNames.launcherSearch.name,
+        builder: (context, state) => const LauncherSearchScreen(),
+      ),
+      GoRoute(
+        path: '/launcher/manage',
+        name: RouterNames.launcherManage.name,
+        builder: (context, state) => const LauncherManageScreen(),
       ),
       GoRoute(
         path: '/gas-logs',
