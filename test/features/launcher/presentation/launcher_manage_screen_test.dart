@@ -79,4 +79,29 @@ void main() {
     await t.pumpAndSettle();
     expect(c.read(launcherPrefsProvider).favorites, ['notes', 'settings', 'gasLog']);
   });
+
+  testWidgets('reorder preserves unknown (unresolvable) favorite ids', (t) async {
+    _tallViewport(t);
+    SharedPreferences.setMockInitialValues({});
+    // 'futureThing' is an id this app version does not know (e.g. synced
+    // from a newer client) — it is NOT shown in the reorder list, so the
+    // displayed indices differ from the raw favorites indices.
+    final c = ProviderContainer(overrides: [
+      launcherPrefsProvider.overrideWith(() => _StubPrefsWith(const LauncherPrefs(
+          favorites: ['gasLog', 'futureThing', 'notes', 'settings']))),
+    ]);
+    await t.pumpWidget(UncontrolledProviderScope(
+      container: c,
+      child: const MaterialApp(home: LauncherManageScreen()),
+    ));
+    await t.pumpAndSettle();
+    // Displayed list = [gasLog, notes, settings] (futureThing filtered out).
+    final reorderable =
+        t.widget<ReorderableListView>(find.byKey(const Key('pinned-reorder')));
+    reorderable.onReorder(0, 3); // move displayed 'gasLog' to the end
+    await t.pumpAndSettle();
+    // Known ids reorder correctly; the unknown id is preserved, not corrupted.
+    expect(c.read(launcherPrefsProvider).favorites,
+        ['notes', 'settings', 'gasLog', 'futureThing']);
+  });
 }

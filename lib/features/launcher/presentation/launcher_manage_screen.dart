@@ -25,14 +25,27 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
     super.dispose();
   }
 
-  /// ReorderableListView reports a `newIndex` that is one past the
-  /// removed slot when dragging downward; normalize before moving.
-  Future<void> _reorderFavorites(List<String> favorites, int oldIndex, int newIndex) async {
-    final next = [...favorites];
+  /// Reorders the pinned favorites. `oldIndex`/`newIndex` come from the
+  /// *displayed* list, which only contains favorites whose id resolves
+  /// to a known destination. We therefore reorder within that resolved
+  /// subset and re-append any unknown ids (e.g. a destination synced
+  /// from a newer client) so they are preserved rather than corrupted
+  /// by the index mismatch. ReorderableListView reports a `newIndex`
+  /// one past the removed slot when dragging downward.
+  Future<void> _reorderFavorites(int oldIndex, int newIndex) async {
+    final favorites = ref.read(launcherPrefsProvider).favorites;
+    final known = favorites
+        .where((id) => launcherDestinationsById.containsKey(id))
+        .toList();
+    final unknown = favorites
+        .where((id) => !launcherDestinationsById.containsKey(id))
+        .toList();
     if (newIndex > oldIndex) newIndex -= 1;
-    final moved = next.removeAt(oldIndex);
-    next.insert(newIndex, moved);
-    await ref.read(launcherPrefsProvider.notifier).setFavorites(next);
+    final moved = known.removeAt(oldIndex);
+    known.insert(newIndex, moved);
+    await ref
+        .read(launcherPrefsProvider.notifier)
+        .setFavorites([...known, ...unknown]);
   }
 
   Future<void> _addAlias() async {
@@ -79,7 +92,7 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
               key: const Key('pinned-reorder'),
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              onReorder: (o, n) => _reorderFavorites(prefs.favorites, o, n),
+              onReorder: (o, n) => _reorderFavorites(o, n),
               children: [
                 for (final d in pinned)
                   ListTile(

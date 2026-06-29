@@ -12,6 +12,12 @@ const _prefsKey = 'launcher_prefs';
 /// the settings stamp on every mutation so the change syncs. Watches
 /// the settings bus so a remote pull refreshes the in-memory state.
 class LauncherPrefsNotifier extends Notifier<LauncherPrefs> {
+  /// Set once the user mutates state, so the async initial load can't
+  /// clobber an early write that landed before the load resolved.
+  /// Per-build-instance: a remote pull rebuilds the notifier (resetting
+  /// this), so a newer synced bundle still refreshes correctly.
+  bool _dirty = false;
+
   @override
   LauncherPrefs build() {
     ref.watch(settingsBusProvider);
@@ -22,14 +28,21 @@ class LauncherPrefsNotifier extends Notifier<LauncherPrefs> {
 
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    if (!ref.mounted) return;
+    if (!ref.mounted || _dirty) return;
     final json = prefs.getString(_prefsKey);
     if (json != null) {
-      state = LauncherPrefs.fromJsonString(json);
+      try {
+        state = LauncherPrefs.fromJsonString(json);
+      } catch (_) {
+        // Corrupt stored value — keep the empty default rather than
+        // throwing in an unawaited async path (matches the repo's
+        // tolerant read).
+      }
     }
   }
 
   Future<void> _persist() async {
+    _dirty = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, state.toJsonString());
     await ref.read(syncableSettingsRepositoryProvider).bumpLastModified();

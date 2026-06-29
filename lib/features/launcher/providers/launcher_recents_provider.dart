@@ -10,6 +10,9 @@ const _cap = 8;
 /// [_cap]. Device-local (NOT synced) — recents are personal to the
 /// device, like a phone's app-switcher.
 class LauncherRecentsNotifier extends Notifier<List<String>> {
+  /// Guards against the async initial load clobbering an early record().
+  bool _dirty = false;
+
   @override
   List<String> build() {
     _load();
@@ -18,15 +21,19 @@ class LauncherRecentsNotifier extends Notifier<List<String>> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    if (!ref.mounted) return;
+    if (!ref.mounted || _dirty) return;
     final raw = prefs.getString(_recentsKey);
     if (raw != null) {
-      final list = (jsonDecode(raw) as List).whereType<String>().toList();
-      state = list;
+      try {
+        state = (jsonDecode(raw) as List).whereType<String>().toList();
+      } catch (_) {
+        // Corrupt stored value — keep the empty default.
+      }
     }
   }
 
   Future<void> record(String id) async {
+    _dirty = true;
     final next = [id, ...state.where((x) => x != id)].take(_cap).toList();
     state = next;
     final prefs = await SharedPreferences.getInstance();
