@@ -168,6 +168,17 @@ class _ServiceTile extends StatelessWidget {
             if (record.parts.isNotEmpty)
               Text('${record.parts.length} items',
                   style: Theme.of(context).textTheme.bodySmall),
+            if (record.attachments.isNotEmpty)
+              Row(
+                children: [
+                  const Icon(Icons.attach_file, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${record.attachments.images.length + record.attachments.files.length}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
           ],
         ),
         isThreeLine: true,
