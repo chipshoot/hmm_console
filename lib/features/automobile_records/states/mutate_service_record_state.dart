@@ -58,9 +58,15 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
           isEdit ? record : await repo.createRecord(autoId, record);
       final noteId = saved.id;
 
-      // 2. Persist pending picks + delete removed bytes (skip in cloudApi).
+      // 2. Persist pending picks + delete removed bytes. Only touch the
+      //    vault/picker when there is actual attachment work — a plain
+      //    record save must never initialise the vault (that init can fail
+      //    or stall and would otherwise report the whole save as failed even
+      //    though the record was written). Skipped entirely in cloudApi.
       final newRefs = <VaultRef>[];
-      if (ref.read(dataModeProvider) != DataMode.cloudApi) {
+      final isCloudApi = ref.read(dataModeProvider) == DataMode.cloudApi;
+      final hasPicks = pendingImages.isNotEmpty || pendingFiles.isNotEmpty;
+      if (!isCloudApi && hasPicks) {
         final picker = await ref.read(imageAttachmentPickerProvider.future);
         for (final img in pendingImages) {
           newRefs.add(await picker.persistToVault(
@@ -78,11 +84,11 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
             contentType: f.contentType ?? 'application/pdf',
           ));
         }
-        if (removed.isNotEmpty) {
-          final store = await ref.read(vaultStoreProvider.future);
-          for (final r in removed) {
-            await store.delete(r.path);
-          }
+      }
+      if (!isCloudApi && removed.isNotEmpty) {
+        final store = await ref.read(vaultStoreProvider.future);
+        for (final r in removed) {
+          await store.delete(r.path);
         }
       }
 

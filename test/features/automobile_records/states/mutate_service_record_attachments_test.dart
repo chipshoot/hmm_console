@@ -186,6 +186,28 @@ void main() {
     expect(vault.deleted, contains(ref.path));
   });
 
+  test('a plain record with no attachments saves even if the vault fails to '
+      'initialise (no attachment work must not touch the vault)', () async {
+    final c = ProviderContainer(overrides: [
+      serviceRecordRepositoryModeProvider.overrideWithValue(serviceRepo),
+      vaultStoreProvider.overrideWith((ref) async => throw StateError('boom')),
+      imageAttachmentPickerProvider
+          .overrideWith((ref) async => throw StateError('boom')),
+      dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
+    ]);
+    addTearDown(c.dispose);
+
+    await c.read(mutateServiceRecordStateProvider.notifier).save(
+          autoId: autoId,
+          record: newRecord(),
+          isEdit: false,
+        );
+
+    final records = await serviceRepo.getRecords(autoId);
+    expect(records, hasLength(1));
+    expect(c.read(mutateServiceRecordStateProvider).hasError, isFalse);
+  });
+
   test('cloudApi mode skips vault work', () async {
     final c = await container(mode: DataMode.cloudApi);
     await c.read(mutateServiceRecordStateProvider.notifier).save(
