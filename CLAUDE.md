@@ -65,7 +65,8 @@ All features use Riverpod for DI/state. Data source depends on the active `DataM
 | `onboarding/` | First-run onboarding flow | — |
 | `notes/` | Personal note management | Drift / Hmm API (by mode) |
 | `gas_log/` | Fuel logs, stations, discounts | Drift / Hmm API (by mode) |
-| `automobile_records/` | Vehicles, insurance policies, scheduled services, service records (multi-line-item: typed labour/part/fee items + tax + computed totals) | Drift / Hmm API (by mode) |
+| `automobile_records/` | Vehicles, insurance policies, scheduled services, service records (multi-line-item: typed labour/part/fee items + tax + computed totals; **image/PDF attachments** on service records via a read-through projection of the owning note's `attachments` column — `local`/`cloudStorage` only; optional **receipt scan** auto-fill — see `receipt_scan/`) | Drift / Hmm API (by mode) |
+| `receipt_scan/` | Scan a receipt (photo/PDF) on the service-record form to pre-fill fields for review. A `ReceiptExtractor` interface with two user-selectable impls (mirrors the `DataMode` pattern): **on-device OCR** (`google_mlkit_text_recognition`, offline/private, scalar fields only, images only) and **cloud AI** (backend → Claude vision — Phase B, not yet built; currently stubbed to on-device, PDF option disabled). Pure `applyDraft` merge fills only empty scalars and appends line items; extractor choice + one-time Cloud-AI consent live in Settings. Spec/plan: `docs/superpowers/specs/2026-07-01-receipt-scan-autofill-design.md`, `docs/superpowers/plans/2026-07-01-receipt-scan-autofill.md`. | local (on-device) / Hmm API (Phase B) |
 | `geocoding/` | Address lookup (backed by the API geocoding endpoint) | Hmm API |
 | `settings/` | App settings incl. data-mode selection | local prefs |
 | `message_management/` | Messages (placeholder) | local repository (mock) |
@@ -140,6 +141,7 @@ Project ID: `home-made-message`. Firebase emulators configured in `firebase.json
 - `flutter_platform_widgets`: use for ALL buttons, dialogs, switches, text fields, 
   nav bars — never use raw CupertinoX or MaterialX widgets directly
   - `flutter_slidable`: swipe actions on list items
+- `image_picker` / `file_picker` / `open_filex`: attachment capture (photos / PDFs) and OS-viewer hand-off; `google_mlkit_text_recognition`: on-device receipt OCR (`receipt_scan/`)
 
 ## Backend API integration
 
