@@ -16,6 +16,7 @@ import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/onedrive_config.dart';
 import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/i18n/locale_provider.dart';
+import '../../../receipt_scan/presentation/receipt_extraction_settings_section.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../widgets/sync_status_card.dart';
 import '../../../../l10n/gen/app_localizations.dart';
@@ -320,6 +321,10 @@ class SettingsScreen extends ConsumerWidget {
               );
             }),
             GapWidgets.h8,
+            const Divider(),
+            GapWidgets.h24,
+            const ReceiptExtractionSettingsSection(),
+            GapWidgets.h24,
             const Divider(),
             GapWidgets.h24,
             Text(
