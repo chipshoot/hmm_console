@@ -12,6 +12,10 @@ import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
 import '../../../../core/data/attachments/widgets/attachments_section.dart';
 import '../../../../core/data/data_mode.dart';
+import '../../../receipt_scan/domain/apply_draft.dart';
+import '../../../receipt_scan/domain/receipt_draft.dart';
+import '../../../receipt_scan/presentation/scan_receipt_flow.dart';
+import '../../../receipt_scan/providers/receipt_extractor_providers.dart';
 import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
@@ -63,6 +67,11 @@ class _ServiceRecordFormScreenState
   final List<PickedFileBytes> _pendingFiles = [];
   List<VaultRef> _savedRefs = []; // retained from the loaded record
   final List<VaultRef> _removedRefs = [];
+
+  bool _scanning = false;
+  // Bumped when a scan re-seeds the line items so the editor rebuilds with the
+  // merged list (it captures initialItems once).
+  int _itemsSeed = 0;
 
   @override
   void initState() {
@@ -141,6 +150,12 @@ class _ServiceRecordFormScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    _ScanReceiptCard(
+                      mode: ref.watch(receiptExtractorModeProvider),
+                      scanning: _scanning,
+                      onTap: _scanning ? null : _showScanSheet,
+                    ),
+                    const SizedBox(height: 16),
                     OptionalDatePicker(
                       label: 'Service date',
                       date: _date,
@@ -169,6 +184,7 @@ class _ServiceRecordFormScreenState
                     ),
                     const SizedBox(height: 16),
                     ServiceLineItemsEditor(
+                      key: ValueKey(_itemsSeed),
                       initialItems: _items,
                       initialTax: _tax,
                       onChanged: (items, tax) {
@@ -275,6 +291,108 @@ class _ServiceRecordFormScreenState
     }
   }
 
+  ScanFormValues _currentValues() => ScanFormValues(
+        shopName: _shopCtrl.text.trim().isEmpty ? null : _shopCtrl.text.trim(),
+        date: _date,
+        mileage: int.tryParse(_mileageCtrl.text),
+        type: _type,
+        tax: _tax,
+        currency: _currency,
+        items: _items,
+      );
+
+  Future<void> _showScanSheet() async {
+    final source = await showModalBottomSheet<_ScanSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(ctx, _ScanSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose a photo'),
+              onTap: () => Navigator.pop(ctx, _ScanSource.photo),
+            ),
+            // Phase A ships on-device OCR only (can't read PDFs), and the
+            // cloudAi mode is still stubbed to on-device — so no active
+            // extractor can process a PDF yet. Disabled until Phase B
+            // (ApiLlmExtractor) lands.
+            const ListTile(
+              enabled: false,
+              leading: Icon(Icons.picture_as_pdf_outlined),
+              title: Text('Choose a PDF'),
+              subtitle: Text('Available with Cloud AI (coming soon)'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source != null) await _scanReceipt(source);
+  }
+
+  Future<void> _scanReceipt(_ScanSource source) async {
+    final Uint8List bytes;
+    final String contentType;
+    if (source == _ScanSource.pdf) {
+      final pick = await ref.read(fileByteSourceProvider).pickPdf();
+      if (pick == null || !mounted) return;
+      setState(() => _pendingFiles.add(pick));
+      bytes = pick.bytes;
+      contentType = pick.contentType ?? 'application/pdf';
+    } else {
+      final pick = await ref.read(imageByteSourceProvider).pick(
+            source == _ScanSource.camera
+                ? AttachmentPickSource.camera
+                : AttachmentPickSource.gallery,
+          );
+      if (pick == null || !mounted) return;
+      setState(() => _pendingImages.add(pick));
+      bytes = pick.bytes;
+      contentType = pick.contentType ?? 'image/jpeg';
+    }
+
+    setState(() => _scanning = true);
+    final result = await scanReceipt(
+      extractor: ref.read(receiptExtractorProvider),
+      input: ReceiptInput(bytes: bytes, contentType: contentType),
+      current: _currentValues(),
+    );
+    if (!mounted) return;
+    setState(() => _scanning = false);
+
+    switch (result) {
+      case ScanSuccess(:final applied):
+        setState(() {
+          final v = applied.values;
+          if (v.shopName != null) _shopCtrl.text = v.shopName!;
+          if (v.date != null) _date = v.date;
+          if (v.mileage != null) _mileageCtrl.text = v.mileage!.toString();
+          if (v.type != null) _type = v.type!;
+          _tax = v.tax;
+          _items = v.items;
+          _itemsSeed++;
+        });
+        final mismatch = applied.totalsMismatch
+            ? " Note: the receipt total doesn't match the itemized total."
+            : '';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            'Filled ${applied.filledScalarCount} fields and '
+            '${applied.appendedItemCount} line items — review before saving.'
+            '$mismatch',
+          ),
+        ));
+      case ScanFailure(:final message):
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_date == null) {
@@ -331,4 +449,44 @@ class _NullResolver implements IAttachmentResolver {
   const _NullResolver();
   @override
   Future<Uint8List?> resolve(AttachmentRef ref) async => null;
+}
+
+enum _ScanSource { camera, photo, pdf }
+
+/// Prominent "scan a receipt to auto-fill" affordance at the top of the form.
+class _ScanReceiptCard extends StatelessWidget {
+  const _ScanReceiptCard({
+    required this.mode,
+    required this.scanning,
+    required this.onTap,
+  });
+
+  final ReceiptExtractorMode mode;
+  final bool scanning;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cloud = mode == ReceiptExtractorMode.cloudAi;
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.document_scanner_outlined),
+        title: const Text('Scan a receipt'),
+        subtitle: Text(
+          scanning
+              ? 'Reading receipt…'
+              : 'Auto-fill from a photo${cloud ? ' or PDF' : ''} · '
+                  '${cloud ? 'Cloud AI' : 'On-device'}',
+        ),
+        trailing: scanning
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
+  }
 }
