@@ -1,3 +1,4 @@
+import '../../../../core/data/attachments/attachment_ref.dart';
 import 'line_item_type.dart';
 import 'part_item.dart';
 import 'service_type.dart';
@@ -6,7 +7,7 @@ import 'service_type.dart';
 /// service event. Mirrors the backend `ServiceRecord` note served from
 /// `/v1/automobiles/{autoId}/services`.
 class ServiceRecord {
-  const ServiceRecord({
+  ServiceRecord({
     required this.id,
     required this.automobileId,
     required this.date,
@@ -20,7 +21,8 @@ class ServiceRecord {
     this.tax,
     this.notes,
     this.createdDate,
-  });
+    NoteAttachments? attachments,
+  }) : attachments = attachments ?? NoteAttachments.empty;
 
   final int id;
   final int automobileId;
@@ -36,6 +38,10 @@ class ServiceRecord {
   final String? notes;
   final DateTime? createdDate;
 
+  /// Read-through projection of the owning note's attachments column
+  /// (images + PDF files). Empty when the record has none.
+  final NoteAttachments attachments;
+
   double _totalFor(LineItemType t) =>
       parts.where((p) => p.type == t).fold(0.0, (s, p) => s + p.lineTotal);
 
@@ -48,4 +54,38 @@ class ServiceRecord {
   /// Total to show: the computed grand total when itemized, else the legacy
   /// flat cost (0 when neither exists).
   double get effectiveTotal => parts.isNotEmpty ? grandTotal : (cost ?? 0);
+
+  ServiceRecord copyWith({
+    int? id,
+    int? automobileId,
+    DateTime? date,
+    int? mileage,
+    ServiceType? type,
+    String? description,
+    double? cost,
+    String? currency,
+    String? shopName,
+    List<PartItem>? parts,
+    double? tax,
+    String? notes,
+    DateTime? createdDate,
+    NoteAttachments? attachments,
+  }) {
+    return ServiceRecord(
+      id: id ?? this.id,
+      automobileId: automobileId ?? this.automobileId,
+      date: date ?? this.date,
+      mileage: mileage ?? this.mileage,
+      type: type ?? this.type,
+      description: description ?? this.description,
+      cost: cost ?? this.cost,
+      currency: currency ?? this.currency,
+      shopName: shopName ?? this.shopName,
+      parts: parts ?? this.parts,
+      tax: tax ?? this.tax,
+      notes: notes ?? this.notes,
+      createdDate: createdDate ?? this.createdDate,
+      attachments: attachments ?? this.attachments,
+    );
+  }
 }

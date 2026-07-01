@@ -8,6 +8,7 @@ import '../../../features/automobile_records/domain/entities/part_item.dart';
 import '../../../features/automobile_records/domain/entities/service_record.dart';
 import '../../../features/automobile_records/domain/entities/service_type.dart';
 import '../../../features/notes/data/models/hmm_note.dart';
+import '../attachments/attachment_ref.dart';
 import '../hmm_note_input.dart';
 import 'local_hmm_note_repository.dart';
 import 'local_note_catalog_repository.dart';
@@ -65,12 +66,16 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       tax: r.tax,
       notes: r.notes,
       createdDate: DateTime.now(),
+      attachments: r.attachments,
     );
     final note = await _noteRepo.createNote(HmmNoteCreate(
       subject: _subjectFor(stamped),
       content: _serialize(stamped),
       catalogId: catalog.id,
       parentNoteId: autoId,
+      // Attachments are read-through on the ServiceRecord entity but live on
+      // the note's own column — pass the projected payload through.
+      attachments: _attachmentsFor(r),
     ));
     return _deserialize(note)!;
   }
@@ -91,12 +96,17 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       tax: r.tax,
       notes: r.notes,
       createdDate: r.createdDate,
+      attachments: r.attachments,
     );
     await _noteRepo.updateNote(
       id,
       HmmNoteUpdate(
         subject: _subjectFor(updated),
         content: _serialize(updated),
+        // Pass the full attachment state every time: an empty set clears the
+        // column (SQL NULL). Callers (the form) must round-trip the loaded
+        // record's attachments so an edit never silently wipes them.
+        attachments: _attachmentsFor(r),
       ),
     );
   }
@@ -105,6 +115,9 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
   Future<void> deleteRecord(int autoId, int id) async {
     await _noteRepo.deleteNote(id);
   }
+
+  NoteAttachments _attachmentsFor(ServiceRecord r) =>
+      r.attachments.isEmpty ? NoteAttachments.empty : r.attachments;
 
   String _subjectFor(ServiceRecord r) {
     final d = r.date.toIso8601String().substring(0, 10);
@@ -180,6 +193,9 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
         tax: (tax?['amount'] as num?)?.toDouble(),
         notes: body['notes'] as String?,
         createdDate: note.createDate,
+        // Read-through projection: attachments live on the owning note's
+        // column, not inside the serialized content.
+        attachments: note.effectiveAttachments,
       );
     } catch (_) {
       return null;
