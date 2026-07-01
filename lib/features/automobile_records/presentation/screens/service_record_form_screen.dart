@@ -3,6 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/open_attachment.dart';
+import '../../../../core/data/attachments/picker/file_byte_source.dart';
+import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
+import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
+import '../../../../core/data/attachments/widgets/attachments_section.dart';
+import '../../../../core/data/data_mode.dart';
 import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
@@ -50,6 +59,11 @@ class _ServiceRecordFormScreenState
   bool _loading = false;
   ServiceRecord? _existing;
 
+  final List<PickedImageBytes> _pendingImages = [];
+  final List<PickedFileBytes> _pendingFiles = [];
+  List<VaultRef> _savedRefs = []; // retained from the loaded record
+  final List<VaultRef> _removedRefs = [];
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +90,10 @@ class _ServiceRecordFormScreenState
       _date = record.date;
       _items = [...record.parts];
       _tax = record.tax;
+      _savedRefs = [
+        ...record.attachments.images.whereType<VaultRef>(),
+        ...record.attachments.files.whereType<VaultRef>(),
+      ];
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -170,6 +188,20 @@ class _ServiceRecordFormScreenState
                       fieldValidator: (_) => null,
                       label: 'Notes',
                     ),
+                    if (ref.watch(dataModeProvider) != DataMode.cloudApi) ...[
+                      const SizedBox(height: 16),
+                      AttachmentsSection(
+                        items: _attachmentItems,
+                        resolver:
+                            ref.watch(attachmentResolverProvider).value ??
+                                const _NullResolver(),
+                        editable: true,
+                        onAddImage: _addImage,
+                        onAddPdf: _addPdf,
+                        onRemove: _removeItem,
+                        onTap: _openItem,
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     HighlightButton(
                       text: saving
@@ -197,6 +229,51 @@ class _ServiceRecordFormScreenState
   List<PartItem> get _keptItems => _items
       .where((p) => p.name.trim().isNotEmpty || p.unitCost != null)
       .toList();
+
+  List<AttachmentItem> get _attachmentItems => [
+        for (final p in _pendingImages) PendingImageItem(p),
+        for (final r in _savedRefs)
+          if (r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+        for (final p in _pendingFiles) PendingFileItem(p),
+        for (final r in _savedRefs)
+          if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+      ];
+
+  Future<void> _addImage() async {
+    final pick = await ref
+        .read(imageByteSourceProvider)
+        .pick(AttachmentPickSource.gallery);
+    if (pick != null) setState(() => _pendingImages.add(pick));
+  }
+
+  Future<void> _addPdf() async {
+    final pick = await ref.read(fileByteSourceProvider).pickPdf();
+    if (pick != null) setState(() => _pendingFiles.add(pick));
+  }
+
+  void _removeItem(AttachmentItem item) {
+    setState(() {
+      switch (item) {
+        case PendingImageItem(:final pick):
+          _pendingImages.remove(pick);
+        case PendingFileItem(:final pick):
+          _pendingFiles.remove(pick);
+        case SavedAttachmentItem(:final ref):
+          _savedRefs.remove(ref);
+          _removedRefs.add(ref);
+      }
+    });
+  }
+
+  Future<void> _openItem(AttachmentItem item) async {
+    // Pending items have no vault path yet — openable after save.
+    if (item is! SavedAttachmentItem) return;
+    final err = await openAttachment(ref, item.ref);
+    if (err != null && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(err)));
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -236,10 +313,22 @@ class _ServiceRecordFormScreenState
     );
 
     final notifier = ref.read(mutateServiceRecordStateProvider.notifier);
-    if (widget.isEdit) {
-      await notifier.edit(widget.automobileId, _existing!.id, record);
-    } else {
-      await notifier.create(widget.automobileId, record);
-    }
+    await notifier.save(
+      autoId: widget.automobileId,
+      record: record,
+      isEdit: widget.isEdit,
+      pendingImages: _pendingImages,
+      pendingFiles: _pendingFiles,
+      retained: _savedRefs,
+      removed: _removedRefs,
+    );
   }
+}
+
+/// Fallback resolver used only while [attachmentResolverProvider] is still
+/// loading — renders every ref as its placeholder.
+class _NullResolver implements IAttachmentResolver {
+  const _NullResolver();
+  @override
+  Future<Uint8List?> resolve(AttachmentRef ref) async => null;
 }
