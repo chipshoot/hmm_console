@@ -5,6 +5,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../core/util/uuid.dart';
 import '../domain/receipt_draft.dart';
 import '../domain/receipt_extractor.dart';
 import 'receipt_text_parser.dart';
@@ -48,7 +49,9 @@ class OnDeviceOcrExtractor implements ReceiptExtractor {
 
   static Future<String> _mlkitRecognize(Uint8List bytes) async {
     final dir = await getTemporaryDirectory();
-    final file = File(p.join(dir.path, 'receipt-ocr-${bytes.length}.jpg'));
+    // Unique name so equal-size receipts don't collide; deleted after OCR so
+    // receipt images don't linger on disk in the "private" on-device mode.
+    final file = File(p.join(dir.path, 'receipt-ocr-${generateUuid()}.jpg'));
     await file.writeAsBytes(bytes);
     final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
     try {
@@ -57,6 +60,9 @@ class OnDeviceOcrExtractor implements ReceiptExtractor {
       return result.text;
     } finally {
       await recognizer.close();
+      if (await file.exists()) {
+        await file.delete();
+      }
     }
   }
 }

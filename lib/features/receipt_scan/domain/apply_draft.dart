@@ -112,9 +112,11 @@ ApplyDraftResult applyDraft(ScanFormValues form, ReceiptDraft draft) {
   final items = [...form.items, ...appended];
 
   // Totals mismatch: compare the draft's stated total against the computed
-  // subtotal (sum of the appended items) + tax, when a total is present.
+  // subtotal (sum of the appended items) + tax. Only meaningful when items were
+  // actually itemized — a bare total with no line items (the on-device case)
+  // would otherwise always "mismatch" (subtotal 0).
   var mismatch = false;
-  if (draft.total != null) {
+  if (draft.total != null && appended.isNotEmpty) {
     final subtotal = appended.fold<double>(0, (s, p) => s + p.lineTotal);
     final computed = subtotal + (tax ?? 0);
     mismatch = (computed - draft.total!).abs() > 0.01;

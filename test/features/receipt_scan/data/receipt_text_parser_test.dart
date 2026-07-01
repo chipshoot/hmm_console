@@ -42,6 +42,11 @@ void main() {
     expect(d.total, 53.50); // "Balance Due", not the 50.00 subtotal
   });
 
+  test('disambiguates DD/MM when the first group exceeds 12', () {
+    final d = parser.parse('SHOP\nDate 13/06/2026\nTotal 5.00');
+    expect(d.date, DateTime(2026, 6, 13));
+  });
+
   test('returns nulls (never throws) on empty/garbage', () {
     final d = parser.parse('   \n  ');
     expect(d.total, isNull);

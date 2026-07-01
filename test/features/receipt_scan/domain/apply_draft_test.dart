@@ -49,6 +49,20 @@ void main() {
     expect(r.values.items, hasLength(3));
   });
 
+  test('does not flag a mismatch when no line items were appended', () {
+    // On-device receipts read a total but never itemize — a bare total must
+    // NOT trip the mismatch warning (subtotal would be 0).
+    final draft = ReceiptDraft(
+      source: ReceiptExtractorMode.onDevice,
+      total: 53.50,
+      tax: 3.50,
+      lineItems: const [],
+    );
+    final r = applyDraft(ScanFormValues.empty(), draft);
+    expect(r.appendedItemCount, 0);
+    expect(r.totalsMismatch, isFalse);
+  });
+
   test('flags a totals mismatch', () {
     final mismatch = ReceiptDraft(
       source: ReceiptExtractorMode.cloudAi,

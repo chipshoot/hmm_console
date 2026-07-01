@@ -48,10 +48,18 @@ class ReceiptTextParser {
     }
     final slash = _slashDate.firstMatch(text);
     if (slash != null) {
-      // month/day/year
+      final a = int.tryParse(slash.group(1) ?? '');
+      final b = int.tryParse(slash.group(2) ?? '');
       var year = int.tryParse(slash.group(3) ?? '');
       if (year != null && year < 100) year += 2000;
-      return _date(year?.toString(), slash.group(1), slash.group(2));
+      // Default to US month/day; but if the first group can't be a month and
+      // the second can, read it as day/month (common outside the US).
+      var month = a, day = b;
+      if (a != null && b != null && a > 12 && b <= 12) {
+        month = b;
+        day = a;
+      }
+      return _date(year?.toString(), month?.toString(), day?.toString());
     }
     return null;
   }

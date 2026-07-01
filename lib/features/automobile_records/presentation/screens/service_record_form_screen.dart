@@ -302,8 +302,6 @@ class _ServiceRecordFormScreenState
       );
 
   Future<void> _showScanSheet() async {
-    final onDevice = ref.read(receiptExtractorModeProvider) ==
-        ReceiptExtractorMode.onDevice;
     final source = await showModalBottomSheet<_ScanSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -320,14 +318,15 @@ class _ServiceRecordFormScreenState
               title: const Text('Choose a photo'),
               onTap: () => Navigator.pop(ctx, _ScanSource.photo),
             ),
-            ListTile(
-              enabled: !onDevice,
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('Choose a PDF'),
-              subtitle:
-                  onDevice ? const Text('Needs Cloud AI extraction') : null,
-              onTap:
-                  onDevice ? null : () => Navigator.pop(ctx, _ScanSource.pdf),
+            // Phase A ships on-device OCR only (can't read PDFs), and the
+            // cloudAi mode is still stubbed to on-device — so no active
+            // extractor can process a PDF yet. Disabled until Phase B
+            // (ApiLlmExtractor) lands.
+            const ListTile(
+              enabled: false,
+              leading: Icon(Icons.picture_as_pdf_outlined),
+              title: Text('Choose a PDF'),
+              subtitle: Text('Available with Cloud AI (coming soon)'),
             ),
           ],
         ),
@@ -341,7 +340,7 @@ class _ServiceRecordFormScreenState
     final String contentType;
     if (source == _ScanSource.pdf) {
       final pick = await ref.read(fileByteSourceProvider).pickPdf();
-      if (pick == null) return;
+      if (pick == null || !mounted) return;
       setState(() => _pendingFiles.add(pick));
       bytes = pick.bytes;
       contentType = pick.contentType ?? 'application/pdf';
@@ -351,7 +350,7 @@ class _ServiceRecordFormScreenState
                 ? AttachmentPickSource.camera
                 : AttachmentPickSource.gallery,
           );
-      if (pick == null) return;
+      if (pick == null || !mounted) return;
       setState(() => _pendingImages.add(pick));
       bytes = pick.bytes;
       contentType = pick.contentType ?? 'image/jpeg';
@@ -373,6 +372,7 @@ class _ServiceRecordFormScreenState
           if (v.shopName != null) _shopCtrl.text = v.shopName!;
           if (v.date != null) _date = v.date;
           if (v.mileage != null) _mileageCtrl.text = v.mileage!.toString();
+          if (v.type != null) _type = v.type!;
           _tax = v.tax;
           _items = v.items;
           _itemsSeed++;
