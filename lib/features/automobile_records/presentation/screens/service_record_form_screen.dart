@@ -302,6 +302,8 @@ class _ServiceRecordFormScreenState
       );
 
   Future<void> _showScanSheet() async {
+    final cloudAi = ref.read(receiptExtractorModeProvider) ==
+        ReceiptExtractorMode.cloudAi;
     final source = await showModalBottomSheet<_ScanSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -318,15 +320,16 @@ class _ServiceRecordFormScreenState
               title: const Text('Choose a photo'),
               onTap: () => Navigator.pop(ctx, _ScanSource.photo),
             ),
-            // Phase A ships on-device OCR only (can't read PDFs), and the
-            // cloudAi mode is still stubbed to on-device — so no active
-            // extractor can process a PDF yet. Disabled until Phase B
-            // (ApiLlmExtractor) lands.
-            const ListTile(
-              enabled: false,
-              leading: Icon(Icons.picture_as_pdf_outlined),
-              title: Text('Choose a PDF'),
-              subtitle: Text('Available with Cloud AI (coming soon)'),
+            // PDFs are readable only by the Cloud AI extractor; on-device OCR
+            // handles images only.
+            ListTile(
+              enabled: cloudAi,
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: const Text('Choose a PDF'),
+              subtitle: cloudAi
+                  ? null
+                  : const Text('Needs Cloud AI (change in Settings)'),
+              onTap: cloudAi ? () => Navigator.pop(ctx, _ScanSource.pdf) : null,
             ),
           ],
         ),
