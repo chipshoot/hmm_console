@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
@@ -6,8 +8,11 @@ import '../domain/receipt_draft.dart';
 import '../domain/receipt_extractor.dart';
 
 /// Cloud extractor: uploads the receipt to `POST /v1/receipts/extract` (which
-/// runs Claude vision) and parses the structured JSON back into a
+/// runs Claude vision) and parses the structured draft back into a
 /// [ReceiptDraft]. Used when the user selects the Cloud AI extractor mode.
+///
+/// Parsing is deliberately tolerant — a mistyped or missing field degrades to
+/// null rather than discarding the whole draft (best-effort is the point).
 class ApiLlmExtractor implements ReceiptExtractor {
   ApiLlmExtractor(this._apiClient);
 
@@ -19,7 +24,7 @@ class ApiLlmExtractor implements ReceiptExtractor {
       final form = FormData.fromMap({
         'file': MultipartFile.fromBytes(
           input.bytes,
-          filename: input.isPdf ? 'receipt.pdf' : 'receipt.jpg',
+          filename: _filenameFor(input.contentType),
           contentType: DioMediaType.parse(input.contentType),
         ),
       });
@@ -32,43 +37,64 @@ class ApiLlmExtractor implements ReceiptExtractor {
         options: Options(receiveTimeout: const Duration(seconds: 60)),
       );
 
-      final data = response.data;
-      if (data is! Map) {
-        throw const ReceiptExtractionException(
-            'Unexpected response from the receipt service.');
-      }
-      return _fromJson(Map<String, dynamic>.from(data));
+      return _fromJson(_asMap(response.data));
     } on ReceiptExtractionException {
       rethrow;
     } on DioException catch (e) {
       throw ReceiptExtractionException(_messageFor(e));
-    } catch (e) {
-      throw ReceiptExtractionException('Receipt extraction failed: $e');
+    } catch (_) {
+      // Keep internal error detail out of the user-facing message.
+      throw const ReceiptExtractionException(
+          'Could not read the receipt. Please try again.');
     }
   }
 
+  /// Accepts a decoded Map, or a JSON string body (the shared client only
+  /// auto-decodes when the response is tagged `application/json`).
+  Map<String, dynamic> _asMap(dynamic data) {
+    if (data is Map) return Map<String, dynamic>.from(data);
+    if (data is String && data.trim().isNotEmpty) {
+      final decoded = jsonDecode(data);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    }
+    throw const ReceiptExtractionException(
+        'Unexpected response from the receipt service.');
+  }
+
   ReceiptDraft _fromJson(Map<String, dynamic> j) {
-    final items = (j['lineItems'] as List?) ?? const [];
-    final date = j['date'] as String?;
+    final rawItems = j['lineItems'];
+    final items = rawItems is List ? rawItems : const [];
+    final date = _asString(j['date']);
     return ReceiptDraft(
       source: ReceiptExtractorMode.cloudAi,
-      shopName: j['shopName'] as String?,
+      shopName: _asString(j['shopName']),
       date: date != null ? DateTime.tryParse(date) : null,
-      odometer: (j['odometer'] as num?)?.toInt(),
-      tax: (j['tax'] as num?)?.toDouble(),
-      total: (j['total'] as num?)?.toDouble(),
-      currency: j['currency'] as String?,
+      odometer: _asNum(j['odometer'])?.toInt(),
+      tax: _asNum(j['tax'])?.toDouble(),
+      total: _asNum(j['total'])?.toDouble(),
+      currency: _asString(j['currency']),
       lineItems: [
         for (final it in items)
           if (it is Map)
             ReceiptLineItem(
-              type: LineItemType.fromWire(it['type'] as String?),
-              name: (it['name'] as String?) ?? '',
-              quantity: (it['quantity'] as num?)?.toInt() ?? 1,
-              unitCost: (it['unitCost'] as num?)?.toDouble(),
+              type: LineItemType.fromWire(_asString(it['type'])),
+              name: _asString(it['name']) ?? '',
+              quantity: _asNum(it['quantity'])?.toInt() ?? 1,
+              unitCost: _asNum(it['unitCost'])?.toDouble(),
             ),
       ],
     );
+  }
+
+  String _filenameFor(String contentType) {
+    final ext = switch (contentType) {
+      'image/png' => 'png',
+      'image/heic' => 'heic',
+      'image/webp' => 'webp',
+      'application/pdf' => 'pdf',
+      _ => 'jpg',
+    };
+    return 'receipt.$ext';
   }
 
   String _messageFor(DioException e) {
@@ -80,4 +106,8 @@ class ApiLlmExtractor implements ReceiptExtractor {
     }
     return 'Could not reach the receipt extraction service.';
   }
+
+  static String? _asString(dynamic v) => v is String ? v : null;
+
+  static num? _asNum(dynamic v) => v is num ? v : null;
 }
