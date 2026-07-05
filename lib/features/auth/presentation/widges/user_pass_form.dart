@@ -7,6 +7,13 @@ class UserPassForm extends StatelessWidget with EmailPassValidator {
   final Function(String, String) onFormSubmit;
   final VoidCallback? onFieldInteraction;
 
+  // Controllers are owned by the parent (a persistent State), not created
+  // here: this form gets swapped out for a spinner while the login request
+  // is in flight and rebuilt fresh on error, so controllers created in
+  // build() would be discarded and the entered/autofilled text lost.
+  final TextEditingController userNameController;
+  final TextEditingController passwordController;
+
   // create a global key that will uniquely identity the form
   final _formKey = GlobalKey<FormState>();
 
@@ -14,14 +21,13 @@ class UserPassForm extends StatelessWidget with EmailPassValidator {
     super.key,
     required this.buttonLabel,
     required this.onFormSubmit,
+    required this.userNameController,
+    required this.passwordController,
     this.onFieldInteraction,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Implementation of the form goes here
-    final userNameController = TextEditingController();
-    final passwordController = TextEditingController();
     return Form(
       key: _formKey,
       // AutofillGroup tells iOS / Android to treat the email + password

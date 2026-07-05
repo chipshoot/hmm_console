@@ -19,6 +19,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   // wire a "Resend email" action without asking the user to retype.
   String _lastEmail = '';
 
+  // Owned here (a State that outlives the loading/error rebuilds of the form)
+  // so the entered / autofilled credentials survive a failed login attempt.
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final loginState = ref.watch(loginStateProvider);
@@ -94,6 +106,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 GapWidgets.h16,
                 UserPassForm(
                   buttonLabel: 'Login',
+                  userNameController: _emailController,
+                  passwordController: _passwordController,
                   onFieldInteraction: () => messenger.clearSnackBars(),
                   onFormSubmit: (String email, String password) async {
                     messenger.clearSnackBars();
