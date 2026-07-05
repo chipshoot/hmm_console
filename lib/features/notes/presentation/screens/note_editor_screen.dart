@@ -39,6 +39,7 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   final _subjectCtrl = TextEditingController();
   final _bodyCtrl = TextEditingController();
+  final _bodyFocus = FocusNode();
   int? _noteId; // becomes non-null once persisted
   int? _parentId;
   bool _parentTouched = false; // user changed the subsystem dropdown
@@ -101,14 +102,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   void dispose() {
     _subjectCtrl.dispose();
     _bodyCtrl.dispose();
+    _bodyFocus.dispose();
     super.dispose();
   }
 
   Future<void> _loadExisting() async {
     if (_loaded || widget.noteId == null) return;
     _loaded = true;
-    final note =
-        await ref.read(hmmNoteRepositoryProvider).getNoteById(widget.noteId!);
+    final note = await ref
+        .read(hmmNoteRepositoryProvider)
+        .getNoteById(widget.noteId!);
     if (note != null && mounted) {
       _subjectCtrl.text = note.subject;
       _bodyCtrl.text = note.content ?? '';
@@ -132,8 +135,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Future<int?> _save() async {
     final subject = _subjectCtrl.text.trim();
     if (subject.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Subject is required')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Subject is required')));
       return null;
     }
     final mutate = ref.read(mutateNoteProvider);
@@ -141,17 +145,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     try {
       if (_noteId == null) {
         final note = await mutate.createGeneral(
-            subject: subject, markdownBody: _bodyCtrl.text,
-            parentNoteId: _parentId, noteDate: _noteDate.toUtc(),
-            location: _pendingLocation);
+          subject: subject,
+          markdownBody: _bodyCtrl.text,
+          parentNoteId: _parentId,
+          noteDate: _noteDate.toUtc(),
+          location: _pendingLocation,
+        );
         _noteId = note.id;
       } else {
         // 2b has no edit-to-a-new-place path: we only ever clear a removed
         // location (NoteLocation.empty); otherwise pass null = don't touch.
-        await mutate.updateGeneral(_noteId!,
-            subject: subject, markdownBody: _bodyCtrl.text,
-            noteDate: _noteDate.toUtc(),
-            location: _locationCleared ? NoteLocation.empty : null);
+        await mutate.updateGeneral(
+          _noteId!,
+          subject: subject,
+          markdownBody: _bodyCtrl.text,
+          noteDate: _noteDate.toUtc(),
+          location: _locationCleared ? NoteLocation.empty : null,
+        );
         // Persist the chosen subsystem only if the user changed it — covers
         // attach (id), detach (null), and re-link. An untouched dropdown
         // leaves the existing parent intact (avoids the async-load race).
@@ -266,8 +276,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       );
       if (!mounted) return;
       setState(() {
-        _noteDate = DateTime(date.year, date.month, date.day,
-            time?.hour ?? _noteDate.hour, time?.minute ?? _noteDate.minute);
+        _noteDate = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time?.hour ?? _noteDate.hour,
+          time?.minute ?? _noteDate.minute,
+        );
       });
     }
   }
@@ -291,9 +306,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           padding: EdgeInsets.zero,
           minimumSize: const Size(36, 36),
           onPressed: _busy ? null : onSave,
-          child: Text('Save',
-              style: TextStyle(
-                  color: c.accent, fontSize: 17, fontWeight: FontWeight.w600)),
+          child: Text(
+            'Save',
+            style: TextStyle(
+              color: c.accent,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       );
     }
@@ -333,79 +353,101 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           Expanded(
             child: ColoredBox(
               color: c.secondaryGroupedBackground,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _subjectCtrl,
-                      maxLines: null,
-                      textCapitalization: TextCapitalization.sentences,
-                      style: DesignTokens.titleLarge
-                          .copyWith(color: c.label, fontSize: 26),
-                      decoration: const InputDecoration(
-                        hintText: 'Title',
-                        border: InputBorder.none,
-                        isCollapsed: true,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    GestureDetector(
-                      onTap: _busy ? null : _pickNoteDate,
-                      behavior: HitTestBehavior.opaque,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_stampText,
-                              style: DesignTokens.caption
-                                  .copyWith(color: c.tertiaryLabel)),
-                          const SizedBox(width: 4),
-                          Icon(Icons.edit_calendar_outlined,
-                              size: 14, color: c.tertiaryLabel),
-                        ],
-                      ),
-                    ),
-                    if (_pendingLocation != null && !_pendingLocation!.isEmpty)
-                      NoteLocationCard(
-                        location: _pendingLocation!,
-                        onRemove: () => setState(() {
-                          _pendingLocation = null;
-                          _locationCleared = true;
-                        }),
-                      ),
-                    const SizedBox(height: 12),
-                    Divider(height: 1, thickness: 1, color: c.separator),
-                    const SizedBox(height: 12),
-                    NoteMediaCardList(
-                      saved: _savedImages,
-                      pending: _pendingPicks,
-                      onRemovePending: (i) =>
-                          setState(() => _pendingPicks.removeAt(i)),
-                    ),
-                    NoteFileCardList(
-                      saved: _savedFiles,
-                      pending: _pendingFiles,
-                      onRemovePending: (i) =>
-                          setState(() => _pendingFiles.removeAt(i)),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _bodyCtrl,
+              // Scrollable so the body stays reachable above the keyboard once
+              // images/cards fill the page — otherwise the fixed content above
+              // it squeezes the body field to nothing and the input panel
+              // covers it. The translucent GestureDetector keeps the
+              // "tap anywhere on the canvas to write" affordance now that the
+              // body no longer fills the whole page.
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => _bodyFocus.requestFocus(),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: _subjectCtrl,
                         maxLines: null,
-                        expands: true,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: DesignTokens.titleLarge.copyWith(
+                          color: c.label,
+                          fontSize: 26,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: 'Title',
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: _busy ? null : _pickNoteDate,
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _stampText,
+                              style: DesignTokens.caption.copyWith(
+                                color: c.tertiaryLabel,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.edit_calendar_outlined,
+                              size: 14,
+                              color: c.tertiaryLabel,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_pendingLocation != null &&
+                          !_pendingLocation!.isEmpty)
+                        NoteLocationCard(
+                          location: _pendingLocation!,
+                          onRemove: () => setState(() {
+                            _pendingLocation = null;
+                            _locationCleared = true;
+                          }),
+                        ),
+                      const SizedBox(height: 12),
+                      Divider(height: 1, thickness: 1, color: c.separator),
+                      const SizedBox(height: 12),
+                      NoteMediaCardList(
+                        saved: _savedImages,
+                        pending: _pendingPicks,
+                        onRemovePending: (i) =>
+                            setState(() => _pendingPicks.removeAt(i)),
+                      ),
+                      NoteFileCardList(
+                        saved: _savedFiles,
+                        pending: _pendingFiles,
+                        onRemovePending: (i) =>
+                            setState(() => _pendingFiles.removeAt(i)),
+                      ),
+                      TextField(
+                        controller: _bodyCtrl,
+                        focusNode: _bodyFocus,
+                        maxLines: null,
+                        minLines: 8,
                         textAlignVertical: TextAlignVertical.top,
                         textCapitalization: TextCapitalization.sentences,
                         style: TextStyle(
-                            fontSize: 16, color: c.label, height: 1.4),
+                          fontSize: 16,
+                          color: c.label,
+                          height: 1.4,
+                        ),
                         decoration: const InputDecoration(
                           hintText: 'Start writing…',
                           border: InputBorder.none,
                           isCollapsed: true,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -435,13 +477,16 @@ class _SubsystemStrip extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Text('Attach to subsystem',
-              style: DesignTokens.rowSecondary.copyWith(color: c.secondaryLabel)),
+          Text(
+            'Attach to subsystem',
+            style: DesignTokens.rowSecondary.copyWith(color: c.secondaryLabel),
+          ),
           const Spacer(),
           anchorsAsync.maybeWhen(
             data: (anchors) {
-              final value =
-                  anchors.any((a) => a.id == parentId) ? parentId : null;
+              final value = anchors.any((a) => a.id == parentId)
+                  ? parentId
+                  : null;
               return Container(
                 padding: const EdgeInsetsDirectional.only(start: 12, end: 8),
                 decoration: BoxDecoration(
@@ -453,15 +498,28 @@ class _SubsystemStrip extends ConsumerWidget {
                   value: value,
                   isDense: true,
                   underline: const SizedBox.shrink(),
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusMedium),
-                  icon: Icon(Icons.expand_more, size: 18, color: c.secondaryLabel),
-                  style: DesignTokens.rowTitle.copyWith(color: c.label, fontSize: 15),
+                  borderRadius: BorderRadius.circular(
+                    DesignTokens.radiusMedium,
+                  ),
+                  icon: Icon(
+                    Icons.expand_more,
+                    size: 18,
+                    color: c.secondaryLabel,
+                  ),
+                  style: DesignTokens.rowTitle.copyWith(
+                    color: c.label,
+                    fontSize: 15,
+                  ),
                   items: [
                     const DropdownMenuItem<int?>(
-                        value: null, child: Text('None')),
+                      value: null,
+                      child: Text('None'),
+                    ),
                     for (final a in anchors)
                       DropdownMenuItem<int?>(
-                          value: a.id, child: Text(a.subject)),
+                        value: a.id,
+                        child: Text(a.subject),
+                      ),
                   ],
                   onChanged: onChanged,
                 ),
