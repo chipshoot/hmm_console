@@ -87,4 +87,60 @@ void main() {
     await tester.pumpAndSettle();
     expect(fake.attachCalls, 1);
   });
+
+  testWidgets(
+      'body stays inside a scrollable after adding images (reachable above the keyboard)',
+      (tester) async {
+    final router = GoRouter(
+      initialLocation: '/editor',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (c, s) => const Scaffold(body: Text('home')),
+          routes: [
+            GoRoute(path: 'editor', builder: (c, s) => const NoteEditorScreen()),
+          ],
+        ),
+      ],
+    );
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        mutateNoteProvider.overrideWithValue(_FakeMutate()),
+        imageByteSourceProvider.overrideWithValue(_FakeSource()),
+        subsystemAnchorsProvider.overrideWith((ref) async => const []),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: ThemeData(extensions: const [AppColors.light]),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    // Add two photos — each is a tall (180px) card that fills the page.
+    await tester.tap(find.byIcon(Icons.photo_library_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.photo_library_outlined));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteMediaCard), findsNWidgets(2));
+
+    // The content field must remain present and inside the page's
+    // SingleChildScrollView, so a focus/keyboard scrolls it into view above the
+    // keyboard instead of being squeezed to nothing (the old Expanded layout
+    // had no scrollable ancestor).
+    final body = find.widgetWithText(TextField, 'Start writing…');
+    expect(body, findsOneWidget);
+    expect(
+      find.ancestor(of: body, matching: find.byType(SingleChildScrollView)),
+      findsOneWidget,
+    );
+
+    // Tapping the empty canvas below the body still focuses it
+    // ("tap anywhere to write"), even though the body no longer fills the page.
+    final bodyWidget = tester.widget<TextField>(body);
+    expect(bodyWidget.focusNode, isNotNull);
+    final scrollRect = tester.getRect(find.byType(SingleChildScrollView));
+    await tester.tapAt(scrollRect.bottomCenter - const Offset(0, 8));
+    await tester.pumpAndSettle();
+    expect(bodyWidget.focusNode!.hasFocus, isTrue);
+  });
 }
