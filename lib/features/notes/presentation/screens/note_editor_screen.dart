@@ -329,26 +329,28 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Widget build(BuildContext context) {
     _loadExisting();
     final c = context.appColors;
+    // The keyboard's bottom inset lifts the in-body MediaToolbar above it;
+    // surface the hide-keyboard affordance only while the keyboard is up.
+    final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
       backgroundColor: c.groupedBackground,
       appBar: _buildNav(context, c),
-      bottomNavigationBar: MediaToolbar(
-        onPick: _addMedia,
-        onPickFile: _addFile,
-        onRecord: _addRecording,
-        enabled: !_busy,
-      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Subsystem attach — a control above / outside the note page.
-          _SubsystemStrip(
-            parentId: _parentId,
-            onChanged: (v) => setState(() {
-              _parentId = v;
-              _parentTouched = true;
-            }),
-          ),
+          // Collapsed while the keyboard is up: it frees writing space and,
+          // by leaving MediaToolbar as the Column's only fixed child, avoids
+          // a RenderFlex overflow when a short (landscape) viewport shrinks
+          // the Expanded body to nothing.
+          if (!keyboardUp)
+            _SubsystemStrip(
+              parentId: _parentId,
+              onChanged: (v) => setState(() {
+                _parentId = v;
+                _parentTouched = true;
+              }),
+            ),
           // The note page: borderless title · timestamp · one rule · canvas.
           Expanded(
             child: ColoredBox(
@@ -451,6 +453,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                 ),
               ),
             ),
+          ),
+          // Lives in the body (not as bottomNavigationBar) so that the
+          // Scaffold's resizeToAvoidBottomInset lifts it to sit just above
+          // the software keyboard — the add-media controls stay reachable
+          // while typing instead of being hidden behind the keyboard. The
+          // trailing hide-keyboard button appears only while it's up.
+          MediaToolbar(
+            onPick: _addMedia,
+            onPickFile: _addFile,
+            onRecord: _addRecording,
+            enabled: !_busy,
+            onDismissKeyboard:
+                keyboardUp ? () => FocusScope.of(context).unfocus() : null,
           ),
         ],
       ),

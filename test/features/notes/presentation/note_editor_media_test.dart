@@ -11,6 +11,7 @@ import 'package:hmm_console/core/data/note_location.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/data/subsystem_anchor.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/media_toolbar.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_media_card_list.dart';
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
 
@@ -143,4 +144,79 @@ void main() {
     await tester.pumpAndSettle();
     expect(bodyWidget.focusNode!.hasFocus, isTrue);
   });
+
+  testWidgets(
+      'media toolbar rides in the body (not a bottomNavigationBar) so the '
+      'keyboard cannot cover it', (tester) async {
+    await _pumpEditor(tester);
+
+    // The toolbar must NOT be the Scaffold.bottomNavigationBar — that always
+    // sits behind the software keyboard. It lives in the body instead, where
+    // resizeToAvoidBottomInset lifts it above the keyboard.
+    final scaffold = tester.widget<Scaffold>(
+      find.descendant(
+        of: find.byType(NoteEditorScreen),
+        matching: find.byType(Scaffold),
+      ),
+    );
+    expect(scaffold.bottomNavigationBar, isNull);
+    expect(find.byType(MediaToolbar), findsOneWidget);
+  });
+
+  testWidgets(
+      'keyboard-hide button shows only while the keyboard is up and dismisses it',
+      (tester) async {
+    await _pumpEditor(tester);
+
+    // Focus the body — the keyboard would come up on a real device.
+    final body = find.widgetWithText(TextField, 'Start writing…');
+    await tester.tap(body);
+    await tester.pump();
+    expect(tester.widget<TextField>(body).focusNode!.hasFocus, isTrue);
+
+    // No keyboard inset yet → no hide button (avoids a dead control), and the
+    // subsystem strip is shown.
+    expect(find.byIcon(Icons.keyboard_hide_outlined), findsNothing);
+    expect(find.text('Attach to subsystem'), findsOneWidget);
+
+    // Simulate the software keyboard raising the bottom view inset.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 250);
+    addTearDown(tester.view.reset);
+    await tester.pump();
+
+    // The hide button appears; the subsystem strip collapses to free writing
+    // space and keep MediaToolbar the only fixed child (no overflow).
+    expect(find.byIcon(Icons.keyboard_hide_outlined), findsOneWidget);
+    expect(find.text('Attach to subsystem'), findsNothing);
+    await tester.tap(find.byIcon(Icons.keyboard_hide_outlined));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(body).focusNode!.hasFocus, isFalse);
+  });
+}
+
+Future<void> _pumpEditor(WidgetTester tester) async {
+  final router = GoRouter(
+    initialLocation: '/editor',
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (c, s) => const Scaffold(body: Text('home')),
+        routes: [
+          GoRoute(path: 'editor', builder: (c, s) => const NoteEditorScreen()),
+        ],
+      ),
+    ],
+  );
+  await tester.pumpWidget(ProviderScope(
+    overrides: [
+      mutateNoteProvider.overrideWithValue(_FakeMutate()),
+      imageByteSourceProvider.overrideWithValue(_FakeSource()),
+      subsystemAnchorsProvider.overrideWith((ref) async => const []),
+    ],
+    child: MaterialApp.router(
+      routerConfig: router,
+      theme: ThemeData(extensions: const [AppColors.light]),
+    ),
+  ));
+  await tester.pumpAndSettle();
 }

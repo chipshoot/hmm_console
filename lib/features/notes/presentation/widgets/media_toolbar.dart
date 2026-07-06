@@ -11,12 +11,18 @@ class MediaToolbar extends StatelessWidget {
     required this.onPick,
     required this.onPickFile,
     required this.onRecord,
+    this.onDismissKeyboard,
     this.enabled = true,
   });
 
   final void Function(AttachmentPickSource source) onPick;
   final VoidCallback onPickFile;
   final VoidCallback onRecord;
+
+  /// When non-null, a trailing keyboard-hide button is shown. The editor
+  /// passes this only while the keyboard is up, so the control never appears
+  /// as a dead button when there's nothing to dismiss.
+  final VoidCallback? onDismissKeyboard;
   final bool enabled;
 
   @override
@@ -51,6 +57,18 @@ class MediaToolbar extends StatelessWidget {
               color: c.accent,
               onPressed: enabled ? onRecord : null,
             ),
+            if (onDismissKeyboard != null) ...[
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.keyboard_hide_outlined),
+                color: c.accent,
+                tooltip: 'Hide keyboard',
+                // Always tappable: dismissing the keyboard is harmless even
+                // mid-save, and it's the whole point of the control.
+                onPressed: onDismissKeyboard,
+              ),
+              const SizedBox(width: 8),
+            ],
           ],
         ),
       ),
