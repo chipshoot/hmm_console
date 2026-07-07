@@ -99,15 +99,26 @@ ApplyDraftResult applyDraft(ScanFormValues form, ReceiptDraft draft) {
     filled++;
   }
 
+  // Skip line items identical to ones already on the form (same type, name,
+  // quantity, unit cost) so re-scanning the same receipt doesn't stack
+  // duplicate rows. Dedup is only against the pre-scan items, so legitimate
+  // repeats within a single receipt are preserved.
+  bool alreadyOnForm(ReceiptLineItem li) => form.items.any((p) =>
+      p.type == li.type &&
+      p.name.trim().toLowerCase() == li.name.trim().toLowerCase() &&
+      p.quantity == li.quantity &&
+      p.unitCost == li.unitCost);
+
   final appended = [
     for (final li in draft.lineItems)
-      PartItem(
-        type: li.type,
-        name: li.name,
-        quantity: li.quantity,
-        unitCost: li.unitCost,
-        currency: currency ?? form.currency ?? 'CAD',
-      ),
+      if (!alreadyOnForm(li))
+        PartItem(
+          type: li.type,
+          name: li.name,
+          quantity: li.quantity,
+          unitCost: li.unitCost,
+          currency: currency ?? form.currency ?? 'CAD',
+        ),
   ];
   final items = [...form.items, ...appended];
 

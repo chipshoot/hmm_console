@@ -49,6 +49,31 @@ void main() {
     expect(r.values.items, hasLength(3));
   });
 
+  test('re-scanning the same receipt skips duplicate line items', () {
+    // First scan appends the two items; scanning the same draft again must
+    // not stack duplicates.
+    final first = applyDraft(ScanFormValues.empty(), _draft());
+    expect(first.values.items, hasLength(2));
+
+    final second = applyDraft(first.values, _draft());
+    expect(second.appendedItemCount, 0);
+    expect(second.values.items, hasLength(2));
+  });
+
+  test('a receipt that legitimately repeats an item within one scan keeps both',
+      () {
+    final draft = ReceiptDraft(
+      source: ReceiptExtractorMode.cloudAi,
+      lineItems: const [
+        ReceiptLineItem(type: LineItemType.part, name: 'Spark plug', unitCost: 8),
+        ReceiptLineItem(type: LineItemType.part, name: 'Spark plug', unitCost: 8),
+      ],
+    );
+    final r = applyDraft(ScanFormValues.empty(), draft);
+    expect(r.appendedItemCount, 2);
+    expect(r.values.items, hasLength(2));
+  });
+
   test('does not flag a mismatch when no line items were appended', () {
     // On-device receipts read a total but never itemize — a bare total must
     // NOT trip the mismatch warning (subtotal would be 0).
