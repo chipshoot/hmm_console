@@ -397,7 +397,17 @@ class _ServiceRecordFormScreenState
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      // The invalid field (usually a required, empty Mileage that a scan
+      // didn't fill) can be scrolled off-screen above the line items, making
+      // the button look dead — surface why the save didn't go through.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please complete the highlighted fields (e.g. Mileage).'),
+        ),
+      );
+      return;
+    }
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Service date is required')),
