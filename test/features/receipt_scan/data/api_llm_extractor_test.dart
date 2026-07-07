@@ -110,6 +110,33 @@ void main() {
     expect(draft.lineItems, isEmpty);
   });
 
+  test('parses a PascalCase response body (serializer-casing tolerance)',
+      () async {
+    // Defense-in-depth: the backend should emit camelCase, but a PascalCase
+    // regression (the bug that once shipped) must not silently blank the
+    // extracted fields. Read either casing.
+    const pascalBody = '''
+    {
+      "ShopName": "Bob Auto", "Date": "2026-03-02", "Odometer": 45000,
+      "Tax": 3.5, "Total": 53.5, "Currency": "CAD",
+      "LineItems": [
+        {"Type": "Labour", "Name": "Oil change", "Quantity": 1, "UnitCost": 40},
+        {"Type": "Part", "Name": "Filter", "Quantity": 2, "UnitCost": 10}
+      ]
+    }
+    ''';
+    final (ex, _) = _make(200, pascalBody);
+    final draft = await ex.extract(_image());
+    expect(draft.shopName, 'Bob Auto');
+    expect(draft.date, DateTime(2026, 3, 2));
+    expect(draft.odometer, 45000);
+    expect(draft.tax, 3.5);
+    expect(draft.lineItems, hasLength(2));
+    expect(draft.lineItems.first.name, 'Oil change');
+    expect(draft.lineItems.first.type, LineItemType.labour);
+    expect(draft.lineItems[1].unitCost, 10);
+  });
+
   test('tolerates mistyped fields and unknown line-item types', () async {
     // odometer as a string, lineItems present, an unknown type falls back.
     const body = '''

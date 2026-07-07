@@ -16,6 +16,8 @@ import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
 import 'package:hmm_console/core/data/local/local_service_record_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/data/vault/vault_store.dart';
+import 'package:hmm_console/features/automobile_records/domain/entities/line_item_type.dart';
+import 'package:hmm_console/features/automobile_records/domain/entities/part_item.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/service_record.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/service_type.dart';
 import 'package:hmm_console/features/automobile_records/states/mutate_service_record_state.dart';
@@ -167,6 +169,54 @@ void main() {
     expect(records.single.attachments.images, hasLength(1));
     expect(records.single.attachments.files, hasLength(1));
     expect(vault.store.keys.where((k) => k.endsWith('.jpg')), isNotEmpty);
+  });
+
+  test('line items survive when a new record is saved with a scanned pdf',
+      () async {
+    // Reproduces the receipt-scan flow: the scanned PDF becomes a pending
+    // file attachment, so save() runs step 4 (updateRecord with attachments)
+    // after step 1 created the record with its parts.
+    final c = await container();
+    final record = ServiceRecord(
+      id: 0,
+      automobileId: autoId,
+      date: DateTime(2026),
+      mileage: 50,
+      type: ServiceType.oilChange,
+      parts: const [
+        PartItem(
+            type: LineItemType.part,
+            name: 'Oil filter',
+            quantity: 1,
+            unitCost: 12.0,
+            currency: 'CAD'),
+        PartItem(
+            type: LineItemType.labour,
+            name: 'Labour',
+            quantity: 1,
+            unitCost: 40.0,
+            currency: 'CAD'),
+      ],
+    );
+    await c.read(mutateServiceRecordStateProvider.notifier).save(
+      autoId: autoId,
+      record: record,
+      isEdit: false,
+      pendingFiles: [
+        PickedFileBytes(
+            bytes: Uint8List.fromList([8]),
+            originalName: 'receipt.pdf',
+            contentType: 'application/pdf')
+      ],
+    );
+
+    final records = await serviceRepo.getRecords(autoId);
+    expect(records, hasLength(1));
+    expect(records.single.attachments.files, hasLength(1));
+    expect(records.single.parts, hasLength(2),
+        reason: 'line items must survive the attachment save step');
+    expect(records.single.parts.map((p) => p.name),
+        containsAll(['Oil filter', 'Labour']));
   });
 
   test('removing an attachment deletes its bytes', () async {
