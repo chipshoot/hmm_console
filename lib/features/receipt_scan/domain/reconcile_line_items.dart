@@ -16,13 +16,16 @@ ReconciledItem reconcileLineItem(ReceiptLineItem li) {
   final u = li.unitCost;
   final q = li.quantity;
 
-  // Only a positive printed total is a usable signal (skip discounts/credits).
-  if (a == null || a <= 0) return ReconciledItem(li, adjusted: false);
+  // Only a finite, positive printed total is a usable signal (skip
+  // discounts/credits and any non-finite garbage so this stays total).
+  if (a == null || !a.isFinite || a <= 0) {
+    return ReconciledItem(li, adjusted: false);
+  }
 
   final tol = a * 0.01 > 0.01 ? a * 0.01 : 0.01;
 
-  // Fix quantity when a unit price is known.
-  if (u != null && u > 0) {
+  // Fix quantity when a usable (finite, positive) unit price is known.
+  if (u != null && u.isFinite && u > 0) {
     final derived = (a / u).round();
     final clean = (derived * u - a).abs() <= tol;
     if (derived >= 1 && clean && derived != q) {

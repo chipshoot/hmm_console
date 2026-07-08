@@ -50,4 +50,31 @@ void main() {
     expect(r.item.unitCost, 5); // falls through to unit-price fill
     expect(r.adjusted, isTrue);
   });
+
+  test('passes through when derived quantity would be < 1 (amount < unitCost)', () {
+    final r = reconcileLineItem(_li(quantity: 1, unitCost: 40, amount: 10));
+    expect(r.item.quantity, 1);
+    expect(r.adjusted, isFalse);
+  });
+
+  test('accepts a small discrepancy within the relative tolerance', () {
+    // 10000.40 / 2000 -> 5; 5*2000=10000, diff 0.40 <= 1% of amount (100).
+    final r = reconcileLineItem(_li(quantity: 1, unitCost: 2000, amount: 10000.40));
+    expect(r.item.quantity, 5);
+    expect(r.adjusted, isTrue);
+  });
+
+  test('does not mutate the input line item', () {
+    final input = _li(quantity: 1, unitCost: 17.95, amount: 125.65);
+    final r = reconcileLineItem(input);
+    expect(input.quantity, 1);
+    expect(identical(r.item, input), isFalse);
+  });
+
+  test('is total on a non-finite unit price (recovers, does not throw)', () {
+    final r = reconcileLineItem(
+        _li(quantity: 2, unitCost: double.infinity, amount: 100));
+    expect(r.item.unitCost, 50); // unusable unit price -> filled from amount/qty
+    expect(r.adjusted, isTrue);
+  });
 }

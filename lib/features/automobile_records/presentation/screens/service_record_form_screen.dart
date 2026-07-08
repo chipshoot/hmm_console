@@ -389,8 +389,8 @@ class _ServiceRecordFormScreenState
             ? " Note: the receipt total doesn't match the itemized total."
             : '';
         final adjusted = applied.adjustedItemCount > 0
-            ? ' (adjusted ${applied.adjustedItemCount} '
-                '${applied.adjustedItemCount == 1 ? "quantity" : "quantities"} '
+            ? ' (reconciled ${applied.adjustedItemCount} '
+                '${applied.adjustedItemCount == 1 ? "line item" : "line items"} '
                 'to match line totals)'
             : '';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

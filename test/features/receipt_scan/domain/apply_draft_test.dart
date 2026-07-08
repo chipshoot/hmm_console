@@ -91,6 +91,28 @@ void main() {
     expect(r.adjustedItemCount, 1);
   });
 
+  test('re-scanning a reconciled line dedupes on the reconciled values', () {
+    // Raw qty 1 reconciles to 7; a second scan of the same draft must dedup
+    // against the already-appended *reconciled* row, not the raw one.
+    final draft = ReceiptDraft(
+      source: ReceiptExtractorMode.cloudAi,
+      lineItems: const [
+        ReceiptLineItem(
+            type: LineItemType.part,
+            name: 'Oil',
+            quantity: 1,
+            unitCost: 17.95,
+            amount: 125.65),
+      ],
+    );
+    final first = applyDraft(ScanFormValues.empty(), draft);
+    expect(first.values.items.single.quantity, 7);
+
+    final second = applyDraft(first.values, draft);
+    expect(second.appendedItemCount, 0);
+    expect(second.values.items, hasLength(1));
+  });
+
   test('does not flag a mismatch when no line items were appended', () {
     // On-device receipts read a total but never itemize — a bare total must
     // NOT trip the mismatch warning (subtotal would be 0).
