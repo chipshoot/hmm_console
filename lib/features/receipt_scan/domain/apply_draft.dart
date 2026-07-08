@@ -1,6 +1,7 @@
 import '../../automobile_records/domain/entities/part_item.dart';
 import '../../automobile_records/domain/entities/service_type.dart';
 import 'receipt_draft.dart';
+import 'reconcile_line_items.dart';
 
 /// Snapshot of the scalar + line-item fields a receipt scan can fill. The form
 /// maps its controllers to/from this value object.
@@ -52,12 +53,14 @@ class ApplyDraftResult {
     required this.values,
     required this.filledScalarCount,
     required this.appendedItemCount,
+    required this.adjustedItemCount,
     required this.totalsMismatch,
   });
 
   final ScanFormValues values;
   final int filledScalarCount;
   final int appendedItemCount;
+  final int adjustedItemCount;
   final bool totalsMismatch;
 }
 
@@ -109,17 +112,23 @@ ApplyDraftResult applyDraft(ScanFormValues form, ReceiptDraft draft) {
       p.quantity == li.quantity &&
       p.unitCost == li.unitCost);
 
-  final appended = [
-    for (final li in draft.lineItems)
-      if (!alreadyOnForm(li))
-        PartItem(
-          type: li.type,
-          name: li.name,
-          quantity: li.quantity,
-          unitCost: li.unitCost,
-          currency: currency ?? form.currency ?? 'CAD',
-        ),
-  ];
+  // Reconcile each line from its printed amount BEFORE the dedup check, so a
+  // re-scan of the same receipt (raw qty 1 -> reconciled qty 7) matches the
+  // already-appended reconciled row and is skipped rather than duplicated.
+  var adjusted = 0;
+  final appended = <PartItem>[];
+  for (final li in draft.lineItems) {
+    final rec = reconcileLineItem(li);
+    if (alreadyOnForm(rec.item)) continue;
+    if (rec.adjusted) adjusted++;
+    appended.add(PartItem(
+      type: rec.item.type,
+      name: rec.item.name,
+      quantity: rec.item.quantity,
+      unitCost: rec.item.unitCost,
+      currency: currency ?? form.currency ?? 'CAD',
+    ));
+  }
   final items = [...form.items, ...appended];
 
   // Totals mismatch: compare the draft's stated total against the computed
@@ -145,6 +154,7 @@ ApplyDraftResult applyDraft(ScanFormValues form, ReceiptDraft draft) {
     ),
     filledScalarCount: filled,
     appendedItemCount: appended.length,
+    adjustedItemCount: adjusted,
     totalsMismatch: mismatch,
   );
 }

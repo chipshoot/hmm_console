@@ -74,6 +74,23 @@ void main() {
     expect(r.values.items, hasLength(2));
   });
 
+  test('reconciles a scanned line and reports the adjustment', () {
+    final draft = ReceiptDraft(
+      source: ReceiptExtractorMode.cloudAi,
+      lineItems: const [
+        ReceiptLineItem(
+            type: LineItemType.part,
+            name: 'Oil',
+            quantity: 1,
+            unitCost: 17.95,
+            amount: 125.65),
+      ],
+    );
+    final r = applyDraft(ScanFormValues.empty(), draft);
+    expect(r.values.items.single.quantity, 7);
+    expect(r.adjustedItemCount, 1);
+  });
+
   test('does not flag a mismatch when no line items were appended', () {
     // On-device receipts read a total but never itemize — a bare total must
     // NOT trip the mismatch warning (subtotal would be 0).
