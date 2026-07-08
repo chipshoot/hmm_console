@@ -54,7 +54,7 @@ void main() {
     "shopName": "Bob Auto", "date": "2026-03-02", "odometer": 45000,
     "tax": 3.5, "total": 53.5, "currency": "CAD",
     "lineItems": [
-      {"type": "Labour", "name": "Oil change", "quantity": 1, "unitCost": 40},
+      {"type": "Labour", "name": "Oil change", "quantity": 1, "unitCost": 40, "amount": 40},
       {"type": "Part", "name": "Filter", "quantity": 2, "unitCost": 10},
       {"type": "Fee", "name": "Shop supplies", "quantity": 1, "unitCost": 2}
     ]
@@ -101,6 +101,12 @@ void main() {
     final (ex, _) = _make(200, okBody, contentType: 'text/plain');
     final draft = await ex.extract(_image());
     expect(draft.shopName, 'Bob Auto');
+  });
+
+  test('parses line-item amount', () async {
+    final (ex, _) = _make(200, okBody);
+    final draft = await ex.extract(_image());
+    expect(draft.lineItems.first.amount, 40);
   });
 
   test('empty object yields an all-null draft with no items', () async {
