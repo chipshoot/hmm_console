@@ -388,11 +388,16 @@ class _ServiceRecordFormScreenState
         final mismatch = applied.totalsMismatch
             ? " Note: the receipt total doesn't match the itemized total."
             : '';
+        final adjusted = applied.adjustedItemCount > 0
+            ? ' (adjusted ${applied.adjustedItemCount} '
+                '${applied.adjustedItemCount == 1 ? "quantity" : "quantities"} '
+                'to match line totals)'
+            : '';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
             'Filled ${applied.filledScalarCount} fields and '
-            '${applied.appendedItemCount} line items — review before saving.'
-            '$mismatch',
+            '${applied.appendedItemCount} line items$adjusted — '
+            'review before saving.$mismatch',
           ),
         ));
       case ScanFailure(:final message):
