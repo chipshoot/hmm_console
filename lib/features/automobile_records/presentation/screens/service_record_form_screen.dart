@@ -98,6 +98,11 @@ class _ServiceRecordFormScreenState
       _type = record.type;
       _date = record.date;
       _items = [...record.parts];
+      // Force the line-items editor to rebuild with the loaded parts. It
+      // captures initialItems once (late final) and is keyed by _itemsSeed,
+      // so without bumping the seed a fast load (editor already built with an
+      // empty list, no spinner frame in between) leaves the items invisible.
+      _itemsSeed++;
       _tax = record.tax;
       _savedRefs = [
         ...record.attachments.images.whereType<VaultRef>(),
