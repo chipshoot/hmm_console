@@ -41,12 +41,17 @@ class ReceiptLineItem {
     required this.name,
     this.quantity = 1,
     this.unitCost,
+    this.amount,
   });
 
   final LineItemType type;
   final String name;
   final int quantity;
   final double? unitCost;
+
+  /// Printed line total from the receipt; the authoritative signal used to
+  /// reconcile [quantity] / [unitCost]. Null when the receipt doesn't show it.
+  final double? amount;
 }
 
 /// Extractor-agnostic result. Every field is optional — an extractor fills what

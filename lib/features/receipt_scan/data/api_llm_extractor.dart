@@ -81,6 +81,7 @@ class ApiLlmExtractor implements ReceiptExtractor {
               name: _asString(_get(it, 'name')) ?? '',
               quantity: _asNum(_get(it, 'quantity'))?.toInt() ?? 1,
               unitCost: _asNum(_get(it, 'unitCost'))?.toDouble(),
+              amount: _asNum(_get(it, 'amount'))?.toDouble(),
             ),
       ],
     );
