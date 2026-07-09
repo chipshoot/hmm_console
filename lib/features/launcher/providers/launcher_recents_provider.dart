@@ -1,43 +1,26 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-const _recentsKey = 'launcher_recents';
+import '../../../core/settings/settings_controller.dart';
+
 const _cap = 8;
 
-/// Most-recently-launched destination ids, newest first, capped at
-/// [_cap]. Device-local (NOT synced) — recents are personal to the
-/// device, like a phone's app-switcher.
+/// Most-recently-launched destination ids, newest first, capped at [_cap].
+/// Device-local (NOT synced) — recents are personal to the device, like a
+/// phone's app-switcher. Value + persistence live in the unified
+/// SettingsController.
 class LauncherRecentsNotifier extends Notifier<List<String>> {
-  /// Guards against the async initial load clobbering an early record().
-  bool _dirty = false;
-
   @override
-  List<String> build() {
-    _load();
-    return const [];
-  }
+  List<String> build() =>
+      ref.watch(settingsProvider).value?.launcherRecents ?? const [];
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!ref.mounted || _dirty) return;
-    final raw = prefs.getString(_recentsKey);
-    if (raw != null) {
-      try {
-        state = (jsonDecode(raw) as List).whereType<String>().toList();
-      } catch (_) {
-        // Corrupt stored value — keep the empty default.
-      }
-    }
-  }
-
+  /// Reads the current recents from the controller (the source of truth)
+  /// rather than this notifier's derived state, so consecutive records don't
+  /// race on a stale copy.
   Future<void> record(String id) async {
-    _dirty = true;
-    final next = [id, ...state.where((x) => x != id)].take(_cap).toList();
-    state = next;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_recentsKey, jsonEncode(next));
+    final settings = await ref.read(settingsProvider.future);
+    final next =
+        [id, ...settings.launcherRecents.where((x) => x != id)].take(_cap).toList();
+    await ref.read(settingsProvider.notifier).setLauncherRecents(next);
   }
 }
 

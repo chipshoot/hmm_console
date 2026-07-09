@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/settings/settings_controller.dart';
+import 'package:hmm_console/features/onboarding/providers/onboarding_provider.dart';
+import 'package:hmm_console/features/settings/providers/geo_capture_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -32,5 +34,18 @@ void main() {
 
     await c.read(cloudProviderProvider.notifier).setProvider(CloudProvider.onedrive);
     expect(c.read(cloudProviderProvider), CloudProvider.onedrive);
+  });
+
+  test('onboarding + geo-capture delegate to the controller', () async {
+    SharedPreferences.setMockInitialValues({});
+    final c = ProviderContainer();
+    addTearDown(c.dispose);
+    await c.read(settingsProvider.future);
+
+    await c.read(onboardingCompletedProvider.notifier).markCompleted();
+    expect(c.read(settingsProvider).value!.onboardingCompleted, true);
+
+    await c.read(geoCaptureEnabledProvider.notifier).setEnabled(true);
+    expect(c.read(settingsProvider).value!.geoCaptureEnabled, true);
   });
 }

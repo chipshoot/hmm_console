@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/settings/settings_controller.dart';
 import '../domain/receipt_draft.dart';
 import '../providers/receipt_extractor_providers.dart';
-
-/// SharedPreferences flag: has the user consented to uploading receipts for
-/// Cloud AI extraction? The consent sheet fires only until this is set.
-const _consentKey = 'receipt_cloud_consent';
 
 /// Settings control for the receipt-extraction preference. Selecting Cloud AI
 /// the first time shows a one-time consent sheet (the receipt is uploaded to
@@ -21,8 +17,8 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
     ReceiptExtractorMode mode,
   ) async {
     if (mode == ReceiptExtractorMode.cloudAi) {
-      final prefs = await SharedPreferences.getInstance();
-      final consented = prefs.getBool(_consentKey) ?? false;
+      final consented =
+          (await ref.read(settingsProvider.future)).receiptCloudConsent;
       if (!consented) {
         if (!context.mounted) return;
         final ok = await showDialog<bool>(
@@ -48,7 +44,7 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
           ),
         );
         if (ok != true) return;
-        await prefs.setBool(_consentKey, true);
+        await ref.read(settingsProvider.notifier).setReceiptCloudConsent(true);
       }
     }
     await ref.read(receiptExtractorModeProvider.notifier).setMode(mode);
