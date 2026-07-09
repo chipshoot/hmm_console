@@ -13,6 +13,8 @@ class ServiceRecord {
     required this.date,
     required this.mileage,
     required this.type,
+    this.name,
+    this.referenceNumber,
     this.description,
     this.cost,
     this.currency = 'CAD',
@@ -29,6 +31,8 @@ class ServiceRecord {
   final DateTime date;
   final int mileage;
   final ServiceType type;
+  final String? name;
+  final String? referenceNumber;
   final String? description;
   final double? cost;
   final String currency;
@@ -61,6 +65,8 @@ class ServiceRecord {
     DateTime? date,
     int? mileage,
     ServiceType? type,
+    String? name,
+    String? referenceNumber,
     String? description,
     double? cost,
     String? currency,
@@ -77,6 +83,8 @@ class ServiceRecord {
       date: date ?? this.date,
       mileage: mileage ?? this.mileage,
       type: type ?? this.type,
+      name: name ?? this.name,
+      referenceNumber: referenceNumber ?? this.referenceNumber,
       description: description ?? this.description,
       cost: cost ?? this.cost,
       currency: currency ?? this.currency,
