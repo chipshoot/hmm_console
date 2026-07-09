@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -253,10 +254,30 @@ class HmmDatabase extends _$HmmDatabase {
 
 const _dbPathKey = 'local_db_path';
 
+/// The custom DB path is a connection-critical device-local setting owned by
+/// the unified settings blob (`app_settings.localDbPath`). This runs before
+/// the Riverpod ProviderScope exists, so it decodes the blob from
+/// SharedPreferences directly — mirroring SettingsController's precedence:
+/// the blob wins; the retained legacy `local_db_path` key is the fallback
+/// when the blob is absent or corrupt.
+Future<String?> resolveCustomDbPath(SharedPreferences prefs) async {
+  final raw = prefs.getString('app_settings');
+  if (raw != null) {
+    try {
+      final path = (jsonDecode(raw) as Map<String, dynamic>)['localDbPath'];
+      return path is String && path.isNotEmpty ? path : null;
+    } catch (_) {
+      // Corrupt blob — fall through to the legacy key.
+    }
+  }
+  final legacy = prefs.getString(_dbPathKey);
+  return (legacy != null && legacy.isNotEmpty) ? legacy : null;
+}
+
 Future<String> _resolveDbPath() async {
   final prefs = await SharedPreferences.getInstance();
-  final customPath = prefs.getString(_dbPathKey);
-  if (customPath != null && customPath.isNotEmpty) {
+  final customPath = await resolveCustomDbPath(prefs);
+  if (customPath != null) {
     final dir = Directory(p.dirname(customPath));
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
@@ -276,9 +297,4 @@ final hmmDatabaseProvider = Provider<HmmDatabase>((ref) {
 Future<HmmDatabase> createHmmDatabase() async {
   final dbPath = await _resolveDbPath();
   return HmmDatabase(NativeDatabase(File(dbPath)));
-}
-
-Future<void> setDatabasePath(String path) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString(_dbPathKey, path);
 }

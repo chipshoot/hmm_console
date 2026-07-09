@@ -16,7 +16,7 @@ void main() {
     await c1.read(filterUsageProvider.notifier).record('AutomobileMan');
     await c1.read(filterUsageProvider.notifier).record('AutomobileMan');
     await c1.read(filterUsageProvider.notifier).record('General');
-    expect(c1.read(filterUsageProvider).value,
+    expect(await c1.read(filterUsageProvider.future),
         {'AutomobileMan': 2, 'General': 1});
     c1.dispose();
 

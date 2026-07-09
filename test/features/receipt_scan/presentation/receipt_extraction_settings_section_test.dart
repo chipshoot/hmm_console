@@ -26,9 +26,9 @@ void main() {
     await t.tap(find.text('Enable Cloud AI'));
     await t.pumpAndSettle();
 
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('receipt_extractor_mode'), 'cloudAi');
-    expect(prefs.getBool('receipt_cloud_consent'), true);
+    final blob = (await SharedPreferences.getInstance()).getString('app_settings')!;
+    expect(blob, contains('"receiptExtractorMode":"cloudAi"'));
+    expect(blob, contains('"receiptCloudConsent":true'));
   });
 
   testWidgets('cancelling consent leaves the mode unset (stays on-device)',
@@ -42,8 +42,9 @@ void main() {
     await t.tap(find.text('Cancel'));
     await t.pumpAndSettle();
 
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('receipt_extractor_mode'), isNull);
+    // Cancelled: the mode stays on-device in the settings blob.
+    final blob = (await SharedPreferences.getInstance()).getString('app_settings')!;
+    expect(blob, contains('"receiptExtractorMode":"onDevice"'));
   });
 
   testWidgets('after consent given, switching does not re-prompt', (t) async {
@@ -55,7 +56,7 @@ void main() {
     await t.pumpAndSettle();
 
     expect(find.text('Enable Cloud AI'), findsNothing);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('receipt_extractor_mode'), 'cloudAi');
+    final blob = (await SharedPreferences.getInstance()).getString('app_settings')!;
+    expect(blob, contains('"receiptExtractorMode":"cloudAi"'));
   });
 }

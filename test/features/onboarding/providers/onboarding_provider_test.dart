@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/settings/settings_controller.dart';
 import 'package:hmm_console/features/onboarding/providers/onboarding_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -72,8 +73,10 @@ void main() {
     await container.read(onboardingCompletedProvider.notifier).reset();
     expect(container.read(onboardingCompletedProvider), isFalse);
 
-    // Verify it was wiped from prefs, not just from in-memory state.
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getBool('onboarding_completed'), isNull);
+    // Persisted false in the settings blob (a fresh container sees false).
+    final container2 = makeContainer();
+    addTearDown(container2.dispose);
+    await container2.read(settingsProvider.future);
+    expect(container2.read(onboardingCompletedProvider), isFalse);
   });
 }

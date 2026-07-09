@@ -5,6 +5,7 @@ import 'package:hmm_console/core/network/api_client.dart';
 import 'package:hmm_console/features/receipt_scan/data/api_llm_extractor.dart';
 import 'package:hmm_console/features/receipt_scan/data/on_device_ocr_extractor.dart';
 import 'package:hmm_console/features/receipt_scan/domain/receipt_draft.dart';
+import 'package:hmm_console/core/settings/settings_controller.dart';
 import 'package:hmm_console/features/receipt_scan/providers/receipt_extractor_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,12 +24,17 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final c = ProviderContainer();
     addTearDown(c.dispose);
+    await c.read(settingsProvider.future);
     await c
         .read(receiptExtractorModeProvider.notifier)
         .setMode(ReceiptExtractorMode.cloudAi);
     expect(c.read(receiptExtractorModeProvider), ReceiptExtractorMode.cloudAi);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('receipt_extractor_mode'), 'cloudAi');
+
+    // Persisted in the settings blob: a fresh container observes it.
+    final c2 = ProviderContainer();
+    addTearDown(c2.dispose);
+    await c2.read(settingsProvider.future);
+    expect(c2.read(receiptExtractorModeProvider), ReceiptExtractorMode.cloudAi);
   });
 
   test('cloudAi mode returns the API extractor', () async {

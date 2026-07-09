@@ -1,15 +1,27 @@
-// Tests cover the cloudStorage vault-path persistence helpers added
-// in Phase 11.5. The full provider chain (vaultRootDirectoryProvider
-// → LocalVaultStore) depends on path_provider for the default fallback
-// and isn't a great fit for unit tests; integration coverage for the
-// resolution behavior lives in local_attachments_integration_test.
+// Tests cover the cloudStorage vault-path persistence, now owned by the
+// unified SettingsController (writes go through settingsProvider; the value
+// lives in the app_settings blob in SharedPreferences). The full provider
+// chain (vaultRootDirectoryProvider → LocalVaultStore) depends on
+// path_provider for the default fallback and isn't a great fit for unit
+// tests; integration coverage for the resolution behavior lives in
+// local_attachments_integration_test.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/vault/api_vault_store.dart';
+import 'package:hmm_console/core/settings/settings_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Persists a vault path through the controller (which writes the blob to
+/// SharedPreferences), so a fresh container observes it. Pass '' to clear.
+Future<void> _writeVaultPath(String value) async {
+  final c = ProviderContainer();
+  await c.read(settingsProvider.future);
+  await c.read(settingsProvider.notifier).setCloudStorageVaultPath(value);
+  c.dispose();
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +40,8 @@ void main() {
       );
     });
 
-    test('set + invalidate returns the new value', () async {
-      await setCloudStorageVaultPath('/Users/me/OneDrive/Hmm');
+    test('set returns the new value', () async {
+      await _writeVaultPath('/Users/me/OneDrive/Hmm');
 
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -39,21 +51,9 @@ void main() {
       );
     });
 
-    test('null clears the saved value', () async {
-      await setCloudStorageVaultPath('/somewhere');
-      await setCloudStorageVaultPath(null);
-
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      expect(
-        await container.read(cloudStorageVaultPathProvider.future),
-        isNull,
-      );
-    });
-
     test('empty string clears the saved value', () async {
-      await setCloudStorageVaultPath('/somewhere');
-      await setCloudStorageVaultPath('');
+      await _writeVaultPath('/somewhere');
+      await _writeVaultPath('');
 
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -63,11 +63,11 @@ void main() {
       );
     });
 
-    test('set is idempotent and observable across containers', () async {
-      await setCloudStorageVaultPath('/a/b/c');
+    test('set is observable across containers', () async {
+      await _writeVaultPath('/a/b/c');
 
-      // Two separate containers see the same value — backed by
-      // SharedPreferences, not in-memory state.
+      // Two separate containers see the same value — backed by the
+      // persisted app_settings blob, not in-memory state.
       final c1 = ProviderContainer();
       final c2 = ProviderContainer();
       addTearDown(c1.dispose);

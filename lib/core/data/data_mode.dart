@@ -1,9 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 
-import 'local/database.dart';
+import '../settings/settings_controller.dart';
 
 enum DataMode {
   local,
@@ -34,55 +33,25 @@ enum CloudProvider {
       };
 }
 
+/// Thin view over the unified settings. Preserves the public surface; the
+/// value + persistence live in [settingsProvider] / SettingsController.
 class DataModeNotifier extends Notifier<DataMode> {
-  static const _key = 'data_mode';
-
   @override
-  DataMode build() {
-    _loadFromPrefs();
-    return DataMode.local;
-  }
+  DataMode build() =>
+      ref.watch(settingsProvider).value?.dataMode ?? DataMode.local;
 
-  Future<void> _loadFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(_key);
-    state = switch (stored) {
-      'cloudStorage' => DataMode.cloudStorage,
-      // Backward compat: legacy 'api' value maps to the new cloudApi mode.
-      'cloudApi' || 'api' => DataMode.cloudApi,
-      _ => DataMode.local,
-    };
-  }
-
-  Future<void> setMode(DataMode mode) async {
-    state = mode;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, mode.name);
-  }
+  Future<void> setMode(DataMode mode) =>
+      ref.read(settingsProvider.notifier).setDataMode(mode);
 }
 
 class CloudProviderNotifier extends Notifier<CloudProvider> {
-  static const _key = 'cloud_provider';
-
   @override
-  CloudProvider build() {
-    _loadFromPrefs();
-    return CloudProvider.onedrive;
-  }
+  CloudProvider build() =>
+      ref.watch(settingsProvider).value?.cloudProvider ??
+      CloudProvider.onedrive;
 
-  Future<void> _loadFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(_key);
-    if (stored == CloudProvider.onedrive.name) {
-      state = CloudProvider.onedrive;
-    }
-  }
-
-  Future<void> setProvider(CloudProvider provider) async {
-    state = provider;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, provider.name);
-  }
+  Future<void> setProvider(CloudProvider provider) =>
+      ref.read(settingsProvider.notifier).setCloudProvider(provider);
 }
 
 final dataModeProvider = NotifierProvider<DataModeNotifier, DataMode>(
@@ -95,13 +64,8 @@ final cloudProviderProvider =
 );
 
 final databasePathProvider = FutureProvider<String>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
-  final customPath = prefs.getString('local_db_path');
+  final customPath = ref.watch(settingsProvider).value?.localDbPath;
   if (customPath != null && customPath.isNotEmpty) return customPath;
   final appDir = await getApplicationDocumentsDirectory();
   return p.join(appDir.path, 'hmm.db');
 });
-
-Future<void> updateDatabasePath(String newPath) async {
-  await setDatabasePath(newPath);
-}

@@ -1,33 +1,27 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/settings/settings_controller.dart';
 
 /// Tracks how often the user filters the notes list by each domain, persisted
 /// across launches. Drives the order of the inline quick-filter chips so the
 /// most-used domains float to the front.
 ///
-/// State is `domainKey -> tap count`. Empty until the user filters; callers
-/// fall back to a sensible default order (e.g. note count) while it's empty.
+/// State is `domainKey -> tap count`. Value + persistence live in the unified
+/// SettingsController.
 class FilterUsageNotifier extends AsyncNotifier<Map<String, int>> {
-  static const _prefsKey = 'notes.filter_usage';
-
   @override
-  Future<Map<String, int>> build() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_prefsKey);
-    if (raw == null || raw.isEmpty) return {};
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    return decoded.map((k, v) => MapEntry(k, (v as num).toInt()));
-  }
+  Future<Map<String, int>> build() async =>
+      (await ref.watch(settingsProvider.future)).notesFilterUsage;
 
-  /// Increment the usage count for [domainKey] and persist.
+  /// Increment the usage count for [domainKey] and persist. Reads the current
+  /// value from the controller (the source of truth) rather than this
+  /// notifier's derived state, so rapid consecutive records don't race on a
+  /// stale copy.
   Future<void> record(String domainKey) async {
-    final current = Map<String, int>.from(state.value ?? const {});
+    final settings = await ref.read(settingsProvider.future);
+    final current = Map<String, int>.from(settings.notesFilterUsage);
     current[domainKey] = (current[domainKey] ?? 0) + 1;
-    state = AsyncData(current);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, jsonEncode(current));
+    await ref.read(settingsProvider.notifier).setNotesFilterUsage(current);
   }
 }
 
