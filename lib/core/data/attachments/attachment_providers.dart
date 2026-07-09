@@ -21,9 +21,9 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data_mode.dart';
+import '../../settings/settings_controller.dart';
 import 'picker/image_attachment_picker.dart';
 import 'picker/image_downsizer.dart';
 import 'resolver/attachment_resolver.dart';
@@ -31,34 +31,22 @@ import '../vault/api_vault_store.dart';
 import '../vault/local_vault_store.dart';
 import '../vault/vault_store.dart';
 
-/// SharedPreferences key for the user's chosen cloudStorage vault
-/// folder. Stored as an absolute filesystem path; the store appends
-/// `vault/` itself.
-const _vaultPathKey = 'cloud_storage_vault_path';
-
-/// Persisted path of the user's cloudStorage vault folder, or null
-/// if unset. The store appends `vault/` to whatever the user picks.
-Future<String?> _readConfiguredVaultPath() async {
-  final prefs = await SharedPreferences.getInstance();
-  final v = prefs.getString(_vaultPathKey);
+/// The user's chosen cloudStorage vault folder from the unified settings,
+/// or null if unset/empty. The store appends `vault/` to whatever the user
+/// picks. Persistence lives in SettingsController
+/// (`cloudStorageVaultPath`); writes go through
+/// `settingsProvider.notifier.setCloudStorageVaultPath(path)` — pass `''` to
+/// clear.
+Future<String?> _readConfiguredVaultPath(Ref ref) async {
+  final v = (await ref.watch(settingsProvider.future)).cloudStorageVaultPath;
   if (v == null || v.isEmpty) return null;
   return v;
 }
 
-/// Persist a user-chosen vault folder path (or clear by passing null).
-Future<void> setCloudStorageVaultPath(String? newPath) async {
-  final prefs = await SharedPreferences.getInstance();
-  if (newPath == null || newPath.isEmpty) {
-    await prefs.remove(_vaultPathKey);
-  } else {
-    await prefs.setString(_vaultPathKey, newPath);
-  }
-}
-
-/// Reactive view of the persisted vault folder path (null if unset).
+/// Reactive view of the configured vault folder path (null if unset).
 /// Used by Settings UI to display + edit the current value.
 final cloudStorageVaultPathProvider =
-    FutureProvider<String?>((ref) => _readConfiguredVaultPath());
+    FutureProvider<String?>((ref) => _readConfiguredVaultPath(ref));
 
 /// Resolves the on-disk vault root for the current tier.
 final vaultRootDirectoryProvider = FutureProvider<Directory>((ref) async {
@@ -73,7 +61,7 @@ final vaultRootDirectoryProvider = FutureProvider<Directory>((ref) async {
       // phase. Note JSON still syncs via the API path.
       if (Platform.isIOS) return _appDocsVault();
 
-      final configured = await _readConfiguredVaultPath();
+      final configured = await _readConfiguredVaultPath(ref);
       if (configured == null) {
         // Not yet configured — fall back to app docs so the app
         // remains usable. The Settings UI prompts the user to point

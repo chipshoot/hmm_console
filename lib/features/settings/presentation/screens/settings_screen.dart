@@ -16,6 +16,7 @@ import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/onedrive_config.dart';
 import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/i18n/locale_provider.dart';
+import '../../../../core/settings/settings_controller.dart';
 import '../../../receipt_scan/presentation/receipt_extraction_settings_section.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../widgets/sync_status_card.dart';
@@ -37,7 +38,7 @@ class SettingsScreen extends ConsumerWidget {
     if (result == null) return;
 
     final newPath = p.join(result, 'hmm.db');
-    await updateDatabasePath(newPath);
+    await ref.read(settingsProvider.notifier).setLocalDbPath(newPath);
     ref.invalidate(databasePathProvider);
 
     if (context.mounted) {
@@ -50,7 +51,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _resetToDefault(BuildContext context, WidgetRef ref) async {
-    await updateDatabasePath('');
+    await ref.read(settingsProvider.notifier).setLocalDbPath('');
     ref.invalidate(databasePathProvider);
 
     if (context.mounted) {
@@ -66,7 +67,7 @@ class SettingsScreen extends ConsumerWidget {
     );
     if (result == null) return;
 
-    await setCloudStorageVaultPath(result);
+    await ref.read(settingsProvider.notifier).setCloudStorageVaultPath(result);
     ref.invalidate(cloudStorageVaultPathProvider);
     // The vault root + every downstream provider (store, resolver,
     // picker) reads from this; invalidate so they pick up the change.
@@ -87,7 +88,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _resetVaultFolder(BuildContext context, WidgetRef ref) async {
-    await setCloudStorageVaultPath(null);
+    await ref.read(settingsProvider.notifier).setCloudStorageVaultPath('');
     ref.invalidate(cloudStorageVaultPathProvider);
     ref.invalidate(vaultRootDirectoryProvider);
     ref.invalidate(vaultStoreProvider);
