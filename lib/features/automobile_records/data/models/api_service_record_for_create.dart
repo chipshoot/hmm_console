@@ -5,6 +5,8 @@ class ApiServiceRecordForCreate {
     required this.date,
     required this.mileage,
     required this.type,
+    this.name,
+    this.referenceNumber,
     this.description,
     this.cost,
     this.tax,
@@ -17,6 +19,8 @@ class ApiServiceRecordForCreate {
   final DateTime date;
   final int mileage;
   final String type;
+  final String? name;
+  final String? referenceNumber;
   final String? description;
   final double? cost;
   final double? tax;
@@ -29,6 +33,8 @@ class ApiServiceRecordForCreate {
         'date': date.toUtc().toIso8601String(),
         'mileage': mileage,
         'type': type,
+        if (name != null) 'name': name,
+        if (referenceNumber != null) 'referenceNumber': referenceNumber,
         if (description != null) 'description': description,
         if (cost != null) 'cost': cost,
         if (tax != null) 'tax': tax,

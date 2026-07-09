@@ -8,6 +8,32 @@ import 'package:hmm_console/features/automobile_records/domain/entities/service_
 import 'package:hmm_console/features/automobile_records/domain/entities/service_type.dart';
 
 void main() {
+  test('maps name + referenceNumber to create and back from api', () {
+    final r = ServiceRecord(
+        id: 1,
+        automobileId: 2,
+        date: DateTime(2026),
+        mileage: 50,
+        type: ServiceType.oilChange,
+        name: 'Service A',
+        referenceNumber: 'SO#1');
+    final create = AutomobileRecordsApiMapper.serviceToCreate(r);
+    expect(create.toJson()['name'], 'Service A');
+    expect(create.toJson()['referenceNumber'], 'SO#1');
+
+    final api = ApiServiceRecord(
+        id: 1,
+        automobileId: 2,
+        date: DateTime(2026),
+        mileage: 50,
+        type: 'OilChange',
+        name: 'Service A',
+        referenceNumber: 'SO#1');
+    final back = AutomobileRecordsApiMapper.serviceFromApi(api);
+    expect(back.name, 'Service A');
+    expect(back.referenceNumber, 'SO#1');
+  });
+
   test('serviceToCreate carries item type + tax to the DTO', () {
     final dto = AutomobileRecordsApiMapper.serviceToCreate(ServiceRecord(
       id: 0, automobileId: 1, date: DateTime(2026), mileage: 1,
