@@ -7,10 +7,10 @@
 ## Problem
 
 Device-local configuration is read/written directly from `SharedPreferences`
-in ~12 scattered places across features (`data_mode`, `cloud_provider`,
-`geo_capture_enabled`, `receipt_extractor_mode`, launcher recents, notes
-filter usage, dashboard intro card, onboarding, sync network policy, local db
-path, cloudStorage vault path). There is no single typed representation, no
+in ~11 scattered places across features (`data_mode`, `cloud_provider`,
+`geo_capture_enabled`, `receipt_extractor_mode`, receipt cloud consent,
+launcher recents, notes filter usage, dashboard intro card, onboarding, local
+db path, cloudStorage vault path). There is no single typed representation, no
 central persistence owner, and no schema/versioning. The goal is one central,
 typed configuration surface — the "settings.json" model — without
 destabilizing the two tiers that already work (roaming preferences and
@@ -92,14 +92,17 @@ no roaming counterpart**, so the sync layer stays stable.
 | `notesFilterUsage` | `notes.filter_usage` | map<string,int> |
 | `dashboardIntroCardSeen` | `dashboard_intro_card_seen` | bool |
 | `onboardingCompleted` | `onboarding_completed` | bool |
-| `syncNetworkPolicy` | `sync.network_policy` | enum/string |
 | `localDbPath` | `local_db_path` | string? |
 | `cloudStorageVaultPath` | cloudStorage vault path key | string? |
 
 **Excluded (stay in the roaming tier — moving them would destabilize sync):**
 - `app_locale` — locale roams via `SyncableSettings.localeCode`.
 - Launcher **favorites/aliases** — roam via `SyncableSettings.launcher`.
-- Gas-log settings, sync settings — roam via `SyncableSettings`.
+- Gas-log settings — roam via `SyncableSettings.gasLog`.
+- **Sync network policy** (`sync.network_policy`) — despite its local pref, it
+  roams via `SyncableSettings.syncSettings.networkPolicy` (verified in
+  `syncable_settings.dart` `toJson`). It stays entirely in the
+  `SyncSettingsNotifier` / roaming tier, exactly like locale's dual storage.
 
 The exact legacy key strings and enum/serialization details are read from the
 current provider files during implementation; each field's default matches the
@@ -136,9 +139,11 @@ current provider's default.
   - `lib/features/notes/states/filter_usage.dart`
   - `lib/features/dashboard/providers/intro_card_provider.dart`
   - `lib/features/onboarding/providers/onboarding_provider.dart`
-  - `lib/features/settings/providers/sync_settings_provider.dart` (network
-    policy only — the roaming `SyncSettings` is untouched)
-  - the `local_db_path` and cloudStorage vault-path owners
+  - the receipt cloud-AI consent owner
+    (`receipt_extraction_settings_section.dart`, key `receipt_cloud_consent`)
+  - the `local_db_path` owner (`data_mode.dart` `databasePathProvider`) and the
+    cloudStorage vault-path owner (`attachment_providers.dart`,
+    `cloud_storage_vault_path`)
 
   Each keeps its provider name/type and method signatures; reads become
   `ref.watch(settingsProvider.select((s) => s.<field>))` and writes call
