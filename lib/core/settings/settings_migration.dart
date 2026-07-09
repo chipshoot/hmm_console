@@ -40,7 +40,10 @@ AppSettings migrateFromLegacy(SharedPreferences prefs) {
 
   return AppSettings(
     dataMode: dataMode,
-    cloudProvider: CloudProvider.onedrive,
+    cloudProvider: CloudProvider.values.firstWhere(
+      (c) => c.name == prefs.getString('cloud_provider'),
+      orElse: () => CloudProvider.onedrive,
+    ),
     geoCaptureEnabled: prefs.getBool('geo_capture_enabled') ?? false,
     receiptExtractorMode: ReceiptExtractorMode.fromWire(
         prefs.getString('receipt_extractor_mode')),

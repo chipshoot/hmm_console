@@ -51,7 +51,10 @@ class AppSettings {
         const <String, int>{};
     return AppSettings(
       dataMode: dataMode(),
-      cloudProvider: CloudProvider.onedrive,
+      cloudProvider: CloudProvider.values.firstWhere(
+        (c) => c.name == j['cloudProvider'],
+        orElse: () => CloudProvider.onedrive,
+      ),
       geoCaptureEnabled: j['geoCaptureEnabled'] as bool? ?? false,
       receiptExtractorMode:
           ReceiptExtractorMode.fromWire(j['receiptExtractorMode'] as String?),

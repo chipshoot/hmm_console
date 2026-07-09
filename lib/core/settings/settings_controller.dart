@@ -30,8 +30,11 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       debugPrint('SettingsController: corrupt app_settings blob ($e); '
           'falling back to legacy keys.');
       // Legacy keys are retained this release: recover connection-critical
-      // (and everything else) rather than dropping to blind defaults.
-      return migrateFromLegacy(prefs);
+      // (and everything else) rather than dropping to blind defaults, then
+      // heal the blob so we don't re-hit this every launch.
+      final recovered = migrateFromLegacy(prefs);
+      await _persist(prefs, recovered);
+      return recovered;
     }
   }
 
