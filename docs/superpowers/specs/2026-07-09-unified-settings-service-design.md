@@ -36,8 +36,9 @@ The three configuration tiers stay distinct:
 - `AppSettings` immutable model + JSON (de)serialization + `schemaVersion`.
 - `SettingsController` (`Notifier<AppSettings>`) as the single persistence
   owner (one `SharedPreferences` key: `app_settings`).
-- One-time migration of the legacy device-local keys into the blob, then
-  removal of the legacy keys.
+- One-time migration of the legacy device-local keys into the blob. Legacy
+  keys are **retained** this release as a safety net (removal deferred to a
+  later release).
 - Re-pointing the existing device-local providers to read/write through the
   controller while preserving their public surfaces.
 
@@ -47,6 +48,31 @@ The three configuration tiers stay distinct:
   UI.
 - Moving any secret into the blob (never).
 - Migrating call sites off the per-setting providers (a later cleanup).
+
+## System-level impact (analysis)
+
+A scan of both `hmm` (backend/IdP) and `hmm_console` (client) confirms this
+change is **client-only**:
+
+- **Backend API — no impact.** Roaming settings sync via
+  `GET/PUT /v1/profile/settings`, backed by `AuthorSettings.SettingsJson`,
+  which the server stores **verbatim as opaque text** (never parsed). The
+  roaming payload (`SyncableSettings.toJson`) carries only `gasLog`,
+  `syncSettings`, `localeCode`, `launcher` — none of the device-local keys.
+  No DTO/controller/schema change.
+- **Backend IdP — no impact.** `Hmm.Idp` is identity/auth only; no
+  user-settings storage.
+- **Multi-device — no impact, correct by design.** Device-local settings are
+  intentionally per-device and never sync; each device configures its own
+  connection to the shared cloud location. Roaming happens only through the
+  untouched `SyncableSettings` path.
+
+**Connection-critical fields.** Three device-local settings *define which
+backend a device talks to*: `dataMode`, `cloudProvider`, and
+`cloudStorageVaultPath`. Losing or defaulting any of these silently reverts a
+device to the `local` store, so it *appears* to lose cloud data (the data is
+safe server-side / in OneDrive — the device is just reading the wrong store).
+These fields get extra care in migration and error handling below.
 
 ## The boundary — what belongs in `AppSettings`
 
@@ -95,8 +121,10 @@ current provider's default.
   writes, so there is no blob race.
 - **`lib/core/settings/settings_migration.dart`** — pure-ish helper:
   `AppSettings migrateFromLegacy(SharedPreferences)` reads each legacy key
-  into an `AppSettings`; the controller then writes the blob and removes the
-  legacy keys. Guarded so it runs once (only when no blob exists). Keyed off
+  into an `AppSettings`; the controller then writes the blob. Legacy keys are
+  **retained** this release (removal deferred), and `migrateFromLegacy`
+  doubles as the fallback source for connection-critical fields on a corrupt
+  blob. Guarded so it runs once (only when no blob exists). Keyed off
   `schemaVersion` for future migrations.
 - **Delegating providers** (public surface preserved; internals re-pointed to
   the controller):
@@ -134,16 +162,24 @@ Write: ref.read(dataModeProvider.notifier).setMode(x)
 On first `SettingsController` build after the update:
 1. If `app_settings` blob exists → decode and use it (skip migration).
 2. Else read the legacy keys via `migrateFromLegacy`, build `AppSettings`
-   (missing keys → defaults), write the blob, then `remove` each legacy key.
+   (missing keys → defaults), and write the blob.
 3. Set `schemaVersion` to the current version.
 
-Idempotent: once the blob exists, migration never runs again. Old keys are
-removed so there is a single source of truth.
+**Legacy keys are NOT deleted in this release** (refinement #1). They are
+left in place for one release as a reversible safety net, and
+`migrateFromLegacy` remains available as a fallback source for the
+connection-critical fields (below). A later release removes them once the
+blob is proven in the field. Migration is still idempotent — once the blob
+exists it is the source of truth and migration does not re-run.
 
 ## Error handling
 
-- Corrupt / undecodable blob → log and fall back to `AppSettings.defaults`;
-  never crash.
+- Corrupt / undecodable blob → log; fall back to `AppSettings.defaults` for
+  ordinary fields, but for the **connection-critical fields** (`dataMode`,
+  `cloudProvider`, `cloudStorageVaultPath`) prefer, in order: any value still
+  decodable from the partial blob → the legacy keys (still present this
+  release) → only then the default (refinement #2). This prevents a corrupt
+  blob from silently dropping a device to the `local` store. Never crash.
 - Missing legacy key during migration → that field's default.
 - Persist failure (`setString` throws) → keep the in-memory value, log;
   the next successful write reconciles.
@@ -154,9 +190,17 @@ removed so there is a single source of truth.
 
 - **`AppSettings`**: `fromJson`/`toJson` round-trip; `defaults`; unknown-key
   tolerance; missing-key defaults; `copyWith` per field.
-- **Migration**: legacy keys set → correct `AppSettings` and old keys removed;
-  blob present → migration skipped; partial legacy keys → defaults for the
-  rest.
+- **Migration**: legacy keys set → correct `AppSettings`; legacy keys are
+  **retained** (not deleted) this release; blob present → migration skipped;
+  partial legacy keys → defaults for the rest.
+- **Connection-critical migration matrix** (refinement #3): a table-driven
+  test that every legacy value of `dataMode`, `cloudProvider`, and
+  `cloudStorageVaultPath` round-trips into the blob and back unchanged
+  (e.g. `data_mode` = each of `local`/`cloudStorage`/`cloudApi`/legacy `api`,
+  a set `cloud_provider`, and a non-null vault path).
+- **Corrupt-blob connection-critical fallback**: a decode-failure blob with
+  legacy keys still present yields the legacy `dataMode`/`cloudProvider`/
+  `cloudStorageVaultPath`, not the defaults.
 - **`SettingsController`**: empty prefs → defaults; a `setX` persists the blob
   and re-emits; corrupt blob → defaults without throwing.
 - **Delegating providers** (representative — `DataMode` and one bool, e.g.
@@ -167,4 +211,6 @@ removed so there is a single source of truth.
 
 Single client change, additive and backward-compatible: on first launch after
 the update, existing users' scattered keys migrate into the blob transparently
-(no data loss, no re-onboarding). No backend or device-pairing involvement.
+(no data loss, no re-onboarding). Legacy keys are retained this release as a
+reversible safety net; a later release deletes them once the blob is proven.
+No backend, IdP, or device-pairing involvement (see System-level impact).
