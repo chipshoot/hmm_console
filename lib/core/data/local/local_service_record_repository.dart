@@ -57,7 +57,7 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       automobileId: autoId,
       date: r.date,
       mileage: r.mileage,
-      type: r.type,
+      types: r.types,
       name: r.name,
       referenceNumber: r.referenceNumber,
       description: r.description,
@@ -89,7 +89,7 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       automobileId: autoId,
       date: r.date,
       mileage: r.mileage,
-      type: r.type,
+      types: r.types,
       name: r.name,
       referenceNumber: r.referenceNumber,
       description: r.description,
@@ -125,7 +125,7 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
 
   String _subjectFor(ServiceRecord r) {
     final d = r.date.toIso8601String().substring(0, 10);
-    return '${r.type.displayName} • $d • ${r.mileage} mi';
+    return '${r.primaryType.displayName} • $d • ${r.mileage} mi';
   }
 
   String _serialize(ServiceRecord r) {
@@ -133,7 +133,7 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       'automobileId': r.automobileId,
       'date': r.date.toUtc().toIso8601String(),
       'mileage': r.mileage,
-      'type': r.type.wireValue,
+      'types': r.types.map((t) => t.wireValue).toList(),
       if (r.name != null) 'name': r.name,
       if (r.referenceNumber != null) 'referenceNumber': r.referenceNumber,
       if (r.description != null) 'description': r.description,
@@ -180,7 +180,16 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
             body['automobileId'] as int? ?? note.parentNoteId ?? 0,
         date: DateTime.parse(body['date'] as String),
         mileage: body['mileage'] as int? ?? 0,
-        type: ServiceType.fromWire(body['type'] as String?),
+        types: () {
+          final raw = body['types'] as List<dynamic>?;
+          if (raw != null) {
+            return raw
+                .map((e) => ServiceType.fromWire(e as String?))
+                .toList();
+          }
+          // Legacy payload: a single scalar "type" (fromWire(null) -> other).
+          return [ServiceType.fromWire(body['type'] as String?)];
+        }(),
         name: body['name'] as String?,
         referenceNumber: body['referenceNumber'] as String?,
         description: body['description'] as String?,
