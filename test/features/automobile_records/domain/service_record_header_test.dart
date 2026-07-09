@@ -8,7 +8,7 @@ void main() {
       automobileId: 2,
       date: DateTime(2026),
       mileage: 50,
-      type: ServiceType.oilChange);
+      types: const [ServiceType.oilChange]);
 
   test('carries name and referenceNumber (null by default)', () {
     expect(base().name, isNull);
@@ -18,7 +18,7 @@ void main() {
         automobileId: 2,
         date: DateTime(2026),
         mileage: 50,
-        type: ServiceType.oilChange,
+        types: const [ServiceType.oilChange],
         name: 'Service A',
         referenceNumber: 'SO#952333');
     expect(r.name, 'Service A');
@@ -29,6 +29,17 @@ void main() {
     final r = base().copyWith(name: 'Service B', referenceNumber: 'X1');
     expect(r.name, 'Service B');
     expect(r.referenceNumber, 'X1');
-    expect(r.type, ServiceType.oilChange);
+    expect(r.primaryType, ServiceType.oilChange);
+  });
+
+  test('types list with primaryType', () {
+    final r = ServiceRecord(
+        id: 1,
+        automobileId: 2,
+        date: DateTime(2026),
+        mileage: 50,
+        types: const [ServiceType.oilChange, ServiceType.inspection]);
+    expect(r.types, [ServiceType.oilChange, ServiceType.inspection]);
+    expect(r.primaryType, ServiceType.oilChange);
   });
 }
