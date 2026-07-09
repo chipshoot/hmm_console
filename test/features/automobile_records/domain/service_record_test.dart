@@ -8,7 +8,7 @@ ServiceRecord _record() => ServiceRecord(
       automobileId: 7,
       date: DateTime(2026, 1, 2),
       mileage: 100,
-      type: ServiceType.oilChange,
+      types: const [ServiceType.oilChange],
     );
 
 void main() {
@@ -28,7 +28,7 @@ void main() {
     expect(updated.attachments.images, [ref]);
     expect(updated.id, 1);
     expect(updated.mileage, 100);
-    expect(updated.type, ServiceType.oilChange);
+    expect(updated.primaryType, ServiceType.oilChange);
   });
 
   test('copyWith without args is an equal-valued copy', () {

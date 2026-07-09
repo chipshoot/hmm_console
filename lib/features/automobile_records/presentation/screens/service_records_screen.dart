@@ -118,7 +118,7 @@ class _ServiceRecordsScreenState
       builder: (ctx) => AlertDialog(
         title: const Text('Delete service record?'),
         content: Text(
-            'Delete ${r.type.displayName} on ${DateFormat.yMMMd().format(r.date)}?'),
+            'Delete ${r.primaryType.displayName} on ${DateFormat.yMMMd().format(r.date)}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -156,7 +156,7 @@ class _ServiceTile extends StatelessWidget {
         title: Text(
           (record.name != null && record.name!.isNotEmpty)
               ? record.name!
-              : record.type.displayName,
+              : record.types.map((t) => t.displayName).join(', '),
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Column(

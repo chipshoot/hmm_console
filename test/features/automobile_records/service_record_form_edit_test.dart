@@ -44,7 +44,7 @@ void main() {
       automobileId: 7,
       date: DateTime(2026),
       mileage: 50,
-      type: ServiceType.oilChange,
+      types: const [ServiceType.oilChange],
       name: 'Service A',
       referenceNumber: 'SO#952333',
       parts: const [

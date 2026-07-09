@@ -149,7 +149,7 @@ class _ServiceSummaryCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Last: ${latest.type.displayName}',
+                'Last: ${latest.types.map((t) => t.displayName).join(', ')}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               Text(

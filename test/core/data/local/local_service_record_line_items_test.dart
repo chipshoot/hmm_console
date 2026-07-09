@@ -44,7 +44,7 @@ void main() {
   test('typed line items + tax survive create -> read', () async {
     final created = await repo.createRecord(autoId, ServiceRecord(
       id: 0, automobileId: autoId, date: DateTime(2026), mileage: 100,
-      type: ServiceType.oilChange, tax: 5.0,
+      types: const [ServiceType.oilChange], tax: 5.0,
       parts: const [
         PartItem(type: LineItemType.labour, name: 'L', quantity: 1, unitCost: 10.0),
         PartItem(type: LineItemType.fee, name: 'Env', quantity: 1, unitCost: 1.5),

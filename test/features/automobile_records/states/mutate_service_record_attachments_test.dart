@@ -146,7 +146,7 @@ void main() {
       automobileId: autoId,
       date: DateTime(2026),
       mileage: 50,
-      type: ServiceType.oilChange);
+      types: const [ServiceType.oilChange]);
 
   test('new record persists pending image + pdf as VaultRefs', () async {
     final c = await container();
@@ -182,7 +182,7 @@ void main() {
       automobileId: autoId,
       date: DateTime(2026),
       mileage: 50,
-      type: ServiceType.oilChange,
+      types: const [ServiceType.oilChange],
       parts: const [
         PartItem(
             type: LineItemType.part,

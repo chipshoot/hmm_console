@@ -29,7 +29,6 @@ import '../../states/_records_automobile_id_provider.dart';
 import '../../states/mutate_service_record_state.dart';
 import '../widgets/optional_date_picker.dart';
 import '../widgets/service_line_items_editor.dart';
-import '../widgets/service_type_dropdown.dart';
 
 class ServiceRecordFormScreen extends ConsumerStatefulWidget {
   const ServiceRecordFormScreen({
@@ -57,7 +56,7 @@ class _ServiceRecordFormScreenState
   final _notesCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _refCtrl = TextEditingController();
-  ServiceType _type = ServiceType.oilChange;
+  List<ServiceType> _types = [ServiceType.oilChange];
   DateTime? _date;
   final String _currency = 'CAD';
   List<PartItem> _items = const [];
@@ -100,7 +99,8 @@ class _ServiceRecordFormScreenState
       _notesCtrl.text = record.notes ?? '';
       _nameCtrl.text = record.name ?? '';
       _refCtrl.text = record.referenceNumber ?? '';
-      _type = record.type;
+      _types =
+          record.types.isEmpty ? [ServiceType.other] : List.of(record.types);
       _date = record.date;
       _items = [...record.parts];
       // Force the line-items editor to rebuild with the loaded parts. It
@@ -196,9 +196,30 @@ class _ServiceRecordFormScreenState
                       ],
                     ),
                     const SizedBox(height: 16),
-                    ServiceTypeDropdown(
-                      value: _type,
-                      onChanged: (v) => setState(() => _type = v),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Service types',
+                          style: Theme.of(context).textTheme.labelLarge),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final t in ServiceType.values)
+                          FilterChip(
+                            label: Text(t.displayName),
+                            selected: _types.contains(t),
+                            onSelected: (on) => setState(() {
+                              if (on) {
+                                if (!_types.contains(t)) _types.add(t);
+                              } else if (_types.length > 1) {
+                                // Keep at least one category selected.
+                                _types.remove(t);
+                              }
+                            }),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     AppTextFormField(
@@ -330,7 +351,7 @@ class _ServiceRecordFormScreenState
         shopName: _shopCtrl.text.trim().isEmpty ? null : _shopCtrl.text.trim(),
         date: _date,
         mileage: int.tryParse(_mileageCtrl.text),
-        type: _type,
+        type: _types.first,
         tax: _tax,
         currency: _currency,
         items: _items,
@@ -410,7 +431,9 @@ class _ServiceRecordFormScreenState
           if (v.shopName != null) _shopCtrl.text = v.shopName!;
           if (v.date != null) _date = v.date;
           if (v.mileage != null) _mileageCtrl.text = v.mileage!.toString();
-          if (v.type != null) _type = v.type!;
+          if (v.type != null && !_types.contains(v.type)) {
+            _types = [..._types, v.type!];
+          }
           _tax = v.tax;
           _items = v.items;
           _itemsSeed++;
@@ -468,7 +491,7 @@ class _ServiceRecordFormScreenState
       automobileId: widget.automobileId,
       date: _date!,
       mileage: int.parse(_mileageCtrl.text),
-      type: _type,
+      types: _types,
       name: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
       referenceNumber:
           _refCtrl.text.trim().isEmpty ? null : _refCtrl.text.trim(),

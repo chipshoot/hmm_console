@@ -60,7 +60,7 @@ void main() {
       automobileId: autoId,
       date: DateTime(2026),
       mileage: 100,
-      type: ServiceType.oilChange,
+      types: const [ServiceType.oilChange],
       attachments: attachments);
 
   test('create without attachments leaves the column null', () async {
