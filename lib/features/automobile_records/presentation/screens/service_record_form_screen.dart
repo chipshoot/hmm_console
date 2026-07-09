@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -54,6 +55,8 @@ class _ServiceRecordFormScreenState
   final _descriptionCtrl = TextEditingController();
   final _shopCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _refCtrl = TextEditingController();
   ServiceType _type = ServiceType.oilChange;
   DateTime? _date;
   final String _currency = 'CAD';
@@ -95,6 +98,8 @@ class _ServiceRecordFormScreenState
       _descriptionCtrl.text = record.description ?? '';
       _shopCtrl.text = record.shopName ?? '';
       _notesCtrl.text = record.notes ?? '';
+      _nameCtrl.text = record.name ?? '';
+      _refCtrl.text = record.referenceNumber ?? '';
       _type = record.type;
       _date = record.date;
       _items = [...record.parts];
@@ -119,6 +124,8 @@ class _ServiceRecordFormScreenState
     _descriptionCtrl.dispose();
     _shopCtrl.dispose();
     _notesCtrl.dispose();
+    _nameCtrl.dispose();
+    _refCtrl.dispose();
     super.dispose();
   }
 
@@ -159,6 +166,18 @@ class _ServiceRecordFormScreenState
                       mode: ref.watch(receiptExtractorModeProvider),
                       scanning: _scanning,
                       onTap: _scanning ? null : _showScanSheet,
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextFormField(
+                      fieldController: _nameCtrl,
+                      fieldValidator: (_) => null,
+                      label: 'Service name',
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextFormField(
+                      fieldController: _refCtrl,
+                      fieldValidator: (_) => null,
+                      label: 'Reference # (optional)',
                     ),
                     const SizedBox(height: 16),
                     OptionalDatePicker(
@@ -208,7 +227,18 @@ class _ServiceRecordFormScreenState
                       fieldController: _notesCtrl,
                       fieldValidator: (_) => null,
                       label: 'Notes',
+                      helperText: 'Supports markdown',
+                      onChanged: (_) => setState(() {}),
                     ),
+                    if (_notesCtrl.text.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Preview',
+                            style: Theme.of(context).textTheme.labelSmall),
+                      ),
+                      MarkdownBody(data: _notesCtrl.text),
+                    ],
                     if (ref.watch(dataModeProvider) != DataMode.cloudApi) ...[
                       const SizedBox(height: 16),
                       AttachmentsSection(
@@ -439,6 +469,9 @@ class _ServiceRecordFormScreenState
       date: _date!,
       mileage: int.parse(_mileageCtrl.text),
       type: _type,
+      name: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
+      referenceNumber:
+          _refCtrl.text.trim().isEmpty ? null : _refCtrl.text.trim(),
       description: _descriptionCtrl.text.trim().isEmpty
           ? null
           : _descriptionCtrl.text.trim(),

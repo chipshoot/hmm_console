@@ -154,7 +154,9 @@ class _ServiceTile extends StatelessWidget {
       child: ListTile(
         leading: const Icon(Icons.build_outlined),
         title: Text(
-          record.type.displayName,
+          (record.name != null && record.name!.isNotEmpty)
+              ? record.name!
+              : record.type.displayName,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Column(
