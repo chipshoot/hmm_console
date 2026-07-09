@@ -14,7 +14,7 @@ void main() {
         automobileId: 2,
         date: DateTime(2026),
         mileage: 50,
-        type: ServiceType.oilChange,
+        types: const [ServiceType.oilChange],
         name: 'Service A',
         referenceNumber: 'SO#1');
     final create = AutomobileRecordsApiMapper.serviceToCreate(r);
@@ -34,10 +34,28 @@ void main() {
     expect(back.referenceNumber, 'SO#1');
   });
 
+  test('maps types list to create and back (legacy type fallback)', () {
+    final r = ServiceRecord(
+        id: 1,
+        automobileId: 2,
+        date: DateTime(2026),
+        mileage: 50,
+        types: const [ServiceType.oilChange, ServiceType.inspection]);
+    final create = AutomobileRecordsApiMapper.serviceToCreate(r);
+    expect(create.toJson()['types'], ['OilChange', 'Inspection']);
+
+    // A legacy single-type API payload (no `types`) still maps.
+    final legacy = ApiServiceRecord(
+        id: 1, automobileId: 2, date: DateTime(2026), mileage: 50,
+        type: 'Brake');
+    expect(AutomobileRecordsApiMapper.serviceFromApi(legacy).types,
+        [ServiceType.brake]);
+  });
+
   test('serviceToCreate carries item type + tax to the DTO', () {
     final dto = AutomobileRecordsApiMapper.serviceToCreate(ServiceRecord(
       id: 0, automobileId: 1, date: DateTime(2026), mileage: 1,
-      type: ServiceType.oilChange, tax: 5.0,
+      types: const [ServiceType.oilChange], tax: 5.0,
       parts: const [PartItem(type: LineItemType.labour, name: 'L', unitCost: 10.0)],
     ));
     expect(dto.parts.first.type, 'Labour');

@@ -7,6 +7,7 @@ class ApiServiceRecord {
     required this.date,
     this.mileage = 0,
     this.type = 'Other',
+    this.types = const [],
     this.name,
     this.referenceNumber,
     this.description,
@@ -23,7 +24,13 @@ class ApiServiceRecord {
   final int automobileId;
   final DateTime date;
   final int mileage;
+
+  /// Legacy scalar category, read from older backends as a fallback when
+  /// [types] is absent.
   final String type;
+
+  /// Multi-select category tags. Empty when reading a legacy payload.
+  final List<String> types;
   final String? name;
   final String? referenceNumber;
   final String? description;
@@ -42,6 +49,10 @@ class ApiServiceRecord {
       date: DateTime.parse(json['date'] as String),
       mileage: json['mileage'] as int? ?? 0,
       type: json['type'] as String? ?? 'Other',
+      types: (json['types'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       name: json['name'] as String?,
       referenceNumber: json['referenceNumber'] as String?,
       description: json['description'] as String?,
