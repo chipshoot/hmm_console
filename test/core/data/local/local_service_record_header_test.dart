@@ -62,6 +62,41 @@ void main() {
     );
     final reloaded = await repo.getRecordById(7, created.id);
     expect(reloaded.types, [ServiceType.oilChange, ServiceType.inspection]);
+
+    // The stored note content uses the camelCase `types` wire key.
+    final note = await noteRepo.getNoteById(created.id);
+    expect(note!.content, contains('"types"'));
+  });
+
+  test('reads an empty types array as a one-element list (legacy type)',
+      () async {
+    await setup();
+    addTearDown(db.close);
+    // A malformed/edge payload: `types` present but empty, legacy `type` set.
+    final content = jsonEncode({
+      'note': {
+        'content': {
+          'ServiceRecord': {
+            'automobileId': 7,
+            'date': DateTime(2026).toUtc().toIso8601String(),
+            'mileage': 50,
+            'type': 'Brake',
+            'types': <dynamic>[],
+            'parts': <dynamic>[],
+            '_v': 1,
+          }
+        }
+      }
+    });
+    final catalog = await catalogRepo.getOrCreateCatalog('edge', '{}');
+    final note = await noteRepo.createNote(HmmNoteCreate(
+      subject: 'edge',
+      content: content,
+      catalogId: catalog.id,
+      parentNoteId: 7,
+    ));
+    final reloaded = await repo.getRecordById(7, note.id);
+    expect(reloaded.types, [ServiceType.brake]);
   });
 
   test('reads a legacy single-type payload as a one-element types list',

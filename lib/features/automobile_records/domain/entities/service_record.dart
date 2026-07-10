@@ -46,9 +46,11 @@ class ServiceRecord {
   /// (images + PDF files). Empty when the record has none.
   final NoteAttachments attachments;
 
-  /// The primary service category (first of [types]). A record always has at
-  /// least one type; use this where a single headline category is needed.
-  ServiceType get primaryType => types.first;
+  /// The primary service category (first of [types]). Records normally carry
+  /// at least one type; falls back to [ServiceType.other] if the list is
+  /// somehow empty so this never throws.
+  ServiceType get primaryType =>
+      types.isEmpty ? ServiceType.other : types.first;
 
   double _totalFor(LineItemType t) =>
       parts.where((p) => p.type == t).fold(0.0, (s, p) => s + p.lineTotal);

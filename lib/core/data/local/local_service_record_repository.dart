@@ -133,6 +133,10 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       'automobileId': r.automobileId,
       'date': r.date.toUtc().toIso8601String(),
       'mileage': r.mileage,
+      // `types` is authoritative; the legacy scalar `type` (primary) is written
+      // for one release so an older app reading the same local/synced blob
+      // still resolves a category instead of silently defaulting to Other.
+      'type': r.primaryType.wireValue,
       'types': r.types.map((t) => t.wireValue).toList(),
       if (r.name != null) 'name': r.name,
       if (r.referenceNumber != null) 'referenceNumber': r.referenceNumber,
@@ -182,12 +186,13 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
         mileage: body['mileage'] as int? ?? 0,
         types: () {
           final raw = body['types'] as List<dynamic>?;
-          if (raw != null) {
+          if (raw != null && raw.isNotEmpty) {
             return raw
                 .map((e) => ServiceType.fromWire(e as String?))
                 .toList();
           }
-          // Legacy payload: a single scalar "type" (fromWire(null) -> other).
+          // Legacy payload (or an empty array): fall back to the single scalar
+          // "type" (fromWire(null) -> other) so the list always has >= 1 entry.
           return [ServiceType.fromWire(body['type'] as String?)];
         }(),
         name: body['name'] as String?,

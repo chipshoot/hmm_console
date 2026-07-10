@@ -43,6 +43,9 @@ void main() {
         types: const [ServiceType.oilChange, ServiceType.inspection]);
     final create = AutomobileRecordsApiMapper.serviceToCreate(r);
     expect(create.toJson()['types'], ['OilChange', 'Inspection']);
+    // The legacy scalar `type` is still sent (one release) and must equal the
+    // primary type, not an arbitrary element.
+    expect(create.toJson()['type'], 'OilChange');
 
     // A legacy single-type API payload (no `types`) still maps.
     final legacy = ApiServiceRecord(

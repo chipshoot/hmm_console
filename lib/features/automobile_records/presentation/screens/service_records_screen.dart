@@ -163,6 +163,11 @@ class _ServiceTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${df.format(record.date)} • ${record.mileage} mi'),
+            // When a name is the headline, still surface every category tag so
+            // multi-type records don't hide their categories.
+            if (record.name != null && record.name!.isNotEmpty)
+              Text(record.types.map((t) => t.displayName).join(', '),
+                  style: Theme.of(context).textTheme.bodySmall),
             if (record.shopName != null && record.shopName!.isNotEmpty)
               Text(record.shopName!),
             Text('${record.currency} '
