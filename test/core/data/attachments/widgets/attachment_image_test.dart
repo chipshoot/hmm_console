@@ -85,6 +85,48 @@ void main() {
     expect(find.byType(Image), findsOneWidget);
   });
 
+  testWidgets('defaults to center alignment', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 100,
+          height: 100,
+          child: AttachmentImage(
+            ref: _ref,
+            resolver: _FakeResolver(_pngBytes),
+            loadingPlaceholder: _loading,
+          ),
+        ),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.alignment, Alignment.center);
+  });
+
+  testWidgets('threads the alignment through to Image.memory (topCenter)',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 100,
+          height: 100,
+          child: AttachmentImage(
+            ref: _ref,
+            resolver: _FakeResolver(_pngBytes),
+            alignment: Alignment.topCenter,
+            loadingPlaceholder: _loading,
+          ),
+        ),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.alignment, Alignment.topCenter);
+  });
+
   testWidgets('renders the error placeholder when bytes are missing',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
