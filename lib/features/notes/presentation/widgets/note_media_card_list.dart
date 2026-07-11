@@ -35,7 +35,9 @@ class NoteMediaCardList extends StatelessWidget {
         NoteMediaCard(
           onRemove: readOnly ? null : () => onRemovePending?.call(i),
           child: Image.memory(pending[i].bytes,
-              fit: BoxFit.cover, width: double.infinity),
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              width: double.infinity),
         ),
     ];
     if (cards.isEmpty) return const SizedBox.shrink();
@@ -93,8 +95,11 @@ class _SavedImage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef wref) {
     final resolverAsync = wref.watch(attachmentResolverProvider);
     return resolverAsync.when(
-      data: (resolver) =>
-          AttachmentImage(ref: ref, resolver: resolver, fit: BoxFit.cover),
+      data: (resolver) => AttachmentImage(
+          ref: ref,
+          resolver: resolver,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter),
       loading: () => const ColoredBox(
           color: Color(0xFFF2F2F7),
           child: Center(child: CircularProgressIndicator())),

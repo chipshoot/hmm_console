@@ -19,6 +19,7 @@ class AttachmentImage extends StatefulWidget {
     required this.resolver,
     super.key,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.loadingPlaceholder,
     this.errorPlaceholder,
     this.semanticLabel,
@@ -30,6 +31,12 @@ class AttachmentImage extends StatefulWidget {
 
   final IAttachmentResolver resolver;
   final BoxFit fit;
+
+  /// How the image is aligned within its box when [fit] crops it (e.g.
+  /// [BoxFit.cover]). Thumbnails pass [Alignment.topCenter] so a tall
+  /// receipt/photo shows its top (logo, date, subject) rather than the
+  /// cropped middle.
+  final Alignment alignment;
   final Widget? loadingPlaceholder;
   final Widget? errorPlaceholder;
   final String? semanticLabel;
@@ -86,6 +93,7 @@ class _AttachmentImageState extends State<AttachmentImage> {
         return Image.memory(
           bytes,
           fit: widget.fit,
+          alignment: widget.alignment,
           semanticLabel: widget.semanticLabel,
           // gaplessPlayback avoids the brief blank flash when the
           // ref changes (e.g. user picks a new photo).

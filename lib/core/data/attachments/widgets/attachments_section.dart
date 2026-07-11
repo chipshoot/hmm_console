@@ -157,12 +157,16 @@ class _Thumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Widget image = switch (item) {
-      PendingImageItem(:final pick) =>
-        Image.memory(pick.bytes, width: 80, height: 80, fit: BoxFit.cover),
+      PendingImageItem(:final pick) => Image.memory(pick.bytes,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter),
       SavedAttachmentItem(:final ref) => SizedBox(
           width: 80,
           height: 80,
-          child: AttachmentImage(ref: ref, resolver: resolver),
+          child: AttachmentImage(
+              ref: ref, resolver: resolver, alignment: Alignment.topCenter),
         ),
       _ => const SizedBox(width: 80, height: 80),
     };
