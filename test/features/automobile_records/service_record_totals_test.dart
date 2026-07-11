@@ -7,7 +7,7 @@ import 'package:hmm_console/features/automobile_records/domain/entities/service_
 ServiceRecord _rec(List<PartItem> parts, {double? tax, double? cost}) =>
     ServiceRecord(
       id: 1, automobileId: 1, date: DateTime(2026), mileage: 1,
-      type: ServiceType.oilChange, parts: parts, tax: tax, cost: cost);
+      types: const [ServiceType.oilChange], parts: parts, tax: tax, cost: cost);
 
 void main() {
   test('totals split by type + grand total adds tax', () {

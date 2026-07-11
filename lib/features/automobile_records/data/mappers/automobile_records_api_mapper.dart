@@ -93,7 +93,11 @@ class AutomobileRecordsApiMapper {
       automobileId: api.automobileId,
       date: api.date,
       mileage: api.mileage,
-      type: ServiceType.fromWire(api.type),
+      types: api.types.isNotEmpty
+          ? api.types.map(ServiceType.fromWire).toList()
+          : [ServiceType.fromWire(api.type)],
+      name: api.name,
+      referenceNumber: api.referenceNumber,
       description: api.description,
       cost: api.cost,
       tax: api.tax,
@@ -109,7 +113,11 @@ class AutomobileRecordsApiMapper {
     return ApiServiceRecordForCreate(
       date: r.date,
       mileage: r.mileage,
-      type: r.type.wireValue,
+      // Legacy scalar (primary) kept for one release; `types` is authoritative.
+      type: r.primaryType.wireValue,
+      types: r.types.map((t) => t.wireValue).toList(),
+      name: r.name,
+      referenceNumber: r.referenceNumber,
       description: r.description,
       cost: r.cost,
       tax: r.tax,
@@ -124,7 +132,11 @@ class AutomobileRecordsApiMapper {
     return ApiServiceRecordForUpdate(
       date: r.date,
       mileage: r.mileage,
-      type: r.type.wireValue,
+      // Legacy scalar (primary) kept for one release; `types` is authoritative.
+      type: r.primaryType.wireValue,
+      types: r.types.map((t) => t.wireValue).toList(),
+      name: r.name,
+      referenceNumber: r.referenceNumber,
       description: r.description,
       cost: r.cost,
       tax: r.tax,

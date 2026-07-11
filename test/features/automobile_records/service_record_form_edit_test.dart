@@ -44,7 +44,9 @@ void main() {
       automobileId: 7,
       date: DateTime(2026),
       mileage: 50,
-      type: ServiceType.oilChange,
+      types: const [ServiceType.oilChange],
+      name: 'Service A',
+      referenceNumber: 'SO#952333',
       parts: const [
         PartItem(
             type: LineItemType.part,
@@ -88,5 +90,9 @@ void main() {
     // The line-items editor must render the loaded part, not an empty list.
     expect(find.byType(ServiceLineItemRow), findsOneWidget);
     expect(find.text('Oil filter'), findsOneWidget);
+
+    // Header fields load into the form.
+    expect(find.text('Service A'), findsWidgets);
+    expect(find.text('SO#952333'), findsWidgets);
   });
 }

@@ -118,7 +118,7 @@ class _ServiceRecordsScreenState
       builder: (ctx) => AlertDialog(
         title: const Text('Delete service record?'),
         content: Text(
-            'Delete ${r.type.displayName} on ${DateFormat.yMMMd().format(r.date)}?'),
+            'Delete ${r.primaryType.displayName} on ${DateFormat.yMMMd().format(r.date)}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -154,13 +154,20 @@ class _ServiceTile extends StatelessWidget {
       child: ListTile(
         leading: const Icon(Icons.build_outlined),
         title: Text(
-          record.type.displayName,
+          (record.name != null && record.name!.isNotEmpty)
+              ? record.name!
+              : record.types.map((t) => t.displayName).join(', '),
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${df.format(record.date)} • ${record.mileage} mi'),
+            // When a name is the headline, still surface every category tag so
+            // multi-type records don't hide their categories.
+            if (record.name != null && record.name!.isNotEmpty)
+              Text(record.types.map((t) => t.displayName).join(', '),
+                  style: Theme.of(context).textTheme.bodySmall),
             if (record.shopName != null && record.shopName!.isNotEmpty)
               Text(record.shopName!),
             Text('${record.currency} '

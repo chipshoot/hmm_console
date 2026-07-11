@@ -5,6 +5,9 @@ class ApiServiceRecordForCreate {
     required this.date,
     required this.mileage,
     required this.type,
+    this.types = const [],
+    this.name,
+    this.referenceNumber,
     this.description,
     this.cost,
     this.tax,
@@ -16,7 +19,15 @@ class ApiServiceRecordForCreate {
 
   final DateTime date;
   final int mileage;
+
+  /// Legacy scalar category, still sent for one release so an older backend
+  /// that only reads `type` keeps working.
   final String type;
+
+  /// Multi-select category tags. The current backend reads these.
+  final List<String> types;
+  final String? name;
+  final String? referenceNumber;
   final String? description;
   final double? cost;
   final double? tax;
@@ -29,6 +40,9 @@ class ApiServiceRecordForCreate {
         'date': date.toUtc().toIso8601String(),
         'mileage': mileage,
         'type': type,
+        'types': types,
+        if (name != null) 'name': name,
+        if (referenceNumber != null) 'referenceNumber': referenceNumber,
         if (description != null) 'description': description,
         if (cost != null) 'cost': cost,
         if (tax != null) 'tax': tax,

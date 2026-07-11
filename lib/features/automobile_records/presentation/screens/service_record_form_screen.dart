@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -28,7 +29,6 @@ import '../../states/_records_automobile_id_provider.dart';
 import '../../states/mutate_service_record_state.dart';
 import '../widgets/optional_date_picker.dart';
 import '../widgets/service_line_items_editor.dart';
-import '../widgets/service_type_dropdown.dart';
 
 class ServiceRecordFormScreen extends ConsumerStatefulWidget {
   const ServiceRecordFormScreen({
@@ -54,7 +54,9 @@ class _ServiceRecordFormScreenState
   final _descriptionCtrl = TextEditingController();
   final _shopCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
-  ServiceType _type = ServiceType.oilChange;
+  final _nameCtrl = TextEditingController();
+  final _refCtrl = TextEditingController();
+  List<ServiceType> _types = [ServiceType.oilChange];
   DateTime? _date;
   final String _currency = 'CAD';
   List<PartItem> _items = const [];
@@ -95,7 +97,10 @@ class _ServiceRecordFormScreenState
       _descriptionCtrl.text = record.description ?? '';
       _shopCtrl.text = record.shopName ?? '';
       _notesCtrl.text = record.notes ?? '';
-      _type = record.type;
+      _nameCtrl.text = record.name ?? '';
+      _refCtrl.text = record.referenceNumber ?? '';
+      _types =
+          record.types.isEmpty ? [ServiceType.other] : List.of(record.types);
       _date = record.date;
       _items = [...record.parts];
       // Force the line-items editor to rebuild with the loaded parts. It
@@ -119,6 +124,8 @@ class _ServiceRecordFormScreenState
     _descriptionCtrl.dispose();
     _shopCtrl.dispose();
     _notesCtrl.dispose();
+    _nameCtrl.dispose();
+    _refCtrl.dispose();
     super.dispose();
   }
 
@@ -161,6 +168,18 @@ class _ServiceRecordFormScreenState
                       onTap: _scanning ? null : _showScanSheet,
                     ),
                     const SizedBox(height: 16),
+                    AppTextFormField(
+                      fieldController: _nameCtrl,
+                      fieldValidator: (_) => null,
+                      label: 'Service name',
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextFormField(
+                      fieldController: _refCtrl,
+                      fieldValidator: (_) => null,
+                      label: 'Reference # (optional)',
+                    ),
+                    const SizedBox(height: 16),
                     OptionalDatePicker(
                       label: 'Service date',
                       date: _date,
@@ -177,9 +196,30 @@ class _ServiceRecordFormScreenState
                       ],
                     ),
                     const SizedBox(height: 16),
-                    ServiceTypeDropdown(
-                      value: _type,
-                      onChanged: (v) => setState(() => _type = v),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Service types',
+                          style: Theme.of(context).textTheme.labelLarge),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final t in ServiceType.values)
+                          FilterChip(
+                            label: Text(t.displayName),
+                            selected: _types.contains(t),
+                            onSelected: (on) => setState(() {
+                              if (on) {
+                                if (!_types.contains(t)) _types.add(t);
+                              } else if (_types.length > 1) {
+                                // Keep at least one category selected.
+                                _types.remove(t);
+                              }
+                            }),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     AppTextFormField(
@@ -208,7 +248,18 @@ class _ServiceRecordFormScreenState
                       fieldController: _notesCtrl,
                       fieldValidator: (_) => null,
                       label: 'Notes',
+                      helperText: 'Supports markdown',
+                      onChanged: (_) => setState(() {}),
                     ),
+                    if (_notesCtrl.text.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Preview',
+                            style: Theme.of(context).textTheme.labelSmall),
+                      ),
+                      MarkdownBody(data: _notesCtrl.text),
+                    ],
                     if (ref.watch(dataModeProvider) != DataMode.cloudApi) ...[
                       const SizedBox(height: 16),
                       AttachmentsSection(
@@ -300,7 +351,7 @@ class _ServiceRecordFormScreenState
         shopName: _shopCtrl.text.trim().isEmpty ? null : _shopCtrl.text.trim(),
         date: _date,
         mileage: int.tryParse(_mileageCtrl.text),
-        type: _type,
+        type: _types.first,
         tax: _tax,
         currency: _currency,
         items: _items,
@@ -380,7 +431,9 @@ class _ServiceRecordFormScreenState
           if (v.shopName != null) _shopCtrl.text = v.shopName!;
           if (v.date != null) _date = v.date;
           if (v.mileage != null) _mileageCtrl.text = v.mileage!.toString();
-          if (v.type != null) _type = v.type!;
+          if (v.type != null && !_types.contains(v.type)) {
+            _types = [..._types, v.type!];
+          }
           _tax = v.tax;
           _items = v.items;
           _itemsSeed++;
@@ -438,7 +491,10 @@ class _ServiceRecordFormScreenState
       automobileId: widget.automobileId,
       date: _date!,
       mileage: int.parse(_mileageCtrl.text),
-      type: _type,
+      types: _types,
+      name: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
+      referenceNumber:
+          _refCtrl.text.trim().isEmpty ? null : _refCtrl.text.trim(),
       description: _descriptionCtrl.text.trim().isEmpty
           ? null
           : _descriptionCtrl.text.trim(),

@@ -57,7 +57,9 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       automobileId: autoId,
       date: r.date,
       mileage: r.mileage,
-      type: r.type,
+      types: r.types,
+      name: r.name,
+      referenceNumber: r.referenceNumber,
       description: r.description,
       cost: r.cost,
       currency: r.currency,
@@ -87,7 +89,9 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       automobileId: autoId,
       date: r.date,
       mileage: r.mileage,
-      type: r.type,
+      types: r.types,
+      name: r.name,
+      referenceNumber: r.referenceNumber,
       description: r.description,
       cost: r.cost,
       currency: r.currency,
@@ -121,7 +125,7 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
 
   String _subjectFor(ServiceRecord r) {
     final d = r.date.toIso8601String().substring(0, 10);
-    return '${r.type.displayName} • $d • ${r.mileage} mi';
+    return '${r.primaryType.displayName} • $d • ${r.mileage} mi';
   }
 
   String _serialize(ServiceRecord r) {
@@ -129,7 +133,13 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
       'automobileId': r.automobileId,
       'date': r.date.toUtc().toIso8601String(),
       'mileage': r.mileage,
-      'type': r.type.wireValue,
+      // `types` is authoritative; the legacy scalar `type` (primary) is written
+      // for one release so an older app reading the same local/synced blob
+      // still resolves a category instead of silently defaulting to Other.
+      'type': r.primaryType.wireValue,
+      'types': r.types.map((t) => t.wireValue).toList(),
+      if (r.name != null) 'name': r.name,
+      if (r.referenceNumber != null) 'referenceNumber': r.referenceNumber,
       if (r.description != null) 'description': r.description,
       if (r.cost != null)
         'cost': {'amount': r.cost, 'currency': r.currency},
@@ -174,7 +184,19 @@ class LocalServiceRecordRepository implements IServiceRecordRepository {
             body['automobileId'] as int? ?? note.parentNoteId ?? 0,
         date: DateTime.parse(body['date'] as String),
         mileage: body['mileage'] as int? ?? 0,
-        type: ServiceType.fromWire(body['type'] as String?),
+        types: () {
+          final raw = body['types'] as List<dynamic>?;
+          if (raw != null && raw.isNotEmpty) {
+            return raw
+                .map((e) => ServiceType.fromWire(e as String?))
+                .toList();
+          }
+          // Legacy payload (or an empty array): fall back to the single scalar
+          // "type" (fromWire(null) -> other) so the list always has >= 1 entry.
+          return [ServiceType.fromWire(body['type'] as String?)];
+        }(),
+        name: body['name'] as String?,
+        referenceNumber: body['referenceNumber'] as String?,
         description: body['description'] as String?,
         cost: (cost?['amount'] as num?)?.toDouble(),
         currency: cost?['currency'] as String? ?? 'CAD',

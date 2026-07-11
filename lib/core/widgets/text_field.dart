@@ -19,6 +19,12 @@ class AppTextFormField extends StatelessWidget {
   /// stop letters from sneaking in via paste on Android.
   final List<TextInputFormatter>? inputFormatters;
 
+  /// Optional helper text shown under the field (e.g. "Supports markdown").
+  final String? helperText;
+
+  /// Fires on every edit — used e.g. to drive a live markdown preview.
+  final ValueChanged<String>? onChanged;
+
   const AppTextFormField({
     super.key,
     required this.fieldController,
@@ -29,6 +35,8 @@ class AppTextFormField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction,
     this.inputFormatters,
+    this.helperText,
+    this.onChanged,
   });
 
   @override
@@ -41,8 +49,10 @@ class AppTextFormField extends StatelessWidget {
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       inputFormatters: inputFormatters,
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
+        helperText: helperText,
         border: OutlineInputBorder(),
       ),
       validator: fieldValidator,

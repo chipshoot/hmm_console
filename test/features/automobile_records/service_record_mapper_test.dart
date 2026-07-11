@@ -8,10 +8,57 @@ import 'package:hmm_console/features/automobile_records/domain/entities/service_
 import 'package:hmm_console/features/automobile_records/domain/entities/service_type.dart';
 
 void main() {
+  test('maps name + referenceNumber to create and back from api', () {
+    final r = ServiceRecord(
+        id: 1,
+        automobileId: 2,
+        date: DateTime(2026),
+        mileage: 50,
+        types: const [ServiceType.oilChange],
+        name: 'Service A',
+        referenceNumber: 'SO#1');
+    final create = AutomobileRecordsApiMapper.serviceToCreate(r);
+    expect(create.toJson()['name'], 'Service A');
+    expect(create.toJson()['referenceNumber'], 'SO#1');
+
+    final api = ApiServiceRecord(
+        id: 1,
+        automobileId: 2,
+        date: DateTime(2026),
+        mileage: 50,
+        type: 'OilChange',
+        name: 'Service A',
+        referenceNumber: 'SO#1');
+    final back = AutomobileRecordsApiMapper.serviceFromApi(api);
+    expect(back.name, 'Service A');
+    expect(back.referenceNumber, 'SO#1');
+  });
+
+  test('maps types list to create and back (legacy type fallback)', () {
+    final r = ServiceRecord(
+        id: 1,
+        automobileId: 2,
+        date: DateTime(2026),
+        mileage: 50,
+        types: const [ServiceType.oilChange, ServiceType.inspection]);
+    final create = AutomobileRecordsApiMapper.serviceToCreate(r);
+    expect(create.toJson()['types'], ['OilChange', 'Inspection']);
+    // The legacy scalar `type` is still sent (one release) and must equal the
+    // primary type, not an arbitrary element.
+    expect(create.toJson()['type'], 'OilChange');
+
+    // A legacy single-type API payload (no `types`) still maps.
+    final legacy = ApiServiceRecord(
+        id: 1, automobileId: 2, date: DateTime(2026), mileage: 50,
+        type: 'Brake');
+    expect(AutomobileRecordsApiMapper.serviceFromApi(legacy).types,
+        [ServiceType.brake]);
+  });
+
   test('serviceToCreate carries item type + tax to the DTO', () {
     final dto = AutomobileRecordsApiMapper.serviceToCreate(ServiceRecord(
       id: 0, automobileId: 1, date: DateTime(2026), mileage: 1,
-      type: ServiceType.oilChange, tax: 5.0,
+      types: const [ServiceType.oilChange], tax: 5.0,
       parts: const [PartItem(type: LineItemType.labour, name: 'L', unitCost: 10.0)],
     ));
     expect(dto.parts.first.type, 'Labour');

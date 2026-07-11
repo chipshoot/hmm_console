@@ -12,7 +12,9 @@ class ServiceRecord {
     required this.automobileId,
     required this.date,
     required this.mileage,
-    required this.type,
+    required this.types,
+    this.name,
+    this.referenceNumber,
     this.description,
     this.cost,
     this.currency = 'CAD',
@@ -28,7 +30,9 @@ class ServiceRecord {
   final int automobileId;
   final DateTime date;
   final int mileage;
-  final ServiceType type;
+  final List<ServiceType> types;
+  final String? name;
+  final String? referenceNumber;
   final String? description;
   final double? cost;
   final String currency;
@@ -41,6 +45,12 @@ class ServiceRecord {
   /// Read-through projection of the owning note's attachments column
   /// (images + PDF files). Empty when the record has none.
   final NoteAttachments attachments;
+
+  /// The primary service category (first of [types]). Records normally carry
+  /// at least one type; falls back to [ServiceType.other] if the list is
+  /// somehow empty so this never throws.
+  ServiceType get primaryType =>
+      types.isEmpty ? ServiceType.other : types.first;
 
   double _totalFor(LineItemType t) =>
       parts.where((p) => p.type == t).fold(0.0, (s, p) => s + p.lineTotal);
@@ -60,7 +70,9 @@ class ServiceRecord {
     int? automobileId,
     DateTime? date,
     int? mileage,
-    ServiceType? type,
+    List<ServiceType>? types,
+    String? name,
+    String? referenceNumber,
     String? description,
     double? cost,
     String? currency,
@@ -76,7 +88,9 @@ class ServiceRecord {
       automobileId: automobileId ?? this.automobileId,
       date: date ?? this.date,
       mileage: mileage ?? this.mileage,
-      type: type ?? this.type,
+      types: types ?? this.types,
+      name: name ?? this.name,
+      referenceNumber: referenceNumber ?? this.referenceNumber,
       description: description ?? this.description,
       cost: cost ?? this.cost,
       currency: currency ?? this.currency,
