@@ -48,4 +48,17 @@ void main() {
     const md = '![a](hmm-attachment://attachments/note-1/a.png "cap")';
     expect(imageRefPathsIn(md), ['attachments/note-1/a.png']);
   });
+
+  test('format/parse note uri round-trips the uuid', () {
+    expect(formatNoteUri('abc-1'), 'hmm-note://abc-1');
+    expect(parseNoteUri('hmm-note://abc-1'), 'abc-1');
+    expect(parseNoteUri('hmm-note://abc-1#block2'), 'abc-1'); // anchor ignored
+    expect(parseNoteUri('hmm-attachment://x'), isNull);
+    expect(parseNoteUri('https://x'), isNull);
+  });
+
+  test('noteUuidsIn extracts note-link uuids', () {
+    const md = 'see [a](hmm-note://u1) and [b](https://x) and [c](hmm-note://u2)';
+    expect(noteUuidsIn(md), ['u1', 'u2']);
+  });
 }

@@ -64,3 +64,29 @@ String removePendingImage(String markdown, String uuid) {
       r'!\[[^\]]*\]\(' + RegExp.escape(formatPendingUri(uuid)) + r'\)');
   return markdown.replaceAll(re, '');
 }
+
+const String _noteScheme = 'hmm-note://';
+
+/// `abc` -> `hmm-note://abc`.
+String formatNoteUri(String uuid) => '$_noteScheme$uuid';
+
+/// The note uuid for a `hmm-note://<uuid>` link (any `#anchor` is dropped —
+/// anchors are a reserved future feature), else null.
+String? parseNoteUri(String uri) {
+  if (!uri.startsWith(_noteScheme)) return null;
+  var rest = uri.substring(_noteScheme.length);
+  final hash = rest.indexOf('#');
+  if (hash >= 0) rest = rest.substring(0, hash);
+  return rest.isEmpty ? null : rest;
+}
+
+// Markdown link (not image): [text](url) — a leading '!' would make it an image.
+final RegExp _linkMd = RegExp(r'(?<!\!)\[[^\]]*\]\(([^)\s]+)');
+
+/// All inline `hmm-note://` link uuids, in document order.
+List<String> noteUuidsIn(String markdown) => _linkMd
+    .allMatches(markdown)
+    .map((m) => m.group(1)!)
+    .map(parseNoteUri)
+    .whereType<String>()
+    .toList();
