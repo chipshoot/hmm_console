@@ -97,6 +97,28 @@ class MutateNote {
     return repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
   }
 
+  /// Persists [pick]'s bytes to the vault under [noteId] and returns the
+  /// resulting VaultRef. Does not modify the note's attachments column — the
+  /// caller reconciles attachments once, after rewriting the body (used by the
+  /// editor's inline-image save path).
+  Future<VaultRef> persistInlineImage(int noteId, PickedImageBytes pick) async {
+    final picker = await ref.read(imageAttachmentPickerProvider.future);
+    return picker.persistToVault(
+      noteId: noteId,
+      bytes: pick.bytes,
+      originalName: pick.originalName,
+      contentTypeHint: pick.contentType,
+    );
+  }
+
+  /// Writes the note's attachments column verbatim (the retention set that
+  /// `vault_gc` reads).
+  Future<HmmNote?> setAttachments(int noteId, NoteAttachments attachments) {
+    return ref
+        .read(hmmNoteRepositoryProvider)
+        .updateNote(noteId, HmmNoteUpdate(attachments: attachments));
+  }
+
   /// Persist a picked PDF's bytes into the note's vault and append the
   /// resulting VaultRef to the note's `files` list.
   Future<HmmNote?> attachFileBytes(int noteId, PickedFileBytes pick) async {
