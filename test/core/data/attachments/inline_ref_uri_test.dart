@@ -36,4 +36,16 @@ void main() {
     expect(out, '![y](hmm-attachment://attachments/note-5/y.png) and text');
     expect(pendingUuidsIn(out), isEmpty);
   });
+
+  test('removePendingImage strips the failed placeholder markdown', () {
+    const md = 'a ![y](hmm-attachment://pending/u9) b';
+    final out = removePendingImage(md, 'u9');
+    expect(out, 'a  b');
+    expect(pendingUuidsIn(out), isEmpty);
+  });
+
+  test('a titled image url is captured without the title', () {
+    const md = '![a](hmm-attachment://attachments/note-1/a.png "cap")';
+    expect(imageRefPathsIn(md), ['attachments/note-1/a.png']);
+  });
 }

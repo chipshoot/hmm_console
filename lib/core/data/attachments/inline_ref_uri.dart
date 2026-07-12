@@ -26,8 +26,11 @@ String? pendingUuidOf(String uri) {
   return uuid.isEmpty ? null : uuid;
 }
 
-// Markdown image: ![alt](url) — capture the url.
-final RegExp _imageMd = RegExp(r'!\[[^\]]*\]\(([^)]+)\)');
+// Markdown image: ![alt](url) — capture the url up to the first whitespace or
+// close-paren, so a `![a](url "title")` form yields the bare url (matching how
+// the renderer parses `config.uri`). App-generated vault paths never contain
+// spaces, so this is lossless for our content.
+final RegExp _imageMd = RegExp(r'!\[[^\]]*\]\(([^)\s]+)');
 
 Iterable<String> _inlineUrls(String markdown) =>
     _imageMd.allMatches(markdown).map((m) => m.group(1)!);
@@ -51,4 +54,13 @@ String rewritePendingToVault(String markdown, Map<String, String> uuidToPath) {
     out = out.replaceAll(formatPendingUri(uuid), formatImageUri(path));
   });
   return out;
+}
+
+/// Removes the whole `![alt](hmm-attachment://pending/<uuid>)` image markdown
+/// for [uuid] — used to strip a placeholder whose bytes failed to persist so no
+/// `pending/` URI is ever written into saved note content.
+String removePendingImage(String markdown, String uuid) {
+  final re = RegExp(
+      r'!\[[^\]]*\]\(' + RegExp.escape(formatPendingUri(uuid)) + r'\)');
+  return markdown.replaceAll(re, '');
 }

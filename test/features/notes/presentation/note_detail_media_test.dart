@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
+import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
@@ -78,8 +79,16 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Only the non-inline image (b.jpg) shows as a trailing card; a.jpg renders
-    // inline in the body instead.
+    // Exactly one trailing card, and it is the NON-inline image (b.jpg); the
+    // inline a.jpg is excluded from the cards (it renders in the body instead).
     expect(find.byType(NoteMediaCard), findsOneWidget);
+    final cardImages = tester
+        .widgetList<AttachmentImage>(find.descendant(
+          of: find.byType(NoteMediaCardList),
+          matching: find.byType(AttachmentImage),
+        ))
+        .map((w) => (w.ref as VaultRef).path)
+        .toList();
+    expect(cardImages, ['attachments/note-1/b.jpg']);
   });
 }

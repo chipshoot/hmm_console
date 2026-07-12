@@ -227,29 +227,47 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// body, and add the new refs to the note's attachments (so vault_gc retains
   /// them). Picks the user inserted then deleted before saving are dropped.
   Future<void> _persistInlineImages(int noteId, MutateNote mutate) async {
-    // 1) Persist newly-picked inline images referenced in the body, then
-    //    rewrite their pending placeholders to real vault paths.
+    // 1) Persist newly-picked inline images referenced in the body. A pick can
+    //    fail (e.g. oversize photo) — a failed or missing pick's placeholder is
+    //    stripped so no `pending/` URI is ever written into saved content.
     final uuidToPath = <String, String>{};
     final newRefs = <VaultRef>[];
+    final failed = <String>[];
     for (final uuid in pendingUuidsIn(_bodyCtrl.text)) {
       final pick = _pendingPickByUuid[uuid];
-      if (pick == null) continue;
-      final vref = await mutate.persistInlineImage(noteId, pick);
-      uuidToPath[uuid] = vref.path;
-      newRefs.add(vref);
+      if (pick == null) {
+        failed.add(uuid);
+        continue;
+      }
+      try {
+        final vref = await mutate.persistInlineImage(noteId, pick);
+        uuidToPath[uuid] = vref.path;
+        newRefs.add(vref);
+      } catch (_) {
+        failed.add(uuid);
+      }
     }
-    if (uuidToPath.isNotEmpty) {
-      final rewritten = rewritePendingToVault(_bodyCtrl.text, uuidToPath);
-      await mutate.updateGeneral(noteId, markdownBody: rewritten);
+    // Resolve the body: rewrite successes, strip failures. Always persist the
+    // clean body so it never contains a `pending/` placeholder.
+    var body = rewritePendingToVault(_bodyCtrl.text, uuidToPath);
+    for (final uuid in failed) {
+      body = removePendingImage(body, uuid);
+    }
+    if (body != _bodyCtrl.text) {
+      await mutate.updateGeneral(noteId, markdownBody: body);
       if (mounted) {
         setState(() {
-          _bodyCtrl.text = rewritten;
+          _bodyCtrl.text = body;
           _pendingBytes.clear();
           _pendingPickByUuid.clear();
         });
       } else {
-        _bodyCtrl.text = rewritten;
+        _bodyCtrl.text = body;
       }
+    }
+    if (failed.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Some images couldn't be added and were skipped.")));
     }
 
     // 2) Detect images that were inline at load but the user removed from the

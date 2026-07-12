@@ -73,6 +73,18 @@ class NoteMarkdownBody extends StatelessWidget {
       ));
     }
 
+    // A normal external image (e.g. http/https) — render it like the default
+    // Markdown image handler would, since sizedImageBuilder intercepts all.
+    if (config.uri.hasScheme &&
+        (config.uri.isScheme('http') || config.uri.isScheme('https'))) {
+      return _box(Image.network(
+        url,
+        fit: BoxFit.contain,
+        alignment: Alignment.topCenter,
+        errorBuilder: (_, _, _) => _placeholder(),
+      ));
+    }
+
     return _placeholder();
   }
 

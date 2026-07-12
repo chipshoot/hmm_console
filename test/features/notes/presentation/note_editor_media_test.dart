@@ -55,9 +55,13 @@ class _FakeMutate implements MutateNote {
         createDate: DateTime(2026, 1, 1));
   }
 
+  /// When true, persisting throws (e.g. an oversize photo).
+  bool throwOnPersist = false;
+
   @override
   Future<VaultRef> persistInlineImage(int noteId, PickedImageBytes pick) async {
     persistCalls++;
+    if (throwOnPersist) throw Exception('too big');
     return const VaultRef(
         path: 'attachments/note-1/a.jpg',
         contentType: 'image/jpeg',
@@ -130,6 +134,26 @@ void main() {
         contains('attachments/note-1/a.jpg'));
     expect(fake.lastBody, contains('attachments/note-1/a.jpg'));
     expect(fake.lastBody, isNot(contains('pending/')));
+  });
+
+  testWidgets('a failed image pick never leaves pending/ in saved content',
+      (tester) async {
+    final fake = _FakeMutate()..throwOnPersist = true;
+    await _pump(tester, fake);
+
+    await tester.tap(find.byIcon(Icons.photo_library_outlined));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Hello');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    // The persisted body was rewritten to strip the failed placeholder — no
+    // `pending/` survives, and the image ref was not added.
+    expect(fake.lastBody, isNotNull);
+    expect(fake.lastBody, isNot(contains('pending/')));
+    expect(fake.lastBody, isNot(contains('hmm-attachment://')));
+    expect(fake.setAttachmentsCalls, 0);
+    expect(find.textContaining("couldn't be added"), findsOneWidget);
   });
 
   testWidgets(
