@@ -1,14 +1,21 @@
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/inline_ref_uri.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/util/uuid.dart';
+import '../widgets/inline_insert.dart';
+import '../widgets/note_markdown_body.dart';
 import '../../../../core/data/note_location.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../gas_log/providers/location_provider.dart'
@@ -46,8 +53,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool _busy = false;
   bool _loaded = false;
 
-  /// Images picked this session, not yet attached (attached on save).
-  final List<PickedImageBytes> _pendingPicks = [];
+  /// Images picked this session and inserted inline, keyed by the uuid embedded
+  /// in the body placeholder. Bytes render the live preview; on save they are
+  /// persisted to the vault and the placeholder is rewritten to the real path.
+  final Map<String, Uint8List> _pendingBytes = {};
+  final Map<String, PickedImageBytes> _pendingPickByUuid = {};
 
   /// Images already attached to the note (when editing an existing note).
   List<AttachmentRef> _savedImages = [];
@@ -170,12 +180,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         }
         ref.invalidate(noteDetailProvider(_noteId!));
       }
-      // Attach any photos added this session, then clear them.
-      if (_pendingPicks.isNotEmpty && _noteId != null) {
-        for (final pick in _pendingPicks) {
-          await mutate.attachImageBytes(_noteId!, pick);
-        }
-        if (mounted) setState(() => _pendingPicks.clear());
+      // Persist inline image picks referenced in the body, rewrite their
+      // pending placeholders to real vault paths, and reconcile attachments.
+      if (_noteId != null) {
+        await _persistInlineImages(_noteId!, mutate);
         ref.invalidate(noteDetailProvider(_noteId!));
       }
       // Attach any PDFs added this session, then clear them.
@@ -192,12 +200,45 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
-  /// Pick an image (gallery/camera) and hold it as pending — it attaches on the
-  /// next save. No subject required to add.
+  /// Pick an image (gallery/camera) and insert it inline at the cursor as a
+  /// pending placeholder. The bytes are staged for the live preview and
+  /// persisted on the next save. No subject required to add.
   Future<void> _addMedia(AttachmentPickSource source) async {
     final pick = await ref.read(imageByteSourceProvider).pick(source);
-    if (pick != null && mounted) {
-      setState(() => _pendingPicks.add(pick));
+    if (pick == null || !mounted) return;
+    final uuid = generateUuid();
+    setState(() {
+      _pendingBytes[uuid] = pick.bytes;
+      _pendingPickByUuid[uuid] = pick;
+      insertImageAtCursor(_bodyCtrl, uuid, pick.originalName);
+    });
+  }
+
+  /// Persist each inline pending pick still referenced in the body, rewrite the
+  /// `pending/<uuid>` placeholders to their real vault paths, save the rewritten
+  /// body, and add the new refs to the note's attachments (so vault_gc retains
+  /// them). Picks the user inserted then deleted before saving are dropped.
+  Future<void> _persistInlineImages(int noteId, MutateNote mutate) async {
+    final uuidToPath = <String, String>{};
+    final newRefs = <VaultRef>[];
+    for (final uuid in pendingUuidsIn(_bodyCtrl.text)) {
+      final pick = _pendingPickByUuid[uuid];
+      if (pick == null) continue;
+      final vref = await mutate.persistInlineImage(noteId, pick);
+      uuidToPath[uuid] = vref.path;
+      newRefs.add(vref);
+    }
+    if (newRefs.isEmpty) return;
+
+    final rewritten = rewritePendingToVault(_bodyCtrl.text, uuidToPath);
+    await mutate.updateGeneral(noteId, markdownBody: rewritten);
+    await mutate.addInlineImageRefs(noteId, newRefs);
+    if (mounted) {
+      setState(() {
+        _bodyCtrl.text = rewritten;
+        _pendingBytes.clear();
+        _pendingPickByUuid.clear();
+      });
     }
   }
 
@@ -417,11 +458,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       const SizedBox(height: 12),
                       Divider(height: 1, thickness: 1, color: c.separator),
                       const SizedBox(height: 12),
+                      // Existing (already-saved) images that aren't shown
+                      // inline in the body render as trailing cards. Newly
+                      // picked images are inline (see the preview below).
                       NoteMediaCardList(
-                        saved: _savedImages,
-                        pending: _pendingPicks,
-                        onRemovePending: (i) =>
-                            setState(() => _pendingPicks.removeAt(i)),
+                        saved: _savedImages
+                            .where((r) =>
+                                r is! VaultRef ||
+                                !imageRefPathsIn(_bodyCtrl.text)
+                                    .contains(r.path))
+                            .toList(),
                       ),
                       NoteFileCardList(
                         saved: _savedFiles,
@@ -436,6 +482,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                         minLines: 8,
                         textAlignVertical: TextAlignVertical.top,
                         textCapitalization: TextCapitalization.sentences,
+                        // Rebuild so the inline-image preview and trailing-card
+                        // dedup track edits (e.g. deleting an image line).
+                        onChanged: (_) => setState(() {}),
                         style: TextStyle(
                           fontSize: 16,
                           color: c.label,
@@ -447,6 +496,22 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           isCollapsed: true,
                         ),
                       ),
+                      if (_bodyCtrl.text.contains('hmm-attachment://')) ...[
+                        const SizedBox(height: 12),
+                        Divider(height: 1, thickness: 1, color: c.separator),
+                        const SizedBox(height: 8),
+                        Text('Preview',
+                            style: DesignTokens.caption
+                                .copyWith(color: c.tertiaryLabel)),
+                        const SizedBox(height: 8),
+                        NoteMarkdownBody(
+                          data: _bodyCtrl.text,
+                          pendingBytes: _pendingBytes,
+                          resolver:
+                              ref.watch(attachmentResolverProvider).value,
+                          selectable: false,
+                        ),
+                      ],
                       const SizedBox(height: 24),
                     ],
                   ),

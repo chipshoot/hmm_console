@@ -111,6 +111,32 @@ class MutateNote {
     );
   }
 
+  /// Appends inline-image [refs] to the note's `images` list (deduped),
+  /// preserving the primary image and files. Used by the editor's inline save
+  /// path to retain freshly-persisted inline images so `vault_gc` keeps them.
+  Future<HmmNote?> addInlineImageRefs(int noteId, List<VaultRef> refs) async {
+    if (refs.isEmpty) return null;
+    final repo = ref.read(hmmNoteRepositoryProvider);
+    final current = await repo.getNoteById(noteId);
+    if (current == null) return null;
+    final existing = current.effectiveAttachments;
+    final images = <AttachmentRef>[
+      ...existing.images,
+      for (final r in refs)
+        if (!existing.images.contains(r)) r,
+    ];
+    return repo.updateNote(
+      noteId,
+      HmmNoteUpdate(
+        attachments: NoteAttachments(
+          primaryImage: existing.primaryImage,
+          images: images,
+          files: existing.files,
+        ),
+      ),
+    );
+  }
+
   /// Writes the note's attachments column verbatim (the retention set that
   /// `vault_gc` reads).
   Future<HmmNote?> setAttachments(int noteId, NoteAttachments attachments) {
