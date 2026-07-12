@@ -1,14 +1,5 @@
-import 'package:flutter/widgets.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-
-/// The single place the markdown rendering package is referenced. Swap the
-/// package here without touching call sites.
-class MarkdownView extends StatelessWidget {
-  const MarkdownView(this.data, {super.key});
-
-  final String data;
-
-  @override
-  Widget build(BuildContext context) =>
-      MarkdownBody(data: data, selectable: true);
-}
+// The single place the markdown rendering package is referenced. `MarkdownView`
+// now lives in `note_markdown_body.dart` (it resolves inline `hmm-attachment://`
+// images); this file re-exports it so existing `MarkdownView(markdown)` call
+// sites keep working.
+export 'note_markdown_body.dart' show MarkdownView, NoteMarkdownBody;
