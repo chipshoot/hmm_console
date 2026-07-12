@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../states/note_selection.dart';
 
 import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/inline_ref_uri.dart';
 import '../../../../core/data/local/database.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/notes/catalog_palette.dart';
@@ -99,10 +100,17 @@ class NoteDetailScreen extends ConsumerWidget {
             error: (e, _) => Center(child: Text('$e')),
             data: (d) {
               final markdown = _safeRender(registry, d.catalog?.name, d.note);
+              // Images referenced inline in the body render in place (via
+              // MarkdownView); exclude them from the trailing cards so they
+              // aren't shown twice.
+              final inlinePaths = imageRefPathsIn(markdown).toSet();
+              bool notInline(AttachmentRef r) =>
+                  r is! VaultRef || !inlinePaths.contains(r.path);
               final atts = <AttachmentRef>[
-                if (d.note.effectiveAttachments.primaryImage != null)
+                if (d.note.effectiveAttachments.primaryImage != null &&
+                    notInline(d.note.effectiveAttachments.primaryImage!))
                   d.note.effectiveAttachments.primaryImage!,
-                ...d.note.effectiveAttachments.images,
+                ...d.note.effectiveAttachments.images.where(notInline),
               ];
               return ListView(
                 padding: const EdgeInsets.all(16),

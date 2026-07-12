@@ -26,7 +26,8 @@ class _FakeSource implements ImageByteSource {
 
 class _FakeMutate implements MutateNote {
   int persistCalls = 0;
-  int addRefsCalls = 0;
+  int setAttachmentsCalls = 0;
+  NoteAttachments? lastAttachments;
   String? lastBody;
 
   @override
@@ -64,8 +65,9 @@ class _FakeMutate implements MutateNote {
   }
 
   @override
-  Future<HmmNote?> addInlineImageRefs(int noteId, List<VaultRef> refs) async {
-    addRefsCalls++;
+  Future<HmmNote?> setAttachments(int noteId, NoteAttachments atts) async {
+    setAttachmentsCalls++;
+    lastAttachments = atts;
     return null;
   }
 
@@ -123,7 +125,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(fake.persistCalls, 1);
-    expect(fake.addRefsCalls, 1);
+    expect(fake.setAttachmentsCalls, 1);
+    expect(fake.lastAttachments!.images.whereType<VaultRef>().map((r) => r.path),
+        contains('attachments/note-1/a.jpg'));
     expect(fake.lastBody, contains('attachments/note-1/a.jpg'));
     expect(fake.lastBody, isNot(contains('pending/')));
   });

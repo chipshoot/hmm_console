@@ -62,6 +62,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// Images already attached to the note (when editing an existing note).
   List<AttachmentRef> _savedImages = [];
 
+  /// The loaded note's full attachments payload, and the image paths that were
+  /// referenced inline at load — used on save to detect images the user removed
+  /// from the text so we can confirm before dropping them.
+  NoteAttachments? _savedAttachments;
+  List<String> _loadedInlinePaths = const [];
+
   /// PDF/files picked this session, not yet attached (attached on save).
   final List<PickedFileBytes> _pendingFiles = [];
 
@@ -126,6 +132,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       _subjectCtrl.text = note.subject;
       _bodyCtrl.text = note.content ?? '';
       _noteDate = note.effectiveNoteDate.toLocal();
+      _savedAttachments = note.effectiveAttachments;
+      _loadedInlinePaths = imageRefPathsIn(note.content ?? '');
       _savedImages = [
         if (note.effectiveAttachments.primaryImage != null)
           note.effectiveAttachments.primaryImage!,
@@ -219,6 +227,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// body, and add the new refs to the note's attachments (so vault_gc retains
   /// them). Picks the user inserted then deleted before saving are dropped.
   Future<void> _persistInlineImages(int noteId, MutateNote mutate) async {
+    // 1) Persist newly-picked inline images referenced in the body, then
+    //    rewrite their pending placeholders to real vault paths.
     final uuidToPath = <String, String>{};
     final newRefs = <VaultRef>[];
     for (final uuid in pendingUuidsIn(_bodyCtrl.text)) {
@@ -228,18 +238,73 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       uuidToPath[uuid] = vref.path;
       newRefs.add(vref);
     }
-    if (newRefs.isEmpty) return;
-
-    final rewritten = rewritePendingToVault(_bodyCtrl.text, uuidToPath);
-    await mutate.updateGeneral(noteId, markdownBody: rewritten);
-    await mutate.addInlineImageRefs(noteId, newRefs);
-    if (mounted) {
-      setState(() {
+    if (uuidToPath.isNotEmpty) {
+      final rewritten = rewritePendingToVault(_bodyCtrl.text, uuidToPath);
+      await mutate.updateGeneral(noteId, markdownBody: rewritten);
+      if (mounted) {
+        setState(() {
+          _bodyCtrl.text = rewritten;
+          _pendingBytes.clear();
+          _pendingPickByUuid.clear();
+        });
+      } else {
         _bodyCtrl.text = rewritten;
-        _pendingBytes.clear();
-        _pendingPickByUuid.clear();
-      });
+      }
     }
+
+    // 2) Detect images that were inline at load but the user removed from the
+    //    text. Never drop a stored image silently — confirm first.
+    final currentInline = imageRefPathsIn(_bodyCtrl.text).toSet();
+    final removed =
+        _loadedInlinePaths.where((p) => !currentInline.contains(p)).toSet();
+    var deleteRemoved = false;
+    if (removed.isNotEmpty && mounted) {
+      deleteRemoved = await _confirmRemoveImages(removed.length);
+    }
+
+    // 3) Reconcile the attachments retention set if anything changed.
+    if (newRefs.isEmpty && removed.isEmpty) return;
+    bool keep(AttachmentRef r) =>
+        r is! VaultRef || !(deleteRemoved && removed.contains(r.path));
+    final base = _savedAttachments ?? NoteAttachments.empty;
+    final images = <AttachmentRef>[
+      ...base.images.where(keep),
+      for (final r in newRefs)
+        if (!base.images.contains(r)) r,
+    ];
+    final primary = (base.primaryImage != null && keep(base.primaryImage!))
+        ? base.primaryImage
+        : null;
+    await mutate.setAttachments(
+      noteId,
+      NoteAttachments(
+          primaryImage: primary, images: images, files: base.files),
+    );
+  }
+
+  /// Asks whether to delete stored images the user removed from the text.
+  /// Returns true = delete them, false = keep them attached (default on
+  /// dismiss). A stored image is never dropped without this confirmation.
+  Future<bool> _confirmRemoveImages(int count) async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove stored images?'),
+        content: Text(
+            'You removed $count image${count == 1 ? '' : 's'} from this note. '
+            'Delete the stored image${count == 1 ? '' : 's'}, or keep '
+            '${count == 1 ? 'it' : 'them'} attached?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Keep attached')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+    return res ?? false;
   }
 
   /// Pick a PDF and hold it pending — attaches on the next save.

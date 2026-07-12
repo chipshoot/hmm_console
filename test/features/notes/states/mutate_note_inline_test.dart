@@ -97,27 +97,6 @@ void main() {
     expect(repo.written, isNull);
   });
 
-  test('addInlineImageRefs appends refs to images, preserving primary', () async {
-    final picker = _FakePicker();
-    final repo = _FakeRepo(note());
-    final mutate = containerWith(picker, repo).read(mutateNoteProvider);
-
-    await mutate.addInlineImageRefs(1, const [_ref]);
-
-    expect(repo.updateCalls, 1);
-    expect(repo.written!.images, const [_ref]);
-  });
-
-  test('addInlineImageRefs with no refs is a no-op', () async {
-    final picker = _FakePicker();
-    final repo = _FakeRepo(note());
-    final mutate = containerWith(picker, repo).read(mutateNoteProvider);
-
-    await mutate.addInlineImageRefs(1, const []);
-
-    expect(repo.updateCalls, 0);
-  });
-
   test('setAttachments writes the attachments column verbatim', () async {
     final picker = _FakePicker();
     final repo = _FakeRepo(note());

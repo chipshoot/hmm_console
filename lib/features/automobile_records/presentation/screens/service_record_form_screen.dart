@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../notes/presentation/widgets/note_markdown_body.dart';
 import '../../../../core/data/attachments/open_attachment.dart';
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
@@ -258,7 +258,12 @@ class _ServiceRecordFormScreenState
                         child: Text('Preview',
                             style: Theme.of(context).textTheme.labelSmall),
                       ),
-                      MarkdownBody(data: _notesCtrl.text),
+                      NoteMarkdownBody(
+                        data: _notesCtrl.text,
+                        resolver:
+                            ref.watch(attachmentResolverProvider).value,
+                        selectable: false,
+                      ),
                     ],
                     if (ref.watch(dataModeProvider) != DataMode.cloudApi) ...[
                       const SizedBox(height: 16),
