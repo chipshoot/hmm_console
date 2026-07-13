@@ -20,4 +20,12 @@ void main() {
     insertImageAtCursor(c, 'u2', 'a.png');
     expect(c.text, 'X\n\n![a.png](hmm-attachment://pending/u2)\n\n');
   });
+
+  test('inserts a note link at the caret', () {
+    final c = TextEditingController(text: 'see  here');
+    c.selection = const TextSelection.collapsed(offset: 4); // after "see "
+    insertNoteLinkAtCursor(c, 'u1', 'Setup');
+    expect(c.text, 'see [Setup](hmm-note://u1) here');
+    expect(c.selection.baseOffset, 'see [Setup](hmm-note://u1)'.length);
+  });
 }

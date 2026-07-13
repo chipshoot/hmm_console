@@ -18,3 +18,18 @@ void insertImageAtCursor(
     selection: TextSelection.collapsed(offset: at + block.length),
   );
 }
+
+/// Inserts an inline `[label](hmm-note://<uuid>)` link at the caret, leaving the
+/// caret immediately after the inserted link.
+void insertNoteLinkAtCursor(
+    TextEditingController controller, String uuid, String label) {
+  final link = '[$label](${formatNoteUri(uuid)})';
+  final text = controller.text;
+  final sel = controller.selection;
+  final at = (sel.isValid && sel.start >= 0) ? sel.start : text.length;
+  final next = text.substring(0, at) + link + text.substring(at);
+  controller.value = TextEditingValue(
+    text: next,
+    selection: TextSelection.collapsed(offset: at + link.length),
+  );
+}
