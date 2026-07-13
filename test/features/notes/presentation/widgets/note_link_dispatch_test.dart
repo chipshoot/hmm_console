@@ -10,11 +10,19 @@ void main() {
     expect(ext, isNull);
   });
 
-  test('dispatches an http(s) link to onExternal', () {
+  test('dispatches an https link to onExternal', () {
     String? note; Uri? ext;
     dispatchMarkdownLink('https://example.com/v',
         onNote: (u) => note = u, onExternal: (x) => ext = x);
     expect(ext, Uri.parse('https://example.com/v'));
+    expect(note, isNull);
+  });
+
+  test('dispatches a plain http link to onExternal', () {
+    String? note; Uri? ext;
+    dispatchMarkdownLink('http://example.com/v',
+        onNote: (u) => note = u, onExternal: (x) => ext = x);
+    expect(ext, Uri.parse('http://example.com/v'));
     expect(note, isNull);
   });
 

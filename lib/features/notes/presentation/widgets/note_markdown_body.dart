@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -115,8 +116,11 @@ class NoteMarkdownBody extends StatelessWidget {
   }
 
   void _launchExternal(Uri url) {
-    // Fire-and-forget; failures (no handler app) are silently ignored.
-    launchUrl(url, mode: LaunchMode.externalApplication);
+    // Best-effort external open. Genuinely swallow failures (no handler app, or
+    // a platform exception) via catchError so a bad link never surfaces as an
+    // unhandled async error or crashes the note view.
+    unawaited(launchUrl(url, mode: LaunchMode.externalApplication)
+        .catchError((_) => false));
   }
 
   @override
