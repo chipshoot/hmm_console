@@ -22,6 +22,16 @@ class _FakeRepo implements IHmmNoteRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// Repository whose [getNoteByUuid] throws — e.g. no signed-in author.
+class _ThrowingRepo implements IHmmNoteRepository {
+  @override
+  Future<HmmNote?> getNoteByUuid(String uuid) async =>
+      throw StateError('no author');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 HmmNote _note({required int id, required String uuid}) => HmmNote(
       id: id,
       uuid: uuid,
@@ -84,6 +94,19 @@ void main() {
 
     expect(find.text('Linked note unavailable'), findsOneWidget);
     // No navigation happened — still on the home route.
+    expect(find.byType(MarkdownView), findsOneWidget);
+  });
+
+  testWidgets('a throwing resolver shows the unavailable SnackBar (no crash)',
+      (tester) async {
+    await _pump(tester, _ThrowingRepo());
+
+    final body =
+        tester.widget<NoteMarkdownBody>(find.byType(NoteMarkdownBody));
+    body.onNoteLinkTap!('u1');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Linked note unavailable'), findsOneWidget);
     expect(find.byType(MarkdownView), findsOneWidget);
   });
 }

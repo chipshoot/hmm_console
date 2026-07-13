@@ -154,20 +154,26 @@ class MarkdownView extends ConsumerWidget {
     return NoteMarkdownBody(
       data: data,
       resolver: resolver,
-      onNoteLinkTap: (uuid) => _openNote(context, ref, uuid),
+      onNoteLinkTap: (uuid) => unawaited(_openNote(context, ref, uuid)),
     );
   }
 
   Future<void> _openNote(
       BuildContext context, WidgetRef ref, String uuid) async {
-    final note =
-        await ref.read(hmmNoteRepositoryProvider).getNoteByUuid(uuid);
-    if (!context.mounted) return;
-    if (note != null) {
-      context.push('/notes/${note.id}');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Linked note unavailable')));
+    try {
+      final note =
+          await ref.read(hmmNoteRepositoryProvider).getNoteByUuid(uuid);
+      if (!context.mounted) return;
+      if (note != null) {
+        context.push('/notes/${note.id}');
+        return;
+      }
+    } catch (_) {
+      // Resolution failed (e.g. no signed-in author, or a DB error) — fall
+      // through to the same non-crashing "unavailable" affordance.
     }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Linked note unavailable')));
   }
 }
