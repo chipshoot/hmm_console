@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
@@ -15,6 +16,23 @@ import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 /// column width and is capped here so a tall image doesn't dominate.
 const double kInlineImageMaxHeight = 360.0;
 
+/// Routes a tapped Markdown link URL by scheme: a `hmm-note://<uuid>` link to
+/// [onNote]; an `http(s)` link to [onExternal]; anything else is ignored.
+void dispatchMarkdownLink(String? href,
+    {required void Function(String uuid) onNote,
+    required void Function(Uri url) onExternal}) {
+  if (href == null) return;
+  final uuid = parseNoteUri(href);
+  if (uuid != null) {
+    onNote(uuid);
+    return;
+  }
+  final uri = Uri.tryParse(href);
+  if (uri != null && (uri.isScheme('http') || uri.isScheme('https'))) {
+    onExternal(uri);
+  }
+}
+
 /// Renders a Markdown [data] string, resolving `hmm-attachment://` image URIs
 /// to inline images (whole image, fit-to-width, tap → fullscreen). Unsaved
 /// picks resolve from [pendingBytes] (uuid → bytes).
@@ -25,12 +43,20 @@ class NoteMarkdownBody extends StatelessWidget {
     this.resolver,
     this.pendingBytes,
     this.selectable = true,
+    this.onNoteLinkTap,
+    this.onExternalLinkTap,
   });
 
   final String data;
   final IAttachmentResolver? resolver;
   final Map<String, Uint8List>? pendingBytes;
   final bool selectable;
+
+  /// Tapped a `hmm-note://<uuid>` link. Null = note links are inert here.
+  final void Function(String noteUuid)? onNoteLinkTap;
+
+  /// Tapped an external `http(s)` link. Defaults to opening via url_launcher.
+  final void Function(Uri url)? onExternalLinkTap;
 
   Widget _box(Widget child) => ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: kInlineImageMaxHeight),
@@ -88,12 +114,23 @@ class NoteMarkdownBody extends StatelessWidget {
     return _placeholder();
   }
 
+  void _launchExternal(Uri url) {
+    // Fire-and-forget; failures (no handler app) are silently ignored.
+    launchUrl(url, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MarkdownBody(
       data: data,
       selectable: selectable,
       sizedImageBuilder: (config) => _buildImage(context, config),
+      onTapLink: (text, href, title) => dispatchMarkdownLink(
+        href,
+        onNote: (uuid) => onNoteLinkTap?.call(uuid),
+        onExternal: (url) =>
+            (onExternalLinkTap ?? _launchExternal)(url),
+      ),
     );
   }
 }
