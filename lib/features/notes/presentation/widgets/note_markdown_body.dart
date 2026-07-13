@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
@@ -12,6 +13,7 @@ import '../../../../core/data/attachments/inline_ref_uri.dart';
 import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
+import '../../../../core/data/repository_providers.dart';
 
 /// Max on-screen height of an inline image; the whole image scales to the
 /// column width and is capped here so a tall image doesn't dominate.
@@ -149,6 +151,23 @@ class MarkdownView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resolver = ref.watch(attachmentResolverProvider).value;
-    return NoteMarkdownBody(data: data, resolver: resolver);
+    return NoteMarkdownBody(
+      data: data,
+      resolver: resolver,
+      onNoteLinkTap: (uuid) => _openNote(context, ref, uuid),
+    );
+  }
+
+  Future<void> _openNote(
+      BuildContext context, WidgetRef ref, String uuid) async {
+    final note =
+        await ref.read(hmmNoteRepositoryProvider).getNoteByUuid(uuid);
+    if (!context.mounted) return;
+    if (note != null) {
+      context.push('/notes/${note.id}');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Linked note unavailable')));
+    }
   }
 }
