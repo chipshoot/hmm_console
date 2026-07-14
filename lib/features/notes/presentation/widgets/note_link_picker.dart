@@ -5,8 +5,11 @@ import '../../data/models/hmm_note.dart';
 import '../../states/notes_list_state.dart';
 
 /// Modal note picker for inserting a link. Returns the chosen note, or null.
-Future<HmmNote?> showNoteLinkPicker(BuildContext context, WidgetRef ref,
-    {int? excludeNoteId}) {
+Future<HmmNote?> showNoteLinkPicker(
+  BuildContext context,
+  WidgetRef ref, {
+  int? excludeNoteId,
+}) {
   return showModalBottomSheet<HmmNote>(
     context: context,
     isScrollControlled: true,
@@ -25,16 +28,12 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
   String _query = '';
   @override
   Widget build(BuildContext context) {
-    final all = ref.watch(notesListStateProvider).value?.all ?? const [];
-    final q = _query.trim().toLowerCase();
-    final items = all
-        .where((n) => n.id != widget.excludeNoteId)
-        .where((n) => q.isEmpty || n.subject.toLowerCase().contains(q))
-        .toList();
+    final async = ref.watch(notesListStateProvider);
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom),
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -43,25 +42,55 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
               child: TextField(
                 autofocus: true,
                 decoration: const InputDecoration(
-                    hintText: 'Search notes', prefixIcon: Icon(Icons.search)),
+                  hintText: 'Search notes',
+                  prefixIcon: Icon(Icons.search),
+                ),
                 onChanged: (v) => setState(() => _query = v),
               ),
             ),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final n in items)
-                    ListTile(
-                      title: Text(n.subject),
-                      onTap: () => Navigator.of(context).pop(n),
-                    ),
-                ],
-              ),
-            ),
+            Flexible(child: _list(async)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _list(AsyncValue<NotesListData> async) {
+    // Surface loading/error instead of silently collapsing to an empty list.
+    if (async.isLoading && !async.hasValue) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (async.hasError && !async.hasValue) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: Text("Couldn't load notes")),
+      );
+    }
+    final q = _query.trim().toLowerCase();
+    final items = (async.value?.all ?? const <HmmNote>[])
+        .where((n) => n.id != widget.excludeNoteId)
+        .where((n) => q.isEmpty || n.subject.toLowerCase().contains(q))
+        .toList();
+    if (items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: Text('No notes')),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: items.length,
+      itemBuilder: (_, i) {
+        final n = items[i];
+        return ListTile(
+          key: ValueKey(n.id),
+          title: Text(n.subject),
+          onTap: () => Navigator.of(context).pop(n),
+        );
+      },
     );
   }
 }

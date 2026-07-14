@@ -33,10 +33,10 @@ class MediaToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.appColors;
     Widget btn(IconData icon, AttachmentPickSource source) => IconButton(
-          icon: Icon(icon),
-          color: c.accent,
-          onPressed: enabled ? () => onPick(source) : null,
-        );
+      icon: Icon(icon),
+      color: c.accent,
+      onPressed: enabled ? () => onPick(source) : null,
+    );
     return SafeArea(
       top: false,
       child: Container(

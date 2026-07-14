@@ -8,19 +8,31 @@ import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 class _StubListState extends NotesListState {
   @override
   Future<NotesListData> build() async => NotesListData(
-        all: [
-          HmmNote(
-              id: 1, uuid: 'u1', subject: 'A', authorId: 1,
-              createDate: DateTime(2026, 1, 1)),
-          HmmNote(
-              id: 2, uuid: 'u2', subject: 'B', authorId: 1,
-              createDate: DateTime(2026, 1, 1)),
-          HmmNote(
-              id: 3, uuid: 'u3', subject: 'C', authorId: 1,
-              createDate: DateTime(2026, 1, 1)),
-        ],
-        catalogsById: const {},
-      );
+    all: [
+      HmmNote(
+        id: 1,
+        uuid: 'u1',
+        subject: 'A',
+        authorId: 1,
+        createDate: DateTime(2026, 1, 1),
+      ),
+      HmmNote(
+        id: 2,
+        uuid: 'u2',
+        subject: 'B',
+        authorId: 1,
+        createDate: DateTime(2026, 1, 1),
+      ),
+      HmmNote(
+        id: 3,
+        uuid: 'u3',
+        subject: 'C',
+        authorId: 1,
+        createDate: DateTime(2026, 1, 1),
+      ),
+    ],
+    catalogsById: const {},
+  );
 }
 
 class _Harness extends ConsumerWidget {
@@ -34,8 +46,11 @@ class _Harness extends ConsumerWidget {
       body: Builder(
         builder: (context) => ElevatedButton(
           onPressed: () async {
-            final note = await showNoteLinkPicker(context, ref,
-                excludeNoteId: excludeNoteId);
+            final note = await showNoteLinkPicker(
+              context,
+              ref,
+              excludeNoteId: excludeNoteId,
+            );
             onResult(note);
           },
           child: const Text('Open picker'),
@@ -45,17 +60,22 @@ class _Harness extends ConsumerWidget {
   }
 }
 
-Future<void> _pump(WidgetTester tester,
-    {ValueChanged<HmmNote?>? onResult, int? excludeNoteId}) async {
-  await tester.pumpWidget(ProviderScope(
-    overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-    child: MaterialApp(
-      home: _Harness(
-        onResult: onResult ?? (_) {},
-        excludeNoteId: excludeNoteId,
+Future<void> _pump(
+  WidgetTester tester, {
+  ValueChanged<HmmNote?>? onResult,
+  int? excludeNoteId,
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
+      child: MaterialApp(
+        home: _Harness(
+          onResult: onResult ?? (_) {},
+          excludeNoteId: excludeNoteId,
+        ),
       ),
     ),
-  ));
+  );
   await tester.pumpAndSettle();
   await tester.tap(find.text('Open picker'));
   await tester.pumpAndSettle();
@@ -77,8 +97,9 @@ void main() {
     expect(find.widgetWithText(ListTile, 'C'), findsNothing);
   });
 
-  testWidgets('tapping a note completes the future with that note',
-      (tester) async {
+  testWidgets('tapping a note completes the future with that note', (
+    tester,
+  ) async {
     HmmNote? picked;
     await _pump(tester, onResult: (n) => picked = n);
 
