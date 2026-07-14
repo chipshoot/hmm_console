@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +35,18 @@ class _StubListState extends NotesListState {
     ],
     catalogsById: const {},
   );
+}
+
+/// Never completes — keeps the provider in AsyncLoading.
+class _LoadingListState extends NotesListState {
+  @override
+  Future<NotesListData> build() => Completer<NotesListData>().future;
+}
+
+/// Throws — puts the provider into AsyncError.
+class _ErrorListState extends NotesListState {
+  @override
+  Future<NotesListData> build() async => throw StateError('boom');
 }
 
 class _Harness extends ConsumerWidget {
@@ -118,4 +132,42 @@ void main() {
     expect(find.text('B'), findsNothing);
     expect(find.text('C'), findsOneWidget);
   });
+
+  testWidgets('shows a spinner while the notes list is loading', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [notesListStateProvider.overrideWith(_LoadingListState.new)],
+        child: const MaterialApp(home: _Harness(onResult: _noop)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open picker'));
+    // Don't settle: the provider never resolves and the spinner animates.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(ListTile), findsNothing);
+  });
+
+  testWidgets('shows an error message when the notes list fails', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [notesListStateProvider.overrideWith(_ErrorListState.new)],
+        child: const MaterialApp(home: _Harness(onResult: _noop)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open picker'));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Couldn't load notes"), findsOneWidget);
+    expect(find.byType(ListTile), findsNothing);
+  });
 }
+
+void _noop(HmmNote? _) {}
