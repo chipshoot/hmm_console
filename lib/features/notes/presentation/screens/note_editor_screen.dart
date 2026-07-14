@@ -15,6 +15,7 @@ import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/util/uuid.dart';
 import '../widgets/inline_insert.dart';
+import '../widgets/note_link_picker.dart';
 import '../widgets/note_markdown_body.dart';
 import '../../../../core/data/note_location.dart';
 import '../../../../core/data/repository_providers.dart';
@@ -266,15 +267,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       }
     }
     if (failed.isNotEmpty && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Some images couldn't be added and were skipped.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Some images couldn't be added and were skipped."),
+        ),
+      );
     }
 
     // 2) Detect images that were inline at load but the user removed from the
     //    text. Never drop a stored image silently — confirm first.
     final currentInline = imageRefPathsIn(_bodyCtrl.text).toSet();
-    final removed =
-        _loadedInlinePaths.where((p) => !currentInline.contains(p)).toSet();
+    final removed = _loadedInlinePaths
+        .where((p) => !currentInline.contains(p))
+        .toSet();
     var deleteRemoved = false;
     if (removed.isNotEmpty && mounted) {
       deleteRemoved = await _confirmRemoveImages(removed.length);
@@ -295,8 +300,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         : null;
     await mutate.setAttachments(
       noteId,
-      NoteAttachments(
-          primaryImage: primary, images: images, files: base.files),
+      NoteAttachments(primaryImage: primary, images: images, files: base.files),
     );
   }
 
@@ -309,16 +313,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Remove stored images?'),
         content: Text(
-            'You removed $count image${count == 1 ? '' : 's'} from this note. '
-            'Delete the stored image${count == 1 ? '' : 's'}, or keep '
-            '${count == 1 ? 'it' : 'them'} attached?'),
+          'You removed $count image${count == 1 ? '' : 's'} from this note. '
+          'Delete the stored image${count == 1 ? '' : 's'}, or keep '
+          '${count == 1 ? 'it' : 'them'} attached?',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Keep attached')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep attached'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Delete')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -339,6 +346,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     if (pick != null && mounted) {
       setState(() => _pendingFiles.add(pick));
     }
+  }
+
+  /// Pick a note from the searchable picker and insert an inline
+  /// `[subject](hmm-note://uuid)` link at the cursor.
+  Future<void> _addNoteLink() async {
+    final note = await showNoteLinkPicker(context, ref, excludeNoteId: _noteId);
+    if (note == null || !mounted) return;
+    setState(() => insertNoteLinkAtCursor(_bodyCtrl, note.uuid, note.subject));
   }
 
   String get _stampText =>
@@ -546,10 +561,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       // picked images are inline (see the preview below).
                       NoteMediaCardList(
                         saved: _savedImages
-                            .where((r) =>
-                                r is! VaultRef ||
-                                !imageRefPathsIn(_bodyCtrl.text)
-                                    .contains(r.path))
+                            .where(
+                              (r) =>
+                                  r is! VaultRef ||
+                                  !imageRefPathsIn(
+                                    _bodyCtrl.text,
+                                  ).contains(r.path),
+                            )
                             .toList(),
                       ),
                       NoteFileCardList(
@@ -583,15 +601,17 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                         const SizedBox(height: 12),
                         Divider(height: 1, thickness: 1, color: c.separator),
                         const SizedBox(height: 8),
-                        Text('Preview',
-                            style: DesignTokens.caption
-                                .copyWith(color: c.tertiaryLabel)),
+                        Text(
+                          'Preview',
+                          style: DesignTokens.caption.copyWith(
+                            color: c.tertiaryLabel,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         NoteMarkdownBody(
                           data: _bodyCtrl.text,
                           pendingBytes: _pendingBytes,
-                          resolver:
-                              ref.watch(attachmentResolverProvider).value,
+                          resolver: ref.watch(attachmentResolverProvider).value,
                           selectable: false,
                         ),
                       ],
@@ -611,9 +631,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             onPick: _addMedia,
             onPickFile: _addFile,
             onRecord: _addRecording,
+            onLinkToNote: _addNoteLink,
             enabled: !_busy,
-            onDismissKeyboard:
-                keyboardUp ? () => FocusScope.of(context).unfocus() : null,
+            onDismissKeyboard: keyboardUp
+                ? () => FocusScope.of(context).unfocus()
+                : null,
           ),
         ],
       ),
