@@ -11,6 +11,7 @@ class MediaToolbar extends StatelessWidget {
     required this.onPick,
     required this.onPickFile,
     required this.onRecord,
+    this.onLinkToNote,
     this.onDismissKeyboard,
     this.enabled = true,
   });
@@ -18,6 +19,9 @@ class MediaToolbar extends StatelessWidget {
   final void Function(AttachmentPickSource source) onPick;
   final VoidCallback onPickFile;
   final VoidCallback onRecord;
+
+  /// When non-null, a "link to a note" toolbar action is shown.
+  final VoidCallback? onLinkToNote;
 
   /// When non-null, a trailing keyboard-hide button is shown. The editor
   /// passes this only while the keyboard is up, so the control never appears
@@ -57,6 +61,13 @@ class MediaToolbar extends StatelessWidget {
               color: c.accent,
               onPressed: enabled ? onRecord : null,
             ),
+            if (onLinkToNote != null)
+              IconButton(
+                icon: const Icon(Icons.link),
+                color: c.accent,
+                tooltip: 'Link to a note',
+                onPressed: enabled ? onLinkToNote : null,
+              ),
             if (onDismissKeyboard != null) ...[
               const Spacer(),
               IconButton(

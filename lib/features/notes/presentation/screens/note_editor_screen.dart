@@ -15,6 +15,7 @@ import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/util/uuid.dart';
 import '../widgets/inline_insert.dart';
+import '../widgets/note_link_picker.dart';
 import '../widgets/note_markdown_body.dart';
 import '../../../../core/data/note_location.dart';
 import '../../../../core/data/repository_providers.dart';
@@ -341,6 +342,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
+  /// Pick a note from the searchable picker and insert an inline
+  /// `[subject](hmm-note://uuid)` link at the cursor.
+  Future<void> _addNoteLink() async {
+    final note = await showNoteLinkPicker(context, ref, excludeNoteId: _noteId);
+    if (note == null || !mounted) return;
+    setState(() => insertNoteLinkAtCursor(_bodyCtrl, note.uuid, note.subject));
+  }
+
   String get _stampText =>
       '${DateFormat.yMMMMd().format(_noteDate)} · ${DateFormat.jm().format(_noteDate)}';
 
@@ -611,6 +620,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             onPick: _addMedia,
             onPickFile: _addFile,
             onRecord: _addRecording,
+            onLinkToNote: _addNoteLink,
             enabled: !_busy,
             onDismissKeyboard:
                 keyboardUp ? () => FocusScope.of(context).unfocus() : null,
