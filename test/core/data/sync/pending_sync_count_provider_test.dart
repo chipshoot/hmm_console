@@ -180,6 +180,137 @@ void main() {
     final after = await completer.future.timeout(const Duration(seconds: 2));
     expect(after, equals(0));
   });
+
+  test(
+      'emit() does not add to a closed StreamController when disposed '
+      'while pendingChangeCount() is still in flight', () async {
+    SharedPreferences.setMockInitialValues({});
+    final db = HmmDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db
+        .into(db.authors)
+        .insert(AuthorsCompanion.insert(accountName: 'tester'));
+
+    final fakeProvider = _FakeCloudSyncProvider();
+    final orchestrator = _GatedOrchestrator(
+      provider: fakeProvider,
+      db: db,
+      meta: SyncMetaRepository(),
+      vaultStore: () async => throw UnimplementedError(),
+    );
+    final controller = SyncController(syncAction: () async {
+      throw StateError('not exercised in this test');
+    });
+    addTearDown(controller.dispose);
+
+    final container = ProviderContainer(overrides: [
+      hmmDatabaseProvider.overrideWithValue(db),
+      syncOrchestratorProvider.overrideWithValue(orchestrator),
+      syncControllerProvider.overrideWithValue(controller),
+      currentAuthorAccountNameProvider.overrideWithValue('tester'),
+    ]);
+
+    final zoneErrors = <Object>[];
+    await runZonedGuarded(() async {
+      final sub = container.listen<AsyncValue<int>>(
+        pendingSyncCountProvider,
+        (prev, next) {},
+      );
+
+      // Let the (unguarded) seed `emit()` call resolve first, so the gate
+      // armed below only catches the *next* recompute.
+      final initial = await container.read(pendingSyncCountProvider.future);
+      expect(initial, equals(0));
+
+      // Arm the gate, then trigger a recompute via a notes-table write —
+      // this is the reproduction of "a notes-table write's recompute is
+      // still in flight" from the review finding. The ensuing emit() call
+      // will suspend inside pendingChangeCount() until releaseGate().
+      orchestrator.armGate();
+      await container
+          .read(hmmNoteRepositoryProvider)
+          .createNote(const HmmNoteCreate(subject: 'new', catalogId: 1));
+
+      // Wait until emit() has actually entered the gated await (i.e. it's
+      // genuinely mid-flight on the COUNT query) before disposing —
+      // otherwise disposing might race ahead of the recompute even being
+      // scheduled, and the test wouldn't exercise the race at all.
+      await orchestrator.entered.future.timeout(const Duration(seconds: 2));
+
+      // Dispose while emit() is suspended awaiting the COUNT query. This
+      // is "navigate away from a screen while a recompute is still in
+      // flight": ref.onDispose cancels dbSub, removes the controller
+      // listener, and closes `out` — concurrently with the gated
+      // pendingChangeCount() call above.
+      sub.close();
+      container.dispose();
+
+      // Let the gated query resolve now that the controller is closed.
+      // With the pre-fix code (isClosed checked *before* the await),
+      // emit() would resume and call out.add() on a closed
+      // StreamController, throwing an unhandled StateError caught below.
+      orchestrator.releaseGate();
+      await orchestrator.done.future.timeout(const Duration(seconds: 2));
+
+      // Flush the microtask queue: emit()'s post-await continuation
+      // (the isClosed re-check / out.add) is scheduled as a microtask
+      // right after pendingChangeCount() resolves, so a zero-duration
+      // Timer (which runs after all pending microtasks) is enough to
+      // guarantee it has run before we assert below.
+      await Future<void>.delayed(Duration.zero);
+    }, (error, stack) {
+      zoneErrors.add(error);
+    });
+
+    expect(zoneErrors, isEmpty,
+        reason: 'emit() must re-check out.isClosed AFTER awaiting '
+            'pendingChangeCount(), not before, or it adds to an '
+            'already-closed StreamController when disposed mid-recompute');
+  });
+}
+
+class _GatedOrchestrator extends SyncOrchestrator {
+  _GatedOrchestrator({
+    required super.provider,
+    required super.db,
+    required super.meta,
+    required super.vaultStore,
+  });
+
+  /// Completes the moment a gated `pendingChangeCount()` call has
+  /// suspended on [_gate] — signals "the recompute is now genuinely
+  /// in flight".
+  final Completer<void> entered = Completer<void>();
+
+  /// Completes once the (gated) call has finished querying the DB —
+  /// used to know when to flush the microtask queue before asserting.
+  final Completer<void> done = Completer<void>();
+
+  Completer<void>? _gate;
+  bool _armed = false;
+
+  /// Arms the gate so the *next* call to [pendingChangeCount] suspends
+  /// until [releaseGate] is called.
+  void armGate() {
+    _armed = true;
+    _gate = Completer<void>();
+  }
+
+  void releaseGate() {
+    _gate?.complete();
+  }
+
+  @override
+  Future<int> pendingChangeCount() async {
+    if (_armed) {
+      _armed = false;
+      entered.complete();
+      await _gate!.future;
+    }
+    final result = await super.pendingChangeCount();
+    if (!done.isCompleted) done.complete();
+    return result;
+  }
 }
 
 class _FakeCloudSyncProvider extends CloudSyncProvider {

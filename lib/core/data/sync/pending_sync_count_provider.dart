@@ -33,8 +33,9 @@ final pendingSyncCountProvider = StreamProvider.autoDispose<int>((ref) {
   final out = StreamController<int>();
 
   Future<void> emit() async {
+    final count = await orchestrator.pendingChangeCount();
     if (out.isClosed) return;
-    out.add(await orchestrator.pendingChangeCount());
+    out.add(count);
   }
 
   final dbSub = db.select(db.notes).watch().listen((_) => emit());
