@@ -78,6 +78,30 @@ class _FakePicker implements IImageAttachmentPicker {
   }
 }
 
+/// Picker whose vault writes always fail — models a persist failure (disk full,
+/// permission error) so the failed pick's placeholder must be stripped.
+class _ThrowingPicker implements IImageAttachmentPicker {
+  @override
+  Future<VaultRef?> pickForNote(
+          {required int noteId,
+          AttachmentPickSource source = AttachmentPickSource.gallery}) async =>
+      null;
+  @override
+  Future<VaultRef> persistToVault(
+          {required int noteId,
+          required Uint8List bytes,
+          required String originalName,
+          String? contentTypeHint}) async =>
+      throw StateError('vault write failed');
+  @override
+  Future<VaultRef> persistFileToVault(
+          {required int noteId,
+          required Uint8List bytes,
+          required String originalName,
+          required String contentType}) async =>
+      throw StateError('vault write failed');
+}
+
 class _FakeImageSource implements ImageByteSource {
   @override
   Future<PickedImageBytes?> pick(AttachmentPickSource source) async =>
@@ -215,5 +239,78 @@ void main() {
     expect(saved.attachments.images, hasLength(1));
     final imgPath = saved.attachments.images.whereType<VaultRef>().single.path;
     expect(saved.notes, contains(imgPath));
+  });
+
+  testWidgets(
+      'a failed inline persist strips the placeholder — no pending/ survives',
+      (tester) async {
+    final container = ProviderContainer(overrides: [
+      serviceRecordRepositoryModeProvider.overrideWithValue(serviceRepo),
+      vaultStoreProvider.overrideWith((ref) async => vault),
+      imageAttachmentPickerProvider
+          .overrideWith((ref) async => _ThrowingPicker()),
+      imageByteSourceProvider.overrideWithValue(_FakeImageSource()),
+      dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
+    ]);
+    addTearDown(container.dispose);
+    await container.read(mutateServiceRecordStateProvider.future);
+
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (c, s) => Scaffold(
+            body: Center(
+              child: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () => ctx.push('/form'),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/form',
+          builder: (c, s) => ServiceRecordFormScreen(automobileId: autoId),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextField, 'Mileage'), '50');
+    await tester.pump();
+    await tester.ensureVisible(find.byType(OptionalDatePicker));
+    await tester.tap(find.byType(OptionalDatePicker));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Insert an image with no other note text, then save (the persist fails).
+    await tester.ensureVisible(find.byTooltip('Insert image into notes'));
+    await tester.tap(find.byTooltip('Insert image into notes'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Add Record'));
+    await tester.tap(find.text('Add Record'));
+    await tester.pumpAndSettle();
+
+    // The record still saves, but the failed pick's placeholder was stripped:
+    // the notes must NOT resurrect the pre-resolve pending/ URI (the copyWith
+    // null-means-keep bug), and no image is attached.
+    final records = await serviceRepo.getRecords(autoId);
+    expect(records, hasLength(1));
+    final saved = records.single;
+    expect(saved.notes ?? '', isNot(contains('pending/')));
+    expect(saved.notes ?? '', isNot(contains('hmm-attachment://')));
+    expect(saved.attachments.images, isEmpty);
   });
 }
