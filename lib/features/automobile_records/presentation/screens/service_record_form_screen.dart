@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/inline_ref_uri.dart';
+import '../../../notes/presentation/widgets/inline_image_controller.dart';
 import '../../../notes/presentation/widgets/note_markdown_body.dart';
 import '../../../../core/data/attachments/open_attachment.dart';
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
@@ -69,6 +71,10 @@ class _ServiceRecordFormScreenState
   final List<PickedFileBytes> _pendingFiles = [];
   List<VaultRef> _savedRefs = []; // retained from the loaded record
   final List<VaultRef> _removedRefs = [];
+
+  /// Inline images staged into the Notes markdown this session (shared with the
+  /// general note editor). Resolved + rewritten to vault paths on save.
+  final InlineImageController _inline = InlineImageController();
 
   bool _scanning = false;
   // Bumped when a scan re-seeds the line items so the editor rebuilds with the
@@ -251,6 +257,14 @@ class _ServiceRecordFormScreenState
                       helperText: 'Supports markdown',
                       onChanged: (_) => setState(() {}),
                     ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        icon: const Icon(Icons.image_outlined),
+                        tooltip: 'Insert image into notes',
+                        onPressed: _insertInlineImage,
+                      ),
+                    ),
                     if (_notesCtrl.text.trim().isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Align(
@@ -262,6 +276,7 @@ class _ServiceRecordFormScreenState
                         data: _notesCtrl.text,
                         resolver:
                             ref.watch(attachmentResolverProvider).value,
+                        pendingBytes: _inline.pendingBytes,
                         selectable: false,
                       ),
                     ],
@@ -307,20 +322,35 @@ class _ServiceRecordFormScreenState
       .where((p) => p.name.trim().isNotEmpty || p.unitCost != null)
       .toList();
 
-  List<AttachmentItem> get _attachmentItems => [
-        for (final p in _pendingImages) PendingImageItem(p),
-        for (final r in _savedRefs)
-          if (r.contentType.startsWith('image/')) SavedAttachmentItem(r),
-        for (final p in _pendingFiles) PendingFileItem(p),
-        for (final r in _savedRefs)
-          if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
-      ];
+  List<AttachmentItem> get _attachmentItems {
+    // Images shown inline in the notes are excluded from the gallery (dedup).
+    final inline = imageRefPathsIn(_notesCtrl.text).toSet();
+    return [
+      for (final p in _pendingImages) PendingImageItem(p),
+      for (final r in _savedRefs)
+        if (r.contentType.startsWith('image/') && !inline.contains(r.path))
+          SavedAttachmentItem(r),
+      for (final p in _pendingFiles) PendingFileItem(p),
+      for (final r in _savedRefs)
+        if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+    ];
+  }
 
   Future<void> _addImage() async {
     final pick = await ref
         .read(imageByteSourceProvider)
         .pick(AttachmentPickSource.gallery);
     if (pick != null) setState(() => _pendingImages.add(pick));
+  }
+
+  /// Pick an image and insert it inline into the Notes markdown at the cursor.
+  /// Staged for the live preview; persisted + rewritten on save.
+  Future<void> _insertInlineImage() async {
+    final pick = await ref
+        .read(imageByteSourceProvider)
+        .pick(AttachmentPickSource.gallery);
+    if (pick == null || !mounted) return;
+    setState(() => _inline.stageAndInsert(_notesCtrl, pick));
   }
 
   Future<void> _addPdf() async {
