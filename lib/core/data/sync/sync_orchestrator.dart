@@ -276,6 +276,30 @@ class SyncOrchestrator {
     return result;
   }
 
+  /// Cheap COUNT of local notes changed since the last-pushed cursor for
+  /// the active provider — the same `lastModifiedDate > cursor` leg
+  /// `syncNow()` uses to collect its push queue (`_collectChangedNotes`),
+  /// but without materialising the rows. Drives
+  /// `pendingSyncCountProvider`'s pill badge + blocked/failed prompt.
+  ///
+  /// NOT exact: does not include the `_collectMissingFromRemote`
+  /// self-healing set (that requires pulling the remote manifest — a
+  /// network call, not "cheap"). Immediately after a rare cursor-drift
+  /// event this can under-report until the next real sync self-heals it.
+  /// Returns 0 when no provider is active ([isActive] is false).
+  Future<int> pendingChangeCount() async {
+    final p = provider;
+    if (p == null) return 0;
+    final cursor = await _meta.getLastPushedAt(p.providerId) ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    final countExp = _db.notes.id.count();
+    final query = _db.selectOnly(_db.notes)
+      ..addColumns([countExp])
+      ..where(_db.notes.lastModifiedDate.isBiggerThanValue(cursor));
+    final row = await query.getSingle();
+    return row.read(countExp) ?? 0;
+  }
+
   // ==================== PULL helpers ====================
 
   Future<bool> _maybePullNote(
