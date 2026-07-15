@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/inline_ref_uri.dart';
+import '../../../notes/presentation/widgets/inline_image_controller.dart';
 import '../../../notes/presentation/widgets/note_markdown_body.dart';
 import '../../../../core/data/attachments/open_attachment.dart';
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
@@ -63,12 +65,21 @@ class _ServiceRecordFormScreenState
   double? _tax;
 
   bool _loading = false;
+  bool _submitting = false; // guards the two-phase save against double-tap
   ServiceRecord? _existing;
 
   final List<PickedImageBytes> _pendingImages = [];
   final List<PickedFileBytes> _pendingFiles = [];
   List<VaultRef> _savedRefs = []; // retained from the loaded record
   final List<VaultRef> _removedRefs = [];
+
+  /// Inline images staged into the Notes markdown this session (shared with the
+  /// general note editor). Resolved + rewritten to vault paths on save.
+  final InlineImageController _inline = InlineImageController();
+
+  /// Image paths referenced inline in the notes at load — used on save to
+  /// confirm before dropping a stored image the user removed from the text.
+  List<String> _loadedInlinePaths = const [];
 
   bool _scanning = false;
   // Bumped when a scan re-seeds the line items so the editor rebuilds with the
@@ -97,6 +108,7 @@ class _ServiceRecordFormScreenState
       _descriptionCtrl.text = record.description ?? '';
       _shopCtrl.text = record.shopName ?? '';
       _notesCtrl.text = record.notes ?? '';
+      _loadedInlinePaths = imageRefPathsIn(record.notes ?? '');
       _nameCtrl.text = record.name ?? '';
       _refCtrl.text = record.referenceNumber ?? '';
       _types =
@@ -251,6 +263,14 @@ class _ServiceRecordFormScreenState
                       helperText: 'Supports markdown',
                       onChanged: (_) => setState(() {}),
                     ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        icon: const Icon(Icons.image_outlined),
+                        tooltip: 'Insert image into notes',
+                        onPressed: _insertInlineImage,
+                      ),
+                    ),
                     if (_notesCtrl.text.trim().isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Align(
@@ -262,6 +282,7 @@ class _ServiceRecordFormScreenState
                         data: _notesCtrl.text,
                         resolver:
                             ref.watch(attachmentResolverProvider).value,
+                        pendingBytes: _inline.pendingBytes,
                         selectable: false,
                       ),
                     ],
@@ -281,10 +302,10 @@ class _ServiceRecordFormScreenState
                     ],
                     const SizedBox(height: 24),
                     HighlightButton(
-                      text: saving
+                      text: (saving || _submitting)
                           ? 'Saving...'
                           : (widget.isEdit ? 'Save Changes' : 'Add Record'),
-                      onPressed: saving ? () {} : _submit,
+                      onPressed: (saving || _submitting) ? () {} : _submit,
                     ),
                   ],
                 ),
@@ -307,20 +328,35 @@ class _ServiceRecordFormScreenState
       .where((p) => p.name.trim().isNotEmpty || p.unitCost != null)
       .toList();
 
-  List<AttachmentItem> get _attachmentItems => [
-        for (final p in _pendingImages) PendingImageItem(p),
-        for (final r in _savedRefs)
-          if (r.contentType.startsWith('image/')) SavedAttachmentItem(r),
-        for (final p in _pendingFiles) PendingFileItem(p),
-        for (final r in _savedRefs)
-          if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
-      ];
+  List<AttachmentItem> get _attachmentItems {
+    // Images shown inline in the notes are excluded from the gallery (dedup).
+    final inline = imageRefPathsIn(_notesCtrl.text).toSet();
+    return [
+      for (final p in _pendingImages) PendingImageItem(p),
+      for (final r in _savedRefs)
+        if (r.contentType.startsWith('image/') && !inline.contains(r.path))
+          SavedAttachmentItem(r),
+      for (final p in _pendingFiles) PendingFileItem(p),
+      for (final r in _savedRefs)
+        if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+    ];
+  }
 
   Future<void> _addImage() async {
     final pick = await ref
         .read(imageByteSourceProvider)
         .pick(AttachmentPickSource.gallery);
     if (pick != null) setState(() => _pendingImages.add(pick));
+  }
+
+  /// Pick an image and insert it inline into the Notes markdown at the cursor.
+  /// Staged for the live preview; persisted + rewritten on save.
+  Future<void> _insertInlineImage() async {
+    final pick = await ref
+        .read(imageByteSourceProvider)
+        .pick(AttachmentPickSource.gallery);
+    if (pick == null || !mounted) return;
+    setState(() => _inline.stageAndInsert(_notesCtrl, pick));
   }
 
   Future<void> _addPdf() async {
@@ -464,7 +500,43 @@ class _ServiceRecordFormScreenState
     }
   }
 
+  /// Builds a [ServiceRecord] from the current form fields. [notes] is passed
+  /// in explicitly (not via `copyWith`) so it can be set to null to clear it —
+  /// `ServiceRecord.copyWith`'s `?? this.notes` cannot express "clear".
+  ServiceRecord _composeRecord({required int id, required String? notes}) {
+    final items = _keptItems;
+    return ServiceRecord(
+      id: id,
+      automobileId: widget.automobileId,
+      date: _date!,
+      mileage: int.parse(_mileageCtrl.text),
+      types: _types,
+      name: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
+      referenceNumber:
+          _refCtrl.text.trim().isEmpty ? null : _refCtrl.text.trim(),
+      description: _descriptionCtrl.text.trim().isEmpty
+          ? null
+          : _descriptionCtrl.text.trim(),
+      cost: items.isEmpty ? _existing?.cost : null,
+      currency: _currency,
+      shopName: _shopCtrl.text.trim().isEmpty ? null : _shopCtrl.text.trim(),
+      parts: items,
+      // Tax is only meaningful alongside items; don't persist a standalone
+      // tax on an itemless (legacy-cost) record.
+      tax: items.isEmpty ? null : _tax,
+      notes: notes,
+    );
+  }
+
+  String? get _notesForSave =>
+      _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim();
+
   Future<void> _submit() async {
+    // Re-entrancy guard: the two-phase inline save does async work (create +
+    // persist) before notifier.save flips the shared loading state, so the
+    // button's `saving` flag alone can't block a double-tap. Everything up to
+    // here is synchronous, so the flag is set before any await can interleave.
+    if (_submitting) return;
     if (!_formKey.currentState!.validate()) {
       // The invalid field (usually a required, empty Mileage that a scan
       // didn't fill) can be scrolled off-screen above the line items, making
@@ -491,39 +563,135 @@ class _ServiceRecordFormScreenState
       return;
     }
 
-    final record = ServiceRecord(
-      id: _existing?.id ?? 0,
-      automobileId: widget.automobileId,
-      date: _date!,
-      mileage: int.parse(_mileageCtrl.text),
-      types: _types,
-      name: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
-      referenceNumber:
-          _refCtrl.text.trim().isEmpty ? null : _refCtrl.text.trim(),
-      description: _descriptionCtrl.text.trim().isEmpty
-          ? null
-          : _descriptionCtrl.text.trim(),
-      cost: items.isEmpty ? _existing?.cost : null,
-      currency: _currency,
-      shopName:
-          _shopCtrl.text.trim().isEmpty ? null : _shopCtrl.text.trim(),
-      parts: items,
-      // Tax is only meaningful alongside items; don't persist a standalone
-      // tax on an itemless (legacy-cost) record.
-      tax: items.isEmpty ? null : _tax,
-      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-    );
-
+    final record = _composeRecord(id: _existing?.id ?? 0, notes: _notesForSave);
     final notifier = ref.read(mutateServiceRecordStateProvider.notifier);
-    await notifier.save(
-      autoId: widget.automobileId,
-      record: record,
-      isEdit: widget.isEdit,
-      pendingImages: _pendingImages,
-      pendingFiles: _pendingFiles,
-      retained: _savedRefs,
-      removed: _removedRefs,
+
+    setState(() => _submitting = true);
+    try {
+      // Staged inline images need a note id to persist under. Resolve them,
+      // merge the freshly-persisted refs into the retention set, save once.
+      if (_inline.pendingBytes.isNotEmpty) {
+        int noteId;
+        if (!widget.isEdit) {
+          // Create directly via the repo (not the notifier) so the create's
+          // success state transition doesn't trip the form's save listener and
+          // pop the screen mid-submit — the single pop happens on the save.
+          final ServiceRecord created;
+          try {
+            created = await ref
+                .read(serviceRecordRepositoryModeProvider)
+                .createRecord(widget.automobileId, record);
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(dioErrorMessage(e)),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ));
+            }
+            return;
+          }
+          noteId = created.id;
+        } else {
+          noteId = record.id;
+        }
+
+        final picker = await ref.read(imageAttachmentPickerProvider.future);
+        final result = await _inline.resolveAndRewrite(
+          noteId: noteId,
+          body: _notesCtrl,
+          persist: (id, pick) => picker.persistToVault(
+            noteId: id,
+            bytes: pick.bytes,
+            originalName: pick.originalName,
+            contentTypeHint: pick.contentType,
+          ),
+        );
+        if (mounted) setState(() {});
+        if (result.hadFailures && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Some images couldn't be added and were skipped."),
+          ));
+        }
+
+        // Confirm any inline image the user removed from the notes text before
+        // dropping the stored bytes.
+        final removedPaths = InlineImageController.removedImagePaths(
+          _loadedInlinePaths,
+          _notesCtrl.text,
+        ).toSet();
+        final removedRefs = <VaultRef>[..._removedRefs];
+        var retainedRefs = <VaultRef>[..._savedRefs];
+        if (removedPaths.isNotEmpty && mounted) {
+          final del = await _confirmRemoveInlineImages(removedPaths.length);
+          if (del) {
+            removedRefs
+                .addAll(_savedRefs.where((r) => removedPaths.contains(r.path)));
+            retainedRefs = retainedRefs
+                .where((r) => !removedPaths.contains(r.path))
+                .toList();
+          }
+        }
+        // Merge the freshly-persisted inline refs into the retention set.
+        for (final r in result.newRefs) {
+          if (!retainedRefs.any((e) => e.path == r.path)) retainedRefs.add(r);
+        }
+
+        // Build the saved record from the *post-resolve* notes (a failed pick
+        // may have stripped the body to empty). Do NOT route this through
+        // `copyWith`, whose null-means-keep semantics would resurrect the
+        // pre-resolve `pending/` text — see _composeRecord.
+        await notifier.save(
+          autoId: widget.automobileId,
+          record: _composeRecord(id: noteId, notes: _notesForSave),
+          isEdit: true, // the record now exists (created above or already did)
+          pendingImages: _pendingImages,
+          pendingFiles: _pendingFiles,
+          retained: retainedRefs,
+          removed: removedRefs,
+        );
+        return;
+      }
+
+      // No inline images — unchanged path.
+      await notifier.save(
+        autoId: widget.automobileId,
+        record: record,
+        isEdit: widget.isEdit,
+        pendingImages: _pendingImages,
+        pendingFiles: _pendingFiles,
+        retained: _savedRefs,
+        removed: _removedRefs,
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  /// Asks whether to delete stored images the user removed from the notes text.
+  /// Returns true = delete, false = keep attached (default on dismiss).
+  Future<bool> _confirmRemoveInlineImages(int count) async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove stored images?'),
+        content: Text(
+          'You removed $count image${count == 1 ? '' : 's'} from the notes. '
+          'Delete the stored image${count == 1 ? '' : 's'}, or keep '
+          '${count == 1 ? 'it' : 'them'} attached?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep attached'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
+    return res ?? false;
   }
 }
 

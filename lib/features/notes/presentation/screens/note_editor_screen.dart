@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +11,7 @@ import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
-import '../../../../core/util/uuid.dart';
+import '../widgets/inline_image_controller.dart';
 import '../widgets/inline_insert.dart';
 import '../widgets/note_link_picker.dart';
 import '../widgets/note_markdown_body.dart';
@@ -54,11 +52,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool _busy = false;
   bool _loaded = false;
 
-  /// Images picked this session and inserted inline, keyed by the uuid embedded
-  /// in the body placeholder. Bytes render the live preview; on save they are
-  /// persisted to the vault and the placeholder is rewritten to the real path.
-  final Map<String, Uint8List> _pendingBytes = {};
-  final Map<String, PickedImageBytes> _pendingPickByUuid = {};
+  /// Reusable inline-image capability: stages picked bytes + inserts placeholders
+  /// for the live preview, and on save persists the picks and rewrites the body's
+  /// `pending/<uuid>` placeholders to real vault paths.
+  final InlineImageController _inline = InlineImageController();
 
   /// Images already attached to the note (when editing an existing note).
   List<AttachmentRef> _savedImages = [];
@@ -215,12 +212,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Future<void> _addMedia(AttachmentPickSource source) async {
     final pick = await ref.read(imageByteSourceProvider).pick(source);
     if (pick == null || !mounted) return;
-    final uuid = generateUuid();
-    setState(() {
-      _pendingBytes[uuid] = pick.bytes;
-      _pendingPickByUuid[uuid] = pick;
-      insertImageAtCursor(_bodyCtrl, uuid, pick.originalName);
-    });
+    setState(() => _inline.stageAndInsert(_bodyCtrl, pick));
   }
 
   /// Persist each inline pending pick still referenced in the body, rewrite the
@@ -228,45 +220,22 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// body, and add the new refs to the note's attachments (so vault_gc retains
   /// them). Picks the user inserted then deleted before saving are dropped.
   Future<void> _persistInlineImages(int noteId, MutateNote mutate) async {
-    // 1) Persist newly-picked inline images referenced in the body. A pick can
-    //    fail (e.g. oversize photo) — a failed or missing pick's placeholder is
-    //    stripped so no `pending/` URI is ever written into saved content.
-    final uuidToPath = <String, String>{};
-    final newRefs = <VaultRef>[];
-    final failed = <String>[];
-    for (final uuid in pendingUuidsIn(_bodyCtrl.text)) {
-      final pick = _pendingPickByUuid[uuid];
-      if (pick == null) {
-        failed.add(uuid);
-        continue;
-      }
-      try {
-        final vref = await mutate.persistInlineImage(noteId, pick);
-        uuidToPath[uuid] = vref.path;
-        newRefs.add(vref);
-      } catch (_) {
-        failed.add(uuid);
-      }
+    // 1) Persist newly-picked inline images + rewrite their placeholders via the
+    //    shared controller. A pick can fail (e.g. oversize photo) — a failed or
+    //    missing pick's placeholder is stripped so no `pending/` URI survives.
+    final before = _bodyCtrl.text;
+    final result = await _inline.resolveAndRewrite(
+      noteId: noteId,
+      body: _bodyCtrl,
+      persist: mutate.persistInlineImage,
+    );
+    // Persist the clean (rewritten/stripped) body so the store never keeps a
+    // `pending/` placeholder — behaviour preserved from the pre-refactor editor.
+    if (_bodyCtrl.text != before) {
+      await mutate.updateGeneral(noteId, markdownBody: _bodyCtrl.text);
     }
-    // Resolve the body: rewrite successes, strip failures. Always persist the
-    // clean body so it never contains a `pending/` placeholder.
-    var body = rewritePendingToVault(_bodyCtrl.text, uuidToPath);
-    for (final uuid in failed) {
-      body = removePendingImage(body, uuid);
-    }
-    if (body != _bodyCtrl.text) {
-      await mutate.updateGeneral(noteId, markdownBody: body);
-      if (mounted) {
-        setState(() {
-          _bodyCtrl.text = body;
-          _pendingBytes.clear();
-          _pendingPickByUuid.clear();
-        });
-      } else {
-        _bodyCtrl.text = body;
-      }
-    }
-    if (failed.isNotEmpty && mounted) {
+    if (mounted) setState(() {}); // body text + staged bytes changed
+    if (result.hadFailures && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Some images couldn't be added and were skipped."),
@@ -276,23 +245,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
     // 2) Detect images that were inline at load but the user removed from the
     //    text. Never drop a stored image silently — confirm first.
-    final currentInline = imageRefPathsIn(_bodyCtrl.text).toSet();
-    final removed = _loadedInlinePaths
-        .where((p) => !currentInline.contains(p))
-        .toSet();
+    final removed = InlineImageController.removedImagePaths(
+      _loadedInlinePaths,
+      _bodyCtrl.text,
+    ).toSet();
     var deleteRemoved = false;
     if (removed.isNotEmpty && mounted) {
       deleteRemoved = await _confirmRemoveImages(removed.length);
     }
 
     // 3) Reconcile the attachments retention set if anything changed.
-    if (newRefs.isEmpty && removed.isEmpty) return;
+    if (result.newRefs.isEmpty && removed.isEmpty) return;
     bool keep(AttachmentRef r) =>
         r is! VaultRef || !(deleteRemoved && removed.contains(r.path));
     final base = _savedAttachments ?? NoteAttachments.empty;
     final images = <AttachmentRef>[
       ...base.images.where(keep),
-      for (final r in newRefs)
+      for (final r in result.newRefs)
         if (!base.images.contains(r)) r,
     ];
     final primary = (base.primaryImage != null && keep(base.primaryImage!))
@@ -610,7 +579,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                         const SizedBox(height: 8),
                         NoteMarkdownBody(
                           data: _bodyCtrl.text,
-                          pendingBytes: _pendingBytes,
+                          pendingBytes: _inline.pendingBytes,
                           resolver: ref.watch(attachmentResolverProvider).value,
                           selectable: false,
                         ),
