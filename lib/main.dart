@@ -5,6 +5,7 @@ import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/core/i18n/locale_provider.dart';
 import 'package:hmm_console/core/navigation/router.dart';
 import 'package:hmm_console/core/theme/theme.dart';
+import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'firebase_options.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,6 +86,19 @@ class _MainAppState extends ConsumerState<MainApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(AppRouter.config),
+      // Mounts the persistent Home + Sync overlay above every routed
+      // screen — including the Dashboard's raw Scaffold — with zero
+      // per-screen edits. See Finding 5 in
+      // docs/superpowers/plans/2026-07-15-sync-safety-phase1.md for why
+      // this is a Stack (not a literal Overlay/OverlayEntry) and why
+      // HomeButton/SyncPill route via rootNavigatorKey / the GoRouter
+      // instance instead of `context`.
+      builder: (context, child) => Stack(
+        children: [
+          if (child != null) child,
+          const HomeSyncOverlay(),
+        ],
+      ),
     );
   }
 }
