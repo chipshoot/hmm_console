@@ -76,6 +76,10 @@ class _ServiceRecordFormScreenState
   /// general note editor). Resolved + rewritten to vault paths on save.
   final InlineImageController _inline = InlineImageController();
 
+  /// Image paths referenced inline in the notes at load — used on save to
+  /// confirm before dropping a stored image the user removed from the text.
+  List<String> _loadedInlinePaths = const [];
+
   bool _scanning = false;
   // Bumped when a scan re-seeds the line items so the editor rebuilds with the
   // merged list (it captures initialItems once).
@@ -103,6 +107,7 @@ class _ServiceRecordFormScreenState
       _descriptionCtrl.text = record.description ?? '';
       _shopCtrl.text = record.shopName ?? '';
       _notesCtrl.text = record.notes ?? '';
+      _loadedInlinePaths = imageRefPathsIn(record.notes ?? '');
       _nameCtrl.text = record.name ?? '';
       _refCtrl.text = record.referenceNumber ?? '';
       _types =
@@ -545,6 +550,92 @@ class _ServiceRecordFormScreenState
     );
 
     final notifier = ref.read(mutateServiceRecordStateProvider.notifier);
+
+    // Staged inline images need a note id to persist under. Resolve them, merge
+    // the freshly-persisted refs into the retention set, then save once.
+    if (_inline.pendingBytes.isNotEmpty) {
+      int noteId;
+      ServiceRecord base = record;
+      if (!widget.isEdit) {
+        // Create directly via the repo (not the notifier) so the create's
+        // success state transition doesn't trip the form's save listener and
+        // pop the screen mid-submit — the single pop happens on the save below.
+        final ServiceRecord created;
+        try {
+          created = await ref
+              .read(serviceRecordRepositoryModeProvider)
+              .createRecord(widget.automobileId, record);
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(dioErrorMessage(e)),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ));
+          }
+          return;
+        }
+        base = created;
+        noteId = created.id;
+      } else {
+        noteId = record.id;
+      }
+
+      final picker = await ref.read(imageAttachmentPickerProvider.future);
+      final result = await _inline.resolveAndRewrite(
+        noteId: noteId,
+        body: _notesCtrl,
+        persist: (id, pick) => picker.persistToVault(
+          noteId: id,
+          bytes: pick.bytes,
+          originalName: pick.originalName,
+          contentTypeHint: pick.contentType,
+        ),
+      );
+      if (mounted) setState(() {});
+      if (result.hadFailures && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Some images couldn't be added and were skipped."),
+        ));
+      }
+
+      // Confirm any inline image the user removed from the notes text before
+      // dropping the stored bytes.
+      final removedPaths = InlineImageController.removedImagePaths(
+        _loadedInlinePaths,
+        _notesCtrl.text,
+      ).toSet();
+      final removedRefs = <VaultRef>[..._removedRefs];
+      var retainedRefs = <VaultRef>[..._savedRefs];
+      if (removedPaths.isNotEmpty && mounted) {
+        final del = await _confirmRemoveInlineImages(removedPaths.length);
+        if (del) {
+          removedRefs
+              .addAll(_savedRefs.where((r) => removedPaths.contains(r.path)));
+          retainedRefs =
+              retainedRefs.where((r) => !removedPaths.contains(r.path)).toList();
+        }
+      }
+      // Merge the freshly-persisted inline refs into the retention set.
+      for (final r in result.newRefs) {
+        if (!retainedRefs.any((e) => e.path == r.path)) retainedRefs.add(r);
+      }
+
+      await notifier.save(
+        autoId: widget.automobileId,
+        // The record now exists (created above or already did).
+        record: base.copyWith(
+          notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+        ),
+        isEdit: true,
+        pendingImages: _pendingImages,
+        pendingFiles: _pendingFiles,
+        retained: retainedRefs,
+        removed: removedRefs,
+      );
+      return;
+    }
+
+    // No inline images — unchanged path.
     await notifier.save(
       autoId: widget.automobileId,
       record: record,
@@ -554,6 +645,33 @@ class _ServiceRecordFormScreenState
       retained: _savedRefs,
       removed: _removedRefs,
     );
+  }
+
+  /// Asks whether to delete stored images the user removed from the notes text.
+  /// Returns true = delete, false = keep attached (default on dismiss).
+  Future<bool> _confirmRemoveInlineImages(int count) async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove stored images?'),
+        content: Text(
+          'You removed $count image${count == 1 ? '' : 's'} from the notes. '
+          'Delete the stored image${count == 1 ? '' : 's'}, or keep '
+          '${count == 1 ? 'it' : 'them'} attached?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep attached'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return res ?? false;
   }
 }
 

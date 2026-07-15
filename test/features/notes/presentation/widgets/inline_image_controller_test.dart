@@ -31,7 +31,7 @@ void main() {
         byteSize: 3);
 
     final result = await c.resolveAndRewrite(
-        noteId: 7, body: body, persist: (_, __) async => ref);
+        noteId: 7, body: body, persist: (_, _) async => ref);
 
     expect(result.newRefs, [ref]);
     expect(result.hadFailures, isFalse);
@@ -48,7 +48,7 @@ void main() {
     final result = await c.resolveAndRewrite(
         noteId: 7,
         body: body,
-        persist: (_, __) async => throw Exception('boom'));
+        persist: (_, _) async => throw Exception('boom'));
 
     expect(result.newRefs, isEmpty);
     expect(result.hadFailures, isTrue);
