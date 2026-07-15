@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/navigation/auth_change_provider.dart';
@@ -30,8 +31,16 @@ import 'package:hmm_console/features/launcher/presentation/launcher_search_scree
 import 'package:hmm_console/features/launcher/presentation/launcher_manage_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
 
+/// Shared with `HomeSyncOverlay`/`SyncPill` (mounted above the router in
+/// `main.dart`'s `MaterialApp.router(builder: ...)`) so they can show
+/// dialogs/bottom sheets via `rootNavigatorKey.currentContext` — their own
+/// `BuildContext` has no `Navigator` ancestor (see Finding 5 in
+/// `docs/superpowers/plans/2026-07-15-sync-safety-phase1.md`).
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerConfig = Provider<GoRouter>(
   (ref) => GoRouter(
+    navigatorKey: rootNavigatorKey,
     redirect: (context, state) {
       final userState = ref.watch(routerAuthStateProvider);
 
