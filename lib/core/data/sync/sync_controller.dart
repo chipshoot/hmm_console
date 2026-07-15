@@ -26,6 +26,13 @@ enum SyncTriggerReason {
 
   /// 10-minute safety-net timer while the app is in `resumed`.
   periodic,
+
+  /// A note (or gas log — gas logs are notes, see
+  /// `LocalHmmNoteRepository`) was successfully written locally.
+  /// Debounced by [SyncController.localChangeDebounce] so a burst of
+  /// edits collapses into one sync. Fired via
+  /// [SyncController.notifyLocalChange].
+  localChange,
 }
 
 /// Snapshot of sync state that the UI binds to via [SyncController] (a
@@ -135,6 +142,7 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
     this.throttle = const Duration(seconds: 30),
     this.periodicInterval = const Duration(minutes: 10),
     this.foregroundDebounce = const Duration(milliseconds: 250),
+    this.localChangeDebounce = const Duration(seconds: 8),
     ClockNow now = _defaultNow,
   })  : _syncAction = syncAction,
         _canAutoSync = canAutoSync ?? _alwaysAllow,
@@ -145,12 +153,18 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
   final Duration throttle;
   final Duration periodicInterval;
   final Duration foregroundDebounce;
+
+  /// Debounce window for [notifyLocalChange] — a burst of note/gas-log
+  /// writes within this window collapses into a single auto-sync. See
+  /// Architecture §1 in `docs/superpowers/specs/2026-07-15-sync-safety-persistent-access-design.md`.
+  final Duration localChangeDebounce;
   final ClockNow _now;
 
   static Future<bool> _alwaysAllow() async => true;
 
   Timer? _periodicTimer;
   Timer? _foregroundDebounceTimer;
+  Timer? _localChangeDebounceTimer;
   DateTime? _lastSyncStartedAt;
   SyncStatus _status = const SyncStatus();
   bool _started = false;
@@ -182,6 +196,8 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
     _periodicTimer = null;
     _foregroundDebounceTimer?.cancel();
     _foregroundDebounceTimer = null;
+    _localChangeDebounceTimer?.cancel();
+    _localChangeDebounceTimer = null;
   }
 
   @override
@@ -212,7 +228,18 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
         _foregroundDebounceTimer = null;
         _periodicTimer?.cancel();
         _periodicTimer = null;
-        unawaited(triggerAutoSync(SyncTriggerReason.appBackground));
+        // Flush a pending localChange debounce NOW rather than waiting
+        // out the full window — the OS may suspend us before it fires.
+        // The resulting trigger still goes through the normal throttle +
+        // network gate in triggerAutoSync.
+        final hadPendingLocalChange = _localChangeDebounceTimer != null;
+        _localChangeDebounceTimer?.cancel();
+        _localChangeDebounceTimer = null;
+        unawaited(triggerAutoSync(
+          hadPendingLocalChange
+              ? SyncTriggerReason.localChange
+              : SyncTriggerReason.appBackground,
+        ));
         break;
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
@@ -263,6 +290,23 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
     );
     notifyListeners();
     return _executeAction(SyncTriggerReason.manual);
+  }
+
+  /// Call after a successful local write to a note (or gas log — gas logs
+  /// are notes, see `LocalHmmNoteRepository`) when a sync orchestrator is
+  /// active. Callers are responsible for the "orchestrator active" gate
+  /// (see `localHmmNoteRepositoryProvider` in
+  /// `local_hmm_note_repository.dart`) — this method itself has no
+  /// opinion on DataMode. (Re)starts [localChangeDebounce]; a burst of
+  /// calls collapses into a single [triggerAutoSync]
+  /// ([SyncTriggerReason.localChange]) call once the burst goes quiet.
+  /// Flushed immediately (bypassing the wait) on app-background — see
+  /// [didChangeAppLifecycleState] — and cancelled by [stop]/[dispose].
+  void notifyLocalChange() {
+    _localChangeDebounceTimer?.cancel();
+    _localChangeDebounceTimer = Timer(localChangeDebounce, () {
+      triggerAutoSync(SyncTriggerReason.localChange);
+    });
   }
 
   /// Auto-sync's two-phase tail after the synchronous claim: first

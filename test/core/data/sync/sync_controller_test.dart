@@ -323,6 +323,83 @@ void main() {
       c.dispose();
     });
   });
+
+  group('notifyLocalChange (Part A — debounced auto-sync on write)', () {
+    test('debounce coalesces N rapid calls into exactly one sync', () async {
+      final c = SyncController(
+        syncAction: action.call,
+        now: clock.now,
+        localChangeDebounce: const Duration(milliseconds: 30),
+      );
+
+      c.notifyLocalChange();
+      c.notifyLocalChange();
+      c.notifyLocalChange();
+
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+
+      expect(action.callCount, equals(1),
+          reason: 'three rapid notifyLocalChange calls should collapse '
+              'into a single sync');
+      expect(c.status.lastReason, equals(SyncTriggerReason.localChange));
+      c.dispose();
+    });
+
+    test('a fresh call restarts the window (no fire until quiet for the '
+        'full debounce)', () async {
+      final c = SyncController(
+        syncAction: action.call,
+        now: clock.now,
+        localChangeDebounce: const Duration(milliseconds: 40),
+      );
+
+      c.notifyLocalChange();
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+      c.notifyLocalChange(); // restarts the 40ms window
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+
+      expect(action.callCount, equals(0),
+          reason: 'still inside the restarted window');
+
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+      expect(action.callCount, equals(1));
+      c.dispose();
+    });
+
+    test('stop() cancels a pending debounce so it never fires', () async {
+      final c = SyncController(
+        syncAction: action.call,
+        now: clock.now,
+        localChangeDebounce: const Duration(milliseconds: 20),
+      );
+      c.start();
+      c.notifyLocalChange();
+      c.stop();
+
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      expect(action.callCount, equals(0));
+      c.dispose();
+    });
+
+    test('app-background flushes a pending debounce immediately', () async {
+      final c = SyncController(
+        syncAction: action.call,
+        now: clock.now,
+        localChangeDebounce: const Duration(seconds: 8), // long — must NOT wait
+      );
+      c.start();
+      c.notifyLocalChange();
+
+      _emitLifecycle(AppLifecycleState.paused);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(action.callCount, equals(1),
+          reason: 'backgrounding should flush the debounce instead of '
+              'waiting the full 8s');
+      expect(c.status.lastReason, equals(SyncTriggerReason.localChange));
+      c.dispose();
+    });
+  });
 }
 
 /// Drive the real `WidgetsBindingObserver` dispatch by tickling the
