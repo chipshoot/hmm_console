@@ -7,6 +7,8 @@ import '../../auth/current_author_account_name_provider.dart';
 import '../../network/pagination.dart';
 import '../attachments/attachment_ref_codec.dart';
 import '../hmm_note_input.dart';
+import '../sync/sync_controller.dart';
+import '../sync/sync_orchestrator.dart';
 import 'database.dart';
 
 /// Repository contract for HmmNote. Mirrors the Hmm.ServiceApi
@@ -63,10 +65,18 @@ abstract interface class IHmmNoteRepository {
 }
 
 class LocalHmmNoteRepository implements IHmmNoteRepository {
-  LocalHmmNoteRepository(this._db, this._currentAuthor);
+  LocalHmmNoteRepository(this._db, this._currentAuthor, {void Function()? onLocalWrite})
+      : _onLocalWrite = onLocalWrite;
 
   final HmmDatabase _db;
   final Future<Author> Function() _currentAuthor;
+
+  /// Fired after `createNote`/`updateNote` complete a successful local
+  /// write. Production wiring (`localHmmNoteRepositoryProvider`) points
+  /// this at `SyncController.notifyLocalChange()`, gated on
+  /// `syncOrchestratorProvider.isActive` — null (the default) makes this
+  /// a no-op for tests and any future caller that doesn't care.
+  final void Function()? _onLocalWrite;
 
   @override
   Future<PageList<HmmNote>> getNotes({
@@ -157,7 +167,9 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
                 : NoteAttachmentsCodec.encode(input.attachments!),
           ),
         ));
-    return (await getNoteById(id))!;
+    final note = (await getNoteById(id))!;
+    _onLocalWrite?.call();
+    return note;
   }
 
   @override
@@ -195,7 +207,9 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
       lastModifiedDate: Value(now),
       version: Value(_versionStamp()),
     ));
-    return (await getNoteById(id))!;
+    final note = (await getNoteById(id))!;
+    _onLocalWrite?.call();
+    return note;
   }
 
   @override
@@ -256,5 +270,14 @@ final localHmmNoteRepositoryProvider = Provider<IHmmNoteRepository>((ref) {
   return LocalHmmNoteRepository(
     ref.watch(hmmDatabaseProvider),
     () => ref.read(currentAuthorProvider.future),
+    // Debounced auto-sync on write (Part A of the sync-safety plan). Gate
+    // on `isActive` so local/cloudApi modes stay no-ops in Phase 1 — read
+    // (not watch) both providers since this closure runs later, at write
+    // time, not during this provider's build.
+    onLocalWrite: () {
+      if (ref.read(syncOrchestratorProvider).isActive) {
+        ref.read(syncControllerProvider).notifyLocalChange();
+      }
+    },
   );
 });
