@@ -19,6 +19,25 @@ class _FixedDataMode extends DataModeNotifier {
   DataMode build() => _mode;
 }
 
+/// Stands in for the real `syncControllerProvider ->
+/// syncOrchestratorProvider -> dataModeProvider` rebuild chain (riverpod
+/// 3.x removed the legacy `StateProvider`, so we roll a tiny `Notifier`
+/// the DataMode-switch regression test can drive directly and
+/// deterministically via `container.read(...notifier).select(...)`).
+class _SelectedControllerNotifier extends Notifier<SyncController> {
+  _SelectedControllerNotifier(this._first);
+  final SyncController _first;
+
+  @override
+  SyncController build() => _first;
+
+  void select(SyncController controller) => state = controller;
+}
+
+final _selectedControllerProvider =
+    NotifierProvider<_SelectedControllerNotifier, SyncController>(
+        () => throw UnimplementedError('override in test'));
+
 SyncController _idleController() {
   final c = SyncController(syncAction: () async => SyncResult(
         pulledNotes: 0,
@@ -261,5 +280,107 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining("haven't reached your cloud"), findsNothing);
+  });
+
+  testWidgets(
+      'DataMode switch mid-background: the listener re-binds to the new '
+      "controller instance, so the new controller's gate resolution still "
+      'drives the prompt (regression for the stale-listener bug)',
+      (tester) async {
+    // Controller A: the "old" instance, live when we background. Its
+    // syncAction/gate never actually get exercised — it's here purely to
+    // prove the overlay stops listening to it after the swap.
+    final controllerA = SyncController(
+      syncAction: () async => throw StateError('A should not sync'),
+    );
+    addTearDown(controllerA.dispose);
+
+    // Controller B: the "new" instance a DataMode switch would produce
+    // (mirrors main.dart's `ref.listen<SyncController>` rebind). Gated so
+    // we can resolve it as network-blocked deterministically, exactly
+    // like the "FIRST background on cellular" test above.
+    final gateCompleter = Completer<bool>();
+    final controllerB = SyncController(
+      syncAction: () async => throw StateError('B should not sync'),
+      canAutoSync: () => gateCompleter.future,
+    );
+    addTearDown(controllerB.dispose);
+
+    // `syncControllerProvider` normally rebuilds via `syncOrchestratorProvider
+    // -> dataModeProvider`; overriding it to watch `_selectedControllerProvider`
+    // lets the test swap the "live" controller deterministically, standing in
+    // for that rebuild chain.
+    final container = ProviderContainer(overrides: [
+      dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+      _selectedControllerProvider
+          .overrideWith(() => _SelectedControllerNotifier(controllerA)),
+      syncControllerProvider
+          .overrideWith((ref) => ref.watch(_selectedControllerProvider)),
+      pendingSyncCountProvider.overrideWith((ref) => Stream.value(10)),
+    ]);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          home: const Stack(children: [HomeSyncOverlay()]),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    // Background the app while controller A is still live — arms the
+    // background-prompt window. Both of A's flags are clear, so no
+    // prompt yet.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    expect(find.textContaining("haven't reached your cloud"), findsNothing);
+
+    // Simulate the DataMode switch: `syncControllerProvider` is rebuilt
+    // into controller B. The old controller (A) is never notified again
+    // (mirrors `ref.onDispose(controller.stop)` — no more
+    // `notifyListeners()` calls) and `_maybePrompt`'s own
+    // `ref.read(syncControllerProvider)` already tracks B from this point
+    // on. The bug under test is purely whether the *listener* also
+    // re-binds.
+    container.read(_selectedControllerProvider.notifier).select(controllerB);
+    // `Provider`s that watch another provider recompute lazily on next
+    // read, not eagerly on the dependency's change — in the real widget
+    // tree, `SyncPill` (rendered alongside `HomeSyncOverlay`) already
+    // does `ref.watch(syncControllerProvider)` on every build, which
+    // keeps it hot. Force the same eager recompute here so the swap
+    // propagates deterministically without depending on incidental
+    // frame-scheduling timing.
+    container.read(syncControllerProvider);
+    await tester.pump();
+    await tester.pump();
+
+    // Drive B's gated auto-sync exactly like a real background trigger
+    // would, and resolve it as network-blocked.
+    final autoSyncFuture =
+        controllerB.triggerAutoSync(SyncTriggerReason.appBackground);
+    await tester.pump();
+    gateCompleter.complete(false);
+    await autoSyncFuture;
+    expect(controllerB.status.lastAutoTriggerSkippedForNetwork, isTrue,
+        reason: 'the gate must have resolved blocked and set the flag');
+
+    // The app is still `paused` (frame rendering suspended), so a dialog
+    // committed via `_maybePrompt` while backgrounded hasn't painted yet
+    // — same as the "FIRST background on cellular" test above. Resume to
+    // observe it.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump();
+
+    // If the overlay's listener re-bound to B (the fix), B's
+    // notifyListeners() reached `_onControllerChanged` while still armed,
+    // and the prompt shows. If the listener stayed stale on the orphaned
+    // A (the bug), this notification never arrives and no prompt shows —
+    // this assertion is what catches the regression.
+    expect(find.textContaining("haven't reached your cloud"), findsOneWidget);
   });
 }

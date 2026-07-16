@@ -43,12 +43,25 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
   /// survives the OS suspending the isolate before the gate finishes.
   bool _armedForBackgroundPrompt = false;
 
-  late final SyncController _controller;
+  /// Mutable (not `late final`) because [syncControllerProvider] can be
+  /// rebuilt into a brand-new [SyncController] instance at runtime — it
+  /// watches the sync orchestrator, which watches `dataModeProvider`, so
+  /// switching DataMode (Settings → Data Mode) swaps the live controller
+  /// out from under us. `main.dart`'s `_MainAppState.build` handles the
+  /// same hazard for `start()`/`stop()` via `ref.listen`; this widget
+  /// mirrors that pattern in [build] to keep `_onControllerChanged`
+  /// attached to whichever controller is actually live, instead of going
+  /// silently stale on the orphaned old instance (which is only
+  /// `stop()`ed via `ref.onDispose`, never notified again).
+  late SyncController _controller;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Initial bind — `ref.listen` (in `build`) only fires on CHANGE, not
+    // for the provider's current value, so the first instance must be
+    // wired up here.
     _controller = ref.read(syncControllerProvider);
     _controller.addListener(_onControllerChanged);
   }
@@ -128,6 +141,18 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
 
   @override
   Widget build(BuildContext context) {
+    // Re-bind the listener whenever `syncControllerProvider` produces a
+    // new instance (DataMode switch — see the `_controller` doc comment).
+    // Without this, `_controller` would stay pointed at the orphaned old
+    // instance and `_onControllerChanged` would never fire again for the
+    // rest of the session, silently killing the gate-resolution prompt
+    // path in the new mode.
+    ref.listen<SyncController>(syncControllerProvider, (prev, next) {
+      prev?.removeListener(_onControllerChanged);
+      next.addListener(_onControllerChanged);
+      _controller = next;
+    });
+
     // Threshold-crossing trigger: fire the same prompt when pending count
     // jumps from below to at/above pendingSyncPromptThreshold, independent
     // of app-background.
