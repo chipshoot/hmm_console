@@ -5,6 +5,7 @@ import '../data/sync/pending_sync_count_provider.dart';
 import '../data/sync/pending_sync_prompt.dart';
 import '../data/sync/sync_controller.dart';
 import '../navigation/router_config.dart' show rootNavigatorKey;
+import '../settings/settings_controller.dart' show settingsProvider;
 import '../../features/settings/presentation/widgets/sync_status_card.dart'
     show confirmManualSyncIfOnCellular;
 import 'quick_panel/quick_access_panel.dart';
@@ -185,8 +186,26 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
 
     final enabled = ref.watch(quickPanelEnabledProvider);
     final pending = ref.watch(pendingSyncCountProvider).value ?? 0;
-    final showCoach =
-        enabled && !_panelOpen && !ref.watch(quickPanelHintShownProvider);
+    // Final-review fix: don't show the coach mark's full-screen scrim
+    // until `settingsProvider` has actually resolved — `quickPanelHintShown`
+    // reads `?? false` while settings are still loading on cold start, so a
+    // RETURNING user (persisted hint == true) could otherwise see a flash
+    // of the scrim before the real value arrives.
+    // TODO(quick-panel): also gate coach to authenticated/main route. The
+    // router's own signal (`routerAuthStateProvider`,
+    // lib/core/navigation/auth_change_provider.dart) is the obvious
+    // candidate — it's exactly what `router_config.dart`'s redirect uses —
+    // but it transitively resolves through `TokenStorage` /
+    // `FlutterSecureStorage` platform channels that aren't mocked by
+    // default in widget tests (see test/helpers/mock_token_storage.dart),
+    // so watching it here would make this overlay's tests depend on
+    // per-test secure-storage plugin overrides rather than a clean signal.
+    // Left unwired pending a lighter-weight auth signal or test-harness
+    // support.
+    final showCoach = enabled &&
+        !_panelOpen &&
+        !ref.watch(quickPanelHintShownProvider) &&
+        ref.watch(settingsProvider).hasValue;
 
     // Positioned.fill so we can host corner children; a bare Stack does not
     // absorb pointer events in empty regions, so taps outside the hot-zone /
@@ -207,13 +226,22 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
               bottom: 0,
               child: SafeArea(
                 minimum: const EdgeInsets.only(right: 8, bottom: 8),
+                // Final-review fix: this hot-zone must react to long-press
+                // ONLY — a plain tap has to pass through to whatever's
+                // behind it (e.g. a FAB or bottom-nav control). `Semantics
+                // .onTap` registers an assistive-tech activation action
+                // (screen reader "double-tap to activate") WITHOUT making
+                // the zone a pointer-tap target for sighted users, so
+                // accessibility is preserved while the GestureDetector
+                // below drops `onTap` and switches to `translucent` so it
+                // no longer consumes/hit-tests plain taps.
                 child: Semantics(
                   button: true,
                   label: 'Home and sync quick actions',
+                  onTap: _openPanel,
                   child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                    behavior: HitTestBehavior.translucent,
                     onLongPress: _openPanel,
-                    onTap: _openPanel, // a11y/tap fallback
                     child: const SizedBox(width: 56, height: 56),
                   ),
                 ),
@@ -224,7 +252,14 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
               right: 0,
               bottom: 0,
               child: SafeArea(
-                minimum: const EdgeInsets.only(right: 12, bottom: 12),
+                // Finding 1 dropped the hot-zone's tap-to-open, so this dot
+                // is now the ONLY tap-to-open affordance while data is at
+                // risk — its hit target must be >=48dp. The SizedBox below
+                // grows the tap target to 48x48 while the visual dot stays
+                // 12x12 (centered), so the minimum inset here is trimmed
+                // from the old 12/12 to keep the visible dot roughly where
+                // it was in the corner rather than shifting further inward.
+                minimum: EdgeInsets.zero,
                 child: ListenableBuilder(
                   listenable: _controller,
                   builder: (context, _) {
@@ -241,12 +276,11 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
                       key: const Key('quickPanelAtRiskDot'),
                       behavior: HitTestBehavior.opaque,
                       onTap: _openPanel,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.error,
-                          shape: BoxShape.circle,
+                      child: const SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Center(
+                          child: _AtRiskDotVisual(),
                         ),
                       ),
                     );
@@ -278,6 +312,26 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
                   ref.read(quickPanelHintShownProvider.notifier).markShown(),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// The visible 12x12 dot for the at-risk indicator. Kept as its own tiny
+/// widget so the enclosing `GestureDetector`/`SizedBox` can enlarge the
+/// TAP TARGET to 48x48 (Finding 2) without inflating the dot's own visual
+/// footprint.
+class _AtRiskDotVisual extends StatelessWidget {
+  const _AtRiskDotVisual();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.error,
+        shape: BoxShape.circle,
       ),
     );
   }

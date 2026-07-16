@@ -12,6 +12,7 @@ import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
 import 'package:hmm_console/core/widgets/quick_panel/quick_access_panel.dart';
 import 'package:hmm_console/core/widgets/quick_panel/quick_panel_coach_mark.dart';
 import 'package:hmm_console/core/widgets/quick_panel/quick_panel_settings.dart';
+import 'package:hmm_console/core/settings/app_settings.dart';
 import 'package:hmm_console/core/settings/settings_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,6 +46,19 @@ class _FixedQuickPanelHintShown extends QuickPanelHintShownNotifier
   _FixedQuickPanelHintShown(this.fixedValue);
   @override
   final bool fixedValue;
+}
+
+/// Lets a test hold `settingsProvider` in `AsyncLoading` for as long as it
+/// wants (rather than racing the real `SharedPreferences.getInstance()`
+/// gap, which the mock implementation can resolve within the same pump —
+/// too fast to reliably observe "still loading" from a test). Must extend
+/// `SettingsController` itself (see the `_FixedBool` mixin's doc comment
+/// above for why a bare `AsyncNotifier<AppSettings>` doesn't type-check).
+class _PendingThenSettings extends SettingsController {
+  _PendingThenSettings(this._future);
+  final Future<AppSettings> _future;
+  @override
+  Future<AppSettings> build() => _future;
 }
 
 /// Stands in for the real `syncControllerProvider ->
@@ -422,6 +436,61 @@ void main() {
     expect(tappedBehind, isTrue);
   });
 
+  testWidgets(
+      'a plain TAP on the bottom-right corner does NOT open the panel — it '
+      'passes through to content behind (Finding 1 regression test)',
+      (tester) async {
+    final c = _idleController();
+    addTearDown(c.dispose);
+    var cornerButtonTapped = false;
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+        quickPanelEnabledProvider.overrideWith(() => _FixedQuickPanelEnabled(true)),
+        // Hint already seen and pending == 0 (no at-risk dot) so the only
+        // thing occupying the bottom-right corner is the invisible
+        // long-press hot-zone — isolating exactly what Finding 1 is about.
+        quickPanelHintShownProvider
+            .overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: Stack(
+          children: [
+            Scaffold(
+              body: Align(
+                alignment: Alignment.bottomRight,
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: TextButton(
+                    onPressed: () => cornerButtonTapped = true,
+                    child: const Text('corner'),
+                  ),
+                ),
+              ),
+            ),
+            const HomeSyncOverlay(),
+          ],
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+    await tester.tapAt(Offset(size.width - 20, size.height - 20));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuickAccessPanel), findsNothing,
+        reason: 'a plain tap on the hot-zone must NOT open the panel — '
+            'only a long-press should');
+    expect(cornerButtonTapped, isTrue,
+        reason: 'the tap must pass through the (now translucent) hot-zone '
+            'to the button behind it');
+  });
+
   testWidgets('long-press the corner reveals the panel; outside-tap dismisses',
       (tester) async {
     final c = _idleController();
@@ -587,5 +656,55 @@ void main() {
     await tester.tap(find.text('Got it'));
     await tester.pumpAndSettle();
     expect(find.byType(QuickPanelCoachMark), findsNothing);
+  });
+
+  testWidgets(
+      'coach mark does not flash while settingsProvider is still loading '
+      '(Finding 3 regression test)', (tester) async {
+    final c = _idleController();
+    addTearDown(c.dispose);
+
+    // Held pending deliberately — see `_PendingThenSettings`'s doc comment
+    // for why this is more reliable than racing the real
+    // `SharedPreferences.getInstance()` gap.
+    final settingsCompleter = Completer<AppSettings>();
+
+    final container = ProviderContainer(overrides: [
+      dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+      syncControllerProvider.overrideWithValue(c),
+      pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+      settingsProvider
+          .overrideWith(() => _PendingThenSettings(settingsCompleter.future)),
+    ]);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          home: const Stack(children: [HomeSyncOverlay()]),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // `settingsProvider` is still `AsyncLoading` (the completer hasn't
+    // resolved). Without the settings-resolved gate,
+    // `quickPanelHintShownProvider`'s `?? false` fallback would make the
+    // coach mark flash here even for a returning user whose persisted hint
+    // is actually `true`.
+    expect(container.read(settingsProvider).isLoading, isTrue,
+        reason: 'this test only proves what it claims if settings are '
+            'genuinely still loading at this point');
+    expect(find.byType(QuickPanelCoachMark), findsNothing);
+
+    // Let settings resolve — default AppSettings has quickPanelHintShown
+    // == false, so once settings ARE ready the coach mark is expected to
+    // show (proving the gate isn't simply hiding it forever).
+    settingsCompleter.complete(AppSettings.defaults);
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(QuickPanelCoachMark), findsOneWidget);
   });
 }
