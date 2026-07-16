@@ -465,4 +465,82 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(QuickAccessPanel), findsNothing);
   });
+
+  testWidgets('at-risk dot shows only when shouldPromptPendingSync is true',
+      (tester) async {
+    // Blocked/failed controller — mirrors the "threshold-crossing pending
+    // count shows the anti-loss prompt" test above: a failed prior sync
+    // sets `lastResult.success == false`, satisfying
+    // `shouldPromptPendingSync`'s blocked/failed condition.
+    final c = SyncController(syncAction: () async => throw StateError('x'));
+    addTearDown(c.dispose);
+    await c.triggerAutoSync(SyncTriggerReason.periodic);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(3)),
+        quickPanelEnabledProvider.overrideWith(() => _FixedQuickPanelEnabled(true)),
+        quickPanelHintShownProvider.overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: const Stack(children: [HomeSyncOverlay()]),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('quickPanelAtRiskDot')), findsOneWidget);
+  });
+
+  testWidgets('no dot on the healthy/synced path', (tester) async {
+    final c = _idleController();
+    addTearDown(c.dispose);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+        quickPanelEnabledProvider.overrideWith(() => _FixedQuickPanelEnabled(true)),
+        quickPanelHintShownProvider.overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: const Stack(children: [HomeSyncOverlay()]),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('quickPanelAtRiskDot')), findsNothing);
+  });
+
+  testWidgets('tapping the dot opens the panel', (tester) async {
+    final c = SyncController(syncAction: () async => throw StateError('x'));
+    addTearDown(c.dispose);
+    await c.triggerAutoSync(SyncTriggerReason.periodic);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(3)),
+        quickPanelEnabledProvider.overrideWith(() => _FixedQuickPanelEnabled(true)),
+        quickPanelHintShownProvider.overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: const Stack(children: [HomeSyncOverlay()]),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('quickPanelAtRiskDot')));
+    await tester.pumpAndSettle();
+    expect(find.byType(QuickAccessPanel), findsOneWidget);
+  });
 }

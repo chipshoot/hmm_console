@@ -183,6 +183,7 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
     });
 
     final enabled = ref.watch(quickPanelEnabledProvider);
+    final pending = ref.watch(pendingSyncCountProvider).value ?? 0;
 
     // Positioned.fill so we can host corner children; a bare Stack does not
     // absorb pointer events in empty regions, so taps outside the hot-zone /
@@ -212,6 +213,41 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
                     onTap: _openPanel, // a11y/tap fallback
                     child: const SizedBox(width: 56, height: 56),
                   ),
+                ),
+              ),
+            ),
+          if (enabled && !_panelOpen)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                minimum: const EdgeInsets.only(right: 12, bottom: 12),
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    final status = _controller.status;
+                    final atRisk = shouldPromptPendingSync(
+                      pendingCount: pending,
+                      autoSyncSkippedForNetwork:
+                          status.lastAutoTriggerSkippedForNetwork,
+                      lastSyncFailed: status.lastResult != null &&
+                          !status.lastResult!.success,
+                    );
+                    if (!atRisk) return const SizedBox.shrink();
+                    return GestureDetector(
+                      key: const Key('quickPanelAtRiskDot'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _openPanel,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.error,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
