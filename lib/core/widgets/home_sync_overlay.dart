@@ -32,14 +32,30 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
     with WidgetsBindingObserver {
   bool _promptShowing = false;
 
+  /// True from the moment we background until either a prompt actually
+  /// shows or pending drops to 0. See the class doc + the "Final-review
+  /// fix" note below for why this exists: `SyncController` only sets
+  /// `lastAutoTriggerSkippedForNetwork` AFTER an awaited connectivity
+  /// probe (`_executeWithGate` in `sync_controller.dart`), so reading the
+  /// flag synchronously on `paused` misses the first background on
+  /// cellular. Staying armed until the controller's next `notifyListeners`
+  /// (when the gate resolves) — rather than disarming on `resumed` — also
+  /// survives the OS suspending the isolate before the gate finishes.
+  bool _armedForBackgroundPrompt = false;
+
+  late final SyncController _controller;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _controller = ref.read(syncControllerProvider);
+    _controller.addListener(_onControllerChanged);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -47,8 +63,19 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
+      _armedForBackgroundPrompt = true;
+      // Covers the sticky/fast path: the blocked/failed flag may already
+      // be set from a prior cycle, in which case this fires immediately.
       _maybePrompt();
     }
+  }
+
+  /// Fires when [SyncController] notifies — in particular when its gated
+  /// auto-sync resolves (`_executeWithGate` sets
+  /// `lastAutoTriggerSkippedForNetwork` and notifies). Only acts while
+  /// armed, so it's a no-op outside the background-prompt window.
+  void _onControllerChanged() {
+    if (_armedForBackgroundPrompt) _maybePrompt();
   }
 
   void _maybePrompt() {
@@ -64,6 +91,10 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
     final navContext = rootNavigatorKey.currentContext;
     if (navContext == null) return;
     _promptShowing = true;
+    // We're committing to showing the prompt — disarm so a later
+    // controller notification (e.g. the eventual sync outcome) doesn't
+    // try to show a second one.
+    _armedForBackgroundPrompt = false;
     showDialog<void>(
       context: navContext,
       builder: (ctx) => AlertDialog(
@@ -106,6 +137,12 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
       if (prevCount < pendingSyncPromptThreshold &&
           nextCount >= pendingSyncPromptThreshold) {
         _maybePrompt();
+      }
+      if (nextCount == 0) {
+        // Nothing left at risk — a background-armed prompt that hasn't
+        // fired yet (gate still resolving, or the OS never re-notified
+        // us) is now moot.
+        _armedForBackgroundPrompt = false;
       }
     });
 
