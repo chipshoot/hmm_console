@@ -17,6 +17,7 @@ import '../../../../core/data/sync/onedrive_config.dart';
 import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/i18n/locale_provider.dart';
 import '../../../../core/settings/settings_controller.dart';
+import '../../../../core/widgets/quick_panel/quick_panel_settings.dart';
 import '../../../receipt_scan/presentation/receipt_extraction_settings_section.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../widgets/sync_status_card.dart';
@@ -445,6 +446,33 @@ class SettingsScreen extends ConsumerWidget {
                 label: Text(l.settingsSyncNow),
               ),
             ],
+            GapWidgets.h16,
+            Builder(builder: (context) {
+              final enabled = ref.watch(quickPanelEnabledProvider);
+              return SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Quick access panel'),
+                subtitle: const Text(
+                    'Long-press the bottom-right corner for Home & quick Sync'),
+                value: enabled,
+                onChanged: (v) =>
+                    ref.read(quickPanelEnabledProvider.notifier).setEnabled(v),
+              );
+            }),
+            Builder(builder: (context) {
+              final enabled = ref.watch(quickPanelEnabledProvider);
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                enabled: enabled,
+                leading: const Icon(Icons.touch_app_outlined),
+                title: const Text('Show me how'),
+                subtitle: const Text('Replay the quick-access hint'),
+                onTap: enabled
+                    ? () =>
+                        ref.read(quickPanelHintShownProvider.notifier).replay()
+                    : null,
+              );
+            }),
             if (dataMode == DataMode.local) ...[
               GapWidgets.h16,
               dbPathAsync.when(
