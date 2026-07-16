@@ -8,15 +8,40 @@ import 'package:hmm_console/core/data/sync/pending_sync_count_provider.dart';
 import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/navigation/router_config.dart' show rootNavigatorKey;
-import 'package:hmm_console/core/widgets/home_button.dart';
 import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
-import 'package:hmm_console/core/widgets/sync_pill.dart';
+import 'package:hmm_console/core/widgets/quick_panel/quick_access_panel.dart';
+import 'package:hmm_console/core/widgets/quick_panel/quick_panel_settings.dart';
 
 class _FixedDataMode extends DataModeNotifier {
   _FixedDataMode(this._mode);
   final DataMode _mode;
   @override
   DataMode build() => _mode;
+}
+
+// `NotifierProvider<ConcreteNotifier, bool>.overrideWith` requires the
+// override factory to return that exact concrete Notifier subclass (see
+// `_FixedDataMode extends DataModeNotifier` above) — a single generic
+// `Notifier<bool>` doesn't type-check for either provider, so this shares
+// the fixed-value `build()` via a mixin instead of one `_FixedBool` class.
+mixin _FixedBool on Notifier<bool> {
+  bool get fixedValue;
+  @override
+  bool build() => fixedValue;
+}
+
+class _FixedQuickPanelEnabled extends QuickPanelEnabledNotifier
+    with _FixedBool {
+  _FixedQuickPanelEnabled(this.fixedValue);
+  @override
+  final bool fixedValue;
+}
+
+class _FixedQuickPanelHintShown extends QuickPanelHintShownNotifier
+    with _FixedBool {
+  _FixedQuickPanelHintShown(this.fixedValue);
+  @override
+  final bool fixedValue;
 }
 
 /// Stands in for the real `syncControllerProvider ->
@@ -50,35 +75,6 @@ SyncController _idleController() {
 }
 
 void main() {
-  testWidgets('renders Home + Sync controls over a raw Scaffold '
-      '(mimics DashboardScreen)', (tester) async {
-    final c = _idleController();
-    addTearDown(c.dispose);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
-          syncControllerProvider.overrideWithValue(c),
-          pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
-        ],
-        child: MaterialApp(
-          navigatorKey: rootNavigatorKey,
-          home: Stack(
-            children: [
-              Scaffold(body: const Center(child: Text('dashboard content'))),
-              const HomeSyncOverlay(),
-            ],
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('dashboard content'), findsOneWidget);
-    expect(find.byType(HomeButton), findsOneWidget);
-    expect(find.byType(SyncPill), findsOneWidget);
-  });
-
   testWidgets('does not block taps on content behind it', (tester) async {
     final c = _idleController();
     addTearDown(c.dispose);
@@ -382,5 +378,91 @@ void main() {
     // A (the bug), this notification never arrives and no prompt shows —
     // this assertion is what catches the regression.
     expect(find.textContaining("haven't reached your cloud"), findsOneWidget);
+  });
+
+  testWidgets('hidden by default — no panel, taps pass through to content',
+      (tester) async {
+    final c = _idleController();
+    addTearDown(c.dispose);
+    var tappedBehind = false;
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+        quickPanelEnabledProvider.overrideWith(() => _FixedQuickPanelEnabled(true)),
+        quickPanelHintShownProvider.overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: Stack(children: [
+          Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: TextButton(
+                  onPressed: () => tappedBehind = true,
+                  child: const Text('behind')),
+            ),
+          ),
+          const HomeSyncOverlay(),
+        ]),
+      ),
+    ));
+    await tester.pump();
+    expect(find.byType(QuickAccessPanel), findsNothing);
+    await tester.tap(find.text('behind'));
+    expect(tappedBehind, isTrue);
+  });
+
+  testWidgets('long-press the corner reveals the panel; outside-tap dismisses',
+      (tester) async {
+    final c = _idleController();
+    addTearDown(c.dispose);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+        quickPanelEnabledProvider.overrideWith(() => _FixedQuickPanelEnabled(true)),
+        quickPanelHintShownProvider.overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: const Stack(children: [HomeSyncOverlay()]),
+      ),
+    ));
+    await tester.pump();
+
+    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+    await tester.longPressAt(Offset(size.width - 20, size.height - 20));
+    await tester.pumpAndSettle();
+    expect(find.byType(QuickAccessPanel), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(find.byType(QuickAccessPanel), findsNothing);
+  });
+
+  testWidgets('disabled: long-press does nothing', (tester) async {
+    final c = _idleController();
+    addTearDown(c.dispose);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+        quickPanelEnabledProvider.overrideWith(() => _FixedQuickPanelEnabled(false)),
+        quickPanelHintShownProvider.overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: const Stack(children: [HomeSyncOverlay()]),
+      ),
+    ));
+    await tester.pump();
+
+    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+    await tester.longPressAt(Offset(size.width - 20, size.height - 20));
+    await tester.pumpAndSettle();
+    expect(find.byType(QuickAccessPanel), findsNothing);
   });
 }

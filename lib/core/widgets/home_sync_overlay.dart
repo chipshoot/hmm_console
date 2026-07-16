@@ -7,8 +7,8 @@ import '../data/sync/sync_controller.dart';
 import '../navigation/router_config.dart' show rootNavigatorKey;
 import '../../features/settings/presentation/widgets/sync_status_card.dart'
     show confirmManualSyncIfOnCellular;
-import 'home_button.dart';
-import 'sync_pill.dart';
+import 'quick_panel/quick_access_panel.dart';
+import 'quick_panel/quick_panel_settings.dart';
 
 /// Persistent Home + Sync control cluster, mounted ONCE above the router
 /// (`lib/main.dart`'s `MaterialApp.router(builder: ...)`) so it appears on
@@ -31,6 +31,11 @@ class HomeSyncOverlay extends ConsumerStatefulWidget {
 class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
     with WidgetsBindingObserver {
   bool _promptShowing = false;
+
+  /// Whether the Quick Access Panel is currently revealed. Toggled by the
+  /// bottom-right long-press hot-zone (open) and the outside-tap dismiss
+  /// barrier / a panel action's onDismiss (close).
+  bool _panelOpen = false;
 
   /// True from the moment we background until either a prompt actually
   /// shows or pending drops to 0. See the class doc + the "Final-review
@@ -139,6 +144,12 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
     ).then((_) => _promptShowing = false);
   }
 
+  void _openPanel() => setState(() => _panelOpen = true);
+
+  void _closePanel() {
+    if (_panelOpen) setState(() => _panelOpen = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Re-bind the listener whenever `syncControllerProvider` produces a
@@ -171,19 +182,58 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
       }
     });
 
-    return Positioned(
-      right: 16,
-      bottom: 16,
-      child: SafeArea(
-        minimum: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            HomeButton(),
-            SizedBox(width: 8),
-            SyncPill(),
-          ],
-        ),
+    final enabled = ref.watch(quickPanelEnabledProvider);
+
+    // Positioned.fill so we can host corner children; a bare Stack does not
+    // absorb pointer events in empty regions, so taps outside the hot-zone /
+    // open panel fall through to content behind.
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          if (_panelOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _closePanel,
+              ),
+            ),
+          if (enabled && !_panelOpen)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                minimum: const EdgeInsets.only(right: 8, bottom: 8),
+                child: Semantics(
+                  button: true,
+                  label: 'Home and sync quick actions',
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onLongPress: _openPanel,
+                    onTap: _openPanel, // a11y/tap fallback
+                    child: const SizedBox(width: 56, height: 56),
+                  ),
+                ),
+              ),
+            ),
+          if (_panelOpen)
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: SafeArea(
+                minimum: const EdgeInsets.only(right: 8, bottom: 8),
+                // `Positioned(right: ..., bottom: ...)` with no matching
+                // `left`/`top` leaves the child's width unbounded (Stack
+                // only tightens an axis when BOTH edges on it are set) —
+                // QuickAccessPanel's Column(crossAxisAlignment: stretch)
+                // needs a bounded width to stretch into, so size this
+                // anchor to the panel's own intrinsic width instead of
+                // touching QuickAccessPanel itself.
+                child: IntrinsicWidth(
+                  child: QuickAccessPanel(onDismiss: _closePanel),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
