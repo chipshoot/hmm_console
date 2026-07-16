@@ -72,6 +72,10 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       _update(_current.copyWith(dashboardIntroCardSeen: v));
   Future<void> setOnboardingCompleted(bool v) =>
       _update(_current.copyWith(onboardingCompleted: v));
+  Future<void> setQuickPanelEnabled(bool v) =>
+      _update(_current.copyWith(quickPanelEnabled: v));
+  Future<void> setQuickPanelHintShown(bool v) =>
+      _update(_current.copyWith(quickPanelHintShown: v));
   Future<void> setLocalDbPath(String v) =>
       _update(_current.copyWith(localDbPath: v));
   Future<void> setCloudStorageVaultPath(String v) =>

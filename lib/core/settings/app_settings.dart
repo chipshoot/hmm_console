@@ -15,6 +15,8 @@ class AppSettings {
     this.notesFilterUsage = const {},
     this.dashboardIntroCardSeen = false,
     this.onboardingCompleted = false,
+    this.quickPanelEnabled = true,
+    this.quickPanelHintShown = false,
     this.localDbPath,
     this.cloudStorageVaultPath,
     this.schemaVersion = currentSchemaVersion,
@@ -32,6 +34,8 @@ class AppSettings {
   final Map<String, int> notesFilterUsage;
   final bool dashboardIntroCardSeen;
   final bool onboardingCompleted;
+  final bool quickPanelEnabled;
+  final bool quickPanelHintShown;
   final String? localDbPath;
   final String? cloudStorageVaultPath;
   final int schemaVersion;
@@ -63,6 +67,8 @@ class AppSettings {
       notesFilterUsage: usage,
       dashboardIntroCardSeen: j['dashboardIntroCardSeen'] as bool? ?? false,
       onboardingCompleted: j['onboardingCompleted'] as bool? ?? false,
+      quickPanelEnabled: j['quickPanelEnabled'] as bool? ?? true,
+      quickPanelHintShown: j['quickPanelHintShown'] as bool? ?? false,
       localDbPath: j['localDbPath'] as String?,
       cloudStorageVaultPath: j['cloudStorageVaultPath'] as String?,
       schemaVersion:
@@ -80,6 +86,8 @@ class AppSettings {
         'notesFilterUsage': notesFilterUsage,
         'dashboardIntroCardSeen': dashboardIntroCardSeen,
         'onboardingCompleted': onboardingCompleted,
+        'quickPanelEnabled': quickPanelEnabled,
+        'quickPanelHintShown': quickPanelHintShown,
         if (localDbPath != null) 'localDbPath': localDbPath,
         if (cloudStorageVaultPath != null)
           'cloudStorageVaultPath': cloudStorageVaultPath,
@@ -96,6 +104,8 @@ class AppSettings {
     Map<String, int>? notesFilterUsage,
     bool? dashboardIntroCardSeen,
     bool? onboardingCompleted,
+    bool? quickPanelEnabled,
+    bool? quickPanelHintShown,
     String? localDbPath,
     String? cloudStorageVaultPath,
   }) =>
@@ -110,6 +120,8 @@ class AppSettings {
         dashboardIntroCardSeen:
             dashboardIntroCardSeen ?? this.dashboardIntroCardSeen,
         onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+        quickPanelEnabled: quickPanelEnabled ?? this.quickPanelEnabled,
+        quickPanelHintShown: quickPanelHintShown ?? this.quickPanelHintShown,
         localDbPath: localDbPath ?? this.localDbPath,
         cloudStorageVaultPath:
             cloudStorageVaultPath ?? this.cloudStorageVaultPath,
