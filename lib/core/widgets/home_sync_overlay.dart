@@ -8,6 +8,7 @@ import '../navigation/router_config.dart' show rootNavigatorKey;
 import '../../features/settings/presentation/widgets/sync_status_card.dart'
     show confirmManualSyncIfOnCellular;
 import 'quick_panel/quick_access_panel.dart';
+import 'quick_panel/quick_panel_coach_mark.dart';
 import 'quick_panel/quick_panel_settings.dart';
 
 /// Persistent Home + Sync control cluster, mounted ONCE above the router
@@ -184,6 +185,8 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
 
     final enabled = ref.watch(quickPanelEnabledProvider);
     final pending = ref.watch(pendingSyncCountProvider).value ?? 0;
+    final showCoach =
+        enabled && !_panelOpen && !ref.watch(quickPanelHintShownProvider);
 
     // Positioned.fill so we can host corner children; a bare Stack does not
     // absorb pointer events in empty regions, so taps outside the hot-zone /
@@ -268,6 +271,11 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
                   child: QuickAccessPanel(onDismiss: _closePanel),
                 ),
               ),
+            ),
+          if (showCoach)
+            QuickPanelCoachMark(
+              onDismiss: () =>
+                  ref.read(quickPanelHintShownProvider.notifier).markShown(),
             ),
         ],
       ),

@@ -10,7 +10,10 @@ import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/navigation/router_config.dart' show rootNavigatorKey;
 import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
 import 'package:hmm_console/core/widgets/quick_panel/quick_access_panel.dart';
+import 'package:hmm_console/core/widgets/quick_panel/quick_panel_coach_mark.dart';
 import 'package:hmm_console/core/widgets/quick_panel/quick_panel_settings.dart';
+import 'package:hmm_console/core/settings/settings_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FixedDataMode extends DataModeNotifier {
   _FixedDataMode(this._mode);
@@ -85,6 +88,11 @@ void main() {
           dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.local)),
           syncControllerProvider.overrideWithValue(c),
           pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+          // Not exercising the coach mark here — pin the hint as already
+          // seen so its full-screen scrim (real first-run behavior) can't
+          // intercept the tap this test is checking passes through.
+          quickPanelHintShownProvider
+              .overrideWith(() => _FixedQuickPanelHintShown(true)),
         ],
         child: MaterialApp(
           navigatorKey: rootNavigatorKey,
@@ -542,5 +550,42 @@ void main() {
     await tester.tap(find.byKey(const Key('quickPanelAtRiskDot')));
     await tester.pumpAndSettle();
     expect(find.byType(QuickAccessPanel), findsOneWidget);
+  });
+
+  testWidgets('coach mark shows once, gone after "Got it"', (tester) async {
+    // Real settings-backed provider (mirrors quick_panel_settings_test.dart's
+    // harness) rather than a `_Fixed*` double: `markShown()` must actually
+    // flip the persisted flag and reactively hide the coach mark, which an
+    // immutable fixed-value Notifier can't observe.
+    SharedPreferences.setMockInitialValues({});
+    final c = _idleController();
+    addTearDown(c.dispose);
+
+    final container = ProviderContainer(overrides: [
+      dataModeProvider.overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+      syncControllerProvider.overrideWithValue(c),
+      pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+    ]);
+    addTearDown(container.dispose);
+    // Settle the async settings load (default AppSettings: quickPanelEnabled
+    // true, quickPanelHintShown false) before pumping the widget.
+    await container.read(settingsProvider.future);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          home: const Stack(children: [HomeSyncOverlay()]),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // hint starts unseen → coach mark visible
+    expect(find.byType(QuickPanelCoachMark), findsOneWidget);
+    await tester.tap(find.text('Got it'));
+    await tester.pumpAndSettle();
+    expect(find.byType(QuickPanelCoachMark), findsNothing);
   });
 }
