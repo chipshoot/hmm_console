@@ -49,6 +49,7 @@ final class VaultRef extends AttachmentRef {
     this.originalName,
     required this.contentType,
     required this.byteSize,
+    this.sensitive = false,
   });
 
   /// Vault relative path; must validate against
@@ -61,6 +62,10 @@ final class VaultRef extends AttachmentRef {
   /// Always present on vault refs (mandated by the schema).
   final int byteSize;
 
+  /// Encrypted-at-rest, view-gated, AI-excluded when true. Default false;
+  /// absent in JSON means false (back-compat).
+  final bool sensitive;
+
   @override
   String get kind => 'vault';
 
@@ -71,14 +76,17 @@ final class VaultRef extends AttachmentRef {
           other.path == path &&
           other.originalName == originalName &&
           other.contentType == contentType &&
-          other.byteSize == byteSize;
+          other.byteSize == byteSize &&
+          other.sensitive == sensitive;
 
   @override
-  int get hashCode => Object.hash(path, originalName, contentType, byteSize);
+  int get hashCode =>
+      Object.hash(path, originalName, contentType, byteSize, sensitive);
 
   @override
   String toString() =>
-      'VaultRef(path: $path, contentType: $contentType, byteSize: $byteSize)';
+      'VaultRef(path: $path, contentType: $contentType, '
+      'byteSize: $byteSize, sensitive: $sensitive)';
 }
 
 /// A pointer into iOS Photos by PHAsset localIdentifier. iOS-only.

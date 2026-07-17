@@ -343,4 +343,55 @@ void main() {
       );
     });
   });
+
+  group('VaultRef.sensitive', () {
+    test('defaults to false and is omitted from JSON', () {
+      const ref = VaultRef(
+        path: 'attachments/note-1/a.jpg',
+        contentType: 'image/jpeg',
+        byteSize: 10,
+      );
+      expect(ref.sensitive, isFalse);
+      final json = AttachmentRefCodec.toJson(ref);
+      expect(json.containsKey('sensitive'), isFalse,
+          reason: 'legacy payloads must stay byte-identical');
+    });
+
+    test('sensitive: true round-trips and is emitted', () {
+      const ref = VaultRef(
+        path: 'attachments/note-1/sensitive/a.jpg',
+        contentType: 'image/jpeg',
+        byteSize: 10,
+        sensitive: true,
+      );
+      final json = AttachmentRefCodec.toJson(ref);
+      expect(json['sensitive'], isTrue);
+      final back = AttachmentRefCodec.fromJson(json);
+      expect(back, ref);
+      expect((back as VaultRef).sensitive, isTrue);
+    });
+
+    test('absent sensitive decodes to false', () {
+      final ref = AttachmentRefCodec.fromJson({
+        'kind': 'vault',
+        'path': 'attachments/note-1/a.jpg',
+        'contentType': 'image/jpeg',
+        'byteSize': 10,
+      });
+      expect((ref as VaultRef).sensitive, isFalse);
+    });
+
+    test('non-bool sensitive throws FormatException', () {
+      expect(
+        () => AttachmentRefCodec.fromJson({
+          'kind': 'vault',
+          'path': 'attachments/note-1/a.jpg',
+          'contentType': 'image/jpeg',
+          'byteSize': 10,
+          'sensitive': 'yes',
+        }),
+        throwsA(isA<FormatException>()),
+      );
+    });
+  });
 }

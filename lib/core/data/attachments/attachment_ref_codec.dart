@@ -90,6 +90,15 @@ int? _optionalByteSize(Map<String, dynamic> json) {
   return v;
 }
 
+bool _optionalBool(Map<String, dynamic> json, String key) {
+  final v = json[key];
+  if (v == null) return false;
+  if (v is! bool) {
+    throw FormatException('"$key" must be a bool when present');
+  }
+  return v;
+}
+
 /// Codec for a single [AttachmentRef].
 class AttachmentRefCodec {
   const AttachmentRefCodec._();
@@ -133,6 +142,7 @@ class AttachmentRefCodec {
           _optionalString(j, 'originalName', maxLength: _maxOriginalNameLength),
       contentType: _validateContentType(_requireString(j, 'contentType')),
       byteSize: _requireByteSize(j),
+      sensitive: _optionalBool(j, 'sensitive'),
     );
   }
 
@@ -142,6 +152,7 @@ class AttachmentRefCodec {
         if (r.originalName != null) 'originalName': r.originalName,
         'contentType': r.contentType,
         'byteSize': r.byteSize,
+        if (r.sensitive) 'sensitive': true,
       };
 
   static PhAssetRef _phAssetFromJson(Map<String, dynamic> j) {
