@@ -28,7 +28,9 @@ import 'picker/image_attachment_picker.dart';
 import 'picker/image_downsizer.dart';
 import 'resolver/attachment_resolver.dart';
 import '../vault/api_vault_store.dart';
+import '../vault/encrypted_vault_store.dart';
 import '../vault/local_vault_store.dart';
+import '../vault/vault_key_service.dart';
 import '../vault/vault_store.dart';
 
 /// The user's chosen cloudStorage vault folder from the unified settings,
@@ -94,11 +96,12 @@ Future<Directory> _appDocsVault() async {
   return root;
 }
 
-/// Mode-aware [IVaultStore]. Local + cloudStorage share the
-/// filesystem-backed [LocalVaultStore] (only the root differs);
+/// Mode-aware **unencrypted** [IVaultStore]. Local + cloudStorage share
+/// the filesystem-backed [LocalVaultStore] (only the root differs);
 /// cloudApi swaps in [ApiVaultStore] which talks straight to
-/// `/v1/notes/{noteId}/vault/...` and never touches local disk.
-final vaultStoreProvider = FutureProvider<IVaultStore>((ref) async {
+/// `/v1/notes/{noteId}/vault/...` and never touches local disk. This is
+/// the base the encrypting decorator and the key service both build on.
+final baseVaultStoreProvider = FutureProvider<IVaultStore>((ref) async {
   final mode = ref.watch(dataModeProvider);
   if (mode == DataMode.cloudApi) {
     // Direct passthrough — no async setup needed, no directory
@@ -108,6 +111,27 @@ final vaultStoreProvider = FutureProvider<IVaultStore>((ref) async {
   }
   final root = await ref.watch(vaultRootDirectoryProvider.future);
   return LocalVaultStore(rootDir: root);
+});
+
+/// Session key holder for sensitive attachments. Reads/writes the
+/// non-secret vault_meta.json through the base (unencrypted) store.
+final vaultKeyServiceProvider = FutureProvider<VaultKeyService>((ref) async {
+  final base = await ref.watch(baseVaultStoreProvider.future);
+  return VaultKeyService(store: base);
+});
+
+/// Mode-aware [IVaultStore] used by all callers. For local + cloudStorage
+/// it wraps the base store in an [EncryptedVaultStore] so sensitive paths
+/// are encrypted at rest; cloudApi returns the base store unchanged
+/// (encryption there lands in Phase 5).
+final vaultStoreProvider = FutureProvider<IVaultStore>((ref) async {
+  final base = await ref.watch(baseVaultStoreProvider.future);
+  final mode = ref.watch(dataModeProvider);
+  if (mode == DataMode.cloudApi) {
+    return base;
+  }
+  final keyService = await ref.watch(vaultKeyServiceProvider.future);
+  return EncryptedVaultStore(inner: base, keyService: keyService);
 });
 
 /// Composite resolver. For v1 only the vault arm is wired; PhAsset
