@@ -85,6 +85,7 @@ dependencies:
   flutter_markdown: ^0.7.7+1
   google_mlkit_text_recognition: ^0.15.1
   url_launcher: ^6.3.2
+  cryptography: ^2.7.0   # AES-256-GCM + Argon2id for the sensitive vault (Phase 4a)
 
 dev_dependencies:
   flutter_test:
