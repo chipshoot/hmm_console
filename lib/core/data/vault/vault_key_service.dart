@@ -6,8 +6,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'crypto/vault_crypto.dart';
+import 'sensitive_path.dart';
 import 'vault_meta.dart';
 import 'vault_store.dart';
+
+/// Outcome of inspecting vault_meta.json.
+enum VaultConfigState { absent, configured, corrupt }
 
 class VaultKeyService {
   VaultKeyService({
@@ -30,22 +34,39 @@ class VaultKeyService {
   Uint8List? get currentKey => _key;
   bool get isUnlocked => _key != null;
 
-  Future<VaultMeta?> _readMeta() async {
+  /// Reads meta bytes; null if absent. Throws [FormatException] if present
+  /// but undecodable (caller decides how to surface corrupt).
+  Future<VaultMeta?> _readMetaOrThrow() async {
+    final Uint8List bytes;
     try {
-      final bytes = await _store.getBytes(vaultMetaPath);
-      return VaultMetaCodec.decode(utf8.decode(bytes));
+      bytes = await _store.getBytes(vaultMetaPath);
     } on VaultStoreException {
-      return null; // not set up yet
+      return null; // absent
+    }
+    return VaultMetaCodec.decode(utf8.decode(bytes)); // may throw FormatException
+  }
+
+  Future<VaultConfigState> configState() async {
+    try {
+      final meta = await _readMetaOrThrow();
+      return meta == null
+          ? VaultConfigState.absent
+          : VaultConfigState.configured;
+    } on FormatException {
+      return VaultConfigState.corrupt;
     }
   }
 
-  Future<bool> isConfigured() async => (await _readMeta()) != null;
+  Future<bool> isConfigured() async =>
+      (await configState()) == VaultConfigState.configured;
 
   /// First-time setup. Throws [StateError] if the vault already exists
-  /// (passphrase rotation is out of scope for this phase).
+  /// or the existing meta is corrupt (passphrase rotation is out of
+  /// scope for this phase; corrupt meta must go through [reset] first
+  /// so recoverable ciphertext is never silently overwritten).
   Future<void> setupPassphrase(String passphrase) async {
-    if (await isConfigured()) {
-      throw StateError('vault already configured');
+    if (await configState() != VaultConfigState.absent) {
+      throw StateError('vault already configured or corrupt');
     }
     final salt = _crypto.newSalt();
     final key = await _crypto.deriveKey(passphrase, salt, _params);
@@ -66,9 +87,15 @@ class VaultKeyService {
 
   /// Derive from [passphrase] and verify against the stored verifier.
   /// Returns true and holds the key on success; false and holds nothing
-  /// on a wrong passphrase. Throws [StateError] if not configured.
+  /// on a wrong passphrase or corrupt meta (UI routes corrupt to
+  /// [reset]). Throws [StateError] if not configured.
   Future<bool> unlock(String passphrase) async {
-    final meta = await _readMeta();
+    final VaultMeta? meta;
+    try {
+      meta = await _readMetaOrThrow();
+    } on FormatException {
+      return false; // corrupt meta → cannot unlock (UI routes to reset)
+    }
     if (meta == null) throw StateError('vault not configured');
     final key = await _crypto.deriveKey(passphrase, meta.salt, meta.params);
     try {
@@ -82,6 +109,19 @@ class VaultKeyService {
   }
 
   void lock() {
+    _key = null;
+  }
+
+  /// Destructive: removes vault_meta.json and every sensitive attachment,
+  /// then drops the in-memory key. Non-sensitive files are untouched.
+  Future<void> reset() async {
+    final entries = await _store.list('');
+    for (final e in entries) {
+      if (e.relativePath == vaultMetaPath ||
+          isSensitiveVaultPath(e.relativePath)) {
+        await _store.delete(e.relativePath);
+      }
+    }
     _key = null;
   }
 }

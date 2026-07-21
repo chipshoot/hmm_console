@@ -89,4 +89,49 @@ void main() {
     expect(s.currentKey, isNull);
     expect(s.isUnlocked, isFalse);
   });
+
+  group('corrupt state + reset', () {
+    test('configState reports corrupt for undecodable meta', () async {
+      final store = _FakeVaultStore();
+      await store.putBytes('vault_meta.json',
+          Uint8List.fromList('not json'.codeUnits));
+      final s = _service(store);
+      expect(await s.configState(), VaultConfigState.corrupt);
+    });
+
+    test('configState reports absent then configured', () async {
+      final store = _FakeVaultStore();
+      final s = _service(store);
+      expect(await s.configState(), VaultConfigState.absent);
+      await s.setupPassphrase('hunter2');
+      expect(await s.configState(), VaultConfigState.configured);
+    });
+
+    test('setupPassphrase refuses over corrupt meta (no overwrite)', () async {
+      final store = _FakeVaultStore();
+      await store.putBytes('vault_meta.json',
+          Uint8List.fromList('not json'.codeUnits));
+      final s = _service(store);
+      expect(() => s.setupPassphrase('x'), throwsA(isA<StateError>()));
+      // Corrupt bytes are untouched.
+      expect(await store.getBytes('vault_meta.json'),
+          Uint8List.fromList('not json'.codeUnits));
+    });
+
+    test('reset deletes meta + sensitive files, keeps non-sensitive', () async {
+      final store = _FakeVaultStore();
+      final s = _service(store);
+      await s.setupPassphrase('hunter2');
+      await store.putBytes('attachments/note-1/sensitive/a.enc',
+          Uint8List.fromList([1, 2, 3]));
+      await store.putBytes('attachments/note-1/plain.jpg',
+          Uint8List.fromList([4, 5, 6]));
+      await s.reset();
+      expect(await store.exists('vault_meta.json'), isFalse);
+      expect(await store.exists('attachments/note-1/sensitive/a.enc'), isFalse);
+      expect(await store.exists('attachments/note-1/plain.jpg'), isTrue);
+      expect(s.currentKey, isNull);
+      expect(await s.configState(), VaultConfigState.absent);
+    });
+  });
 }
