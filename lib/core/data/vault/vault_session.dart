@@ -66,12 +66,23 @@ class VaultSessionController extends Notifier<VaultStatus> {
   Future<void> refresh() async {
     final svc = await _service();
     final cfg = await svc.configState();
-    state = switch (cfg) {
-      VaultConfigState.absent => VaultStatus.absent,
-      VaultConfigState.corrupt => VaultStatus.corrupt,
-      VaultConfigState.configured =>
-        svc.isUnlocked ? VaultStatus.unlocked : VaultStatus.locked,
-    };
+    switch (cfg) {
+      case VaultConfigState.absent:
+        state = VaultStatus.absent;
+      case VaultConfigState.corrupt:
+        state = VaultStatus.corrupt;
+      case VaultConfigState.configured:
+        if (svc.isUnlocked) {
+          // Stamp the access clock: this branch is reachable with a live
+          // in-memory key (e.g. app-resume) that the controller never
+          // itself unlocked, so _lastAccessAt would otherwise still be at
+          // its epoch-0 default and an immediate touch() would relock it.
+          _touchNow();
+          state = VaultStatus.unlocked;
+        } else {
+          state = VaultStatus.locked;
+        }
+    }
   }
 
   /// Attempts a biometric unlock, restoring the key from the secure-storage

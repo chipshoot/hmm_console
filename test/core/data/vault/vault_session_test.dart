@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
@@ -58,16 +59,40 @@ class _FakeGate implements BiometricGate {
   }
 }
 
+/// Mutable clock for driving VaultSessionController's `now` injection hook
+/// deterministically (inactivity timeout / touch() tests).
+class _FakeClock {
+  DateTime _t = DateTime(2026, 1, 1);
+  DateTime call() => _t;
+  void advance(Duration d) => _t = _t.add(d);
+}
+
 void main() {
+  // Needed for the app-pause test below, which drives the real
+  // WidgetsBinding lifecycle dispatch (WidgetsBinding.instance must be
+  // initialized before VaultSessionController.build() registers its
+  // observer). Matches the pattern used elsewhere in this repo's tests
+  // (e.g. test/core/data/sync/sync_controller_test.dart).
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   // Wiring note: vaultKeyServiceProvider is a FutureProvider<VaultKeyService>
   // (it awaits the base store), so VaultSessionController resolves it
   // asynchronously and memoizes it rather than reading a synchronous
   // vaultSessionServiceProvider. The test overrides vaultKeyServiceProvider
   // directly with an async factory returning the fake service.
-  ProviderContainer containerWith(VaultKeyService svc, BiometricGate gate) =>
+  //
+  // Pass `now` to also override vaultSessionProvider itself with a
+  // VaultSessionController wired to a fake/injectable clock, so timed-relock
+  // behavior (inactivity timeout, refresh()-stamps-access-time regression)
+  // can be driven deterministically instead of racing wall-clock time.
+  ProviderContainer containerWith(VaultKeyService svc, BiometricGate gate,
+          {DateTime Function()? now}) =>
       ProviderContainer(overrides: [
         vaultKeyServiceProvider.overrideWith((ref) async => svc),
         biometricGateProvider.overrideWithValue(gate),
+        if (now != null)
+          vaultSessionProvider
+              .overrideWith(() => VaultSessionController(now: now)),
       ]);
 
   test('absent → setup → unlocked', () async {
@@ -155,6 +180,73 @@ void main() {
     final ctrl = c.read(vaultSessionProvider.notifier);
     await ctrl.refresh();
     expect(await ctrl.unlockWithBiometric(), isFalse);
+    expect(c.read(vaultSessionProvider), VaultStatus.locked);
+  });
+
+  test(
+      'refresh() resolving to unlocked stamps access time; '
+      'immediate touch() does not relock', () async {
+    // Regression for the latent B3 defect: refresh()'s `unlocked` branch
+    // (configured + svc already unlocked, e.g. app-resume with a live
+    // in-memory key) must stamp _lastAccessAt, or a subsequent touch() sees
+    // now - epoch0 > 5min and relocks a legitimately-unlocked session.
+    final clock = _FakeClock();
+    final store = _FakeVaultStore();
+    final svc = VaultKeyService(
+        store: store, params: Argon2Params.test, cache: _MemCache());
+    // svc is already unlocked before the controller ever sees it — the
+    // controller's own _touchNow() calls (setup/unlockWith*) are bypassed.
+    await svc.setupPassphrase('hunter2');
+    final c = containerWith(svc, _FakeGate(true), now: clock.call);
+    addTearDown(c.dispose);
+    final ctrl = c.read(vaultSessionProvider.notifier);
+
+    await ctrl.refresh();
+    expect(c.read(vaultSessionProvider), VaultStatus.unlocked);
+
+    clock.advance(const Duration(seconds: 1)); // well within the timeout
+    ctrl.touch();
+    expect(c.read(vaultSessionProvider), VaultStatus.unlocked);
+  });
+
+  test(
+      'touch() relocks after the inactivity timeout; bumps within timeout',
+      () async {
+    final clock = _FakeClock();
+    final svc = VaultKeyService(
+        store: _FakeVaultStore(), params: Argon2Params.test, cache: _MemCache());
+    final c = containerWith(svc, _FakeGate(true), now: clock.call);
+    addTearDown(c.dispose);
+    final ctrl = c.read(vaultSessionProvider.notifier);
+    await ctrl.setup('hunter2');
+    expect(c.read(vaultSessionProvider), VaultStatus.unlocked);
+
+    // Within the 5-minute timeout: touch() bumps the clock, stays unlocked.
+    clock.advance(const Duration(minutes: 4));
+    ctrl.touch();
+    expect(c.read(vaultSessionProvider), VaultStatus.unlocked);
+
+    // More than 5 minutes since the last touch (bumped above): relocks.
+    clock.advance(const Duration(minutes: 5, seconds: 1));
+    ctrl.touch();
+    expect(c.read(vaultSessionProvider), VaultStatus.locked);
+  });
+
+  test('unlocked session relocks on app pause', () async {
+    // Drives the real WidgetsBinding lifecycle dispatch (the same path a
+    // genuine app-pause transition uses) rather than reaching into the
+    // private _LifecycleObserver — no test-only production hooks needed.
+    final svc = VaultKeyService(
+        store: _FakeVaultStore(), params: Argon2Params.test, cache: _MemCache());
+    final c = containerWith(svc, _FakeGate(true));
+    addTearDown(c.dispose);
+    final ctrl = c.read(vaultSessionProvider.notifier);
+    await ctrl.setup('hunter2');
+    expect(c.read(vaultSessionProvider), VaultStatus.unlocked);
+
+    WidgetsBinding.instance
+        .handleAppLifecycleStateChanged(AppLifecycleState.paused);
+
     expect(c.read(vaultSessionProvider), VaultStatus.locked);
   });
 }
