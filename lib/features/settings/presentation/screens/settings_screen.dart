@@ -20,6 +20,7 @@ import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/widgets/quick_panel/quick_panel_settings.dart';
 import '../../../receipt_scan/presentation/receipt_extraction_settings_section.dart';
 import '../../../../core/widgets/gaps.dart';
+import '../widgets/secure_vault_section.dart';
 import '../widgets/sync_status_card.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
@@ -473,6 +474,12 @@ class SettingsScreen extends ConsumerWidget {
                     : null,
               );
             }),
+            if (dataMode != DataMode.cloudApi) ...[
+              GapWidgets.h24,
+              const Divider(),
+              GapWidgets.h24,
+              const SecureVaultSection(),
+            ],
             if (dataMode == DataMode.local) ...[
               GapWidgets.h16,
               dbPathAsync.when(
