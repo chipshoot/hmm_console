@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/vault/crypto/vault_crypto.dart';
+import 'package:hmm_console/core/data/vault/vault_key_cache.dart';
 import 'package:hmm_console/core/data/vault/vault_key_service.dart';
 import 'package:hmm_console/core/data/vault/vault_store.dart';
 
@@ -35,6 +36,17 @@ VaultKeyService _service(_FakeVaultStore store) => VaultKeyService(
       store: store,
       params: Argon2Params.test, // fast
     );
+
+/// In-memory VaultKeyCache for headless tests.
+class _MemCache implements VaultKeyCache {
+  Uint8List? _v;
+  @override
+  Future<Uint8List?> read() async => _v;
+  @override
+  Future<void> write(Uint8List key) async => _v = key;
+  @override
+  Future<void> clear() async => _v = null;
+}
 
 void main() {
   test('unconfigured by default; currentKey null', () async {
@@ -132,6 +144,41 @@ void main() {
       expect(await store.exists('attachments/note-1/plain.jpg'), isTrue);
       expect(s.currentKey, isNull);
       expect(await s.configState(), VaultConfigState.absent);
+    });
+  });
+
+  group('key cache', () {
+    test('setup writes cache; lock keeps it; unlockFromCache restores', () async {
+      final store = _FakeVaultStore();
+      final cache = _MemCache();
+      final s = VaultKeyService(
+          store: store, params: Argon2Params.test, cache: cache);
+      await s.setupPassphrase('hunter2');
+      expect(await cache.read(), isNotNull);
+      s.lock();
+      expect(s.currentKey, isNull);
+      expect(await cache.read(), isNotNull, reason: 'lock keeps the cache');
+      expect(await s.unlockFromCache(), isTrue);
+      expect(s.currentKey, isNotNull);
+    });
+
+    test('unlockFromCache false when cache empty', () async {
+      final s = VaultKeyService(
+          store: _FakeVaultStore(),
+          params: Argon2Params.test,
+          cache: _MemCache());
+      expect(await s.unlockFromCache(), isFalse);
+      expect(s.currentKey, isNull);
+    });
+
+    test('reset clears the cache', () async {
+      final store = _FakeVaultStore();
+      final cache = _MemCache();
+      final s = VaultKeyService(
+          store: store, params: Argon2Params.test, cache: cache);
+      await s.setupPassphrase('hunter2');
+      await s.reset();
+      expect(await cache.read(), isNull);
     });
   });
 }

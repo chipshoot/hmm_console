@@ -30,6 +30,7 @@ import 'resolver/attachment_resolver.dart';
 import '../vault/api_vault_store.dart';
 import '../vault/encrypted_vault_store.dart';
 import '../vault/local_vault_store.dart';
+import '../vault/vault_key_cache.dart';
 import '../vault/vault_key_service.dart';
 import '../vault/vault_store.dart';
 
@@ -113,11 +114,17 @@ final baseVaultStoreProvider = FutureProvider<IVaultStore>((ref) async {
   return LocalVaultStore(rootDir: root);
 });
 
+/// Platform secure-storage cache for the derived vault key, so a future
+/// biometric unlock (Phase 4b/B3) can restore it without re-deriving from
+/// the passphrase.
+final vaultKeyCacheProvider =
+    Provider<VaultKeyCache>((ref) => SecureStorageVaultKeyCache());
+
 /// Session key holder for sensitive attachments. Reads/writes the
 /// non-secret vault_meta.json through the base (unencrypted) store.
 final vaultKeyServiceProvider = FutureProvider<VaultKeyService>((ref) async {
   final base = await ref.watch(baseVaultStoreProvider.future);
-  return VaultKeyService(store: base);
+  return VaultKeyService(store: base, cache: ref.watch(vaultKeyCacheProvider));
 });
 
 /// Mode-aware [IVaultStore] used by all callers. For local + cloudStorage

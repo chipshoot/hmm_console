@@ -7,6 +7,7 @@ import 'dart:typed_data';
 
 import 'crypto/vault_crypto.dart';
 import 'sensitive_path.dart';
+import 'vault_key_cache.dart';
 import 'vault_meta.dart';
 import 'vault_store.dart';
 
@@ -18,13 +19,16 @@ class VaultKeyService {
     required IVaultStore store,
     VaultCrypto crypto = const VaultCrypto(),
     Argon2Params params = Argon2Params.production,
+    VaultKeyCache? cache,
   })  : _store = store,
         _crypto = crypto,
-        _params = params;
+        _params = params,
+        _cache = cache;
 
   final IVaultStore _store;
   final VaultCrypto _crypto;
   final Argon2Params _params;
+  final VaultKeyCache? _cache;
 
   /// Known plaintext encrypted under the key to prove correctness.
   static const String _sentinel = 'hmm-secure-vault-v1';
@@ -83,6 +87,7 @@ class VaultKeyService {
       Uint8List.fromList(utf8.encode(VaultMetaCodec.encode(meta))),
     );
     _key = key;
+    await _cache?.write(key);
   }
 
   /// Derive from [passphrase] and verify against the stored verifier.
@@ -105,6 +110,16 @@ class VaultKeyService {
       return false;
     }
     _key = key;
+    await _cache?.write(key);
+    return true;
+  }
+
+  /// Restore the key from the secure-storage cache without a passphrase.
+  /// Returns true if a cached key was present and is now held.
+  Future<bool> unlockFromCache() async {
+    final cached = await _cache?.read();
+    if (cached == null) return false;
+    _key = cached;
     return true;
   }
 
@@ -123,5 +138,6 @@ class VaultKeyService {
       }
     }
     _key = null;
+    await _cache?.clear();
   }
 }
