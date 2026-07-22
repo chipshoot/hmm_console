@@ -14,6 +14,8 @@ import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../../core/data/vault/sensitive_path.dart';
+import 'sensitive_attachment_image.dart';
 
 /// Max on-screen height of an inline image; the whole image scales to the
 /// column width and is capped here so a tall image doesn't dominate.
@@ -88,17 +90,29 @@ class NoteMarkdownBody extends StatelessWidget {
     if (path != null && resolver != null) {
       // Render-only ref: VaultResolver resolves by path; the other fields are
       // unused for display.
+      final sensitive = isSensitiveVaultPath(path);
       final ref = VaultRef(
-          path: path, contentType: 'application/octet-stream', byteSize: 0);
+          path: path,
+          contentType: 'application/octet-stream',
+          byteSize: 0,
+          sensitive: sensitive);
       return _box(GestureDetector(
         onTap: () => showFullscreenImage(context, ref),
-        child: AttachmentImage(
-          ref: ref,
-          resolver: resolver!,
-          fit: BoxFit.contain,
-          alignment: Alignment.topCenter,
-          semanticLabel: config.alt,
-        ),
+        child: sensitive
+            ? SensitiveAttachmentImage(
+                ref: ref,
+                resolver: resolver!,
+                fit: BoxFit.contain,
+                alignment: Alignment.topCenter,
+                semanticLabel: config.alt,
+              )
+            : AttachmentImage(
+                ref: ref,
+                resolver: resolver!,
+                fit: BoxFit.contain,
+                alignment: Alignment.topCenter,
+                semanticLabel: config.alt,
+              ),
       ));
     }
 

@@ -6,6 +6,8 @@ import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
+import '../../../../core/data/vault/sensitive_path.dart';
+import 'sensitive_attachment_image.dart';
 
 /// Apple-Journal-style media: large rounded image cards. Shows saved
 /// attachments (resolved from the vault) and pending picks (from local bytes).
@@ -95,11 +97,22 @@ class _SavedImage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef wref) {
     final resolverAsync = wref.watch(attachmentResolverProvider);
     return resolverAsync.when(
-      data: (resolver) => AttachmentImage(
-          ref: ref,
-          resolver: resolver,
-          fit: BoxFit.cover,
-          alignment: Alignment.topCenter),
+      data: (resolver) {
+        final r = ref;
+        if (r is VaultRef && (r.sensitive || isSensitiveVaultPath(r.path))) {
+          return SensitiveAttachmentImage(
+            ref: r,
+            resolver: resolver,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+          );
+        }
+        return AttachmentImage(
+            ref: ref,
+            resolver: resolver,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter);
+      },
       loading: () => const ColoredBox(
           color: Color(0xFFF2F2F7),
           child: Center(child: CircularProgressIndicator())),
