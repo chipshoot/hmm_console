@@ -3,6 +3,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
+import 'package:hmm_console/core/data/vault/encrypted_vault_store.dart'
+    show VaultLockedException;
 import 'package:hmm_console/features/notes/presentation/widgets/inline_image_controller.dart';
 
 PickedImageBytes _pick() => PickedImageBytes(
@@ -54,6 +56,31 @@ void main() {
     expect(result.hadFailures, isTrue);
     expect(body.text, isNot(contains('pending/')));
     expect(body.text, isNot(contains('hmm-attachment://')));
+  });
+
+  test(
+      'resolveAndRewrite rethrows VaultLockedException and does NOT strip '
+      'the placeholder (defense-in-depth for the B5 save-time TOCTOU)',
+      () async {
+    final c = InlineImageController();
+    final body = TextEditingController();
+    c.stageAndInsert(body, _pick());
+    final before = body.text;
+
+    await expectLater(
+      () => c.resolveAndRewrite(
+        noteId: 7,
+        body: body,
+        persist: (_, _) async => throw const VaultLockedException('x'),
+      ),
+      throwsA(isA<VaultLockedException>()),
+    );
+
+    // Nothing was mutated: the pending/ placeholder survives untouched, and
+    // the staged pick is still there for a retry after the user unlocks.
+    expect(body.text, before);
+    expect(body.text, contains('pending/'));
+    expect(c.pendingBytes, isNotEmpty);
   });
 
   test('removedImagePaths returns loaded paths no longer in the body', () {

@@ -11,6 +11,8 @@ import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/vault/encrypted_vault_store.dart'
+    show VaultLockedException;
 import '../../../../core/data/vault/vault_session.dart';
 import '../widgets/inline_image_controller.dart';
 import '../widgets/inline_insert.dart';
@@ -224,6 +226,24 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ref.invalidate(noteDetailProvider(_noteId!));
       }
       return _noteId;
+    } on VaultLockedException {
+      // Defense-in-depth for the B5 save-time TOCTOU: the vault relocked
+      // (auto-lock) during one of the awaits above, after the top-of-method
+      // guard already checked it unlocked. `resolveAndRewrite` rethrows this
+      // instead of folding it into "failed" (which would silently strip the
+      // sensitive placeholder), so the save aborts here with the same
+      // data-safe UX as a cancelled unlock: nothing stripped, the staged
+      // pick and its `pending/` placeholder are left exactly as they were.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unlock Secure Vault to save the sensitive image. Nothing was saved.',
+            ),
+          ),
+        );
+      }
+      return null;
     } finally {
       if (mounted) setState(() => _busy = false);
     }

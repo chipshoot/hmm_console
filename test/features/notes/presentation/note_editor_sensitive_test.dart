@@ -15,6 +15,8 @@ import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
 import 'package:hmm_console/core/data/note_location.dart';
+import 'package:hmm_console/core/data/vault/encrypted_vault_store.dart'
+    show VaultLockedException;
 import 'package:hmm_console/core/data/vault/vault_session.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
@@ -32,6 +34,15 @@ class _FakeSource implements ImageByteSource {
 }
 
 class _FakeMutate implements MutateNote {
+  _FakeMutate({this.throwLockedOnPersist = false});
+
+  /// Models the residual TOCTOU: the top-of-`_save()` guard already saw the
+  /// vault unlocked, but auto-lock fires during one of the awaits between
+  /// the guard and the actual persist call (e.g. mid `createGeneral`), so
+  /// `persistInlineImage` — standing in for the real
+  /// `EncryptedVaultStore.putBytes` — sees it locked and throws.
+  final bool throwLockedOnPersist;
+
   int persistCalls = 0;
   bool? lastSensitive;
   String? lastBody;
@@ -66,6 +77,9 @@ class _FakeMutate implements MutateNote {
   Future<VaultRef> persistInlineImage(int noteId, PickedImageBytes pick) async {
     persistCalls++;
     lastSensitive = pick.sensitive;
+    if (throwLockedOnPersist) {
+      throw const VaultLockedException('attachments/note-1/sensitive/a.jpg');
+    }
     return const VaultRef(
         path: 'attachments/note-1/sensitive/a.jpg',
         contentType: 'image/jpeg',
@@ -274,5 +288,44 @@ void main() {
     expect(text, contains('hmm-attachment://pending/'));
     // A message told the user why nothing was saved.
     expect(find.textContaining('Unlock Secure Vault'), findsWidgets);
+  });
+
+  testWidgets(
+      'defense-in-depth: vault relocks mid-save (AFTER the guard passed) — '
+      'the save aborts, the placeholder is NOT stripped, and the app does '
+      'not crash', (tester) async {
+    // The vault stays reported "unlocked" throughout (so the top-of-`_save()`
+    // guard passes and persist() is actually reached) — this fake models the
+    // TOCTOU itself: `persistInlineImage` (standing in for the real
+    // `EncryptedVaultStore.putBytes`) throws VaultLockedException as if
+    // auto-lock fired in the window between the guard and the persist call.
+    final fake = _FakeMutate(throwLockedOnPersist: true);
+    final controller = _FakeVaultSessionController(
+      initial: VaultStatus.unlocked,
+      biometricSucceeds: true,
+    );
+    await _pump(tester, fake, controller);
+
+    await _stageSensitiveImage(tester);
+
+    final body = find.widgetWithText(TextField, 'Start writing…');
+    final stagedText = tester.widget<TextField>(body).controller!.text;
+    expect(stagedText, contains('hmm-attachment://pending/'));
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    // No crash: pumpAndSettle above would have surfaced an unhandled
+    // exception via FlutterError. persist() was reached (the guard passed).
+    expect(fake.persistCalls, 1);
+    // The save aborted before it could rewrite/strip the placeholder.
+    final text = tester.widget<TextField>(body).controller!.text;
+    expect(text, contains('hmm-attachment://pending/'));
+    expect(text, isNot(contains('sensitive/a.jpg')));
+    // A message told the user why nothing was saved.
+    expect(
+      find.textContaining('Unlock Secure Vault to save the sensitive image'),
+      findsOneWidget,
+    );
   });
 }

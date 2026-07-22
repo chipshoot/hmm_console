@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/inline_ref_uri.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/vault/encrypted_vault_store.dart' show VaultLockedException;
 import '../../../../core/util/uuid.dart';
 import 'inline_insert.dart';
 
@@ -46,6 +47,17 @@ class InlineImageController {
   /// rewrites its placeholder to the real vault path, and STRIPS any
   /// placeholder whose pick failed/was missing so no `pending/` URI survives.
   /// Mutates `body.text` to the resolved string and clears staged state.
+  ///
+  /// Exception: a [VaultLockedException] is NEVER folded into "failed" and
+  /// NEVER strips the placeholder — it is rethrown out of this method as-is,
+  /// leaving `body.text` and the staged state untouched. This closes a
+  /// residual TOCTOU on Task B5's save-time guard: the guard checks vault
+  /// status once before this method runs, but auto-lock can still fire
+  /// during one of the awaits below (mid-persist), and a sensitive pick must
+  /// NEVER be silently stripped just because the vault relocked mid-save.
+  /// The caller (editor `_save()`) is responsible for catching it and
+  /// aborting the save with a data-safe message. All other exceptions keep
+  /// the pre-existing fold-into-failed/strip behavior unchanged.
   Future<InlineResolveResult> resolveAndRewrite({
     required int noteId,
     required TextEditingController body,
@@ -65,6 +77,8 @@ class InlineImageController {
         final vref = await persist(noteId, pick);
         uuidToPath[uuid] = vref.path;
         newRefs.add(vref);
+      } on VaultLockedException {
+        rethrow;
       } catch (_) {
         failed.add(uuid);
       }
