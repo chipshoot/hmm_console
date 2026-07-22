@@ -58,7 +58,8 @@ class _FakePicker implements IImageAttachmentPicker {
       {required int noteId,
       required Uint8List bytes,
       required String originalName,
-      String? contentTypeHint}) async {
+      String? contentTypeHint,
+      bool sensitive = false}) async {
     final path = 'attachments/note-$noteId/img${_n++}.jpg';
     await vault.putBytes(path, bytes, contentType: 'image/jpeg');
     return VaultRef(

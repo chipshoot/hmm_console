@@ -124,4 +124,33 @@ void main() {
     );
     expect(ref.originalName, isNull);
   });
+
+  test('persistToVault(sensitive: true) writes a sensitive/-segment path '
+      'and returns VaultRef.sensitive == true', () async {
+    final payload = _bytes(64);
+    final ref = await picker.persistToVault(
+      noteId: 7,
+      bytes: payload,
+      originalName: 'photo.jpg',
+      sensitive: true,
+    );
+
+    expect(ref.path, startsWith('attachments/note-7/sensitive/'));
+    expect(ref.path, endsWith('.jpg'));
+    expect(ref.sensitive, isTrue);
+    expect(await store.exists(ref.path), isTrue);
+    expect(await store.getBytes(ref.path), equals(payload));
+  });
+
+  test('non-sensitive path is unchanged (no sensitive segment, '
+      'sensitive == false)', () async {
+    final ref = await picker.persistToVault(
+      noteId: 7,
+      bytes: _bytes(8),
+      originalName: 'photo.jpg',
+    );
+
+    expect(ref.path, isNot(contains('/sensitive/')));
+    expect(ref.sensitive, isFalse);
+  });
 }

@@ -11,6 +11,7 @@ class MediaToolbar extends StatelessWidget {
     required this.onPick,
     required this.onPickFile,
     required this.onRecord,
+    this.onPickSensitive,
     this.onLinkToNote,
     this.onDismissKeyboard,
     this.enabled = true,
@@ -19,6 +20,12 @@ class MediaToolbar extends StatelessWidget {
   final void Function(AttachmentPickSource source) onPick;
   final VoidCallback onPickFile;
   final VoidCallback onRecord;
+
+  /// When non-null, an "Add sensitive image" toolbar action is shown that
+  /// picks from the gallery and stages the result marked sensitive (Task
+  /// B5). Kept as a separate callback (rather than overloading
+  /// [AttachmentPickSource]) so pick-source and sensitivity stay orthogonal.
+  final void Function(AttachmentPickSource source)? onPickSensitive;
 
   /// When non-null, a "link to a note" toolbar action is shown.
   final VoidCallback? onLinkToNote;
@@ -51,6 +58,15 @@ class MediaToolbar extends StatelessWidget {
             const SizedBox(width: 8),
             btn(Icons.photo_library_outlined, AttachmentPickSource.gallery),
             btn(Icons.camera_alt_outlined, AttachmentPickSource.camera),
+            if (onPickSensitive != null)
+              IconButton(
+                icon: const Icon(Icons.lock_outline),
+                color: c.accent,
+                tooltip: 'Add sensitive image',
+                onPressed: enabled
+                    ? () => onPickSensitive!(AttachmentPickSource.gallery)
+                    : null,
+              ),
             IconButton(
               icon: const Icon(Icons.picture_as_pdf_outlined),
               color: c.accent,

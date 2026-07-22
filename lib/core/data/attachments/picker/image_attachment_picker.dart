@@ -15,6 +15,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../util/uuid.dart';
+import '../../vault/sensitive_path.dart';
 import '../../vault/vault_path.dart';
 import '../../vault/vault_store.dart';
 import '../attachment_ref.dart';
@@ -52,11 +53,19 @@ abstract interface class IImageAttachmentPicker {
 
   /// Persist already-picked bytes into the vault for [noteId]. Used by the
   /// editor to attach images held in state once the note is saved.
+  ///
+  /// When [sensitive] is true, the bytes are stored under the reserved
+  /// `sensitive/` path segment (see `sensitive_path.dart`) and the returned
+  /// [VaultRef.sensitive] is true — callers must only pass `sensitive: true`
+  /// while the vault is unlocked (see the save-time-lock guard in
+  /// note_editor_screen.dart's `_save()`); the encrypting vault store throws
+  /// [VaultLockedException] otherwise.
   Future<VaultRef> persistToVault({
     required int noteId,
     required Uint8List bytes,
     required String originalName,
     String? contentTypeHint,
+    bool sensitive = false,
   });
 
   /// Persist a non-image file (e.g. PDF) into the vault for [noteId] — stores
@@ -128,6 +137,7 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
     required Uint8List bytes,
     required String originalName,
     String? contentTypeHint,
+    bool sensitive = false,
   }) async {
     if (bytes.lengthInBytes == 0) {
       throw const AttachmentPickerException('empty file');
@@ -155,11 +165,13 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
     final storedContentType = downsized.contentType;
 
     final ext = _extFor(storedContentType);
-    final path = vaultRelativePathJoin([
-      'attachments',
-      'note-$noteId',
-      '${generateUuid()}.$ext',
-    ]);
+    final path = sensitive
+        ? buildSensitiveAttachmentPath(noteId: noteId, ext: ext)
+        : vaultRelativePathJoin([
+            'attachments',
+            'note-$noteId',
+            '${generateUuid()}.$ext',
+          ]);
     await vaultStore.putBytes(path, storedBytes,
         contentType: storedContentType);
 
@@ -168,6 +180,7 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
       originalName: originalName.isEmpty ? null : originalName,
       contentType: storedContentType,
       byteSize: storedBytes.lengthInBytes,
+      sensitive: sensitive,
     );
   }
 

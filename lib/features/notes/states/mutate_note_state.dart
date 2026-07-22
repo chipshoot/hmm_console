@@ -108,6 +108,7 @@ class MutateNote {
       bytes: pick.bytes,
       originalName: pick.originalName,
       contentTypeHint: pick.contentType,
+      sensitive: pick.sensitive,
     );
   }
 

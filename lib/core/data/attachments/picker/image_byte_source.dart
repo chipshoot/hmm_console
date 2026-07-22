@@ -13,10 +13,23 @@ class PickedImageBytes {
     required this.bytes,
     required this.originalName,
     this.contentType,
+    this.sensitive = false,
   });
   final Uint8List bytes;
   final String originalName;
   final String? contentType;
+
+  /// True if this pick was staged via the "Add sensitive image" action
+  /// (Task B5). Drives the picker's sensitive-path branch and the
+  /// save-time-lock guard in note_editor_screen.dart.
+  final bool sensitive;
+
+  PickedImageBytes copyWith({bool? sensitive}) => PickedImageBytes(
+        bytes: bytes,
+        originalName: originalName,
+        contentType: contentType,
+        sensitive: sensitive ?? this.sensitive,
+      );
 }
 
 /// Picks image bytes WITHOUT writing to the vault (no note id needed). The

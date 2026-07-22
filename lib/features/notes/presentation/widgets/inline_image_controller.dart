@@ -79,6 +79,19 @@ class InlineImageController {
     return InlineResolveResult(newRefs: newRefs, hadFailures: failed.isNotEmpty);
   }
 
+  /// True if any staged pick still referenced in [bodyText] is sensitive.
+  /// Used by the editor's save path (Task B5) to gate on the vault being
+  /// unlocked BEFORE [resolveAndRewrite] ever calls [persist] — a
+  /// `VaultLockedException` there would otherwise be swallowed and the
+  /// placeholder silently stripped.
+  bool hasSensitivePendingIn(String bodyText) {
+    for (final uuid in pendingUuidsIn(bodyText)) {
+      final pick = _pendingPickByUuid[uuid];
+      if (pick != null && pick.sensitive) return true;
+    }
+    return false;
+  }
+
   /// Vault paths referenced inline at load but no longer in [currentBody] — the
   /// caller confirms before dropping them from the note's retention set.
   static List<String> removedImagePaths(

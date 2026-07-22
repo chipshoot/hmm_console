@@ -50,4 +50,36 @@ void main() {
     await t.tap(find.byIcon(Icons.mic_none_outlined));
     expect(tapped, isTrue);
   });
+
+  testWidgets('sensitive-image button is absent when onPickSensitive is null',
+      (t) async {
+    await t.pumpWidget(MaterialApp(
+      theme: ThemeData(extensions: const [AppColors.light]),
+      home: Scaffold(
+        bottomNavigationBar:
+            MediaToolbar(onPick: (_) {}, onPickFile: () {}, onRecord: () {}),
+      ),
+    ));
+    expect(find.byIcon(Icons.lock_outline), findsNothing);
+  });
+
+  testWidgets(
+      'sensitive-image button fires onPickSensitive with gallery source',
+      (t) async {
+    AttachmentPickSource? picked;
+    await t.pumpWidget(MaterialApp(
+      theme: ThemeData(extensions: const [AppColors.light]),
+      home: Scaffold(
+        bottomNavigationBar: MediaToolbar(
+          onPick: (_) {},
+          onPickFile: () {},
+          onRecord: () {},
+          onPickSensitive: (s) => picked = s,
+        ),
+      ),
+    ));
+    expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+    await t.tap(find.byIcon(Icons.lock_outline));
+    expect(picked, AttachmentPickSource.gallery);
+  });
 }

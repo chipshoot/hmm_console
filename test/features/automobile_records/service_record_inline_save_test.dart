@@ -52,7 +52,8 @@ class _FakePicker implements IImageAttachmentPicker {
       {required int noteId,
       required Uint8List bytes,
       required String originalName,
-      String? contentTypeHint}) async {
+      String? contentTypeHint,
+      bool sensitive = false}) async {
     final path = 'attachments/note-$noteId/img${_n++}.png';
     await vault.putBytes(path, bytes, contentType: 'image/png');
     return VaultRef(
@@ -91,7 +92,8 @@ class _ThrowingPicker implements IImageAttachmentPicker {
           {required int noteId,
           required Uint8List bytes,
           required String originalName,
-          String? contentTypeHint}) async =>
+          String? contentTypeHint,
+          bool sensitive = false}) async =>
       throw StateError('vault write failed');
   @override
   Future<VaultRef> persistFileToVault(

@@ -17,14 +17,17 @@ const _ref = VaultRef(
 
 class _FakePicker implements IImageAttachmentPicker {
   Uint8List? gotBytes;
+  bool? gotSensitive;
   @override
   Future<VaultRef> persistToVault({
     required int noteId,
     required Uint8List bytes,
     required String originalName,
     String? contentTypeHint,
+    bool sensitive = false,
   }) async {
     gotBytes = bytes;
+    gotSensitive = sensitive;
     return _ref;
   }
 
@@ -93,8 +96,26 @@ void main() {
 
     expect(vref, _ref);
     expect(picker.gotBytes, isNotNull);
+    expect(picker.gotSensitive, isFalse);
     expect(repo.updateCalls, 0); // attachments not modified
     expect(repo.written, isNull);
+  });
+
+  test('persistInlineImage forwards pick.sensitive to the picker', () async {
+    final picker = _FakePicker();
+    final repo = _FakeRepo(note());
+    final mutate = containerWith(picker, repo).read(mutateNoteProvider);
+
+    await mutate.persistInlineImage(
+      1,
+      PickedImageBytes(
+          bytes: Uint8List.fromList([1, 2, 3]),
+          originalName: 'a.jpg',
+          contentType: 'image/jpeg',
+          sensitive: true),
+    );
+
+    expect(picker.gotSensitive, isTrue);
   });
 
   test('setAttachments writes the attachments column verbatim', () async {

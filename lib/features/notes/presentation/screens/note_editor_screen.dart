@@ -11,6 +11,7 @@ import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/vault/vault_session.dart';
 import '../widgets/inline_image_controller.dart';
 import '../widgets/inline_insert.dart';
 import '../widgets/note_link_picker.dart';
@@ -156,6 +157,28 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       ).showSnackBar(const SnackBar(content: Text('Subject is required')));
       return null;
     }
+    // Save-time-lock guard (Task B5, binding constraint): a sensitive pick
+    // must be persisted only while the vault is unlocked. Checked BEFORE any
+    // note mutation runs, so a cancelled/failed unlock aborts the whole save
+    // — the staged pick (and its `pending/` placeholder) is left exactly as
+    // it was. This runs ahead of `_persistInlineImages` → `resolveAndRewrite`,
+    // whose `persist` swallows exceptions into "failed" and strips the
+    // placeholder; a VaultLockedException must never reach that path.
+    if (_inline.hasSensitivePendingIn(_bodyCtrl.text)) {
+      final unlocked = await _ensureVaultUnlocked();
+      if (!unlocked) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Unlock Secure Vault to save the sensitive image. Nothing was saved.',
+              ),
+            ),
+          );
+        }
+        return null;
+      }
+    }
     final mutate = ref.read(mutateNoteProvider);
     setState(() => _busy = true);
     try {
@@ -213,6 +236,56 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final pick = await ref.read(imageByteSourceProvider).pick(source);
     if (pick == null || !mounted) return;
     setState(() => _inline.stageAndInsert(_bodyCtrl, pick));
+  }
+
+  /// Pick an image and stage it marked sensitive (Task B5). Requires the
+  /// vault to be unlocked before staging — driving the unlock/setup flow
+  /// first — so a sensitive placeholder is never inserted without the vault
+  /// having been unlocked at least once this session. The save path
+  /// (`_save()`) re-checks at save time, since the session can relock
+  /// (inactivity timeout / app backgrounded) between staging and saving.
+  Future<void> _addSensitiveMedia(AttachmentPickSource source) async {
+    final unlocked = await _ensureVaultUnlocked();
+    if (!unlocked || !mounted) return;
+    final pick = await ref.read(imageByteSourceProvider).pick(source);
+    if (pick == null || !mounted) return;
+    setState(
+      () => _inline.stageAndInsert(_bodyCtrl, pick.copyWith(sensitive: true)),
+    );
+  }
+
+  /// Ensures the Secure Vault is unlocked, prompting the user if needed.
+  /// Returns true iff the vault is unlocked when this returns. Never throws.
+  Future<bool> _ensureVaultUnlocked() async {
+    final status = ref.read(vaultSessionProvider);
+    if (status == VaultStatus.unlocked) return true;
+    if (status == VaultStatus.absent || status == VaultStatus.corrupt) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Set up Secure Vault in Settings to add a sensitive image.',
+            ),
+          ),
+        );
+      }
+      return false;
+    }
+    final ctrl = ref.read(vaultSessionProvider.notifier);
+    if (await ctrl.unlockWithBiometric()) return true;
+    if (!mounted) return false;
+    final passphrase = await showDialog<String>(
+      context: context,
+      builder: (_) => const _EditorVaultUnlockDialog(),
+    );
+    if (passphrase == null || passphrase.isEmpty) return false;
+    final ok = await ctrl.unlockWithPassphrase(passphrase);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Incorrect passphrase.')),
+      );
+    }
+    return ok;
   }
 
   /// Persist each inline pending pick still referenced in the body, rewrite the
@@ -598,6 +671,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           // trailing hide-keyboard button appears only while it's up.
           MediaToolbar(
             onPick: _addMedia,
+            onPickSensitive: _addSensitiveMedia,
             onPickFile: _addFile,
             onRecord: _addRecording,
             onLinkToNote: _addNoteLink,
@@ -683,6 +757,55 @@ class _SubsystemStrip extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Minimal passphrase-entry dialog used by the editor's save-time unlock
+/// guard (Task B5). Deliberately local/private rather than reusing the B4
+/// `SecureVaultSection` dialogs, which are private to that widget — this is
+/// a focused equivalent, not a shared export.
+class _EditorVaultUnlockDialog extends StatefulWidget {
+  const _EditorVaultUnlockDialog();
+
+  @override
+  State<_EditorVaultUnlockDialog> createState() =>
+      _EditorVaultUnlockDialogState();
+}
+
+class _EditorVaultUnlockDialogState extends State<_EditorVaultUnlockDialog> {
+  final _passCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _passCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Unlock Secure Vault'),
+      content: TextField(
+        controller: _passCtrl,
+        obscureText: true,
+        autofocus: true,
+        decoration: const InputDecoration(labelText: 'Passphrase'),
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (v) => Navigator.of(context).pop(v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _passCtrl.text.isEmpty
+              ? null
+              : () => Navigator.of(context).pop(_passCtrl.text),
+          child: const Text('Unlock'),
+        ),
+      ],
     );
   }
 }

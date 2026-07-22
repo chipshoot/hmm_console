@@ -38,6 +38,7 @@ class _FakePicker implements IImageAttachmentPicker {
     required Uint8List bytes,
     required String originalName,
     String? contentTypeHint,
+    bool sensitive = false,
   }) async =>
       _ref;
 
