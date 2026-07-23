@@ -64,6 +64,7 @@ class CheatsheetCard {
   final String catalog;       // wallet stack, e.g. "Vehicle" / "Health"
   final List<String> tags;
   final String templateId;    // which starter template it came from ('accidentClaim', 'healthInfo', 'blank')
+  final bool protected;       // reserved in v1 (default false); gating behavior ships in Phase 2
   final List<CheatsheetRow> rows;
 }
 
@@ -145,9 +146,26 @@ Editing an existing card reopens the same designer.
 - **Designer:** template instantiates labeled unbound rows; binding sets `(kind, entityType, sourceId, fieldKey)`; add/remove/reorder; save produces the expected note.
 - **Wallet/detail (widget):** grouping by catalog, tag filter, live value render, tap-to-call / tap-to-map invoked with the resolved value, edit routes to designer.
 
-## Future phases (out of v1)
+## Card types & roadmap
 
-- Flashcard / book key-points cheatsheets (the second card shape).
-- Computed/derived rows (e.g. totals, "days until"), multi-source rows.
-- Sharing / export (PDF, share sheet).
-- Richer layouts and per-card theming.
+Cheatsheets are one feature with several card *shapes*, delivered in phases:
+
+- **v1 — Field cards** (this spec): live-linked key→value rows.
+- **Phase 2 — Image / ID cards + sensitive protection:** cards holding stored images (a driver's-license front + back, a health card), optionally with a few fields (ID #, expiry). This composes with **Phase 4b sensitive attachments** — an ID card's images go through the encrypted, biometric-gated vault, so the card is genuinely protected at rest. Phase 2 also implements the **`protected`**-flag gating (below).
+- **Later — Flashcards / book key-points:** the study-card shape (flip / next).
+- **Later — Computed / derived rows:** totals, "days until", multi-source rows.
+- **Later — Sharing / export (PDF, share sheet), richer layouts, per-card theming.**
+
+## Sensitive protection (flag reserved in v1, gated in Phase 2)
+
+`CheatsheetCard.protected` (default `false`) marks a card as needing the Phase 4b unlock (`vaultSessionProvider`) before its contents are shown; a protected card renders a locked/blurred placeholder until the biometric/passphrase gate passes.
+
+**Two honesty levels — by card type:**
+- **Image / ID cards (Phase 2):** *real* protection — the images are stored as **encrypted sensitive attachments** (Phase 4b), so the bytes are protected at rest, not merely hidden.
+- **Field cards:** only a **view-gate** — the display is hidden until unlock, but the values live in plaintext source entities (Contacts, Automobile) that remain independently viewable. This is access-friction, not encryption, and the UI must not imply otherwise.
+
+v1 reserves the `protected` field in the model (the serializer is forward-compatible) so v1-authored cards carry it; the gating behavior ships in Phase 2 alongside image cards, where protection is meaningful.
+
+## Explicitly a separate feature (not a cheatsheet)
+
+A **daily activity summary** (Apple Health / Fitness style) is a *computed dashboard* — it aggregates metrics/trends over time rather than linking to a single existing field, and true fitness/health metrics would require HealthKit / Google Fit. It is tracked as its own future feature, outside the cheatsheet line.
