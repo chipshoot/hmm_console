@@ -20,6 +20,10 @@ class ApiLlmExtractor implements ReceiptExtractor {
 
   @override
   Future<ReceiptDraft> extract(ReceiptInput input) async {
+    if (input.sensitive) {
+      throw const ReceiptExtractionException(
+          'Sensitive attachments are never sent to cloud AI.');
+    }
     try {
       final form = FormData.fromMap({
         'file': MultipartFile.fromBytes(

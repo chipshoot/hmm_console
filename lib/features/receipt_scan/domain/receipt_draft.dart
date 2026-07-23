@@ -24,12 +24,18 @@ enum ReceiptExtractorMode {
 
 /// The raw receipt handed to an extractor.
 class ReceiptInput {
-  const ReceiptInput({required this.bytes, required this.contentType});
+  const ReceiptInput({
+    required this.bytes,
+    required this.contentType,
+    this.sensitive = false,
+  });
 
   final Uint8List bytes;
 
   /// `image/jpeg|png|heic|webp` or `application/pdf`.
   final String contentType;
+
+  final bool sensitive;
 
   bool get isPdf => contentType == 'application/pdf';
 }
