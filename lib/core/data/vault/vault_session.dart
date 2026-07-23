@@ -13,6 +13,8 @@
 // container's lifetime — consistent with how the rest of the app treats
 // vaultKeyServiceProvider as a long-lived singleton per container.
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,6 +52,28 @@ class VaultSessionController extends Notifier<VaultStatus> {
     ref.onDispose(() {
       WidgetsBinding.instance.removeObserver(observer);
     });
+
+    // Data-mode switch (local ↔ cloudStorage) re-resolves
+    // vaultKeyServiceProvider to a NEW VaultKeyService pointed at a
+    // DIFFERENT vault root/vault_meta.json. Without this, _service()'s
+    // memo below would keep serving the OLD tier's (possibly still
+    // "unlocked") service forever, so the UI would show stale
+    // locked/unlocked status for a vault it isn't actually looking at.
+    // Rebind to the new instance and re-derive status whenever the
+    // provider settles on a genuinely different service. Fire-and-forget
+    // is intentional: refresh() updates `state` itself once it resolves.
+    // This must stay listener-only (not an unconditional build()-time
+    // refresh) so the existing B3 tests, which drive refresh()/setup()
+    // explicitly, aren't raced by an implicit refresh on first build.
+    ref.listen<AsyncValue<VaultKeyService>>(vaultKeyServiceProvider,
+        (previous, next) {
+      final nextSvc = next.value;
+      if (nextSvc == null || identical(nextSvc, _svc)) return;
+      _svc = nextSvc;
+      _lastAccessAt = DateTime.fromMillisecondsSinceEpoch(0);
+      unawaited(refresh());
+    });
+
     return VaultStatus.locked;
   }
 

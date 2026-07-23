@@ -48,6 +48,14 @@ class _MemCache implements VaultKeyCache {
   Future<void> clear() async => _v = null;
 }
 
+/// Mutable box a test can flip to simulate vaultKeyServiceProvider
+/// re-resolving to a different VaultKeyService instance (standing in for
+/// a data-mode switch), paired with `container.invalidate(...)`.
+class _MutableSvcHolder {
+  _MutableSvcHolder(this.value);
+  VaultKeyService value;
+}
+
 class _FakeGate implements BiometricGate {
   _FakeGate(this.result);
   bool result;
@@ -230,6 +238,60 @@ void main() {
     clock.advance(const Duration(minutes: 5, seconds: 1));
     ctrl.touch();
     expect(c.read(vaultSessionProvider), VaultStatus.locked);
+  });
+
+  test(
+      'a data-mode switch (vaultKeyServiceProvider re-resolving to a new '
+      'VaultKeyService) rebinds the session controller and refresh() '
+      'reflects the new tier\'s status', () async {
+    // Simulates local ↔ cloudStorage: vaultKeyServiceProvider's override
+    // here reads a mutable holder standing in for
+    // dataModeProvider/vaultRootDirectoryProvider in production.
+    // Flipping the holder + invalidating the provider re-invokes the
+    // FutureProvider and it resolves to a DIFFERENT VaultKeyService
+    // instance pointed at a different store — exactly the shape of a
+    // real data-mode switch.
+    final localStore = _FakeVaultStore();
+    final localSvc = VaultKeyService(
+        store: localStore, params: Argon2Params.test, cache: _MemCache());
+    // local tier: absent (never configured).
+
+    final cloudStore = _FakeVaultStore();
+    final cloudSvc = VaultKeyService(
+        store: cloudStore, params: Argon2Params.test, cache: _MemCache());
+    await cloudSvc.setupPassphrase('cloud-tier-passphrase');
+    cloudSvc.lock(); // configured but locked — distinct from local's absent
+
+    final holder = _MutableSvcHolder(localSvc);
+    final c = ProviderContainer(overrides: [
+      vaultKeyServiceProvider.overrideWith((ref) async => holder.value),
+      biometricGateProvider.overrideWithValue(_FakeGate(true)),
+    ]);
+    addTearDown(c.dispose);
+    final ctrl = c.read(vaultSessionProvider.notifier);
+
+    await ctrl.refresh();
+    expect(c.read(vaultSessionProvider), VaultStatus.absent,
+        reason: 'starts bound to the local-tier (unconfigured) service');
+
+    // Flip the "data mode": vaultKeyServiceProvider re-resolves to
+    // cloudSvc. Do NOT call ctrl.refresh() ourselves here — the whole
+    // point is that the controller's own ref.listen wiring rebinds and
+    // refreshes automatically off the provider re-emission.
+    holder.value = cloudSvc;
+    c.invalidate(vaultKeyServiceProvider);
+    await c.read(vaultKeyServiceProvider.future); // let it re-resolve
+    await pumpEventQueue(); // flush the listener's fire-and-forget refresh()
+
+    expect(c.read(vaultSessionProvider), VaultStatus.locked,
+        reason: 'rebound to the cloud-tier service (configured, locked), '
+            'not stuck showing the stale local-tier (absent) status');
+
+    // And unlocking now goes through the NEW (cloud-tier) service.
+    expect(await ctrl.unlockWithPassphrase('cloud-tier-passphrase'), isTrue);
+    expect(c.read(vaultSessionProvider), VaultStatus.unlocked);
+    expect(cloudSvc.isUnlocked, isTrue);
+    expect(localSvc.isUnlocked, isFalse);
   });
 
   test('unlocked session relocks on app pause', () async {

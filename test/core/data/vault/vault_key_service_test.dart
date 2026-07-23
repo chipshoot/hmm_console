@@ -180,5 +180,70 @@ void main() {
       await s.reset();
       expect(await cache.read(), isNull);
     });
+
+    test(
+        'unlockFromCache rejects a cached key that does not match the '
+        'current meta (cross-tier key), clears the cache', () async {
+      // Simulates the cross-tier hole: a key cached while unlocking one
+      // vault tier (e.g. cloudStorage) must not unlock a DIFFERENT vault's
+      // meta (e.g. local) just because a key happens to be sitting in the
+      // shared secure-storage cache slot.
+      final otherStore = _FakeVaultStore();
+      final otherCache = _MemCache();
+      final other = VaultKeyService(
+          store: otherStore, params: Argon2Params.test, cache: otherCache);
+      await other.setupPassphrase('other-vault-passphrase');
+      final wrongKey = other.currentKey!;
+
+      final store = _FakeVaultStore();
+      final cache = _MemCache();
+      final s = VaultKeyService(
+          store: store, params: Argon2Params.test, cache: cache);
+      await s.setupPassphrase('this-vault-passphrase'); // writes real meta
+      s.lock();
+      // Re-seed cache with the wrong key after setup overwrote it.
+      await cache.write(wrongKey);
+
+      expect(await s.unlockFromCache(), isFalse);
+      expect(s.currentKey, isNull);
+      expect(await cache.read(), isNull, reason: 'mismatched cache cleared');
+    });
+
+    test('unlockFromCache with meta absent but a stale cached key clears '
+        'the cache and returns false', () async {
+      final store = _FakeVaultStore();
+      final cache = _MemCache();
+      // Seed a stale cached key with no vault_meta.json present at all.
+      final other = VaultKeyService(
+          store: _FakeVaultStore(), params: Argon2Params.test, cache: null);
+      await other.setupPassphrase('whatever');
+      await cache.write(other.currentKey!);
+
+      final s = VaultKeyService(
+          store: store, params: Argon2Params.test, cache: cache);
+      expect(await s.configState(), VaultConfigState.absent);
+      expect(await s.unlockFromCache(), isFalse);
+      expect(s.currentKey, isNull);
+      expect(await cache.read(), isNull);
+    });
+
+    test('unlockFromCache with corrupt meta clears the cache and returns '
+        'false', () async {
+      final store = _FakeVaultStore();
+      await store.putBytes(
+          'vault_meta.json', Uint8List.fromList('not json'.codeUnits));
+      final cache = _MemCache();
+      final other = VaultKeyService(
+          store: _FakeVaultStore(), params: Argon2Params.test, cache: null);
+      await other.setupPassphrase('whatever');
+      await cache.write(other.currentKey!);
+
+      final s = VaultKeyService(
+          store: store, params: Argon2Params.test, cache: cache);
+      expect(await s.configState(), VaultConfigState.corrupt);
+      expect(await s.unlockFromCache(), isFalse);
+      expect(s.currentKey, isNull);
+      expect(await cache.read(), isNull);
+    });
   });
 }

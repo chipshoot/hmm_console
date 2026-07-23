@@ -90,6 +90,20 @@ class VaultKeyService {
     await _cache?.write(key);
   }
 
+  /// Decrypts [meta]'s key-verifier under [key] and checks it against the
+  /// known sentinel. True only if [key] is the correct key for [meta].
+  /// Never throws: a failed (unauthenticated) decrypt is treated as "does
+  /// not verify", not an error — shared by [unlock] and [unlockFromCache]
+  /// so both apply exactly the same proof-of-correctness check.
+  Future<bool> _verifyKeyAgainstMeta(Uint8List key, VaultMeta meta) async {
+    try {
+      final clear = await _crypto.decrypt(meta.keyVerifier, key);
+      return utf8.decode(clear) == _sentinel;
+    } on VaultCryptoException {
+      return false;
+    }
+  }
+
   /// Derive from [passphrase] and verify against the stored verifier.
   /// Returns true and holds the key on success; false and holds nothing
   /// on a wrong passphrase or corrupt meta (UI routes corrupt to
@@ -103,22 +117,48 @@ class VaultKeyService {
     }
     if (meta == null) throw StateError('vault not configured');
     final key = await _crypto.deriveKey(passphrase, meta.salt, meta.params);
-    try {
-      final clear = await _crypto.decrypt(meta.keyVerifier, key);
-      if (utf8.decode(clear) != _sentinel) return false;
-    } on VaultCryptoException {
-      return false;
-    }
+    if (!await _verifyKeyAgainstMeta(key, meta)) return false;
     _key = key;
     await _cache?.write(key);
     return true;
   }
 
   /// Restore the key from the secure-storage cache without a passphrase.
-  /// Returns true if a cached key was present and is now held.
+  ///
+  /// A cached key is only ever held if it actually verifies against the
+  /// CURRENT vault_meta.json (same check [unlock] performs against a
+  /// freshly-derived key). This closes the cross-tier hole where a key
+  /// cached while unlocking one vault tier (e.g. cloudStorage) could
+  /// otherwise "restore" as if it unlocked a completely different vault
+  /// (e.g. local) merely because a key was sitting in the shared
+  /// secure-storage cache slot. It also refuses to hold a key when the
+  /// current meta is absent or corrupt — no meta means nothing to verify
+  /// against, so a stale cached key is cleared rather than trusted.
+  ///
+  /// Returns true (and holds the key) only when a cached key is present
+  /// AND verifies against the current meta. In every other case it
+  /// returns false and — whenever a key was cached at all — clears the
+  /// cache so the stale/mismatched entry doesn't linger.
   Future<bool> unlockFromCache() async {
     final cached = await _cache?.read();
     if (cached == null) return false;
+
+    final VaultMeta? meta;
+    try {
+      meta = await _readMetaOrThrow();
+    } on FormatException {
+      await _cache?.clear();
+      return false; // corrupt meta → nothing to verify the key against
+    }
+    if (meta == null) {
+      await _cache?.clear();
+      return false; // no vault configured → nothing to verify against
+    }
+    if (!await _verifyKeyAgainstMeta(cached, meta)) {
+      await _cache?.clear();
+      return false; // wrong tier / stale / garbage key
+    }
+
     _key = cached;
     return true;
   }
