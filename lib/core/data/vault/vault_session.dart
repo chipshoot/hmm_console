@@ -36,9 +36,15 @@ class VaultSessionController extends Notifier<VaultStatus> {
 
   @override
   VaultStatus build() {
-    // Cannot await here, so start out locked; the UI treats "locked" as
-    // the safe default until the caller's first refresh() resolves the
-    // real state (tests always await refresh()/setup() before asserting).
+    // Cannot await here, so start out locked; the UI treats "locked" as the
+    // safe default until the caller's first refresh() resolves the real
+    // state (tests always await refresh()/setup() before asserting).
+    // Deliberately NOT auto-refreshed here: the production entry points
+    // (SecureVaultSection.initState, the note editor's
+    // _ensureVaultUnlocked) each call refresh() themselves before reading
+    // status, so a build()-time auto-refresh would race the explicit
+    // refresh()/setup() calls the existing B3 tests drive directly against
+    // this controller.
     final observer = _LifecycleObserver(onPaused: _onAppPaused);
     WidgetsBinding.instance.addObserver(observer);
     ref.onDispose(() {
@@ -106,9 +112,20 @@ class VaultSessionController extends Notifier<VaultStatus> {
     return true;
   }
 
+  /// Belt-and-suspenders (see the class-level "not caller" caveat above):
+  /// [VaultKeyService.unlock] throws a [StateError] if the vault isn't
+  /// configured yet. The status-driven UI should always route an `absent`
+  /// vault to setup rather than this method, but if it's ever reached
+  /// anyway (e.g. a stale/unrefreshed status), treat the not-configured
+  /// StateError as a clean unlock failure instead of an unhandled
+  /// exception.
   Future<bool> unlockWithPassphrase(String passphrase) async {
     final svc = await _service();
-    if (!await svc.unlock(passphrase)) return false;
+    try {
+      if (!await svc.unlock(passphrase)) return false;
+    } on StateError {
+      return false;
+    }
     _touchNow();
     state = VaultStatus.unlocked;
     return true;

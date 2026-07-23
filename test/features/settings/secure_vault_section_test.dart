@@ -1,7 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/attachments/attachment_providers.dart'
+    show vaultKeyServiceProvider;
+import 'package:hmm_console/core/data/vault/crypto/vault_crypto.dart';
+import 'package:hmm_console/core/data/vault/vault_key_service.dart';
 import 'package:hmm_console/core/data/vault/vault_session.dart';
+import 'package:hmm_console/core/data/vault/vault_store.dart';
 import 'package:hmm_console/features/settings/presentation/widgets/secure_vault_section.dart';
 
 /// Fixed-state fake for [VaultSessionController]. The provider type
@@ -29,6 +36,15 @@ class _FakeVaultSessionController extends VaultSessionController {
 
   @override
   VaultStatus build() => _fixed;
+
+  /// Overridden so SecureVaultSection's initState-driven refresh() (the
+  /// blocker fix) is a no-op here: this fake models a fixed status directly
+  /// via [build], and the base refresh() would otherwise reach
+  /// vaultKeyServiceProvider, which these tests never override.
+  @override
+  Future<void> refresh() async {
+    calls.add('refresh');
+  }
 
   @override
   Future<void> setup(String passphrase) async {
@@ -69,6 +85,23 @@ Widget _host(_FakeVaultSessionController controller) {
       home: Scaffold(body: SecureVaultSection()),
     ),
   );
+}
+
+/// In-memory IVaultStore for the production-representative regression test
+/// below — mirrors test/core/data/vault/vault_session_test.dart's
+/// _FakeVaultStore. Empty store == no vault_meta.json == absent.
+class _EmptyVaultStore implements IVaultStore {
+  @override
+  Future<void> putBytes(String p, Uint8List b, {String? contentType}) async {}
+  @override
+  Future<Uint8List> getBytes(String p) async =>
+      throw VaultStoreException('missing', p);
+  @override
+  Future<bool> exists(String p) async => false;
+  @override
+  Future<void> delete(String p) async {}
+  @override
+  Future<List<VaultEntry>> list(String prefix) async => const [];
 }
 
 void main() {
@@ -244,5 +277,60 @@ void main() {
         find.widgetWithText(FilledButton, 'Reset Secure Vault');
     expect(resetButton, findsOneWidget);
     expect(t.widget<FilledButton>(resetButton).onPressed, isNull);
+  });
+
+  group('blocker regression: production status initialization', () {
+    // VaultSessionController.build() cannot await, so it returns
+    // VaultStatus.locked until something calls refresh(). Before the fix,
+    // nothing in lib/ ever called refresh(), so a device with no vault yet
+    // stayed stuck on the `locked` row (Unlock/Reset) instead of showing
+    // the `absent` "Set up Secure Vault" tile — the ONLY setup entry
+    // point. This group drives the REAL VaultSessionController (not the
+    // fixed-state fake above) through production-representative wiring —
+    // only vaultKeyServiceProvider is overridden, exactly as
+    // test/core/data/vault/vault_session_test.dart does — to prove
+    // SecureVaultSection's initState now calls refresh() and renders the
+    // real (absent) status.
+
+    test('refresh() on an empty store yields VaultStatus.absent', () async {
+      final svc = VaultKeyService(
+          store: _EmptyVaultStore(), params: Argon2Params.test);
+      final container = ProviderContainer(overrides: [
+        vaultKeyServiceProvider.overrideWith((ref) async => svc),
+      ]);
+      addTearDown(container.dispose);
+      final ctrl = container.read(vaultSessionProvider.notifier);
+
+      // RED (pre-fix) would show here: with no caller of refresh() anywhere
+      // in lib/, `container.read(vaultSessionProvider)` would still read
+      // VaultStatus.locked at this point, never absent.
+      expect(container.read(vaultSessionProvider), VaultStatus.locked);
+      await ctrl.refresh();
+      expect(container.read(vaultSessionProvider), VaultStatus.absent);
+    });
+
+    testWidgets(
+        'SecureVaultSection renders "Set up Secure Vault" for a fresh '
+        '(no-vault-yet) device, via initState-driven refresh() — not the '
+        'stuck-locked default', (t) async {
+      final svc = VaultKeyService(
+          store: _EmptyVaultStore(), params: Argon2Params.test);
+      await t.pumpWidget(ProviderScope(
+        overrides: [
+          vaultKeyServiceProvider.overrideWith((ref) async => svc),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: SecureVaultSection()),
+        ),
+      ));
+      // Let initState's refresh() (and the widget rebuild it triggers)
+      // fully resolve. Pre-fix, nothing ever calls refresh(), so status
+      // stays permanently at build()'s `locked` default and this would
+      // never converge on the absent tile.
+      await t.pumpAndSettle();
+
+      expect(find.text('Set up Secure Vault'), findsOneWidget);
+      expect(find.text('Secure Vault — locked'), findsNothing);
+    });
   });
 }

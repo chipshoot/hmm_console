@@ -11,6 +11,7 @@ import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/vault/encrypted_vault_store.dart'
     show VaultLockedException;
 import '../../../../core/data/vault/vault_session.dart';
@@ -276,7 +277,17 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   /// Ensures the Secure Vault is unlocked, prompting the user if needed.
   /// Returns true iff the vault is unlocked when this returns. Never throws.
+  ///
+  /// Blocker fix: VaultSessionController.build() cannot await, so it starts
+  /// out `locked` and only refresh() computes the real state (see
+  /// vault_session.dart). This is the editor's gate for BOTH the
+  /// add-sensitive pick and the save-time guard, so it refreshes first —
+  /// without this, a fresh install with no vault yet would read the stale
+  /// `locked` default here, drive the unlock flow, and hit
+  /// VaultKeyService.unlock's `StateError('vault not configured')` instead
+  /// of routing to the "Set up Secure Vault in Settings" message below.
   Future<bool> _ensureVaultUnlocked() async {
+    await ref.read(vaultSessionProvider.notifier).refresh();
     final status = ref.read(vaultSessionProvider);
     if (status == VaultStatus.unlocked) return true;
     if (status == VaultStatus.absent || status == VaultStatus.corrupt) {
@@ -533,6 +544,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     // The keyboard's bottom inset lifts the in-body MediaToolbar above it;
     // surface the hide-keyboard affordance only while the keyboard is up.
     final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // Minor fix: Settings hides SecureVaultSection under cloudApi (there's
+    // no filesystem-backed vault to set up there), so offering the
+    // "add sensitive image" affordance in that mode is a dead end — tapping
+    // it tells the user to "Set up Secure Vault in Settings", and no such
+    // setting exists. Mirror the Settings gate here.
+    final dataMode = ref.watch(dataModeProvider);
     return Scaffold(
       backgroundColor: c.groupedBackground,
       appBar: _buildNav(context, c),
@@ -691,7 +708,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           // trailing hide-keyboard button appears only while it's up.
           MediaToolbar(
             onPick: _addMedia,
-            onPickSensitive: _addSensitiveMedia,
+            onPickSensitive:
+                dataMode == DataMode.cloudApi ? null : _addSensitiveMedia,
             onPickFile: _addFile,
             onRecord: _addRecording,
             onLinkToNote: _addNoteLink,

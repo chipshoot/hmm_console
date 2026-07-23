@@ -27,11 +27,34 @@ const _forgotPassphraseWarning =
     'If you forget this passphrase, these files cannot be recovered.';
 const _resetConfirmToken = 'RESET';
 
-class SecureVaultSection extends ConsumerWidget {
+class SecureVaultSection extends ConsumerStatefulWidget {
   const SecureVaultSection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SecureVaultSection> createState() =>
+      _SecureVaultSectionState();
+}
+
+class _SecureVaultSectionState extends ConsumerState<SecureVaultSection> {
+  @override
+  void initState() {
+    super.initState();
+    // Blocker fix: VaultSessionController.build() cannot await, so it
+    // starts out `locked` and only refresh() computes the real state (see
+    // vault_session.dart). Settings is one of the two production entry
+    // points that must show the real status (the other is the note
+    // editor's _ensureVaultUnlocked) — without this, a fresh install with
+    // no vault yet stays stuck on the `locked` row (Unlock/Reset) and the
+    // `absent` "Set up Secure Vault" tile — the only setup entry point —
+    // never renders. Fire-and-forget: refresh() sets provider state
+    // directly, which rebuilds this widget via ref.watch below.
+    Future.microtask(
+      () => ref.read(vaultSessionProvider.notifier).refresh(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final status = ref.watch(vaultSessionProvider);
     final theme = Theme.of(context);
 

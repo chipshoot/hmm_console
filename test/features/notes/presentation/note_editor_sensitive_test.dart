@@ -116,6 +116,15 @@ class _FakeVaultSessionController extends VaultSessionController {
   @override
   VaultStatus build() => _initial;
 
+  /// Overridden so _ensureVaultUnlocked's refresh()-before-read (the
+  /// blocker fix) is a no-op here: this fake's `state` is driven explicitly
+  /// (via `build`, `lockNow()`, and the unlock overrides below) to model
+  /// the exact relock timing each test needs, and the base refresh() would
+  /// otherwise reach vaultKeyServiceProvider, which these tests never
+  /// override, and clobber that modeled state.
+  @override
+  Future<void> refresh() async {}
+
   @override
   Future<bool> unlockWithBiometric() async {
     biometricAttempts++;
