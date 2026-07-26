@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-23 (revised 2026-07-25 after the 2026-07-24 design-defect review)
 **Status:** Approved (brainstorming) — **blocked on a Contacts feature** (see Prerequisites)
-**Scope:** hmm_console (Flutter client). No backend schema change (rides existing note sync).
+**Scope:** a new **Cheatsheet domain module on both backend (`Hmm`) and client (`hmm_console`)**, modeled by **composition** like the Automobile module — the definition is stored as `HmmNote` content (`Cheatsheet:{id}` subject convention + fixed `Hmm.Cheatsheet` catalog), so **no backend schema change**. Clients own live resolution + platform-adaptive rendering.
 
 ## Goal
 
@@ -45,20 +45,28 @@ Until Contacts exists, only the non-person sources below are bindable, and the p
 
 ---
 
-## Architecture
+## Architecture — composition, both stacks, platform rendering
 
-New client feature module `cheatsheet` following the existing note-backed domain pattern (mirrors `automobile_records`):
+**Domain model = composition (like `GasLog`/`Automobile`), never inheritance.** A typed `CheatsheetCard` entity is **serialized into** an `HmmNote`; it is **not** a subclass of `HmmNote`. Rationale: a cheatsheet *is-a view over many notes*, not *an* note — inheritance would model the wrong ("is-a") relationship, drag `HmmNote`'s persistence machinery (`Version[]`, `IsDeleted`, `Author`, repository) into the domain model, and has no precedent (GasLog/AutomobileInfo all compose). The note is classified by a fixed `Hmm.Cheatsheet` catalog + `Cheatsheet:{id}` subject convention.
+
+**Three separate layers (the "viewer" model — cheatsheet : HmmNotes ≈ HTML/CSS : web content):**
+- **Definition** — the `CheatsheetCard` JSON in the note (rows, references, layout *semantics*, quick-access props). Stored, portable, platform-agnostic.
+- **Content** — the live values, pulled from the *other* HmmNotes each row references; resolved fresh on every open.
+- **Rendering** — per platform. The definition is a **semantic model, never pre-rendered HTML**, so each client renders it natively (Flutter widgets today; HTML/CSS on a future web client). `NoteCatalog.Render`(HTML) is deliberately NOT used, so rendering stays platform-adaptive and content stays live.
+
+**Stack placement (both, like Automobile):**
+- **Backend (`Hmm`)** — a new Cheatsheet domain module (entity + `CheatsheetJsonNoteSerialize` + `Validator` + `Manager` over `EntityManagerBase`/`EntityValidatorBase`/`EntityJsonNoteSerializeBase`, plus `/v1/cheatsheets` endpoints). It owns the **definition entity's** lifecycle: CRUD and **shape validation** (well-formed rows, known field keys) — **not** reference resolution (references may point at not-yet-synced/device-local notes, so resolution is a client render-time concern that degrades gracefully). Stored as note content → **no schema change**.
+- **Client (`hmm_console`)** — the `cheatsheet` feature module: entity + serializer + live **resolver** + **platform-adaptive renderer** + designer/wallet UI + quick-access surfacing:
 
 ```
 lib/features/cheatsheet/
   domain/entities/   cheatsheet_card.dart, cheatsheet_row.dart, cheatsheet_source.dart
-  data/              cheatsheet_note_serializer.dart, cheatsheet_repository.dart,
-                     cheatsheet_resolver.dart
+  data/              cheatsheet_note_serializer.dart, cheatsheet_repository.dart, cheatsheet_resolver.dart
   states/            cheatsheet_list_state.dart, cheatsheet_designer_state.dart
   presentation/      screens/{wallet,designer,detail}, widgets/{card_view,row_view,source_picker}
 ```
 
-Only the card **definition** (rows + references) is stored; displayed **values** are resolved live.
+Only the card **definition** is stored; displayed **values** are resolved live per platform.
 
 ## Data model (defects 1, 4, 5 resolved)
 
@@ -70,6 +78,8 @@ class CheatsheetCard {
   final List<String> tags;    // authoritative here
   final String templateId;    // 'accidentClaim' | 'healthInfo' | 'blank'
   final bool protected;       // reserved in v1 (default false); gated in Phase 2
+  final bool quickAccess;     // surfaces the card in the app's Quick Access Panel (feature #23) for fast reach
+  final int sortOrder;        // user ordering within its wallet group
   final List<CheatsheetRow> rows;
 }
 
@@ -110,7 +120,8 @@ enum ValueAction { call, map, none }
 
 - Every cheatsheet is an `HmmNote` under **one fixed note catalog `Hmm.Cheatsheet`** (never changed per-edit — the note-catalog is immutable after creation, so it is not used to carry the mutable wallet group).
 - **Wallet group and tags are authoritative in the card JSON content**, the single source of truth. Changing the wallet group is a JSON edit — no note-catalog move, no dependence on `HmmNoteUpdate` exposing a catalog id.
-- Flows through existing note CRUD + sync; **no backend change**.
+- Flows through existing note storage + sync as note content — **no schema change**. A new backend Cheatsheet domain module (manager/validator/serializer + `/v1/cheatsheets`, mirroring the Automobile module) owns CRUD + shape-validation of the definition.
+- **Quick-access props** (`quickAccess`, `sortOrder`) live in the JSON too; a `quickAccess` card is surfaced in the existing Quick Access Panel (feature #23).
 
 ## Bindable sources (v1) — corrected to the real domain model (defect 3)
 
