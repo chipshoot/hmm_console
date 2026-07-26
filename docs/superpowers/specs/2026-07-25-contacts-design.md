@@ -2,15 +2,15 @@
 
 **Date:** 2026-07-25
 **Status:** Approved (brainstorming) — ready for planning
-**Scope:** a Contacts domain module on **both backend (`Hmm`) and client (`hmm_console`)**, modeled by **composition** (note-content, like the Automobile/GasLog module). Prerequisite for the Cheatsheet feature.
+**Scope:** a Contacts domain module on **both backend (`Hmm`) and client (`hmm_console`)**, modeled by **composition** (note-content, like the Automobile/GasLog module). An **independent feature**; also an optional structured source for cheatsheets (**not a prerequisite** — see below).
 
 ## Goal
 
 A **Contacts** address book of **people and organizations** — yourself, family members (wife, dad, …), and service providers (doctor, pharmacy, insurer). It is the single source of truth for person/org details that the **Cheatsheet** feature binds to, and the basis for future **family information sharing** (server-side, API-enabled).
 
-## Why now / relationship to Cheatsheets
+## Relationship to Cheatsheets (independent, not a blocker)
 
-The cheatsheet spec (`2026-07-23-cheatsheet-cards-design.md`) is **blocked on this feature**: its Health card is entirely person-based and its Accident Claim card needs the driver's name/phone/address. Cheatsheet rows reference a contact by the contact's **owning-note UUID + field key** (this note-content model gives contacts a stable cross-device id, resolving cheatsheet defect #4). Build order: **Contacts -> Cheatsheet v1 -> Cheatsheet Phase 2.**
+As of 2026-07-26 the cheatsheet source model was generalized to reference **any piece of any note** (field / section / whole), so cheatsheets are **no longer blocked** on Contacts. Contacts is an **independent feature**: when it exists, a contact is simply one more **structured `field` source** a cheatsheet row can bind to — by the contact's **owning-note UUID + field key** (the note-content model gives contacts a stable cross-device id, and this is the cleanest way to get person fields onto a health/accident card). The two ship in **either order / in parallel**.
 
 ## Locked decisions (from brainstorming)
 
