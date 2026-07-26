@@ -1,62 +1,53 @@
 # Cheatsheet Cards — Design Spec
 
-**Date:** 2026-07-23 (revised 2026-07-25 after the 2026-07-24 design-defect review)
-**Status:** Approved (brainstorming) — **blocked on a Contacts feature** (see Prerequisites)
-**Scope:** a new **Cheatsheet domain module on both backend (`Hmm`) and client (`hmm_console`)**, modeled by **composition** like the Automobile module — the definition is stored as `HmmNote` content (`Cheatsheet:{id}` subject convention + fixed `Hmm.Cheatsheet` catalog), so **no backend schema change**. Clients own live resolution + platform-adaptive rendering.
+**Date:** 2026-07-23 (revised 2026-07-26: generalized source model, decoupled from Contacts)
+**Status:** Approved (brainstorming) — **not blocked** (Contacts is now an optional source, not a prerequisite)
+**Scope:** a new **Cheatsheet domain module on both backend (`Hmm`) and client (`hmm_console`)**, modeled by **composition** like the Automobile module — the definition is stored as `HmmNote` content (`Cheatsheet:{id}` subject + fixed `Hmm.Cheatsheet` catalog), so **no backend schema change**. Clients own live resolution + platform-adaptive rendering.
 
 ## Goal
 
-A **cheatsheet** is a read-only card that surfaces the handful of facts you want at a glance — a health-info card, an accident-claim card — assembled from **live links** to information that already lives in other Hmm notes/entities. Cards are organized into wallet-style stacks, stay current when their sources change, and are synced across devices like any other note.
+A **cheatsheet** is a read-only card that surfaces chosen **pieces of other HmmNotes** at a glance, kept live and browsed wallet-style. Its one job is: *reference a piece of a note, at whatever granularity fits, and render it.* It is a **viewer over notes** (like HTML/CSS over web content) — not a typed entity.
 
-Two motivating examples:
-- **Accident Claim card:** plate number, VIN, insurance provider + policy number, plus the driver's own name / phone / home address.
-- **Health Info card:** family doctor name + phone, pharmacy name + phone, a person's own name / phone / address; extendable to a family member.
+Motivating examples (deliberately varied to pin the model):
+- **Accident Claim** — plate + VIN (fields of the Automobile note), insurer + policy # (fields of the Insurance note), driver name/phone/address (fields of a person source).
+- **Health Info** — a doctor's name/phone, a pharmacy's name/phone (fields of person/org sources).
+- **Vim cheatsheet** — the "Shortcuts" *section* of a big Vim note (which also holds VimScript, config, …).
+- **Game of Thrones** — the "Characters" / "Houses" *sections* (or the whole) of a GoT note.
 
-## Prerequisites & sequencing (from the 2026-07-24 defect review)
+The health/vehicle cases reference **fields**; the vim/GoT cases reference **sections/whole** — both are just "a piece of an HmmNote."
 
-The person-centric parts of both example cards depend on a **Contacts** entity (name, phones, address, relationship, `isSelf`) that **does not exist in the client today** (verified: no Contacts module). Decision: **Contacts ships as its own separate feature first** (own spec → plan → implementation); cheatsheet v1 follows.
+## Sources & independence from Contacts (the key model)
 
-Build order:
-1. **Contacts feature** (separate spec) — the person entity cheatsheets bind to.
-2. **Cheatsheet v1 — field cards** (this spec).
-3. **Cheatsheet Phase 2** — image/ID cards + sensitive protection.
+A row's source is **a reference to a piece of an HmmNote at one of three granularities**:
 
-Until Contacts exists, only the non-person sources below are bindable, and the person rows of the starter templates render unbound ("—").
+- **`field`** — for a **structured note** (one whose catalog/schema exposes named fields: Automobile, Insurance, or a contact-shaped note). `locator` = the field key. Renders just that value (e.g. "phone"). Enables the clean key->value cards.
+- **`section`** — a heading/block within a markdown note. `locator` = a stable section anchor (heading text). Renders that section (e.g. Vim "Shortcuts", GoT "Houses").
+- **`whole`** — the note's entire content as text.
 
-## Locked decisions (from brainstorming)
+**Cheatsheets therefore do NOT require a Contact entity.** Person data is simply *a structured source* — a Contact (if that feature exists) **or** any contact-shaped note. Contacts is an **independent, optional** feature (valuable for an address book, reuse across cards, tap-to-call, and future sharing, and it gives the cleanest person-field binding), but it **does not gate** this feature. v1 can ship over the sources that already exist (Automobile, Insurance — note-content with fields) plus section/whole references to any note.
 
-| Area | Decision |
-|------|----------|
-| Data source | **Live references** — each row points at a source field and is re-resolved every open, so it changes the moment the source changes. No snapshots. |
-| Bindable sources | **Structured entity fields** (Contacts *(pending its feature)*, Automobile, Insurance policy) **+ general-note whole-text**. One field of one entity instance per row, or a general note rendered as plain text. |
-| People / self | **Contacts** (self + family, `isSelf` flag) — delivered by the prerequisite Contacts feature. |
-| Authoring | **Template-first designer** — start from a template, bind each slot, add/remove/reorder rows. |
-| Binding granularity | **One field per row**. |
-| Interactions | **Actionable values** — a primary value action (call / map / none) **plus** a universal "open source" affordance on every row. |
-| Grouping | **Wallet group** (a user string) + **tags**, both authoritative in the card JSON (see Storage). |
-| Storage | **Synced, note-backed entity** — one fixed `Hmm.Cheatsheet` note catalog; definition in JSON content. |
-| v1 card type | **Field cards**. Image/ID cards + flashcards are later phases. |
+**Build order (revised):** Cheatsheet v1 can proceed now. Contacts ships in parallel/whenever, and its contacts light up automatically as an extra `field` source. Cheatsheet Phase 2 (image/ID cards + protection) follows.
 
 ## Non-goals (v1)
 
-- No flashcards / computed-aggregated rows / sharing-export / rich layout editor.
-- Image/ID cards and the sensitive-protection **gating** are Phase 2 (planned next), not permanent non-goals.
-- Daily activity summary is a **separate feature** (see end).
+- No computed/aggregated rows / sharing-export / rich layout editor.
+- Image/ID cards + sensitive-protection **gating** are Phase 2.
+- Daily activity summary is a **separate feature** (computed dashboard / HealthKit).
 
 ---
 
 ## Architecture — composition, both stacks, platform rendering
 
-**Domain model = composition (like `GasLog`/`Automobile`), never inheritance.** A typed `CheatsheetCard` entity is **serialized into** an `HmmNote`; it is **not** a subclass of `HmmNote`. Rationale: a cheatsheet *is-a view over many notes*, not *an* note — inheritance would model the wrong ("is-a") relationship, drag `HmmNote`'s persistence machinery (`Version[]`, `IsDeleted`, `Author`, repository) into the domain model, and has no precedent (GasLog/AutomobileInfo all compose). The note is classified by a fixed `Hmm.Cheatsheet` catalog + `Cheatsheet:{id}` subject convention.
+**Domain model = composition (like `GasLog`/`Automobile`), never inheritance.** A typed `CheatsheetCard` entity is **serialized into** an `HmmNote`; it is **not** a subclass of `HmmNote` (a cheatsheet *is-a view over* notes, not *an* note — inheritance would model the wrong relationship and drag `HmmNote`'s persistence machinery into the domain). Classified by a fixed `Hmm.Cheatsheet` catalog + `Cheatsheet:{id}` subject.
 
-**Three separate layers (the "viewer" model — cheatsheet : HmmNotes ≈ HTML/CSS : web content):**
-- **Definition** — the `CheatsheetCard` JSON in the note (rows, references, layout *semantics*, quick-access props). Stored, portable, platform-agnostic.
-- **Content** — the live values, pulled from the *other* HmmNotes each row references; resolved fresh on every open.
-- **Rendering** — per platform. The definition is a **semantic model, never pre-rendered HTML**, so each client renders it natively (Flutter widgets today; HTML/CSS on a future web client). `NoteCatalog.Render`(HTML) is deliberately NOT used, so rendering stays platform-adaptive and content stays live.
+**Three layers (the "viewer" model — cheatsheet : HmmNotes ~ HTML/CSS : web content):**
+- **Definition** — the `CheatsheetCard` JSON (rows, references, layout *semantics*, quick-access props). Stored, portable, platform-agnostic.
+- **Content** — live values, resolved fresh from the *referenced* notes on every open.
+- **Rendering** — per platform; the definition is a **semantic model, never pre-rendered HTML**, so each client renders natively (Flutter today; HTML/CSS on a future web client). `NoteCatalog.Render`(HTML) is deliberately unused.
 
 **Stack placement (both, like Automobile):**
-- **Backend (`Hmm`)** — a new Cheatsheet domain module (entity + `CheatsheetJsonNoteSerialize` + `Validator` + `Manager` over `EntityManagerBase`/`EntityValidatorBase`/`EntityJsonNoteSerializeBase`, plus `/v1/cheatsheets` endpoints). It owns the **definition entity's** lifecycle: CRUD and **shape validation** (well-formed rows, known field keys) — **not** reference resolution (references may point at not-yet-synced/device-local notes, so resolution is a client render-time concern that degrades gracefully). Stored as note content → **no schema change**.
-- **Client (`hmm_console`)** — the `cheatsheet` feature module: entity + serializer + live **resolver** + **platform-adaptive renderer** + designer/wallet UI + quick-access surfacing:
+- **Backend (`Hmm`)** — Cheatsheet module (entity + `CheatsheetJsonNoteSerialize` + `Validator` + `Manager` over the `Entity*Base` classes + `/v1/cheatsheets`). Owns CRUD + **shape validation** (well-formed rows) — not reference resolution (references may point at not-yet-synced notes -> resolution is a client concern that degrades gracefully). Note-content storage -> **no schema change**.
+- **Client (`hmm_console`)** — the `cheatsheet` feature module: entity + serializer + live **resolver** + platform-adaptive renderer + designer/wallet UI + quick-access surfacing:
 
 ```
 lib/features/cheatsheet/
@@ -66,19 +57,17 @@ lib/features/cheatsheet/
   presentation/      screens/{wallet,designer,detail}, widgets/{card_view,row_view,source_picker}
 ```
 
-Only the card **definition** is stored; displayed **values** are resolved live per platform.
-
-## Data model (defects 1, 4, 5 resolved)
+## Data model (defects 1, 4, 5 resolved; source generalized)
 
 ```dart
 class CheatsheetCard {
   final String id;            // uuid
   final String title;
-  final String walletGroup;   // authoritative here (NOT the note catalog) — defect 2/5a
+  final String walletGroup;   // authoritative here (NOT the note catalog)
   final List<String> tags;    // authoritative here
-  final String templateId;    // 'accidentClaim' | 'healthInfo' | 'blank'
+  final String templateId;    // 'accidentClaim' | 'healthInfo' | 'document' | 'blank'
   final bool protected;       // reserved in v1 (default false); gated in Phase 2
-  final bool quickAccess;     // surfaces the card in the app's Quick Access Panel (feature #23) for fast reach
+  final bool quickAccess;     // surfaces the card in the Quick Access Panel (feature #23)
   final int sortOrder;        // user ordering within its wallet group
   final List<CheatsheetRow> rows;
 }
@@ -87,97 +76,94 @@ class CheatsheetRow {
   final String label;
   final CheatsheetSource? source;  // NULL = unbound (defect 1) -> renders "-"
   final ValueAction valueAction;   // call | map | none  (primary value action) — defect 5b
-  final bool openSource;           // universal "jump to source" affordance — defect 5b
+  final bool openSource;           // universal "jump to source note" affordance — defect 5b
 }
 
-// Reference by CROSS-DEVICE-STABLE identity, never a device-local int PK — defect 4.
+// A reference to a PIECE of a note, by cross-device-stable note UUID (defect 4).
 class CheatsheetSource {
-  final SourceKind kind;      // entityField | noteText
-  final String entityType;    // 'contact' | 'automobile' | 'insurance'  ('' for noteText)
-  final String noteUuid;      // stable owning-note UUID (or the note itself for noteText)
-  final String? childKey;     // stable sub-record key when the note owns several children
-  final String fieldKey;      // e.g. 'phone', 'plateNumber'; '*' = noteText whole-content
+  final String noteUuid;          // stable owning-note UUID
+  final SourceGranularity kind;   // field | section | whole
+  final String? locator;          // field -> field key; section -> heading anchor; whole -> null
 }
 
-enum SourceKind { entityField, noteText }
+enum SourceGranularity { field, section, whole }
 enum ValueAction { call, map, none }
 ```
 
-- **Defect 1:** `source` is nullable; templates instantiate rows with `source: null`. Partially-bound cards **can be saved**; unbound rows render a muted "-".
-- **Defect 5b:** the primary value action (`call`/`map`/`none`, inferred by field or set explicitly) is separate from the always-available `openSource` affordance.
-- **Defect 4:** a reference is a **stable, cross-device identifier** — the owning note's UUID plus an optional stable `childKey` — never a device-local autoincrement id. The exact stable key per source type is audited and finalized in the plan (each of Automobile/Insurance is checked for whether its id is a server-canonical stable value or must be addressed via its owning note UUID). A **fresh-device resolve test** (below) is mandatory.
+- **field** granularity requires the source note to be **structured** (its catalog/schema declares field keys — Automobile, Insurance, contact-shaped notes). The source picker reads the note's schema to list bindable keys.
+- **section** anchors by heading text; if the heading later disappears, the row degrades to "source removed".
+- No `entityType` — "structured entities" are just structured notes addressed by `noteUuid + fieldKey`.
 
 ## Reference resolution
 
-`CheatsheetResolver.resolve(row)` -> current display value:
-1. `entityField` -> resolve the entity via `(entityType, noteUuid, childKey)`, read `fieldKey`.
-2. `noteText` -> load note `noteUuid`, return full content as plain text.
-3. Recomputed every card open.
+`CheatsheetResolver.resolve(row)` -> current value:
+1. `field` -> load note `noteUuid`, read `locator` from its structured content.
+2. `section` -> load note `noteUuid`, extract the block under heading `locator`.
+3. `whole` -> load note `noteUuid`, return full content as text.
+Recomputed every open.
 
-**Edge cases (never crash):** unbound row -> "-"; source note/entity missing or reference unresolvable -> muted "source removed"; absent field -> "-"; a sensitive/encrypted `noteText` source -> the Phase 4b locked placeholder.
+**Edge cases (never crash):** unbound -> "-"; note/field/section missing or reference unresolvable -> muted "source removed"; a sensitive/encrypted source note -> the Phase 4b locked placeholder.
 
-## Storage (defect 2/5a resolved)
+## Storage (defects 2/5a resolved)
 
-- Every cheatsheet is an `HmmNote` under **one fixed note catalog `Hmm.Cheatsheet`** (never changed per-edit — the note-catalog is immutable after creation, so it is not used to carry the mutable wallet group).
-- **Wallet group and tags are authoritative in the card JSON content**, the single source of truth. Changing the wallet group is a JSON edit — no note-catalog move, no dependence on `HmmNoteUpdate` exposing a catalog id.
-- Flows through existing note storage + sync as note content — **no schema change**. A new backend Cheatsheet domain module (manager/validator/serializer + `/v1/cheatsheets`, mirroring the Automobile module) owns CRUD + shape-validation of the definition.
-- **Quick-access props** (`quickAccess`, `sortOrder`) live in the JSON too; a `quickAccess` card is surfaced in the existing Quick Access Panel (feature #23).
-
-## Bindable sources (v1) — corrected to the real domain model (defect 3)
-
-- **Contact** *(from the prerequisite Contacts feature)* — name, phone(s), email, address, relationship, `isSelf`.
-- **AutomobileInfo** — the fields the entity actually exposes (plate, VIN, make/model/year, …); enumerated in the plan.
-- **AutoInsurancePolicy** — **real fields only:** `provider`, `policyNumber`, `coverage` (`List<CoverageItem>`), `effectiveDate`, `expiryDate`, `premium`, `deductible`. **There is no `providerPhone` and no `coverageSummary`** (the earlier spec invented these). A provider phone would come from a linked **Contact** for the insurer, not the policy.
-- **General HmmNote** — whole-content plain text (`fieldKey = '*'`).
+- Each cheatsheet is an `HmmNote` under one fixed `Hmm.Cheatsheet` catalog (immutable after creation -> not used to carry the mutable wallet group).
+- **Wallet group + tags + quick-access props are authoritative in the card JSON.** Changing the wallet group is a JSON edit — no catalog move.
+- Note-content storage + existing sync; **no schema change.** Backend Cheatsheet module owns CRUD + shape validation via `/v1/cheatsheets`.
+- A `quickAccess` card is surfaced in the Quick Access Panel (feature #23).
 
 ## Starter templates (v1)
 
-- **Accident Claim** — vehicle rows bind now (Automobile -> plate, VIN; Insurance -> provider, policyNumber); the driver's person rows (name / phone / address) and an insurer-contact phone are **unbound until Contacts exists**.
-- **Health Info** — entirely person-based -> **ships with the Contacts feature**; before that it exists as an all-unbound template.
+- **Accident Claim** — Automobile fields (plate, VIN) + Insurance fields (provider, policyNumber) bind now; driver person rows bind to a person source (a contact-shaped note or a Contact) when available, else stay unbound.
+- **Health Info** — person/org rows; bind to contact-shaped notes / Contacts when present.
+- **Document** — section/whole rows for a chosen note (the Vim / GoT extract shape).
 - **Blank** — no rows.
 
-Templates instantiate pre-labeled rows with `source: null`; the designer prompts binding.
+Templates instantiate pre-labeled rows with `source: null`; the designer prompts binding. Partial binding is allowed.
 
 ## The designer (template-first)
 
-Create -> pick a template -> bind each row via `source_picker` (entity type -> instance -> field, or general note -> whole-text) -> relabel, add/remove/reorder, set wallet group + tags, optionally set a per-row value action -> save (partial binding allowed).
+Create -> pick a template -> bind each row via `source_picker`: pick a note, then a **granularity** — if the note is structured, pick a **field**; else pick a **section** or **whole**. Relabel, add/remove/reorder, set wallet group + tags + quick-access, optional per-row value action -> save (partial binding allowed).
 
 ## Browse & render (wallet)
 
-Wallet screen: stacks grouped by `walletGroup`, tag filter/search; tap a card -> read-only detail with live label->value rows, actionable values (call / map) + open-source; editing routes back to the designer. Entry point decided in the plan.
+Wallet screen: stacks grouped by `walletGroup`, tag filter/search; tap a card -> read-only detail with live label->value rows, actionable values (call / map) + open-source; editing routes back to the designer.
 
 ## Sync & data-mode
 
-Syncs as a normal note. References use cross-device-stable ids; a card resolves against the active data mode's dataset — unresolvable references degrade to "source removed" (documented, not an error).
+Syncs as a normal note. References use cross-device-stable note UUIDs; a card resolves against the active data mode's dataset — unresolvable references degrade to "source removed".
 
 ## Testing
 
-- **Serializer:** card <-> HmmNote JSON round-trips, **including an unbound row** (`source: null`); unknown/absent fields tolerated.
-- **Resolver:** entityField hit, missing entity, missing field, unbound row, noteText whole-text; value-action inference.
-- **Cross-device (defect 4, mandatory):** author a card, sync it to a **fresh database/device**, assert every reference resolves to the intended record (and does not resolve an unintended one).
-- **Storage (defect 2):** changing the wallet group mutates JSON only and never touches the note catalog.
-- **Designer / wallet (widget):** template -> unbound rows; binding sets the reference; partial save; grouping/filter; tap-to-call / tap-to-map with the resolved value; open-source affordance present on every row.
+- **Serializer:** card <-> HmmNote JSON round-trips incl. an unbound row (`source: null`) and each granularity; unknown/absent fields tolerated.
+- **Resolver:** field hit, missing field, section hit, missing section, whole, unbound, deleted note; value-action inference.
+- **Cross-device (mandatory):** author a card, sync to a fresh DB/device, assert every reference resolves the intended piece.
+- **Storage:** changing the wallet group mutates JSON only, never the note catalog.
+- **Designer / wallet (widget):** template -> unbound rows; the source picker binds field vs section vs whole; partial save; grouping/filter; tap-to-call / tap-to-map; open-source on every row.
 
 ## Card types & roadmap
 
-- **v1 — Field cards** (this spec).
-- **Phase 2 — Image / ID cards + sensitive protection:** stored images (driver's-licence front+back, health card) + optional fields, composed with **Phase 4b** (images through the encrypted, biometric-gated vault) and the `protected`-flag gating.
-- **Later —** flashcards; computed/derived rows; sharing/export; richer layouts.
+- **v1 — Field/section/whole reference cards** (this spec) — covers key->value cards AND document extracts (vim/GoT).
+- **Phase 2 — Image / ID cards + sensitive protection** — stored images (driver's-licence front+back, health card) + the `protected`-flag gating, composed with **Phase 4b** (images through the encrypted, biometric-gated vault).
+- **Later —** computed/derived rows; sharing/export; richer layouts.
 
 ## Sensitive protection (flag reserved in v1, gated in Phase 2)
 
-`CheatsheetCard.protected` (default false) marks a card as needing the Phase 4b unlock before its contents show. **Image/ID cards (Phase 2):** *real* protection — images stored as encrypted sensitive attachments. **Field cards:** only a **view-gate** — display hidden until unlock, but the values live in plaintext source entities that remain independently viewable (access-friction, not encryption; the UI must not imply otherwise).
+`CheatsheetCard.protected` (default false) marks a card as needing the Phase 4b unlock before its contents show. **Image/ID cards (Phase 2):** *real* protection — images stored as encrypted sensitive attachments. **Reference cards:** only a **view-gate** — display hidden until unlock, but the referenced notes remain independently viewable (access-friction, not encryption; the UI must not imply otherwise).
 
 ## Explicitly a separate feature (not a cheatsheet)
 
-A **daily activity summary** (Apple Health/Fitness style) is a computed dashboard — it aggregates metrics/trends rather than linking to one existing field, and real fitness/health metrics need HealthKit / Google Fit. Tracked as its own future feature, outside the cheatsheet line.
+A **daily activity summary** (Apple Health/Fitness style) is a computed dashboard (aggregates metrics/trends; real fitness data needs HealthKit / Google Fit). Tracked as its own future feature.
 
-## Appendix — 2026-07-24 defect review resolutions
+## Appendix — resolutions
+
+**2026-07-26 (decoupling):** cheatsheet source generalized to a note-piece reference (`field` | `section` | `whole`); **Contacts is no longer a prerequisite** — it's an optional `field` source. Covers document-extract cards (vim/GoT).
+
+**2026-07-24 defect review:**
 
 | Defect | Resolution |
 |--------|-----------|
-| 1 Unbound template rows | `CheatsheetRow.source` nullable; partial save allowed; unbound -> "-". |
+| 1 Unbound template rows | `CheatsheetRow.source` nullable; partial save; unbound -> "-". |
 | 2 Wallet group vs immutable catalog | Fixed `Hmm.Cheatsheet` catalog; wallet group + tags authoritative in JSON. |
-| 3 Missing fields/entities | Contacts built first as a separate feature; insurance fields corrected to `provider`/`policyNumber`/`coverage`; no `providerPhone`/`coverageSummary`. |
-| 4 Unstable cross-device ids | Reference = stable note UUID + optional child key, never device-local int; mandatory fresh-device resolve test. |
-| 5 Metadata/action ambiguity | Wallet group + tags authoritative in JSON (5a); `ValueAction` (call/map/none) separate from the universal `openSource` flag (5b). |
+| 3 Missing fields/entities | Source generalized to note-piece references; no dependence on a Contact entity (formerly the blocker); structured sources are addressed by note UUID + field key. |
+| 4 Unstable cross-device ids | Reference = stable note UUID (+ granularity locator), never device-local int; mandatory fresh-device resolve test. |
+| 5 Metadata/action ambiguity | Wallet group + tags authoritative in JSON (5a); `ValueAction` split from the universal `openSource` flag (5b). |
