@@ -831,3 +831,35 @@ void main() {
 ## Notes for the executor
 
 Tasks 1–9 are headless and fully TDD'd (complete code given). Tasks 10–13 are widget-heavy — the plan gives exact behavior, interfaces, provider wiring, and the existing files to mirror (`service_record_form_screen.dart`, `catalog_filter_sheet.dart`, `note_markdown_body.dart`, dashboard/router tests). Where the real `IHmmNoteRepository`/`PageList`/`HmmNoteCreate` accessors differ from the snippets, **follow the tree and adapt** (flag DONE_WITH_CONCERNS if a pattern can't be matched cleanly). Each task ends green + `flutter analyze` clean; run the full suite at T14.
+
+---
+
+## Amendments (AUTHORITATIVE — from the 2026-07-26 plan-defect review)
+
+These supersede the task bodies above wherever they conflict. Apply them when executing (or when regenerating this plan in a fresh session). User scope calls: **defer quickAccess + sortOrder**; **lightweight field filter now, adapter registry later**.
+
+- **A1 — Drop `quickAccess` and `sortOrder` from v1 (defects #2, #4).** Remove both fields from `CheatsheetCard` (T1), the codec (T2), `instantiate` (T6), the editor (T8), and the designer control (T11). Keep `protected` (Phase-2 reserved). The wallet (T12) does not sort by `sortOrder`; use a deterministic order (e.g. `title`, then `id`). Reason: the Quick Access Panel is an action-button registry, not a card surface — card integration is deferred to a later phase.
+
+- **A2 — Stable subject `Cheatsheet:${card.id}` (defect #5).** In `LocalCheatsheetRepository` (T3) write `subject: 'Cheatsheet:${card.id}'` on both create and update (title lives only in the JSON). Add a repo test asserting the created note's `subject == 'Cheatsheet:${card.id}'` and that renaming the card's title does NOT change the subject.
+
+- **A3 — Card ID generation (defect #6).** New-card ids come from the repo's existing `generateUuid()` (`lib/core/util/uuid.dart`) — inject it into the editor (T8): `startFromTemplate(String templateId)` generates a fresh id internally; do NOT take an id from callers in production. Tests may pass a fixed id via an injected `String Function() idGen` (default `generateUuid`). Test: two `startFromTemplate` calls yield distinct ids; **editing an existing card retains its id**.
+
+- **A4 — Edit lifecycle (defect #3).** Editor (T8) gains `load(CheatsheetCard existing)` (sets `state = existing`, preserving `id`). Routes (T14): `cheatsheets` -> wallet, `cheatsheets/new` -> designer(create), `cheatsheets/:id/edit` -> designer(load existing), `cheatsheets/:id` -> detail. Detail's Edit action pushes `:id/edit`. Test (T11): load an existing card, change the title, commit -> the repo `updateNote` path runs, `getCards()` still returns exactly one card with the same id (no duplicate).
+
+- **A5 — Mandatory cross-device resolve test (defect #1).** Add to T5 (or a dedicated task) an integration test using a **real** `LocalHmmNoteRepository` over an in-memory Drift DB: insert a source note with a known `uuid` but a **non-1 local int id** (insert a filler note first so ids differ), build a card referencing that `uuid`, and assert the `CheatsheetResolver` resolves it correctly **by uuid regardless of the int id**; also assert a not-yet-present uuid resolves to `missing` (late-arriving source) and starts resolving once inserted.
+
+- **A6 — Field introspection filters internal keys (defect #10, lightweight).** In `NotePieceExtractor.fieldPaths` (T4), exclude leaf keys that are internal/audit: any segment in `{'_v','id','uuid','authorId','parentNoteId','version'}` or ending in `Date`/`At` (case-insensitive), or matching `RegExp(r'(?:^_|Id$)')`. `field(content, path)` still resolves any explicit path (so already-bound refs keep working). Add tests: an internal key (`_v`, `createdDate`) is NOT offered by `fieldPaths` but `station` is. Document a catalog-keyed `CheatsheetBindingAdapter` registry as the v2 robustness path (out of v1).
+
+- **A7 — No silent pagination cap (defect #11).** `LocalCheatsheetRepository._allNotes` (T3) must page until exhausted (loop `page++` while a full page returns) or use `watchNotes()` filtered by catalog — never a fixed `pageSize: 500` cap. The **source picker** (T10) must paginate/stream + search notes, not cap. Add a T3 page-boundary test (create > one page of cards, assert `getCards()` returns all).
+
+- **A8 — Codec robustness (defect #12).** Add `'schemaVersion': 1` to `CheatsheetCodec.toMap` and read it (default 1) in `fromMap`. Decode field-by-field defensively: wrap each row's decode in a try/catch that drops only the malformed row (not the whole card); coerce `tags` elements to `String` and skip non-strings. Tests: a card with one malformed row decodes the rest; an unknown future `schemaVersion` still decodes known fields; a non-string tag element is skipped.
+
+- **A9 — Wallet filter/search coverage (defect #7).** T12 tests must cover: case-insensitive title/tag search, tag filter semantics (a tag filter shows only cards carrying it), combined title+tag filter, empty-result state, and tag normalization (trim + case-insensitive dedupe when displaying the filter set).
+
+- **A10 — Detail interaction coverage (defect #8).** T13 tests (via injected launch + navigation adapters — e.g. a `launchActionProvider`/`onOpenSource` callback overridable in tests): a `call` value taps -> tel launch; a `map` value taps -> maps launch; an `openSource` row taps -> navigates to the source note by uuid; an unbound row shows "-"; a `missing` row shows "source removed"; `section` and `whole` rows render their text; a launch failure surfaces a message and does not crash.
+
+- **A11 — Value actions are explicit (defect #9).** No inference in v1; the spec's testing note is reconciled to match. (`ValueAction` stays `call`/`map`/`none`, set explicitly in the designer.)
+
+- **A12 — Acceptance test (review recommendation #9).** Add a final end-to-end widget/integration test that creates a card from a template, binds a row, saves, reloads (fresh resolver), opens the detail, resolves + acts on a value, edits + re-saves (same id), and deletes it.
+
+**Net task-count change:** T1/T2/T6/T8/T11/T12/T13/T14 are amended in place; A5 (cross-device) and A12 (acceptance) add two test-focused tasks. Re-run the plan self-review after applying.

@@ -135,7 +135,7 @@ Syncs as a normal note. References use cross-device-stable note UUIDs; a card re
 ## Testing
 
 - **Serializer:** card <-> HmmNote JSON round-trips incl. an unbound row (`source: null`) and each granularity; unknown/absent fields tolerated.
-- **Resolver:** field hit, missing field, section hit, missing section, whole, unbound, deleted note; value-action inference.
+- **Resolver:** field hit, missing field, section hit, missing section, whole, unbound, deleted note. (Value actions are **explicit** — `call`/`map`/`none`; no inference in v1.)
 - **Cross-device (mandatory):** author a card, sync to a fresh DB/device, assert every reference resolves the intended piece.
 - **Storage:** changing the wallet group mutates JSON only, never the note catalog.
 - **Designer / wallet (widget):** template -> unbound rows; the source picker binds field vs section vs whole; partial save; grouping/filter; tap-to-call / tap-to-map; open-source on every row.
