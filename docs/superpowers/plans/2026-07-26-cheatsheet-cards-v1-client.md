@@ -10,7 +10,10 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-23-cheatsheet-cards-design.md`. **Backend `/v1/cheatsheets` + cloudApi repo are a SEPARATE follow-up plan** — this plan is the local-first client (works in `DataMode.local`/`cloudStorage`).
 
-**Revision:** 2026-07-26 (rev 2). The 2026-07-26 plan-defect review (`Obsidian: HomeMadeMessage/Design Defect/2026-07-26 Cheatsheet Cards v1 plan defects`) is **folded into the task bodies below** — there is no separate amendment appendix. See *Defect-review provenance* at the end for the defect → task map.
+**Revision:** 2026-07-26 (rev 3).
+
+- **rev 2** folded the 2026-07-26 plan-defect review (`Obsidian: HomeMadeMessage/Design Defect/2026-07-26 Cheatsheet Cards v1 plan defects`) **into the task bodies below** — there is no separate amendment appendix. See *Defect-review provenance* at the end for the defect → task map.
+- **rev 3** reconciles T1–T10 with what execution actually built. Four snippets in rev 2 were wrong or would not have compiled cleanly; they are corrected **in place** (same no-appendix rule), each with the reason inline: T1 list equality, T2 `as List?` casts, T8 error-path assertion, T10 file layering + launch-failure behaviour. T11–T16 are still as-designed and unexecuted.
 
 ## Global Constraints
 
@@ -75,7 +78,8 @@ HmmNote { int id; String uuid; String subject; String? content; String? descript
 - `lib/core/data/repository_providers.dart` — add `cheatsheetRepositoryModeProvider` (T3)
 - `lib/features/cheatsheet/states/cheatsheets_state.dart` — list `AsyncNotifier` (T8)
 - `lib/features/cheatsheet/states/cheatsheet_editor_state.dart` — designer state + `cheatsheetIdGenProvider` (T9)
-- `lib/core/util/launch_actions.dart` — tel:/maps launcher + `launchActionProvider` (T10)
+- `lib/core/util/launch_actions.dart` — pure `telUri`/`mapsUri` builders, no feature imports (T10)
+- `lib/features/cheatsheet/data/cheatsheet_launcher.dart` — `ValueAction` dispatch, `LaunchActionException`, `launchActionProvider` (T10)
 - `lib/features/cheatsheet/presentation/widgets/source_picker.dart` (T11)
 - `lib/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart` (T12)
 - `lib/features/cheatsheet/presentation/screens/cheatsheet_wallet_screen.dart` (T13)
@@ -200,7 +204,6 @@ class CheatsheetRow {
 `cheatsheet_card.dart`:
 
 ```dart
-import 'package:collection/collection.dart';
 import 'cheatsheet_row.dart';
 
 class CheatsheetCard {
@@ -235,15 +238,29 @@ class CheatsheetCard {
           templateId: templateId ?? this.templateId, protected: protected ?? this.protected,
           rows: rows ?? this.rows);
 
-  static const _eq = ListEquality();
+  // Hand-rolled rather than package:collection's ListEquality — `collection`
+  // is not a direct dependency and nothing in lib/ imports it. This matches
+  // the house idiom (see NoteAttachments in core/data/attachments).
+  static bool _sameList<T>(List<T> a, List<T> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   @override
-  bool operator ==(Object o) =>
-      o is CheatsheetCard && o.id == id && o.title == title && o.walletGroup == walletGroup &&
-      _eq.equals(o.tags, tags) && o.templateId == templateId && o.protected == protected &&
-      _eq.equals(o.rows, rows);
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is CheatsheetCard && other.id == id && other.title == title &&
+        other.walletGroup == walletGroup && other.templateId == templateId &&
+        other.protected == protected &&
+        _sameList(other.tags, tags) && _sameList(other.rows, rows);
+  }
+
   @override
-  int get hashCode =>
-      Object.hash(id, title, walletGroup, _eq.hash(tags), templateId, protected, _eq.hash(rows));
+  int get hashCode => Object.hash(id, title, walletGroup, templateId, protected,
+      Object.hashAll(tags), Object.hashAll(rows));
 }
 ```
 
@@ -262,6 +279,7 @@ class CheatsheetCard {
 **Robustness contract (non-negotiable):**
 - `toMap` writes `'schemaVersion': 1`; `fromMap` tolerates its absence (default 1) and an unknown *newer* version (best-effort decode of the keys it knows).
 - Decoding is **field-by-field defensive**: a wrong-typed or malformed *row* is dropped on its own — it must never discard the whole card. A non-`String` element in `tags` is skipped.
+- **Never cast a persisted value.** `(m['rows'] as List?) ?? const []` *throws* on a non-list rather than defaulting — one wrong-typed key would lose the entire card, which is the failure this task exists to prevent. Use `is` guards (`_list`, `_str`, `_bool`) everywhere.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -356,7 +374,7 @@ class CheatsheetCodec {
 
   static CheatsheetCard fromMap(Map<String, dynamic> m) {
     final rows = <CheatsheetRow>[];
-    for (final e in (m['rows'] as List?) ?? const []) {
+    for (final e in _list(m['rows'])) {
       try {
         rows.add(_rowFromMap((e as Map).cast<String, dynamic>()));
       } catch (_) {
@@ -367,14 +385,19 @@ class CheatsheetCodec {
       id: _str(m['id']) ?? '',
       title: _str(m['title']) ?? '',
       walletGroup: _str(m['walletGroup']) ?? 'Ungrouped',
-      tags: ((m['tags'] as List?) ?? const []).whereType<String>().toList(),
+      tags: _list(m['tags']).whereType<String>().toList(),
       templateId: _str(m['templateId']) ?? 'blank',
-      protected: m['protected'] is bool ? m['protected'] as bool : false,
+      protected: _bool(m['protected']) ?? false,
       rows: rows,
     );
   }
 
+  /// `as List?` would throw on a non-list; persisted data may hold anything.
+  static List<Object?> _list(Object? v) => v is List ? v : const [];
+
   static String? _str(Object? v) => v is String ? v : null;
+
+  static bool? _bool(Object? v) => v is bool ? v : null;
 
   static Map<String, dynamic> _rowToMap(CheatsheetRow r) => {
         'label': r.label,
@@ -994,6 +1017,8 @@ void main() {
 **Interfaces — Consumes** `cheatsheetRepositoryModeProvider`. **Produces:** `class CheatsheetsState extends AsyncNotifier<List<CheatsheetCard>> { Future<List<CheatsheetCard>> build(); Future<void> refresh(); Future<void> save(CheatsheetCard); Future<void> remove(String id); }` + `cheatsheetsStateProvider`. Mirror `lib/features/gas_log/states/gas_logs_state.dart`.
 
 - [ ] **Step 1: Write the failing test** — `ProviderContainer(overrides: [cheatsheetRepositoryModeProvider.overrideWithValue(_FakeRepo(...))])`; `await container.read(cheatsheetsStateProvider.future)` returns the repo's cards; after `save`, re-read includes the new card; after `save` of an existing id, the list length is unchanged. (`_FakeRepo` implements `ICheatsheetRepository` over an in-memory `Map`.)
+
+> **Asserting the error path:** subscribe with `container.listen(...)`, settle with a short `Future.delayed`, then assert `state.hasError` — the idiom in `automobiles_state_test.dart`. Do **not** `await container.read(provider.future)` and expect it to throw: with no listener the provider never leaves its loading state, so that future only completes on dispose, with a `StateError` about being "disposed during loading" rather than the repository's exception. It reads as a 30-second hang.
 - [ ] **Step 2: Run red.**
 - [ ] **Step 3: Implement** — `build()` = `await ref.read(cheatsheetRepositoryModeProvider).getCards()`; `save`/`remove` call the repo then `ref.invalidateSelf()`; `refresh` = `ref.invalidateSelf()`.
 - [ ] **Step 4: Run green + analyze.**
@@ -1040,19 +1065,35 @@ final cheatsheetEditorProvider = NotifierProvider<CheatsheetEditor, CheatsheetCa
 
 ### Task 10: Launch actions (tel: / maps:)
 
-**Files:** Create `lib/core/util/launch_actions.dart`; Test `test/core/util/launch_actions_test.dart`
+**Files:**
+- Create `lib/core/util/launch_actions.dart` — pure URI builders, **no feature imports**; Test `test/core/util/launch_actions_test.dart`
+- Create `lib/features/cheatsheet/data/cheatsheet_launcher.dart` — `ValueAction` dispatch; Test `test/features/cheatsheet/data/cheatsheet_launcher_test.dart`
 
-**Interfaces — Produces:** `Uri telUri(String phone)`, `Uri mapsUri(String address)`, `Future<void> launchAction(ValueAction action, String value)` (wraps `launchUrl(..., mode: LaunchMode.externalApplication)`, mirroring `note_markdown_body.dart`), plus
+> **Why two files:** `launchAction` takes a `ValueAction`, which lives in `features/cheatsheet`. Putting it in `core/util` would make **core import a feature** and invert the dependency direction. Pure `Uri` construction is genuinely generic and stays in core; the enum dispatch belongs to the feature that owns the enum.
 
+**Interfaces — Produces:**
 ```dart
+// core/util/launch_actions.dart — generic, no feature types
+Uri telUri(String phone);     // strips punctuation; keeps a LEADING + (international prefix)
+Uri mapsUri(String address);  // https://maps.apple.com/?q=<encoded>
+
+// features/cheatsheet/data/cheatsheet_launcher.dart
+class LaunchActionException implements Exception { final Uri uri; }
+Uri? uriForAction(ValueAction action, String value);   // null for none / blank value
+Future<void> launchAction(ValueAction action, String value);
 /// Overridable in widget tests so the detail screen never touches url_launcher.
 final launchActionProvider =
-    Provider<Future<void> Function(ValueAction, String)>((_) => launchAction);
+    Provider<Future<void> Function(ValueAction, String)>((ref) => launchAction);
 ```
 
-Keep URI building pure + unit-tested; the `launchUrl` call is a thin wrapper (not unit-tested). `launchAction` **throws on failure** — the detail screen (T14) is responsible for catching and surfacing it.
+Two behavioural decisions, both load-bearing for T14:
 
-- [ ] **Step 1: test** — `telUri('(555) 123-4567').toString() == 'tel:5551234567'`; `mapsUri('1 Main St').toString()` contains `maps.apple.com/?q=1%20Main%20St` (use `Uri.encodeComponent`).
+- **`launchAction` throws `LaunchActionException`** when `launchUrl` returns false. `note_markdown_body._launchExternal` deliberately *swallows* failures, which is right for an incidental markdown link and wrong here: a value somebody deliberately tapped should report that it went nowhere. T14 catches this and shows a message — the "launch failure surfaces a message and does not crash" test depends on it failing loudly.
+- **`mapsUri` uses `https://maps.apple.com`, not a `geo:` scheme.** There is then always a handler — native Maps on Apple platforms, a browser everywhere else. A `geo:` URI has no handler on desktop and would throw on every launch.
+
+Keep URI building pure + unit-tested; the `launchUrl` call itself is a thin wrapper (not unit-tested).
+
+- [ ] **Step 1: test** — `telUri('(555) 123-4567').toString() == 'tel:5551234567'`; `telUri('+1 555-123-4567')` keeps the `+`; `mapsUri('1 Main St').toString()` contains `maps.apple.com/?q=1%20Main%20St` (use `Uri.encodeComponent`) and its scheme is `https`; `uriForAction(ValueAction.none, x)` and a blank value are both null; `launchActionProvider` is overridable.
 - [ ] **Step 2–5:** implement, green, analyze, commit `feat(cheatsheet): tel/maps launch helpers`.
 
 ---
