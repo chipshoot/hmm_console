@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/navigation/route_names.dart';
 import '../../domain/entities/cheatsheet_card.dart';
 import '../../states/cheatsheets_state.dart';
 
 /// Navigation seams. Widget tests override these instead of standing up a
 /// router; T15 wires the real routes behind them.
 final cheatsheetOpenCardProvider = Provider<void Function(BuildContext, String)>(
-  (ref) => (context, id) => context.push('/cheatsheets/$id'),
+  (ref) => (context, id) => context.pushNamed(
+        RouterNames.cheatsheetDetail.name,
+        pathParameters: {'id': id},
+      ),
 );
 
 final cheatsheetCreateCardProvider = Provider<void Function(BuildContext)>(
-  (ref) => (context) => context.push('/cheatsheets/new'),
+  (ref) => (context) => context.pushNamed(RouterNames.cheatsheetCreate.name),
 );
 
 /// Normalized tag form: trimmed and lower-cased.

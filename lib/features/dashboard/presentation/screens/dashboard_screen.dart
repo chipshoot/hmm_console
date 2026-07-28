@@ -70,6 +70,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       route: "notes",
     ),
     AppFunction(
+      icon: "\uD83C\uDCCF",
+      title: "Cheatsheets",
+      description: "Quick-reference cards",
+      route: "cheatsheets",
+    ),
+    AppFunction(
       icon: "\uD83C\uDF24\uFE0F",
       title: "Weather",
       description: "Current forecast",
@@ -367,6 +373,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         context.push('/automobiles');
       case 'notes':
         context.push('/notes');
+      case 'cheatsheets':
+        context.pushNamed(RouterNames.cheatsheets.name);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

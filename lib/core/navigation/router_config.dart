@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/navigation/auth_change_provider.dart';
+import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
 import 'package:hmm_console/core/navigation/route_names.dart';
 import 'package:hmm_console/features/auth/presentation/presentation.dart';
 import 'package:hmm_console/features/dashboard/presentation/presentation.dart';
@@ -266,6 +267,7 @@ final routerConfig = Provider<GoRouter>(
           ),
         ],
       ),
+      ...cheatsheetRoutes,
       GoRoute(
         path: '/notes',
         name: RouterNames.notesList.name,

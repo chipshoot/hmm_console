@@ -36,7 +36,10 @@ final cheatsheetOpenSourceProvider =
 );
 
 final cheatsheetEditCardProvider = Provider<void Function(BuildContext, String)>(
-  (ref) => (context, cardId) => context.push('/cheatsheets/$cardId/edit'),
+  (ref) => (context, cardId) => context.pushNamed(
+        RouterNames.cheatsheetEdit.name,
+        pathParameters: {'id': cardId},
+      ),
 );
 
 /// Resolves every row of a card, in order.
