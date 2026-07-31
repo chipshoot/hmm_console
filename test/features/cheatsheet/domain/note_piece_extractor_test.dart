@@ -105,13 +105,35 @@ void main() {
           NotePieceExtractor.whole(gasNote, 'a description'), 'a description');
     });
 
-    test('falls back to content when the description is blank or null', () {
-      expect(NotePieceExtractor.whole(gasNote, '   '), gasNote);
-      expect(NotePieceExtractor.whole(gasNote, null), gasNote);
+    test('summarises an entity note instead of dumping the raw envelope', () {
+      // A card is a user-facing surface. Falling back to the raw content
+      // string put the whole JSON envelope on it — the same internal
+      // plumbing fieldPaths exists to keep out of the binding list.
+      for (final description in [null, '   ']) {
+        final result = NotePieceExtractor.whole(gasNote, description);
+        expect(result, isNot(contains('{"note"')));
+        expect(result, isNot(contains('"content"')));
+        expect(result, contains('station: Shell'));
+        expect(result, contains('price: 1.65'));
+        expect(result, contains('nested.x: y'));
+      }
+    });
+
+    test('the summary leaks no internal or audit keys', () {
+      final result = NotePieceExtractor.whole(gasNote, null);
+      for (final key in ['uuid', 'createdDate', 'modifiedAt', 'automobileId']) {
+        expect(result, isNot(contains(key)), reason: '$key must not appear');
+      }
+      expect(result, isNot(contains('_v')));
+      expect(result, isNot(contains('id: 7')));
     });
 
     test('empty when neither is present', () {
       expect(NotePieceExtractor.whole(null, null), '');
+    });
+
+    test('empty for content that has no readable fields', () {
+      expect(NotePieceExtractor.whole('not json', null), '');
     });
   });
 }

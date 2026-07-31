@@ -109,8 +109,31 @@ class NotePieceExtractor {
     return body.join('\n').trim();
   }
 
-  static String whole(String? content, String? description) =>
-      (description != null && description.trim().isNotEmpty)
-          ? description
-          : (content ?? '');
+  /// The whole note, as something worth putting on a card.
+  ///
+  /// A human-written description is used verbatim. Otherwise the note is
+  /// entity-backed, and returning its raw `content` would print the storage
+  /// envelope — `{"note":{"content":{...}}}` complete with `id`, `uuid` and
+  /// `createdDate` — straight onto a user-facing card. That is exactly the
+  /// plumbing [fieldPaths] exists to keep out of the binding list, so this
+  /// summarises the same filtered fields instead.
+  static String whole(String? content, String? description) {
+    if (description != null && description.trim().isNotEmpty) {
+      return description;
+    }
+
+    final lines = <String>[];
+    for (final path in fieldPaths(content)) {
+      final value = field(content, path);
+      if (value == null || value.isEmpty) continue;
+      lines.add('${_labelFor(path)}: $value');
+    }
+    return lines.join('\n');
+  }
+
+  /// Drops the entity root from a dotted path: `GasLog.nested.x` -> `nested.x`.
+  static String _labelFor(String path) {
+    final firstDot = path.indexOf('.');
+    return firstDot < 0 ? path : path.substring(firstDot + 1);
+  }
 }
