@@ -152,6 +152,72 @@ void main() {
     });
   });
 
+  group('two cards in one session', () {
+    // Regression for a silent-overwrite bug that per-test ProviderScope
+    // isolation hid: the editor's working copy outlived the screen, so the
+    // second "new" reused the first card's id and overwrote it.
+    testWidgets('starting a second new card does not reuse the first',
+        (tester) async {
+      var nextId = 0;
+      final container = ProviderContainer(
+        overrides: [
+          cheatsheetIdGenProvider.overrideWithValue(() => 'id-${++nextId}'),
+          cheatsheetsStateProvider.overrideWith(_CapturingCheatsheets.new),
+          cheatsheetSourcePickerProvider.overrideWithValue((_) async => null),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      Future<void> openDesigner() async {
+        // Pump something else first so the previous designer's State is
+        // disposed — otherwise pumpWidget reuses it, which a real route push
+        // would never do. The ProviderContainer is deliberately shared: that
+        // is the thing that leaks between visits.
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(home: SizedBox.shrink()),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(home: CheatsheetDesignerScreen()),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      // First card.
+      await openDesigner();
+      await tester.tap(find.byKey(const Key('template-accidentClaim')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('designer-title')), 'First');
+      await tester.tap(find.byKey(const Key('designer-save')));
+      await tester.pumpAndSettle();
+
+      // Second card, same session.
+      await openDesigner();
+
+      expect(find.byKey(const Key('template-accidentClaim')), findsOneWidget,
+          reason: 'a new card starts at the template chooser, not mid-edit');
+
+      await tester.tap(find.byKey(const Key('template-blank')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('designer-title')), 'Second');
+      await tester.tap(find.byKey(const Key('designer-save')));
+      await tester.pumpAndSettle();
+
+      expect(_CapturingCheatsheets.saved.length, 2);
+      final ids = _CapturingCheatsheets.saved.map((c) => c.id).toList();
+      expect(ids.toSet().length, 2,
+          reason: 'the second card must not overwrite the first');
+      expect(
+          _CapturingCheatsheets.saved.map((c) => c.title), ['First', 'Second']);
+    });
+  });
+
   group('edit', () {
     testWidgets('loads the existing card without a template chooser',
         (tester) async {

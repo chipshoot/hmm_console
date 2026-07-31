@@ -19,15 +19,26 @@ final cheatsheetIdGenProvider = Provider<String Function()>(
 /// one id, [load] adopts an existing card's id untouched, and nothing else
 /// writes `id`. That is what keeps editing an update instead of a second card.
 class CheatsheetEditor extends Notifier<CheatsheetCard> {
+  static const _blank = CheatsheetCard(
+    id: '',
+    title: '',
+    walletGroup: 'Ungrouped',
+    tags: [],
+    templateId: 'blank',
+    rows: [],
+  );
+
   @override
-  CheatsheetCard build() => const CheatsheetCard(
-        id: '',
-        title: '',
-        walletGroup: 'Ungrouped',
-        tags: [],
-        templateId: 'blank',
-        rows: [],
-      );
+  CheatsheetCard build() => _blank;
+
+  /// Drop the working copy.
+  ///
+  /// This provider outlives the designer screen, so a card left here after a
+  /// save would be inherited by the *next* "new card" — which, because the
+  /// designer treats a non-empty id as "already started", would skip the
+  /// template chooser and then save under the previous card's id, silently
+  /// overwriting it. The designer calls this on entering create mode.
+  void reset() => state = _blank;
 
   /// Begin a new card. The id is minted here, once.
   void startFromTemplate(String templateId) {

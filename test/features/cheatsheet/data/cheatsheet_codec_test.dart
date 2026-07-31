@@ -83,6 +83,63 @@ void main() {
     expect(c.title, 'T'); // whole card NOT discarded
   });
 
+  test('an unreadable row survives a decode/encode round trip', () {
+    // Saving rewrites the whole card, so a row merely *dropped* on read would
+    // be erased by the next unrelated edit. It must come back out.
+    final decoded = CheatsheetCodec.fromMap({
+      'id': 'x',
+      'title': 'T',
+      'rows': [
+        {'label': 'good', 'openSource': true},
+        {'label': 'future', 'source': 'not-a-map'},
+      ],
+    });
+    expect(decoded.rows.map((r) => r.label), ['good']);
+    expect(decoded.unreadableRows, hasLength(1));
+
+    final reEncoded = CheatsheetCodec.toMap(decoded);
+    final rows = (reEncoded['rows'] as List).cast<Map<String, dynamic>>();
+    expect(rows, hasLength(2), reason: 'the unreadable row is written back');
+    expect(
+      rows.any((r) => r['label'] == 'future' && r['source'] == 'not-a-map'),
+      isTrue,
+      reason: 'preserved verbatim, not normalised away',
+    );
+  });
+
+  test('editing a card does not erase its unreadable rows', () {
+    final decoded = CheatsheetCodec.fromMap({
+      'id': 'x',
+      'title': 'T',
+      'rows': [
+        {'label': 'good', 'openSource': true},
+        {'label': 'future', 'source': 'not-a-map'},
+      ],
+    });
+
+    // The designer's flow: mutate the working copy, then write it back.
+    final edited = decoded.copyWith(title: 'Renamed');
+    final rows = CheatsheetCodec.toMap(edited)['rows'] as List;
+
+    expect(rows, hasLength(2));
+    expect(edited.title, 'Renamed');
+  });
+
+  test('a non-map row element is dropped without losing the rest', () {
+    // 'not-a-map' at row level cannot be preserved as a row map; dropping it
+    // is the only option, but it must not crash or lose sibling rows.
+    final decoded = CheatsheetCodec.fromMap({
+      'id': 'x',
+      'title': 'T',
+      'rows': [
+        'not-a-map',
+        {'label': 'good'},
+      ],
+    });
+    expect(decoded.rows.map((r) => r.label), ['good']);
+    expect(decoded.unreadableRows, isEmpty);
+  });
+
   test('non-string tag elements are skipped', () {
     final c = CheatsheetCodec.fromMap({
       'id': 'x',

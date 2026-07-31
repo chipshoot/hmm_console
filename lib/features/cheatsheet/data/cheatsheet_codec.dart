@@ -27,19 +27,30 @@ class CheatsheetCodec {
         'tags': c.tags,
         'templateId': c.templateId,
         'protected': c.protected,
-        'rows': c.rows.map(_rowToMap).toList(),
+        // Unreadable rows are written back untouched: a save must not destroy
+        // rows this version couldn't parse.
+        'rows': [
+          ...c.rows.map(_rowToMap),
+          ...c.unreadableRows,
+        ],
       };
 
   static CheatsheetCard fromMap(Map<String, dynamic> m) {
     final rows = <CheatsheetRow>[];
+    final unreadable = <Map<String, dynamic>>[];
     for (final e in _list(m['rows'])) {
       try {
         rows.add(_rowFromMap((e as Map).cast<String, dynamic>()));
       } catch (_) {
-        // Drop only this row — one bad row must never lose the whole card.
+        // Keep, don't drop. One bad row must never lose the whole card — and
+        // must not be silently erased by the next save either.
+        if (e is Map) {
+          unreadable.add(e.cast<String, dynamic>());
+        }
       }
     }
     return CheatsheetCard(
+      unreadableRows: unreadable,
       id: _str(m['id']) ?? '',
       title: _str(m['title']) ?? '',
       walletGroup: _str(m['walletGroup']) ?? 'Ungrouped',

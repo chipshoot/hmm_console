@@ -75,9 +75,17 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
       .whereType<CheatsheetCard>()
       .toList();
 
+  /// Finds a card's note by **subject**, not by decoding its content.
+  ///
+  /// The subject already is the card's identity (`Cheatsheet:{id}`), and it
+  /// stays readable when the content does not. Matching on the decoded id
+  /// instead meant a note whose JSON had become unreadable was invisible
+  /// here — so `saveCard` would decide it was new and write a *second* note
+  /// under the same subject, and `deleteCard` could never reach the original.
   Future<HmmNote?> _noteForCard(String id) async {
+    final subject = cheatsheetSubjectFor(id);
     for (final n in await _allNotes()) {
-      if (_deserialize(n.content)?.id == id) return n;
+      if (n.subject == subject) return n;
     }
     return null;
   }

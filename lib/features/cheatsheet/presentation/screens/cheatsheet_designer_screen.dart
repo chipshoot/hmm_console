@@ -39,6 +39,17 @@ class _CheatsheetDesignerScreenState
   /// build would fight the user's typing.
   String? _syncedId;
   bool _loaded = false;
+  bool _saving = false;
+
+  /// Whether a template has been chosen *during this visit*.
+  ///
+  /// Deliberately screen-local rather than inferred from the editor's state:
+  /// that provider outlives the screen, so a card left in it after a save
+  /// would make the next "new card" look already-started — skipping the
+  /// template chooser and then saving under the previous card's id,
+  /// overwriting it. Resetting the provider in initState is not an option;
+  /// Riverpod forbids mutating a provider from a widget life-cycle.
+  bool _started = false;
 
   @override
   void dispose() {
@@ -55,7 +66,9 @@ class _CheatsheetDesignerScreenState
     if (widget.cardId != null && !_loaded) return _loadExisting(widget.cardId!);
 
     final card = ref.watch(cheatsheetEditorProvider);
-    if (card.id.isEmpty) return _templateChooser();
+    // Create mode always begins at the chooser, whatever the editor happens
+    // to be holding from a previous card.
+    if (widget.cardId == null && !_started) return _templateChooser();
 
     if (_syncedId != card.id) {
       _syncedId = card.id;
@@ -110,7 +123,12 @@ class _CheatsheetDesignerScreenState
                       : t.rowLabels.take(4).join(' · '),
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _editor.startFromTemplate(t.id),
+                onTap: () {
+                  // startFromTemplate mints a fresh id, replacing whatever the
+                  // editor held.
+                  _editor.startFromTemplate(t.id);
+                  setState(() => _started = true);
+                },
               ),
           ],
         ),
@@ -122,8 +140,26 @@ class _CheatsheetDesignerScreenState
   }
 
   Future<void> _save() async {
-    await _editor.commit();
-    if (mounted) await Navigator.of(context).maybePop();
+    // The upsert is a read-then-write with no uniqueness constraint behind
+    // it, so two in-flight saves of a new card can both decide to create and
+    // leave two notes sharing one card id.
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await _editor.commit();
+      // Don't leave the saved card sitting in a provider that outlives this
+      // screen. Safe here — a callback, not a widget life-cycle.
+      _editor.reset();
+      if (mounted) await Navigator.of(context).maybePop();
+    } catch (e) {
+      // Losing a card the user just filled in must not look like success.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save this cheatsheet: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Widget _form(CheatsheetCard card) => Scaffold(
@@ -132,7 +168,7 @@ class _CheatsheetDesignerScreenState
           actions: [
             TextButton(
               key: const Key('designer-save'),
-              onPressed: _save,
+              onPressed: _saving ? null : _save,
               child: const Text('Save'),
             ),
           ],

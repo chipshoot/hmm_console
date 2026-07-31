@@ -17,6 +17,7 @@ class CheatsheetCard {
     required this.templateId,
     required this.rows,
     this.protected = false,
+    this.unreadableRows = const [],
   });
 
   /// Stable v4 UUID minted once at create time and never regenerated on edit.
@@ -34,6 +35,14 @@ class CheatsheetCard {
 
   final List<CheatsheetRow> rows;
 
+  /// Rows the codec could not decode, kept verbatim.
+  ///
+  /// Saving rewrites the whole card, so a row dropped at read time would be
+  /// erased by the next unrelated edit. Carrying the raw maps through means a
+  /// save can't destroy data this version didn't understand — a newer client,
+  /// or a fixed decoder, can still read them.
+  final List<Map<String, dynamic>> unreadableRows;
+
   CheatsheetCard copyWith({
     String? id,
     String? title,
@@ -42,6 +51,7 @@ class CheatsheetCard {
     String? templateId,
     bool? protected,
     List<CheatsheetRow>? rows,
+    List<Map<String, dynamic>>? unreadableRows,
   }) =>
       CheatsheetCard(
         id: id ?? this.id,
@@ -51,6 +61,7 @@ class CheatsheetCard {
         templateId: templateId ?? this.templateId,
         protected: protected ?? this.protected,
         rows: rows ?? this.rows,
+        unreadableRows: unreadableRows ?? this.unreadableRows,
       );
 
   static bool _sameList<T>(List<T> a, List<T> b) {

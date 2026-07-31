@@ -130,13 +130,17 @@ void main() {
     await setup();
     addTearDown(db.close);
 
-    // More than the 20-per-page default, so a fixed page size would hide some.
-    for (var i = 0; i < 45; i++) {
+    // Must exceed LocalCheatsheetRepository._pageSize (100), not the
+    // 20-per-page default of getNotes — _allNotes always passes 100
+    // explicitly. An earlier version of this test used 45, which fits in a
+    // single page: it would have passed even if the paging loop were deleted.
+    for (var i = 0; i < 130; i++) {
       await repo.saveCard(sample('c$i'));
     }
 
-    expect((await repo.getCards()).length, 45);
-    expect(await repo.getCard('c44'), isNotNull);
+    expect((await repo.getCards()).length, 130);
+    expect(await repo.getCard('c129'), isNotNull,
+        reason: 'a card beyond the first page is still reachable');
   });
 
   test('getCard returns null for an unknown id', () async {

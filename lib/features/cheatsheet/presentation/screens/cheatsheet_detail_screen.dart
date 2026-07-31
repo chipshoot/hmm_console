@@ -97,7 +97,17 @@ class CheatsheetDetailScreen extends ConsumerWidget {
     );
     if (confirmed != true) return;
 
-    await ref.read(cheatsheetsStateProvider.notifier).remove(cardId);
+    try {
+      await ref.read(cheatsheetsStateProvider.notifier).remove(cardId);
+    } catch (e) {
+      // A delete that silently didn't happen is worse than one that failed
+      // loudly — the user walks away believing the card is gone.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete this cheatsheet: $e')),
+      );
+      return;
+    }
     // The card this screen shows no longer exists; staying would strand the
     // user on a not-found state.
     if (context.mounted) await Navigator.of(context).maybePop();
