@@ -70,6 +70,39 @@ class CheatsheetDetailScreen extends ConsumerWidget {
 
   final String cardId;
 
+  /// Confirms, then deletes. Destructive and one tap from the card, so it asks
+  /// first — and says plainly that the referenced notes survive, since a card
+  /// is a view onto them, not a container for them.
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete this cheatsheet?'),
+        content: const Text(
+          'The notes it references are not deleted — only this card.',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('delete-cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            key: const Key('delete-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await ref.read(cheatsheetsStateProvider.notifier).remove(cardId);
+    // The card this screen shows no longer exists; staying would strand the
+    // user on a not-found state.
+    if (context.mounted) await Navigator.of(context).maybePop();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cards = ref.watch(cheatsheetsStateProvider);
@@ -98,6 +131,12 @@ class CheatsheetDetailScreen extends ConsumerWidget {
             icon: const Icon(Icons.edit_outlined),
             onPressed: () =>
                 ref.read(cheatsheetEditCardProvider)(context, cardId),
+          ),
+          IconButton(
+            key: const Key('detail-delete'),
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete cheatsheet',
+            onPressed: () => _confirmDelete(context, ref),
           ),
         ],
       ),

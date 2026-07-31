@@ -14,7 +14,6 @@ import 'package:hmm_console/features/cheatsheet/data/cheatsheet_launcher.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart';
-import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 
 /// End-to-end over **real** storage.
@@ -171,13 +170,23 @@ void main() {
         'Cheatsheet:$cardId',
         reason: 'the subject is an identity, not a label');
 
-    // ---- 10. delete: gone from the wallet and from the catalog ------------
-    // v1 ships no delete affordance, so this drives the state directly.
-    await container.read(cheatsheetsStateProvider.notifier).remove(cardId);
+    // ---- 10. delete through the UI: gone from the wallet and the catalog --
+    // Saving the edit popped back to the detail screen.
+    expect(find.byType(CheatsheetDetailScreen), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('detail-delete')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget,
+        reason: 'deletion is confirmed, not immediate');
+    await tester.tap(find.byKey(const Key('delete-confirm')));
     await tester.pumpAndSettle();
 
     expect(await cheatRepo.getCards(), isEmpty);
     expect(await _cheatsheetNotes(noteRepo, catalogRepo), isEmpty);
+
+    // The source note it referenced must survive — a card is a view onto
+    // notes, not a container for them.
+    expect(await noteRepo.getNoteByUuid(sourceNote.uuid), isNotNull);
 
     router.go('/cheatsheets');
     await tester.pumpAndSettle();

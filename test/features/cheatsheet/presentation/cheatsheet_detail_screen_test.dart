@@ -28,9 +28,13 @@ class _FakeNotes implements IHmmNoteRepository {
 
 class _SeededCheatsheets extends CheatsheetsState {
   static List<CheatsheetCard> seed = const [];
+  static final removed = <String>[];
 
   @override
   Future<List<CheatsheetCard>> build() async => seed;
+
+  @override
+  Future<void> remove(String id) async => removed.add(id);
 }
 
 final autoNote = HmmNote(
@@ -105,7 +109,10 @@ const card = CheatsheetCard(
 );
 
 void main() {
-  setUp(() => _SeededCheatsheets.seed = const [card]);
+  setUp(() {
+    _SeededCheatsheets.seed = const [card];
+    _SeededCheatsheets.removed.clear();
+  });
 
   Future<
       ({
@@ -213,5 +220,55 @@ void main() {
     await mount(tester);
 
     expect(find.byKey(const Key('detail-not-found')), findsOneWidget);
+  });
+
+  group('delete', () {
+    testWidgets('asks for confirmation before deleting anything',
+        (tester) async {
+      await mount(tester);
+
+      await tester.tap(find.byKey(const Key('detail-delete')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(_SeededCheatsheets.removed, isEmpty,
+          reason: 'nothing is deleted until confirmed');
+    });
+
+    testWidgets('cancelling leaves the card alone', (tester) async {
+      await mount(tester);
+
+      await tester.tap(find.byKey(const Key('detail-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('delete-cancel')));
+      await tester.pumpAndSettle();
+
+      expect(_SeededCheatsheets.removed, isEmpty);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('confirming deletes this card', (tester) async {
+      await mount(tester);
+
+      await tester.tap(find.byKey(const Key('detail-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('delete-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(_SeededCheatsheets.removed, ['c1']);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the confirmation says source notes are untouched',
+        (tester) async {
+      // Deleting a card must not read as deleting the notes it points at.
+      await mount(tester);
+
+      await tester.tap(find.byKey(const Key('detail-delete')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('notes'), findsWidgets);
+    });
   });
 }
