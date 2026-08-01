@@ -15,8 +15,12 @@ import '../../domain/note_piece_extractor.dart';
 /// only the pages scrolled so far — correct for a personal-scale store. If a
 /// vault ever grows past comfortable, the replacement is repository-side
 /// search, not a smaller page limit.
+///
+/// `autoDispose` so each picker session re-reads: cached for the app's
+/// lifetime, a note written after the picker first opened would stay
+/// unbindable until restart, with nothing on screen explaining why.
 final cheatsheetSourceNotesProvider =
-    FutureProvider<List<HmmNote>>((ref) async {
+    FutureProvider.autoDispose<List<HmmNote>>((ref) async {
   final repo = ref.watch(hmmNoteRepositoryProvider);
   const pageSize = 100;
   final out = <HmmNote>[];
@@ -139,6 +143,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
           leading: IconButton(
             key: const Key('source-picker-back'),
             icon: const Icon(Icons.arrow_back),
+            tooltip: 'Back to the note list',
             onPressed: () => setState(() => _note = null),
           ),
           title: Text(n.subject),

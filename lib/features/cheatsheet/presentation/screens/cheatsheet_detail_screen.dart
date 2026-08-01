@@ -139,6 +139,7 @@ class CheatsheetDetailScreen extends ConsumerWidget {
           IconButton(
             key: const Key('detail-edit'),
             icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit cheatsheet',
             onPressed: () =>
                 ref.read(cheatsheetEditCardProvider)(context, cardId),
           ),
@@ -182,9 +183,10 @@ class _RowTile extends ConsumerWidget {
   Future<void> _launch(BuildContext context, WidgetRef ref, String text) async {
     try {
       await ref.read(launchActionProvider)(row.valueAction, text);
-    } catch (_) {
-      // A value somebody deliberately tapped going nowhere is worth saying so;
-      // it must not take the screen down either.
+    } on Exception catch (_) {
+      // Exceptions only. A missing handler app is an expected, recoverable
+      // outcome worth reporting; an Error is a defect, and showing it as
+      // "could not open that" would disguise a bug as a normal failure.
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open that.')),
@@ -233,6 +235,7 @@ class _RowTile extends ConsumerWidget {
           ? IconButton(
               key: Key('row-$index-open-source'),
               icon: const Icon(Icons.open_in_new),
+              tooltip: 'Open the source note',
               onPressed: () => ref.read(cheatsheetOpenSourceProvider)(
                 context,
                 source.noteUuid,

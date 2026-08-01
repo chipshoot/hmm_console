@@ -206,6 +206,13 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  // NOTE: `_launch` catches `on Exception`, not everything, so a programming
+  // Error is never disguised as "could not open that". That path is
+  // deliberately not asserted here: an Error thrown from a fire-and-forget
+  // onTap callback surfaces as an unhandled *zone* error, which flutter_test
+  // treats as a test failure — pinning it needs zone plumbing out of
+  // proportion to the value. The Exception path is covered above.
+
   testWidgets('the edit action targets this card', (tester) async {
     final r = await mount(tester);
 

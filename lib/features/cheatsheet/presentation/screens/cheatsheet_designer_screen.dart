@@ -204,6 +204,7 @@ class _CheatsheetDesignerScreenState
                 IconButton(
                   key: const Key('designer-add-row'),
                   icon: const Icon(Icons.add),
+                  tooltip: 'Add row',
                   onPressed: () {
                     final label = _newRowLabel.text.trim();
                     if (label.isEmpty) return;
@@ -233,6 +234,7 @@ class _CheatsheetDesignerScreenState
                 IconButton(
                   key: Key('row-$i-remove'),
                   icon: const Icon(Icons.close),
+                  tooltip: 'Remove this row',
                   onPressed: () => _editor.removeRow(i),
                 ),
               ],

@@ -50,6 +50,7 @@ class _CheatsheetWalletScreenState
           IconButton(
             key: const Key('wallet-add'),
             icon: const Icon(Icons.add),
+            tooltip: 'New cheatsheet',
             onPressed: () => ref.read(cheatsheetCreateCardProvider)(context),
           ),
         ],
