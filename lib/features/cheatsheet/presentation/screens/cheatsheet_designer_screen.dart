@@ -147,9 +147,12 @@ class _CheatsheetDesignerScreenState
     setState(() => _saving = true);
     try {
       await _editor.commit();
-      // Don't leave the saved card sitting in a provider that outlives this
-      // screen. Safe here — a callback, not a widget life-cycle.
-      _editor.reset();
+      // Deliberately no reset of the editor here. It read `ref` after an
+      // await — which throws once the screen is popped mid-save — and it
+      // blanked the still-mounted form during the pop transition. It was
+      // redundant anyway: `_started` forces the chooser on the next create,
+      // and `load()`/`startFromTemplate()` overwrite the working copy on
+      // every real entry.
       if (mounted) await Navigator.of(context).maybePop();
     } catch (e) {
       // Losing a card the user just filled in must not look like success.

@@ -181,6 +181,12 @@ void main() {
     await tester.tap(find.byKey(const Key('delete-confirm')));
     await tester.pumpAndSettle();
 
+    // Asserted BEFORE any manual navigation below: the screen must leave on
+    // its own, or the user is stranded on a card that no longer exists.
+    // Navigating first would mask a missing pop entirely.
+    expect(find.byType(CheatsheetDetailScreen), findsNothing,
+        reason: 'deleting pops the detail screen');
+
     expect(await cheatRepo.getCards(), isEmpty);
     expect(await _cheatsheetNotes(noteRepo, catalogRepo), isEmpty);
 

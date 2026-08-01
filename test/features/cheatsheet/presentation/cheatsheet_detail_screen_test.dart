@@ -267,15 +267,19 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the confirmation says source notes are untouched',
+    testWidgets('the confirmation says source notes are NOT deleted',
         (tester) async {
       // Deleting a card must not read as deleting the notes it points at.
+      // Asserting merely that the word "notes" appears is useless: the
+      // opposite message ("this will also delete the notes it references")
+      // contains it too, and an earlier version of this test passed against
+      // exactly that inversion.
       await mount(tester);
 
       await tester.tap(find.byKey(const Key('detail-delete')));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('notes'), findsWidgets);
+      expect(find.textContaining('not deleted'), findsOneWidget);
     });
   });
 }

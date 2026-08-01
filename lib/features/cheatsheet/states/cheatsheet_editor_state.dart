@@ -28,17 +28,14 @@ class CheatsheetEditor extends Notifier<CheatsheetCard> {
     rows: [],
   );
 
+  /// The working copy starts blank.
+  ///
+  /// This provider outlives the designer screen, so a leftover card must
+  /// never decide what the next visit shows — the designer keeps a
+  /// visit-local `_started` flag for that, and [load]/[startFromTemplate]
+  /// overwrite this state on every real entry.
   @override
   CheatsheetCard build() => _blank;
-
-  /// Drop the working copy.
-  ///
-  /// This provider outlives the designer screen, so a card left here after a
-  /// save would be inherited by the *next* "new card" — which, because the
-  /// designer treats a non-empty id as "already started", would skip the
-  /// template chooser and then save under the previous card's id, silently
-  /// overwriting it. The designer calls this on entering create mode.
-  void reset() => state = _blank;
 
   /// Begin a new card. The id is minted here, once.
   void startFromTemplate(String templateId) {

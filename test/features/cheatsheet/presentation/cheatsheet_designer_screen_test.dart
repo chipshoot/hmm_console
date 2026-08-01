@@ -156,6 +156,13 @@ void main() {
     // Regression for a silent-overwrite bug that per-test ProviderScope
     // isolation hid: the editor's working copy outlived the screen, so the
     // second "new" reused the first card's id and overwrote it.
+    //
+    // What this pins: the visit-local `_started` flag in the designer. Revert
+    // that guard — go back to deciding create-mode from `card.id.isEmpty` —
+    // and this test fails. It was briefly blunt while a redundant
+    // `reset()`-after-commit also masked the bug; that call has since been
+    // removed (it read `ref` after an await and blanked the outgoing frame),
+    // which left this test sharp again.
     testWidgets('starting a second new card does not reuse the first',
         (tester) async {
       var nextId = 0;

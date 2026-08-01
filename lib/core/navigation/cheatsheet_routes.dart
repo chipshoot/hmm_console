@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart';
@@ -34,7 +35,14 @@ final cheatsheetRoutes = <RouteBase>[
           GoRoute(
             path: 'edit',
             name: RouterNames.cheatsheetEdit.name,
+            // Keyed by card id so Flutter tears down and rebuilds the
+            // designer's State when the id changes. go_router's *declarative*
+            // page key comes from the path template, not the resolved
+            // parameter, so /cheatsheets/A/edit and /cheatsheets/B/edit share
+            // a key under context.go or browser back/forward — the State
+            // would be reused and keep editing the previous card.
             builder: (context, state) => CheatsheetDesignerScreen(
+              key: ValueKey(state.pathParameters['id']),
               cardId: state.pathParameters['id']!,
             ),
           ),

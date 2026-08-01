@@ -74,6 +74,10 @@ class CheatsheetDetailScreen extends ConsumerWidget {
   /// first — and says plainly that the referenced notes survive, since a card
   /// is a view onto them, not a container for them.
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    // Captured before the await: `ref.read` throws once this widget is
+    // unmounted, and the dialog is an await gap during which that can happen.
+    final cheatsheets = ref.read(cheatsheetsStateProvider.notifier);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -98,7 +102,7 @@ class CheatsheetDetailScreen extends ConsumerWidget {
     if (confirmed != true) return;
 
     try {
-      await ref.read(cheatsheetsStateProvider.notifier).remove(cardId);
+      await cheatsheets.remove(cardId);
     } catch (e) {
       // A delete that silently didn't happen is worse than one that failed
       // loudly — the user walks away believing the card is gone.

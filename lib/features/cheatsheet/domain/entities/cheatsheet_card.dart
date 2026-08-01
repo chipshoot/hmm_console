@@ -82,15 +82,35 @@ class CheatsheetCard {
         other.templateId == templateId &&
         other.protected == protected &&
         _sameList(other.tags, tags) &&
-        _sameList(other.rows, rows);
+        _sameList(other.rows, rows) &&
+        // Part of the value: two cards are not the same card if one carries
+        // rows this version couldn't parse and the other doesn't.
+        _sameMapList(other.unreadableRows, unreadableRows);
+  }
+
+  static bool _sameMapList(
+    List<Map<String, dynamic>> a,
+    List<Map<String, dynamic>> b,
+  ) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].length != b[i].length) return false;
+      for (final entry in a[i].entries) {
+        if (!b[i].containsKey(entry.key) || b[i][entry.key] != entry.value) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   @override
   int get hashCode => Object.hash(id, title, walletGroup, templateId, protected,
-      Object.hashAll(tags), Object.hashAll(rows));
+      Object.hashAll(tags), Object.hashAll(rows), unreadableRows.length);
 
   @override
   String toString() => 'CheatsheetCard(id: $id, title: $title, '
       'walletGroup: $walletGroup, tags: $tags, templateId: $templateId, '
-      'protected: $protected, rows: ${rows.length})';
+      'protected: $protected, rows: ${rows.length}, '
+      'unreadableRows: ${unreadableRows.length})';
 }
