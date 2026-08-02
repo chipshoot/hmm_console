@@ -106,6 +106,8 @@ class CheatsheetDetailScreen extends ConsumerWidget {
     } catch (e) {
       // A delete that silently didn't happen is worse than one that failed
       // loudly — the user walks away believing the card is gone.
+      debugPrint('CheatsheetDetail: deleting card $cardId failed ($e); '
+          'the card is still stored.');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not delete this cheatsheet: $e')),
@@ -187,10 +189,12 @@ class _RowTile extends ConsumerWidget {
   Future<void> _launch(BuildContext context, WidgetRef ref, String text) async {
     try {
       await ref.read(launchActionProvider)(row.valueAction, text);
-    } on Exception catch (_) {
+    } on Exception catch (e) {
       // Exceptions only. A missing handler app is an expected, recoverable
       // outcome worth reporting; an Error is a defect, and showing it as
       // "could not open that" would disguise a bug as a normal failure.
+      debugPrint('CheatsheetDetail: launching ${row.valueAction.name} failed '
+          '($e); showed the user a message.');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open that.')),

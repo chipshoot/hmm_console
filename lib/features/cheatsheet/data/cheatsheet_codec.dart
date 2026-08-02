@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../domain/entities/cheatsheet_card.dart';
 import '../domain/entities/cheatsheet_row.dart';
 import '../domain/entities/cheatsheet_source.dart';
@@ -38,16 +40,21 @@ class CheatsheetCodec {
   static CheatsheetCard fromMap(Map<String, dynamic> m) {
     final rows = <CheatsheetRow>[];
     final unreadable = <Map<String, dynamic>>[];
+    var index = 0;
     for (final e in _list(m['rows'])) {
       try {
         rows.add(_rowFromMap((e as Map).cast<String, dynamic>()));
-      } catch (_) {
+      } catch (err) {
         // Keep, don't drop. One bad row must never lose the whole card — and
         // must not be silently erased by the next save either.
-        if (e is Map) {
-          unreadable.add(e.cast<String, dynamic>());
-        }
+        final kept = e is Map;
+        if (kept) unreadable.add(e.cast<String, dynamic>());
+        debugPrint(
+          'CheatsheetCodec: card ${_str(m['id'])} row $index is unreadable '
+          '($err); ${kept ? 'preserved verbatim and re-saved untouched' : 'dropped — not a map'}.',
+        );
       }
+      index++;
     }
     return CheatsheetCard(
       unreadableRows: unreadable,

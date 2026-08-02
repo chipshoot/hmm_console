@@ -145,6 +145,9 @@ class _CheatsheetDesignerScreenState
     // leave two notes sharing one card id.
     if (_saving) return;
     setState(() => _saving = true);
+    // Captured before the await so the failure log can name the card without
+    // touching `ref` after this screen may have been popped.
+    final cardId = ref.read(cheatsheetEditorProvider).id;
     try {
       await _editor.commit();
       // Deliberately no reset of the editor here. It read `ref` after an
@@ -156,6 +159,8 @@ class _CheatsheetDesignerScreenState
       if (mounted) await Navigator.of(context).maybePop();
     } catch (e) {
       // Losing a card the user just filled in must not look like success.
+      debugPrint('CheatsheetDesigner: saving card $cardId failed ($e); '
+          'nothing was written.');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not save this cheatsheet: $e')),

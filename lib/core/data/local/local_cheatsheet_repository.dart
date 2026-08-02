@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/cheatsheet/data/cheatsheet_codec.dart';
@@ -34,15 +35,24 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
         },
       });
 
-  CheatsheetCard? _deserialize(String? content) {
+  CheatsheetCard? _deserialize(HmmNote? note) {
+    final content = note?.content;
     if (content == null) return null;
     try {
       final data =
           (jsonDecode(content) as Map)['note']?['content']?['Cheatsheet'];
-      return data is Map
-          ? CheatsheetCodec.fromMap(data.cast<String, dynamic>())
-          : null;
-    } catch (_) {
+      if (data is Map) {
+        return CheatsheetCodec.fromMap(data.cast<String, dynamic>());
+      }
+      debugPrint('LocalCheatsheetRepository: note ${note!.id}/${note.uuid} '
+          'has no Cheatsheet payload; omitted from the wallet.');
+      return null;
+    } catch (e) {
+      // The card vanishes from the wallet with nothing on screen to explain
+      // it, so name the note here — otherwise this is undiagnosable without
+      // reproducing it locally.
+      debugPrint('LocalCheatsheetRepository: note ${note!.id}/${note.uuid} '
+          'has unreadable cheatsheet JSON ($e); omitted from the wallet.');
       return null;
     }
   }
@@ -70,10 +80,8 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
   }
 
   @override
-  Future<List<CheatsheetCard>> getCards() async => (await _allNotes())
-      .map((n) => _deserialize(n.content))
-      .whereType<CheatsheetCard>()
-      .toList();
+  Future<List<CheatsheetCard>> getCards() async =>
+      (await _allNotes()).map(_deserialize).whereType<CheatsheetCard>().toList();
 
   /// Finds a card's note by **subject**, not by decoding its content.
   ///
@@ -92,7 +100,7 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
 
   @override
   Future<CheatsheetCard?> getCard(String id) async =>
-      _deserialize((await _noteForCard(id))?.content);
+      _deserialize(await _noteForCard(id));
 
   @override
   Future<CheatsheetCard> saveCard(CheatsheetCard card) async {

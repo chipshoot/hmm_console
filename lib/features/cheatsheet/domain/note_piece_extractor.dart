@@ -12,6 +12,11 @@ import 'dart:convert';
 class NotePieceExtractor {
   /// The inner entity map of the storage envelope
   /// `{"note":{"content":{<Entity>:{...}}}}`.
+  /// Deliberately unlogged: this runs once per field lookup — several times
+  /// per card render — so a malformed note would flood the log on every
+  /// frame. `LocalCheatsheetRepository._deserialize` logs the same class of
+  /// failure once per note, with the note's id and uuid attached, which is
+  /// the diagnosable version.
   static Map<String, dynamic>? _entityMap(String? content) {
     if (content == null) return null;
     try {
