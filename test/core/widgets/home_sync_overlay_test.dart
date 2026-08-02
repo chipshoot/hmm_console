@@ -708,6 +708,109 @@ void main() {
     expect(find.byType(QuickPanelCoachMark), findsOneWidget);
   });
 
+  testWidgets('a visible handle is present even when nothing is at risk',
+      (tester) async {
+    // Discoverability: the panel opens on a long-press of an invisible
+    // hot-zone, and the coach mark is one-shot. Without a resting affordance
+    // the feature is unreachable for anyone who missed or forgot it.
+    final c = SyncController(syncAction: () async => throw StateError('x'));
+    addTearDown(c.dispose);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider
+            .overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        // Nothing pending, no failure: the at-risk dot must NOT show.
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+        quickPanelEnabledProvider
+            .overrideWith(() => _FixedQuickPanelEnabled(true)),
+        quickPanelHintShownProvider
+            .overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: const Stack(children: [HomeSyncOverlay()]),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('quickPanelHandle')), findsOneWidget);
+    expect(find.byKey(const Key('quickPanelAtRiskDot')), findsNothing,
+        reason: 'the at-risk dot still means at-risk, not merely present');
+  });
+
+  testWidgets('tapping the resting handle opens the panel', (tester) async {
+    final c = SyncController(syncAction: () async => throw StateError('x'));
+    addTearDown(c.dispose);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider
+            .overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+        quickPanelEnabledProvider
+            .overrideWith(() => _FixedQuickPanelEnabled(true)),
+        quickPanelHintShownProvider
+            .overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: const Stack(children: [HomeSyncOverlay()]),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('quickPanelHandle')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuickAccessPanel), findsOneWidget);
+  });
+
+  testWidgets('the resting handle does not cover a screen FAB',
+      (tester) async {
+    final c = SyncController(syncAction: () async => throw StateError('x'));
+    addTearDown(c.dispose);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider
+            .overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+        syncControllerProvider.overrideWithValue(c),
+        pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+        quickPanelEnabledProvider
+            .overrideWith(() => _FixedQuickPanelEnabled(true)),
+        quickPanelHintShownProvider
+            .overrideWith(() => _FixedQuickPanelHintShown(true)),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        home: Stack(
+          children: [
+            Scaffold(
+              floatingActionButton: FloatingActionButton(
+                onPressed: () {},
+                child: const Icon(Icons.add),
+              ),
+            ),
+            const HomeSyncOverlay(),
+          ],
+        ),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    final handleRect =
+        tester.getRect(find.byKey(const Key('quickPanelHandle')));
+    final fabRect = tester.getRect(find.byType(FloatingActionButton));
+    expect(handleRect.overlaps(fabRect), isFalse,
+        reason: 'handle $handleRect must clear the FAB $fabRect');
+  });
+
   testWidgets('the pending-sync dot does not cover a screen FAB',
       (tester) async {
     // The dot carries a 48dp tap target. Parked in the bottom-right corner

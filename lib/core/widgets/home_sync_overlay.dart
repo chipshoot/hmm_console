@@ -281,16 +281,25 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
                       lastSyncFailed: status.lastResult != null &&
                           !status.lastResult!.success,
                     );
-                    if (!atRisk) return const SizedBox.shrink();
+                    // Always present, not only when at risk. The panel is
+                    // opened by a long-press on an invisible hot-zone, which
+                    // nobody discovers on their own and the one-shot coach
+                    // mark only ever says once. This is the visible, tappable
+                    // way in; it sits above the FAB so it can be a real tap
+                    // target without stealing the screen's add button.
                     return GestureDetector(
-                      key: const Key('quickPanelAtRiskDot'),
+                      key: Key(
+                        atRisk ? 'quickPanelAtRiskDot' : 'quickPanelHandle',
+                      ),
                       behavior: HitTestBehavior.opaque,
                       onTap: _openPanel,
-                      child: const SizedBox(
+                      child: SizedBox(
                         width: 48,
                         height: 48,
                         child: Center(
-                          child: _AtRiskDotVisual(),
+                          child: atRisk
+                              ? const _AtRiskDotVisual()
+                              : const _IdleHandleVisual(),
                         ),
                       ),
                     );
@@ -330,6 +339,32 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
 /// The visible 12x12 dot for the at-risk indicator. Kept as its own tiny
 /// widget so the enclosing `GestureDetector`/`SizedBox` can enlarge the
 /// TAP TARGET to 48x48 (Finding 2) without inflating the dot's own visual
+/// The resting affordance: quiet enough to ignore on every screen, but
+/// visible enough that the panel is findable without knowing the long-press.
+/// The upward chevron is the hint that something pulls up from here.
+class _IdleHandleVisual extends StatelessWidget {
+  const _IdleHandleVisual();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.7),
+        shape: BoxShape.circle,
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Icon(
+        Icons.keyboard_arrow_up,
+        size: 18,
+        color: cs.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
 /// footprint.
 class _AtRiskDotVisual extends StatelessWidget {
   const _AtRiskDotVisual();
