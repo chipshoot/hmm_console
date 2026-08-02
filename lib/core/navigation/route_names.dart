@@ -31,4 +31,8 @@ enum RouterNames {
   subsystemNotes,
   launcherSearch,
   launcherManage,
+  cheatsheets,
+  cheatsheetCreate,
+  cheatsheetDetail,
+  cheatsheetEdit,
 }
