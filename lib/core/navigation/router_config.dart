@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/navigation/auth_change_provider.dart';
 import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
+import 'package:hmm_console/core/navigation/onboarding_redirect.dart';
 import 'package:hmm_console/core/navigation/route_names.dart';
+import 'package:hmm_console/core/settings/settings_controller.dart';
 import 'package:hmm_console/features/auth/presentation/presentation.dart';
 import 'package:hmm_console/features/dashboard/presentation/presentation.dart';
 import 'package:hmm_console/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -56,18 +58,17 @@ final routerConfig = Provider<GoRouter>(
       // routed to the onboarding screen before they can reach the
       // dashboard. The screen marks the flag itself and goes home on
       // either branch.
-      final onboardingDone = ref.watch(onboardingCompletedProvider);
-      final isOnboardingPath = state.fullPath == '/onboarding';
-      if (isAuthenticated && !onboardingDone && !isOnboardingPath) {
-        return '/onboarding';
-      }
-      // Conversely, if the user lands back on /onboarding after it's
-      // done (e.g. via a deep link), bounce them home — the flow is
-      // one-shot.
-      if (isAuthenticated && onboardingDone && isOnboardingPath) {
-        return '/';
-      }
-      return null;
+      //
+      // The settingsLoaded gate is load-bearing: the flag is read
+      // asynchronously from SharedPreferences, and deciding before it
+      // arrives treated every returning user as new — setup on every
+      // launch. See onboardingRedirect's doc comment.
+      return onboardingRedirect(
+        isAuthenticated: isAuthenticated,
+        settingsLoaded: ref.watch(settingsProvider).hasValue,
+        onboardingCompleted: ref.watch(onboardingCompletedProvider),
+        isOnboardingPath: state.fullPath == '/onboarding',
+      );
     },
     initialLocation: '/',
     routes: [
