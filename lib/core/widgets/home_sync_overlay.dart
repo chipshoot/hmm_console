@@ -207,6 +207,10 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
         !ref.watch(quickPanelHintShownProvider) &&
         ref.watch(settingsProvider).hasValue;
 
+    // Vertical room to leave for a screen's own FloatingActionButton: a
+    // 56dp FAB inset 16dp from the bottom, plus a small gap.
+    const fabClearance = 80.0;
+
     // Positioned.fill so we can host corner children; a bare Stack does not
     // absorb pointer events in empty regions, so taps outside the hot-zone /
     // open panel fall through to content behind.
@@ -250,7 +254,13 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
           if (enabled && !_panelOpen)
             Positioned(
               right: 0,
-              bottom: 0,
+              // Raised clear of a standard FAB. The 56dp hot-zone above can
+              // sit over a FAB harmlessly because it is translucent to plain
+              // taps, but this dot's 48dp target is a real one: left in the
+              // corner it swallowed taps meant for the screen's own add
+              // button (endFloat FABs occupy ~16-72dp from each edge), so
+              // tapping "add" opened the panel instead.
+              bottom: fabClearance,
               child: SafeArea(
                 // Finding 1 dropped the hot-zone's tap-to-open, so this dot
                 // is now the ONLY tap-to-open affordance while data is at

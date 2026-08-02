@@ -3,11 +3,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/widgets/quick_panel/quick_panel_actions_provider.dart';
 
 void main() {
-  test('registry ships Home + Sync in order', () {
+  test('registry ships Home, the global new-actions, then Sync in order', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final actions = container.read(quickPanelActionsProvider);
-    expect(actions.map((a) => a.label).toList(), ['Home', 'Sync']);
+    expect(
+      actions.map((a) => a.label).toList(),
+      ['Home', 'New Note', 'New Gas Log', 'Sync'],
+    );
+  });
+
+  test('the new-actions are simple tap actions with icons', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final actions = container.read(quickPanelActionsProvider);
+
+    for (final label in ['New Note', 'New Gas Log']) {
+      final action = actions.firstWhere((a) => a.label == label);
+      expect(action.isCustom, isFalse, reason: '$label is a simple tile');
+      expect(action.icon, isNotNull);
+      expect(action.onTap, isNotNull);
+    }
   });
 
   test('Home is a simple action; Sync is a custom builder action', () {

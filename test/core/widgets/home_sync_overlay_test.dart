@@ -707,4 +707,58 @@ void main() {
     await tester.pump();
     expect(find.byType(QuickPanelCoachMark), findsOneWidget);
   });
+
+  testWidgets('the pending-sync dot does not cover a screen FAB',
+      (tester) async {
+    // The dot carries a 48dp tap target. Parked in the bottom-right corner
+    // it sat on top of the screen's own add button, so tapping "add" opened
+    // the quick panel instead. The 56dp hot-zone may overlap a FAB — it is
+    // translucent to plain taps by design — but this one must not.
+    // A failed auto-sync sets lastResult.success == false, which is what
+    // satisfies shouldPromptPendingSync and renders the dot at all.
+    final controller = SyncController(syncAction: () async => throw StateError('x'));
+    addTearDown(controller.dispose);
+    await controller.triggerAutoSync(SyncTriggerReason.periodic);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dataModeProvider
+              .overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+          syncControllerProvider.overrideWithValue(controller),
+          pendingSyncCountProvider.overrideWith((ref) => Stream.value(3)),
+          quickPanelEnabledProvider
+              .overrideWith(() => _FixedQuickPanelEnabled(true)),
+          quickPanelHintShownProvider
+              .overrideWith(() => _FixedQuickPanelHintShown(true)),
+        ],
+        child: MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          home: Stack(
+            children: [
+              Scaffold(
+                floatingActionButton: FloatingActionButton(
+                  onPressed: () {},
+                  child: const Icon(Icons.add),
+                ),
+              ),
+              const HomeSyncOverlay(),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    // The 48dp tap target, not the 12dp visual — the target is what stole
+    // taps from the FAB.
+    final dot = find.byKey(const Key('quickPanelAtRiskDot'));
+    expect(dot, findsOneWidget, reason: 'pending changes make the dot visible');
+
+    final fabRect = tester.getRect(find.byType(FloatingActionButton));
+    final dotRect = tester.getRect(dot);
+    expect(dotRect.overlaps(fabRect), isFalse,
+        reason: 'dot $dotRect must clear the FAB $fabRect');
+  });
 }
