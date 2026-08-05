@@ -9,6 +9,7 @@ import '../../../features/settings/domain/syncable_settings.dart';
 import '../../../features/settings/providers/settings_bus_provider.dart';
 import '../data_mode.dart';
 import '../local/database.dart';
+import '../../auth/current_author_account_name_provider.dart';
 import '../local/local_tag_repository.dart';
 import 'api_sync_provider.dart';
 import 'cloud_sync_provider.dart';
@@ -41,11 +42,13 @@ class SyncOrchestrator {
     required Future<IVaultStore> Function() vaultStore,
     SyncableSettingsRepository? settingsRepo,
     void Function()? onSettingsApplied,
+    Future<int> Function()? currentAuthorId,
   })  : _db = db,
         _meta = meta,
         _vaultStore = vaultStore,
         _settingsRepo = settingsRepo ?? SyncableSettingsRepository(),
         _onSettingsApplied = onSettingsApplied,
+        _currentAuthorId = currentAuthorId,
         _tagRepo = LocalTagRepository(db);
 
   /// Null when the current DataMode is Local — no sync.
@@ -55,6 +58,11 @@ class SyncOrchestrator {
   final SyncMetaRepository _meta;
   final Future<IVaultStore> Function() _vaultStore;
   final SyncableSettingsRepository _settingsRepo;
+
+  /// Resolves the signed-in user's author row id — the same author every
+  /// read in `LocalHmmNoteRepository` filters by. Null only in tests that
+  /// don't care about ownership.
+  final Future<int> Function()? _currentAuthorId;
   final LocalTagRepository _tagRepo;
 
   /// Fires after a remote settings bundle is applied to local prefs.
@@ -446,7 +454,25 @@ class SyncOrchestrator {
     await _tagRepo.setTagsForNote(childId, tagNames);
   }
 
+  /// The author a pulled note belongs to.
+  ///
+  /// This MUST be the signed-in user's author. Every read in
+  /// `LocalHmmNoteRepository` filters `authorId == currentAuthor.id`, while
+  /// `_buildManifest` reads every row regardless of author — so attaching a
+  /// pull to the wrong author makes the notes invisible in the app while
+  /// still being counted in the manifest pushed back to the cloud. The
+  /// symptom is a user whose notes "vanish" after a reinstall even though
+  /// sync reports success and the cloud copy is intact.
+  ///
+  /// The old fallback — "whichever author row is first, else invent
+  /// `local-user`" — did exactly that whenever a sync ran before sign-in
+  /// had created the real author row.
   Future<int> _defaultAuthorId() async {
+    final resolve = _currentAuthorId;
+    if (resolve != null) return resolve();
+
+    // No resolver supplied (tests only). Keep the legacy behaviour rather
+    // than failing, but never prefer it in production wiring.
     final any = await (_db.select(_db.authors)..limit(1)).getSingleOrNull();
     if (any != null) return any.id;
     return _db.into(_db.authors).insert(
@@ -815,6 +841,11 @@ final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
     meta: meta,
     vaultStore: () => ref.read(vaultStoreProvider.future),
     settingsRepo: ref.watch(syncableSettingsRepositoryProvider),
+    // Pulled notes must land on the signed-in user's author, the same one
+    // LocalHmmNoteRepository filters every read by. Resolved lazily: sync
+    // can start before the author future has settled.
+    currentAuthorId: () async =>
+        (await ref.read(currentAuthorProvider.future)).id,
     // After a pulled settings bundle is applied to prefs, bump the
     // bus so the per-feature settings notifiers reload from disk and
     // the UI reflects the new values immediately.
