@@ -137,14 +137,8 @@ class GasLogListScreen extends ConsumerWidget {
               );
             },
           ),
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: () => context.push('/gas-logs/new'),
-              child: const Icon(Icons.add),
-            ),
-          ),
+          // No FAB: creating a gas log now lives in the Quick Access Panel,
+          // which surfaces "New Gas Log" while you're on this screen.
         ],
       ),
     );

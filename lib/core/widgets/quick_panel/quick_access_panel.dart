@@ -10,14 +10,24 @@ import 'quick_panel_actions_provider.dart';
 /// actions render as icon+label tiles that run their onTap then call
 /// onDismiss; custom actions embed their builder widget as-is.
 class QuickAccessPanel extends ConsumerWidget {
-  const QuickAccessPanel({required this.onDismiss, super.key});
+  const QuickAccessPanel({
+    required this.onDismiss,
+    required this.routePath,
+    super.key,
+  });
 
   final VoidCallback onDismiss;
+
+  /// Location the panel was opened over, which decides its contents. Passed
+  /// in rather than read here: this widget sits above the Router and has no
+  /// GoRouter ancestor, and taking it as a parameter keeps the panel
+  /// testable without standing one up.
+  final String routePath;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final actions = ref.watch(quickPanelActionsProvider);
+    final actions = ref.watch(quickPanelActionsProvider(routePath));
     return Material(
       color: cs.surface.withValues(alpha: 0.75), // half-transparent
       elevation: 6,

@@ -10,9 +10,13 @@ Future<void> _pump(WidgetTester tester,
     required VoidCallback onDismiss}) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [quickPanelActionsProvider.overrideWithValue(actions)],
+      overrides: [
+        quickPanelActionsProvider.overrideWith((ref, path) => actions),
+      ],
       child: MaterialApp(
-        home: Scaffold(body: QuickAccessPanel(onDismiss: onDismiss)),
+        home: Scaffold(
+          body: QuickAccessPanel(onDismiss: onDismiss, routePath: '/notes'),
+        ),
       ),
     ),
   );

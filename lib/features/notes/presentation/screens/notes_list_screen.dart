@@ -79,10 +79,8 @@ class NotesListScreen extends ConsumerWidget {
           onPressed: () => context.push('/notes/subsystems'),
         ),
       ],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/notes/new'),
-        child: const Icon(Icons.add),
-      ),
+      // No FAB: creating a note now lives in the Quick Access Panel, which
+      // surfaces "New Note" while you're on this screen.
       slivers: async.when<List<Widget>>(
         loading: () => const [
           SliverFillRemaining(child: Center(child: CircularProgressIndicator())),

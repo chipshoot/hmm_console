@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/sync/pending_sync_count_provider.dart';
 import '../data/sync/pending_sync_prompt.dart';
 import '../data/sync/sync_controller.dart';
+import '../navigation/router.dart';
 import '../navigation/router_config.dart' show rootNavigatorKey;
 import '../settings/settings_controller.dart' show settingsProvider;
 import '../../features/settings/presentation/widgets/sync_status_card.dart'
@@ -321,7 +322,17 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
                 // anchor to the panel's own intrinsic width instead of
                 // touching QuickAccessPanel itself.
                 child: IntrinsicWidth(
-                  child: QuickAccessPanel(onDismiss: _closePanel),
+                  child: QuickAccessPanel(
+                    onDismiss: _closePanel,
+                    // Read off the router instance, not GoRouterState.of() —
+                    // this overlay has no GoRouter ancestor.
+                    routePath: ref
+                        .read(AppRouter.config)
+                        .routeInformationProvider
+                        .value
+                        .uri
+                        .path,
+                  ),
                 ),
               ),
             ),
