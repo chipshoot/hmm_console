@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../attachments/attachment_providers.dart';
@@ -92,6 +93,19 @@ class SyncOrchestrator {
     final errors = <SyncError>[];
     int pulledNotes = 0;
     int pushedNotes = 0;
+
+    // -------- 0. Adopt notes stranded on another author --------
+    // Repair for rows written before the pull attached notes to the
+    // signed-in author. Those rows are unreachable: every read filters
+    // `authorId == currentAuthor.id`, so they render nowhere — yet
+    // `_maybePullNote`'s last-write-wins check sees them as present and
+    // declines to re-pull, so nothing ever corrects them on its own.
+    //
+    // Adoption is safe here because this install has exactly one usable
+    // author: notes owned by any other row are permanently invisible, so
+    // moving them to the current author can only make data reachable,
+    // never hide it.
+    await _adoptOrphanedNotes(errors);
 
     // -------- 0a. Migrate legacy OneDrive layout if needed --------
     // OneDrive used to write notes at `approot/notes/{id}.json` (single
@@ -452,6 +466,34 @@ class SyncOrchestrator {
         (body['tags'] as List?)?.whereType<String>().toList() ??
             const <String>[];
     await _tagRepo.setTagsForNote(childId, tagNames);
+  }
+
+  /// Move notes owned by any other author onto the signed-in one.
+  ///
+  /// Returns the number of rows adopted. Never throws out of sync: a repair
+  /// failing should not block the real work, so it records an error and
+  /// carries on.
+  Future<int> _adoptOrphanedNotes(List<SyncError> errors) async {
+    final resolve = _currentAuthorId;
+    if (resolve == null) return 0; // tests without a signed-in identity
+    try {
+      final authorId = await resolve();
+      final adopted = await (_db.update(_db.notes)
+            ..where((n) => n.authorId.equals(authorId).not()))
+          .write(NotesCompanion(authorId: Value(authorId)));
+      if (adopted > 0) {
+        debugPrint('SyncOrchestrator: adopted $adopted note(s) stranded on '
+            'another author; they were invisible to every query.');
+      }
+      return adopted;
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'note',
+        recordId: 'author-adoption',
+        message: 'Could not adopt orphaned notes (continuing): $e',
+      ));
+      return 0;
+    }
   }
 
   /// The author a pulled note belongs to.

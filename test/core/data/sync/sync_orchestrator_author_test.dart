@@ -9,6 +9,7 @@
 // local-user") did exactly that whenever a sync ran before sign-in had created
 // the real author row.
 
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
@@ -120,6 +121,43 @@ void main() {
     expect(note!.authorId, signedIn.id,
         reason: 'anything else and the app renders an empty list while the '
             'manifest still counts this note');
+  });
+
+  test('adopts notes already stranded on another author', () async {
+    // The live incident: a pull on an older build attached notes to the
+    // wrong author. They render nowhere, and _maybePullNote's LWW check
+    // sees them as present and declines to re-pull — so the insert-side
+    // fix alone never reaches them. Only an explicit repair does.
+    final stale = await (db.select(db.authors)
+          ..where((a) => a.accountName.equals('local-user')))
+        .getSingle();
+    final signedIn = await (db.select(db.authors)
+          ..where((a) => a.accountName.equals('signed-in-user')))
+        .getSingle();
+
+    await db.into(db.notes).insert(NotesCompanion.insert(
+          subject: 'stranded before the fix',
+          authorId: stale.id,
+          uuid: const Value('old-note'),
+          createDate: Value(at),
+          lastModifiedDate: Value(at),
+        ));
+
+    await SyncOrchestrator(
+      provider: provider,
+      db: db,
+      meta: SyncMetaRepository(),
+      vaultStore: noopVaultStore,
+      currentAuthorId: () async => signedIn.id,
+    ).syncNow();
+
+    final adopted = await (db.select(db.notes)
+          ..where((n) => n.uuid.equals('old-note')))
+        .getSingle();
+    expect(adopted.authorId, signedIn.id,
+        reason: 'an orphaned row must be reachable again, not left invisible');
+    expect(adopted.subject, 'stranded before the fix',
+        reason: 'adoption changes ownership only, never content');
   });
 
   test('no stray local-user author is invented when a resolver is supplied',
