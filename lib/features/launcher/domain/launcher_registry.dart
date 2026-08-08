@@ -72,6 +72,21 @@ const List<LauncherDestination> launcherDestinations = [
     routeName: 'gasStationManagement',
   ),
   LauncherDestination(
+    id: 'cheatsheets',
+    title: 'Cheatsheets',
+    synonyms: [
+      'cheatsheet',
+      'cheat sheet',
+      'card',
+      'cards',
+      'wallet',
+      'quick reference',
+      'reference',
+    ],
+    icon: Icons.style_outlined,
+    routeName: 'cheatsheets',
+  ),
+  LauncherDestination(
     id: 'settings',
     title: 'Settings',
     synonyms: ['settings', 'preferences', 'config', 'options'],
