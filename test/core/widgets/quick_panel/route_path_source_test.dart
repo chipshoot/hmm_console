@@ -17,20 +17,20 @@ void main() {
   GoRouter buildRouter() => GoRouter(
         initialLocation: '/',
         routes: [
-          GoRoute(path: '/', builder: (_, __) => const Text('home')),
-          GoRoute(path: '/notes', builder: (_, __) => const Text('notes')),
-          GoRoute(path: '/gas-logs', builder: (_, __) => const Text('gas')),
+          GoRoute(path: '/', builder: (_, _) => const Text('home')),
+          GoRoute(path: '/notes', builder: (_, _) => const Text('notes')),
+          GoRoute(path: '/gas-logs', builder: (_, _) => const Text('gas')),
           GoRoute(
             path: '/automobiles',
-            builder: (_, __) => const Text('autos'),
+            builder: (_, _) => const Text('autos'),
             routes: [
               GoRoute(
                 path: 'manage',
-                builder: (_, __) => const Text('manage'),
+                builder: (_, _) => const Text('manage'),
                 routes: [
                   GoRoute(
                     path: ':id/services',
-                    builder: (_, __) => const Text('services'),
+                    builder: (_, _) => const Text('services'),
                   ),
                 ],
               ),

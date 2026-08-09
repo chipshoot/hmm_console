@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/widgets/quick_panel/quick_panel_actions_provider.dart';
@@ -136,6 +137,32 @@ void main() {
       expect(quickPanelCreateTargetFor('/gas-stations'), isNull);
       expect(quickPanelCreateTargetFor('/notes/new'), isNull);
     });
+  });
+
+  test('each create action carries its OWN icon', () {
+    // Swapping two icons in the 7-row rule table previously survived every
+    // test — 'isNotNull' is not an identity check, and the table is seven
+    // near-identical lines where a copy-paste slip is exactly the mistake
+    // you would make.
+    IconData iconFor(String path, String label) => quickPanelActionsFor(path)
+        .firstWhere((a) => a.label == label)
+        .icon!;
+
+    expect(iconFor('/notes', 'New Note'), Icons.note_add_outlined);
+    expect(iconFor('/gas-logs', 'New Gas Log'),
+        Icons.local_gas_station_outlined);
+    expect(iconFor('/cheatsheets', 'New Cheatsheet'), Icons.style_outlined);
+    expect(iconFor('/automobiles/manage', 'New Vehicle'),
+        Icons.directions_car_outlined);
+    expect(iconFor('/automobiles/manage/7/services', 'New Service'),
+        Icons.build_outlined);
+    expect(iconFor('/automobiles/manage/7/insurance', 'New Policy'),
+        Icons.shield_outlined);
+    expect(
+        iconFor('/automobiles/manage/7/scheduled-services',
+            'New Scheduled Service'),
+        Icons.event_outlined);
+    expect(iconFor('/notes', 'Home'), Icons.home_outlined);
   });
 
   test('the provider returns the same list as the pure rule', () {

@@ -52,6 +52,26 @@ const _createRules = <_CreateRule>[
       Icons.directions_car_outlined),
 ];
 
+/// Patterns compiled once. Previously each lookup built a fresh [RegExp] per
+/// rule, and did it twice — once to derive the target, once more to recover
+/// the matched rule's label and icon.
+final _compiledRules = [
+  for (final rule in _createRules) (re: RegExp(rule.pattern), rule: rule),
+];
+
+/// Single pass: the matched rule and its target together, so callers never
+/// re-scan the table.
+({String target, _CreateRule rule})? _createFor(String path) {
+  // On a create screen the action would push a second editor on top of the
+  // one you are already filling in, so drop it there.
+  if (path.endsWith('/new')) return null;
+  for (final compiled in _compiledRules) {
+    final m = compiled.re.firstMatch(path);
+    if (m != null) return (target: '${m.group(1)}/new', rule: compiled.rule);
+  }
+  return null;
+}
+
 /// The route the create action pushes from [path], or null if this screen
 /// has no create.
 ///
@@ -60,26 +80,14 @@ const _createRules = <_CreateRule>[
 /// so the target is unreachable through the action itself. It is also the
 /// part most easily got wrong — deriving it from the full path instead of
 /// the captured list prefix yields `/notes/42/new`, which is not a route.
-String? quickPanelCreateTargetFor(String path) {
-  // On a create screen the action would push a second editor on top of the
-  // one you are already filling in, so drop it there.
-  if (path.endsWith('/new')) return null;
-  for (final rule in _createRules) {
-    final m = RegExp(rule.pattern).firstMatch(path);
-    if (m != null) return '${m.group(1)}/new';
-  }
-  return null;
-}
+String? quickPanelCreateTargetFor(String path) => _createFor(path)?.target;
 
 List<QuickPanelAction> quickPanelActionsFor(String path) {
   final isHome = path == '/';
 
-  final createTarget = quickPanelCreateTargetFor(path);
-  _CreateRule? create;
-  if (createTarget != null) {
-    create = _createRules
-        .firstWhere((r) => RegExp(r.pattern).hasMatch(path));
-  }
+  final found = _createFor(path);
+  final create = found?.rule;
+  final createTarget = found?.target;
 
   return [
     if (!isHome)
@@ -107,8 +115,13 @@ List<QuickPanelAction> quickPanelActionsFor(String path) {
 /// Panel contents for [path]. Keyed by route so moving between screens
 /// rebuilds the list; the panel resolves the current path from the router,
 /// which it can do without a GoRouter ancestor.
+///
+/// autoDispose: the family is keyed on the route path, which carries record
+/// ids (`/notes/42`, `/automobiles/manage/7/services`). Without it every
+/// distinct path the panel is ever opened over stays cached for the life of
+/// the session — unbounded growth on unbounded input.
 final quickPanelActionsProvider =
-    Provider.family<List<QuickPanelAction>, String>(
+    Provider.autoDispose.family<List<QuickPanelAction>, String>(
   (ref, path) => quickPanelActionsFor(path),
 );
 

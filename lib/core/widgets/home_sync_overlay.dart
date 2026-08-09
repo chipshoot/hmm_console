@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/sync/pending_sync_count_provider.dart';
 import '../data/sync/pending_sync_prompt.dart';
@@ -64,10 +65,18 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
   /// `stop()`ed via `ref.onDispose`, never notified again).
   late SyncController _controller;
 
+  /// The router we are currently listening to, or null when the panel is
+  /// closed. Bound lazily on open rather than in [initState]: reading
+  /// [AppRouter.config] eagerly would force every screen — and every test
+  /// that mounts this overlay — to construct the real router, which needs
+  /// the database.
+  GoRouter? _listenedRouter;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
     // Initial bind — `ref.listen` (in `build`) only fires on CHANGE, not
     // for the provider's current value, so the first instance must be
     // wired up here.
@@ -77,6 +86,7 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
 
   @override
   void dispose() {
+    _listenedRouter?.routerDelegate.removeListener(_onRouteChanged);
     _controller.removeListener(_onControllerChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -98,6 +108,14 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
   /// armed, so it's a no-op outside the background-prompt window.
   void _onControllerChanged() {
     if (_armedForBackgroundPrompt) _maybePrompt();
+  }
+
+  /// Close the panel when the route changes underneath it. Closing rather
+  /// than recomputing: the panel is transient, and after a back gesture the
+  /// user's intent was to leave the screen, not to keep a floating menu
+  /// open over a different one.
+  void _onRouteChanged() {
+    if (_panelOpen) _closePanel();
   }
 
   void _maybePrompt() {
@@ -148,9 +166,22 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
     ).then((_) => _promptShowing = false);
   }
 
-  void _openPanel() => setState(() => _panelOpen = true);
+  /// The panel's contents are computed for the route it was opened over.
+  /// This overlay is a SIBLING of the routed subtree (main.dart's
+  /// MaterialApp.router builder), so it does NOT rebuild on navigation —
+  /// without this listener, an OS back gesture or an auth redirect while the
+  /// panel is open leaves stale actions on screen (e.g. "New Note" after
+  /// popping back to Home).
+  void _openPanel() {
+    final router = ref.read(AppRouter.config);
+    router.routerDelegate.addListener(_onRouteChanged);
+    _listenedRouter = router;
+    setState(() => _panelOpen = true);
+  }
 
   void _closePanel() {
+    _listenedRouter?.routerDelegate.removeListener(_onRouteChanged);
+    _listenedRouter = null;
     if (_panelOpen) setState(() => _panelOpen = false);
   }
 

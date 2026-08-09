@@ -14,6 +14,8 @@ import 'package:hmm_console/core/widgets/quick_panel/quick_panel_coach_mark.dart
 import 'package:hmm_console/core/widgets/quick_panel/quick_panel_settings.dart';
 import 'package:hmm_console/core/settings/app_settings.dart';
 import 'package:hmm_console/core/settings/settings_controller.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hmm_console/core/navigation/router.dart' show AppRouter;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FixedDataMode extends DataModeNotifier {
@@ -863,5 +865,111 @@ void main() {
     final dotRect = tester.getRect(dot);
     expect(dotRect.overlaps(fabRect), isFalse,
         reason: 'dot $dotRect must clear the FAB $fabRect');
+  });
+
+  group('route wiring — the seam nothing else covered', () {
+    // Both halves of the screen-aware panel were tested in isolation
+    // (currentRoutePath in route_path_source_test.dart, the rule table in
+    // quick_panel_actions_provider_test.dart) and the panel STILL showed the
+    // wrong actions everywhere, because nothing tested that one feeds the
+    // other. An audit confirmed the gap survived the fix: hardcoding the
+    // overlay's routePath back to '/' left all 22 tests passing.
+    //
+    // These use the REAL quickPanelActionsProvider — no override — so they
+    // break if any link in the chain does.
+    GoRouter buildRouter() => GoRouter(
+          initialLocation: '/',
+          routes: [
+            GoRoute(
+                path: '/',
+                builder: (_, _) => const Scaffold(body: Text('home'))),
+            GoRoute(
+                path: '/notes',
+                builder: (_, _) => const Scaffold(body: Text('notes'))),
+            GoRoute(
+                path: '/gas-logs',
+                builder: (_, _) => const Scaffold(body: Text('gas'))),
+          ],
+        );
+
+    Future<void> pumpApp(WidgetTester tester, GoRouter router) async {
+      final c = _idleController();
+      addTearDown(c.dispose);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          dataModeProvider
+              .overrideWith(() => _FixedDataMode(DataMode.cloudStorage)),
+          syncControllerProvider.overrideWithValue(c),
+          pendingSyncCountProvider.overrideWith((ref) => Stream.value(0)),
+          quickPanelEnabledProvider
+              .overrideWith(() => _FixedQuickPanelEnabled(true)),
+          quickPanelHintShownProvider
+              .overrideWith(() => _FixedQuickPanelHintShown(true)),
+          AppRouter.config.overrideWithValue(router),
+        ],
+        // Mirrors main.dart: the overlay is a SIBLING of the routed subtree,
+        // which is exactly why it cannot see route changes on its own.
+        child: MaterialApp.router(
+          routerConfig: router,
+          builder: (context, child) =>
+              Stack(children: [child!, const HomeSyncOverlay()]),
+        ),
+      ));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openPanel(WidgetTester tester) async {
+      final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+      await tester.longPressAt(Offset(size.width - 20, size.height - 20));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('at home: no Home action, no create action', (tester) async {
+      await pumpApp(tester, buildRouter());
+      await openPanel(tester);
+      expect(find.byType(QuickAccessPanel), findsOneWidget);
+      expect(find.text('Home'), findsNothing);
+      expect(find.text('New Note'), findsNothing);
+    });
+
+    testWidgets('pushed /notes: panel offers New Note', (tester) async {
+      final router = buildRouter();
+      await pumpApp(tester, router);
+      router.push('/notes');
+      await tester.pumpAndSettle();
+      await openPanel(tester);
+
+      // The original bug failed exactly here: push() does not move
+      // go_router's location, so a location-derived path reads '/'.
+      expect(find.text('New Note'), findsOneWidget);
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('New Gas Log'), findsNothing);
+    });
+
+    testWidgets('pushed /gas-logs: panel offers New Gas Log', (tester) async {
+      final router = buildRouter();
+      await pumpApp(tester, router);
+      router.push('/gas-logs');
+      await tester.pumpAndSettle();
+      await openPanel(tester);
+      expect(find.text('New Gas Log'), findsOneWidget);
+      expect(find.text('New Note'), findsNothing);
+    });
+
+    testWidgets('panel closes when the route changes underneath it',
+        (tester) async {
+      final router = buildRouter();
+      await pumpApp(tester, router);
+      router.push('/notes');
+      await tester.pumpAndSettle();
+      await openPanel(tester);
+      expect(find.text('New Note'), findsOneWidget);
+
+      // An OS back gesture pops the navigator without touching the panel.
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.byType(QuickAccessPanel), findsNothing,
+          reason: 'panel kept actions for a screen the user has left');
+    });
   });
 }

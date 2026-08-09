@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 /// The path of the screen the user is actually looking at.
@@ -18,8 +19,23 @@ import 'package:go_router/go_router.dart';
 /// `matchedLocation` is the concrete path with parameters filled in
 /// (e.g. `/automobiles/manage/7/services`) — which is what the panel needs
 /// to build a vehicle-scoped create action.
+/// Uses [RouteMatchList.last], go_router's own "last leaf" getter, rather
+/// than `.matches.last`. They differ once a ShellRoute exists: the raw list's
+/// last element is then the `ShellRouteMatch`, whose `matchedLocation` is the
+/// shell's location, not the child screen's — which would reintroduce this
+/// same bug wearing a different hat. There is no ShellRoute in the app today;
+/// this keeps it from becoming a landmine if one is added.
 String currentRoutePath(GoRouter router) {
-  final matches = router.routerDelegate.currentConfiguration.matches;
-  if (matches.isEmpty) return '/';
-  return matches.last.matchedLocation;
+  final config = router.routerDelegate.currentConfiguration;
+  if (config.isEmpty) {
+    // Not a real "user is at home" state — route resolution produced
+    // nothing, and the panel will render the home action set as though it
+    // had. Log rather than assert: a router with no matches is a normal
+    // setup in widget tests that mount the overlay without one, so crashing
+    // debug builds over it would be wrong.
+    debugPrint('currentRoutePath: GoRouter reported no matches; '
+        'falling back to "/" (panel will show the home actions)');
+    return '/';
+  }
+  return config.last.matchedLocation;
 }
