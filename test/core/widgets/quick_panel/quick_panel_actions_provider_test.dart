@@ -25,7 +25,33 @@ void main() {
 
     test('create actions follow their subtree', () {
       expect(labelsFor('/notes/42'), contains('New Note'));
-      expect(labelsFor('/gas-logs/new'), contains('New Gas Log'));
+      expect(labelsFor('/gas-logs/17'), contains('New Gas Log'));
+    });
+
+    test('the create screen itself drops the create action', () {
+      // Previously '/gas-logs/new' still offered "New Gas Log", which would
+      // push a second editor on top of the one being filled in.
+      expect(labelsFor('/gas-logs/new'), ['Home', 'Sync']);
+      expect(labelsFor('/notes/new'), ['Home', 'Sync']);
+    });
+
+    test('every other list screen gets its own create', () {
+      expect(labelsFor('/cheatsheets'), ['Home', 'New Cheatsheet', 'Sync']);
+      expect(labelsFor('/automobiles/manage'),
+          ['Home', 'New Vehicle', 'Sync']);
+      expect(labelsFor('/automobiles/manage/7/services'),
+          ['Home', 'New Service', 'Sync']);
+      expect(labelsFor('/automobiles/manage/7/insurance'),
+          ['Home', 'New Policy', 'Sync']);
+      expect(labelsFor('/automobiles/manage/7/scheduled-services'),
+          ['Home', 'New Scheduled Service', 'Sync']);
+    });
+
+    test('a vehicle-scoped rule beats the bare vehicle rule', () {
+      // Rule order is load-bearing: '/automobiles/manage' would otherwise
+      // swallow every screen beneath it and offer "New Vehicle" on all.
+      expect(labelsFor('/automobiles/manage/7/services'),
+          isNot(contains('New Vehicle')));
     });
 
     test('a lookalike path does not trigger a create action', () {
@@ -71,6 +97,45 @@ void main() {
       expect(action.icon, isNotNull);
       expect(action.onTap, isNotNull);
     }
+  });
+
+  group('create target', () {
+    test('list screens push their own new route', () {
+      expect(quickPanelCreateTargetFor('/notes'), '/notes/new');
+      expect(quickPanelCreateTargetFor('/gas-logs'), '/gas-logs/new');
+      expect(quickPanelCreateTargetFor('/cheatsheets'), '/cheatsheets/new');
+    });
+
+    test('a detail screen pushes the LIST create, not path + /new', () {
+      // The bug this guards: deriving from the full path gives
+      // '/notes/42/new', which is not a route in the app.
+      expect(quickPanelCreateTargetFor('/notes/42'), '/notes/new');
+      expect(quickPanelCreateTargetFor('/gas-logs/17'), '/gas-logs/new');
+    });
+
+    test('vehicle-scoped creates keep the concrete vehicle id', () {
+      expect(quickPanelCreateTargetFor('/automobiles/manage/7/services'),
+          '/automobiles/manage/7/services/new');
+      expect(quickPanelCreateTargetFor('/automobiles/manage/12/insurance'),
+          '/automobiles/manage/12/insurance/new');
+      expect(
+          quickPanelCreateTargetFor(
+              '/automobiles/manage/3/scheduled-services'),
+          '/automobiles/manage/3/scheduled-services/new');
+    });
+
+    test('an edit screen pushes the list create, not a nested one', () {
+      expect(
+          quickPanelCreateTargetFor('/automobiles/manage/7/services/99/edit'),
+          '/automobiles/manage/7/services/new');
+    });
+
+    test('screens with no create return null', () {
+      expect(quickPanelCreateTargetFor('/'), isNull);
+      expect(quickPanelCreateTargetFor('/settings'), isNull);
+      expect(quickPanelCreateTargetFor('/gas-stations'), isNull);
+      expect(quickPanelCreateTargetFor('/notes/new'), isNull);
+    });
   });
 
   test('the provider returns the same list as the pure rule', () {

@@ -9,6 +9,7 @@ import '../navigation/router_config.dart' show rootNavigatorKey;
 import '../settings/settings_controller.dart' show settingsProvider;
 import '../../features/settings/presentation/widgets/sync_status_card.dart'
     show confirmManualSyncIfOnCellular;
+import 'quick_panel/current_route_path.dart';
 import 'quick_panel/quick_access_panel.dart';
 import 'quick_panel/quick_panel_coach_mark.dart';
 import 'quick_panel/quick_panel_settings.dart';
@@ -326,12 +327,13 @@ class _HomeSyncOverlayState extends ConsumerState<HomeSyncOverlay>
                     onDismiss: _closePanel,
                     // Read off the router instance, not GoRouterState.of() —
                     // this overlay has no GoRouter ancestor.
-                    routePath: ref
-                        .read(AppRouter.config)
-                        .routeInformationProvider
-                        .value
-                        .uri
-                        .path,
+                    //
+                    // NOT .routeInformationProvider.value.uri.path: that
+                    // reports the location, which go_router does not move on
+                    // an imperative push(). Since this app pushes everywhere,
+                    // it read "/" on every screen and the panel showed the
+                    // home action set throughout. See currentRoutePath.
+                    routePath: currentRoutePath(ref.read(AppRouter.config)),
                   ),
                 ),
               ),
