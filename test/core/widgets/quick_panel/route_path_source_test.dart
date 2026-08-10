@@ -46,11 +46,16 @@ void main() {
     return router;
   }
 
+  // The next three pass against the OLD, buggy implementation too — go()
+  // and pop() move the location, so both readings agree. Kept as smoke
+  // tests; they are NOT regression cover for the push() bug. The tests
+  // that actually bite are the push() ones below.
   testWidgets('reports / at home', (tester) async {
     final router = await pump(tester);
     expect(currentRoutePath(router), '/');
   });
 
+  // These DO fail against the old implementation — verified.
   testWidgets('sees a pushed route (the actual bug)', (tester) async {
     final router = await pump(tester);
     router.push('/notes');

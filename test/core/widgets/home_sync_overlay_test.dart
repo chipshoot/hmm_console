@@ -884,8 +884,15 @@ void main() {
                 path: '/',
                 builder: (_, _) => const Scaffold(body: Text('home'))),
             GoRoute(
-                path: '/notes',
-                builder: (_, _) => const Scaffold(body: Text('notes'))),
+              path: '/notes',
+              builder: (_, _) => const Scaffold(body: Text('notes')),
+              routes: [
+                GoRoute(
+                    path: 'new',
+                    builder: (_, _) =>
+                        const Scaffold(body: Text('note editor'))),
+              ],
+            ),
             GoRoute(
                 path: '/gas-logs',
                 builder: (_, _) => const Scaffold(body: Text('gas'))),
@@ -954,6 +961,39 @@ void main() {
       await openPanel(tester);
       expect(find.text('New Gas Log'), findsOneWidget);
       expect(find.text('New Note'), findsNothing);
+    });
+
+    testWidgets('tapping the create action actually navigates', (tester) async {
+      // The last untested link: quickPanelCreateTargetFor proves the STRING
+      // is right, but nothing proved onTap fires or that it calls push with
+      // it. A .push -> .go mutation, or a stale captured target, passed
+      // every other test in the suite.
+      final router = buildRouter();
+      await pumpApp(tester, router);
+      router.push('/notes');
+      await tester.pumpAndSettle();
+      await openPanel(tester);
+
+      await tester.tap(find.text('New Note'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('note editor'), findsOneWidget,
+          reason: 'tap did not reach /notes/new');
+      // push, not go. canPop() does NOT distinguish them — go('/notes/new')
+      // also builds a poppable [/notes, /notes/new] stack, and a mutation to
+      // .go survived an earlier version of this assertion. What differs is
+      // the depth: push keeps the screens you came through, so popping twice
+      // returns to Home; go rebuilds the stack from the path and bottoms out
+      // at /notes.
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('notes'), findsOneWidget);
+      expect(router.canPop(), isTrue,
+          reason: 'navigated with go(): the stack was rebuilt from the path, '
+              'discarding the screens the user came through');
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('home'), findsOneWidget);
     });
 
     testWidgets('panel closes when the route changes underneath it',

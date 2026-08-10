@@ -23,6 +23,13 @@ Future<void> _pump(WidgetTester tester,
   await tester.pump();
 }
 
+/// NOTE ON SCOPE: every test here OVERRIDES quickPanelActionsProvider and
+/// passes a hardcoded routePath. That makes these rendering tests for
+/// QuickAccessPanel alone — they deliberately stub out the rule engine and
+/// the route resolution, so they can never catch a wrong-actions-for-this-
+/// screen bug. That gap is exactly how the "Sync only, everywhere" bug
+/// shipped. Real end-to-end cover lives in the 'route wiring' group in
+/// test/core/widgets/home_sync_overlay_test.dart.
 void main() {
   testWidgets('renders one tile per registry action, in order',
       (tester) async {

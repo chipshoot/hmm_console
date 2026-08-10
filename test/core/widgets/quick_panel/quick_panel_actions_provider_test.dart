@@ -51,6 +51,10 @@ void main() {
     test('a vehicle-scoped rule beats the bare vehicle rule', () {
       // Rule order is load-bearing: '/automobiles/manage' would otherwise
       // swallow every screen beneath it and offer "New Vehicle" on all.
+      // Asserted positively AND negatively — 'isNot(contains(...))' alone
+      // would also pass in a world where neither rule fired.
+      expect(labelsFor('/automobiles/manage/7/services'),
+          ['Home', 'New Service', 'Sync']);
       expect(labelsFor('/automobiles/manage/7/services'),
           isNot(contains('New Vehicle')));
     });
