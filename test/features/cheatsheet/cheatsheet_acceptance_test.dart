@@ -69,7 +69,7 @@ void main() {
             .overrideWithValue((_, uuid) => openedSources.add(uuid)),
         // The picker binds row 0 to the seeded note's phone field.
         cheatsheetSourcePickerProvider.overrideWithValue(
-          (_) async => CheatsheetSource(
+          (_, {required templateId}) async => CheatsheetSource(
             noteUuid: sourceNote.uuid,
             kind: SourceGranularity.field,
             locator: 'AutomobileInfo.phone',

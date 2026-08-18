@@ -44,18 +44,28 @@ void main() {
     _CapturingCheatsheets.saved.clear();
   });
 
+  /// The templateId the screen last handed the picker. The picker ranks notes
+  /// by it, so a screen that passed the wrong one — or a constant — would look
+  /// entirely correct here while offering the wrong notes in the real app.
+  String? lastPickerTemplateId;
+
   Future<void> mount(
     WidgetTester tester, {
     String? cardId,
     CheatsheetSource? pickerResult,
   }) async {
+    lastPickerTemplateId = null;
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           cheatsheetIdGenProvider.overrideWithValue(() => 'new-id'),
           cheatsheetsStateProvider.overrideWith(_CapturingCheatsheets.new),
-          cheatsheetSourcePickerProvider
-              .overrideWithValue((_) async => pickerResult),
+          cheatsheetSourcePickerProvider.overrideWithValue(
+            (_, {required templateId}) async {
+              lastPickerTemplateId = templateId;
+              return pickerResult;
+            },
+          ),
         ],
         child: MaterialApp(home: CheatsheetDesignerScreen(cardId: cardId)),
       ),
@@ -94,6 +104,39 @@ void main() {
       expect(saved.rows[0].source, _source);
       expect(saved.rows.skip(1).every((r) => !r.isBound), isTrue,
           reason: 'a partially bound card is savable');
+    });
+
+    testWidgets('the picker is told which template it is binding for',
+        (tester) async {
+      // The seam the "picker shows every note in the app" bug lived in. The
+      // picker cannot rank vehicle notes first unless the screen tells it what
+      // card this is, and every assertion above passes whether it does or not.
+      await mount(tester, pickerResult: _source);
+      await tester.tap(find.byKey(const Key('template-accidentClaim')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('row-0-bind')));
+      await tester.pumpAndSettle();
+
+      expect(lastPickerTemplateId, 'accidentClaim');
+    });
+
+    testWidgets('a different template reaches the picker as itself',
+        (tester) async {
+      // Pins it to the card rather than to a constant: hardcoding
+      // 'accidentClaim' at the call site would satisfy the test above.
+      await mount(tester, pickerResult: _source);
+      await tester.tap(find.byKey(const Key('template-blank')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('designer-new-row')), 'Plate');
+      await tester.tap(find.byKey(const Key('designer-add-row')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('row-0-bind')));
+      await tester.pumpAndSettle();
+
+      expect(lastPickerTemplateId, 'blank');
     });
 
     testWidgets('value actions are chosen explicitly', (tester) async {
@@ -170,7 +213,8 @@ void main() {
         overrides: [
           cheatsheetIdGenProvider.overrideWithValue(() => 'id-${++nextId}'),
           cheatsheetsStateProvider.overrideWith(_CapturingCheatsheets.new),
-          cheatsheetSourcePickerProvider.overrideWithValue((_) async => null),
+          cheatsheetSourcePickerProvider
+              .overrideWithValue((_, {required templateId}) async => null),
         ],
       );
       addTearDown(container.dispose);
@@ -258,6 +302,21 @@ void main() {
 
       expect(find.textContaining('AutomobileInfo.plate'), findsOneWidget);
       expect(find.text('Tap to bind'), findsOneWidget); // only the VIN row
+    });
+
+    testWidgets('the loaded card\'s template reaches the picker',
+        (tester) async {
+      // Distinct wiring from the create flow: there the template comes from
+      // startFromTemplate, here from load(existing). If the editor had not
+      // taken the loaded card by the time a row is bound, the picker would
+      // silently rank against the blank default and offer every note again.
+      _CapturingCheatsheets.seed = const [existingCard];
+      await mount(tester, cardId: 'existing-id', pickerResult: _source);
+
+      await tester.tap(find.byKey(const Key('row-1-bind')));
+      await tester.pumpAndSettle();
+
+      expect(lastPickerTemplateId, 'accidentClaim');
     });
 
     testWidgets('an unknown card id shows a not-found message', (tester) async {

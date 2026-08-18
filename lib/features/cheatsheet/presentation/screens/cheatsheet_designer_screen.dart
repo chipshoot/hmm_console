@@ -9,8 +9,16 @@ import '../../states/cheatsheets_state.dart';
 import '../widgets/source_picker.dart';
 
 /// The binding step, behind a seam so widget tests never open a real sheet.
-final cheatsheetSourcePickerProvider =
-    Provider<Future<CheatsheetSource?> Function(BuildContext)>(
+///
+/// Takes the card's `templateId` because the picker ranks notes by the card's
+/// domain — an Accident Claim offers the vehicle notes first. Without it the
+/// picker listed every note in every catalog, including the app's own
+/// bookkeeping notes, and finding the right one meant scrolling past them all.
+final cheatsheetSourcePickerProvider = Provider<
+    Future<CheatsheetSource?> Function(
+  BuildContext, {
+  required String templateId,
+})>(
   (ref) => showSourcePicker,
 );
 
@@ -135,7 +143,14 @@ class _CheatsheetDesignerScreenState
       );
 
   Future<void> _bind(int index) async {
-    final source = await ref.read(cheatsheetSourcePickerProvider)(context);
+    // Read from the editor, not from widget.cardId: on a create the card only
+    // exists in the editor, and on an edit the editor already holds the loaded
+    // card. Either way this is the template the user is actually filling in.
+    final templateId = ref.read(cheatsheetEditorProvider).templateId;
+    final source = await ref.read(cheatsheetSourcePickerProvider)(
+      context,
+      templateId: templateId,
+    );
     if (source != null) _editor.bindRow(index, source);
   }
 
