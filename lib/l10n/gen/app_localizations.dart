@@ -758,6 +758,858 @@ abstract class AppLocalizations {
   /// **'Sync anyway'**
   String get syncAnyway;
 
+  /// No description provided for @commonRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get commonRetry;
+
+  /// No description provided for @commonEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get commonEdit;
+
+  /// No description provided for @commonError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String commonError(String error);
+
+  /// No description provided for @gasLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas Logs'**
+  String get gasLogTitle;
+
+  /// No description provided for @gasLogLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load gas logs'**
+  String get gasLogLoadFailed;
+
+  /// No description provided for @gasLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No gas logs yet'**
+  String get gasLogEmpty;
+
+  /// No description provided for @gasLogLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load More'**
+  String get gasLogLoadMore;
+
+  /// No description provided for @gasLogDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Gas Log'**
+  String get gasLogDeleteTitle;
+
+  /// No description provided for @gasLogDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this gas log?'**
+  String get gasLogDeleteBody;
+
+  /// No description provided for @gasLogDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed: {error}'**
+  String gasLogDeleteFailed(String error);
+
+  /// No description provided for @gasLogCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas log created'**
+  String get gasLogCreated;
+
+  /// No description provided for @gasLogUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas log updated'**
+  String get gasLogUpdated;
+
+  /// {unit} is a unit symbol like mi or km — never translated, it comes from DistanceUnit.label
+  ///
+  /// In en, this message translates to:
+  /// **'Odometer ({unit})'**
+  String gasLogOdometer(String unit);
+
+  /// No description provided for @gasLogDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance ({unit})'**
+  String gasLogDistance(String unit);
+
+  /// No description provided for @gasLogFuel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel ({unit})'**
+  String gasLogFuel(String unit);
+
+  /// No description provided for @gasLogUnitPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit Price ({currency}/{unit})'**
+  String gasLogUnitPrice(String currency, String unit);
+
+  /// No description provided for @gasLogTotalPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Price ({currency})'**
+  String gasLogTotalPrice(String currency);
+
+  /// No description provided for @gasLogFullTank.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Tank'**
+  String get gasLogFullTank;
+
+  /// No description provided for @gasLogComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment (optional)'**
+  String get gasLogComment;
+
+  /// No description provided for @gasLogSelectStation.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select or enter a gas station'**
+  String get gasLogSelectStation;
+
+  /// No description provided for @vehicleNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Vehicle'**
+  String get vehicleNewTitle;
+
+  /// No description provided for @vehicleCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle created'**
+  String get vehicleCreated;
+
+  /// No description provided for @vehicleUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle updated'**
+  String get vehicleUpdated;
+
+  /// No description provided for @vehicleNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle not found'**
+  String get vehicleNotFound;
+
+  /// No description provided for @vehicleInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Information'**
+  String get vehicleInformation;
+
+  /// No description provided for @vehicleManageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Vehicles'**
+  String get vehicleManageTitle;
+
+  /// No description provided for @vehicleSelectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Vehicle'**
+  String get vehicleSelectTitle;
+
+  /// No description provided for @vehicleManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get vehicleManage;
+
+  /// No description provided for @vehicleManageVehicles.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Vehicles'**
+  String get vehicleManageVehicles;
+
+  /// No description provided for @vehicleLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load vehicles'**
+  String get vehicleLoadFailed;
+
+  /// No description provided for @vehicleEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No vehicles yet'**
+  String get vehicleEmpty;
+
+  /// No description provided for @vehicleEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to add your first vehicle.'**
+  String get vehicleEmptyHint;
+
+  /// No description provided for @vehicleNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No vehicles found'**
+  String get vehicleNoneFound;
+
+  /// No description provided for @vehicleNoneFoundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a vehicle to get started.'**
+  String get vehicleNoneFoundHint;
+
+  /// No description provided for @vehicleStatusUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle status updated'**
+  String get vehicleStatusUpdated;
+
+  /// No description provided for @vehicleActiveCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Active ({count})'**
+  String vehicleActiveCount(int count);
+
+  /// No description provided for @vehicleInactiveCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive ({count})'**
+  String vehicleInactiveCount(int count);
+
+  /// No description provided for @vehicleVin.
+  ///
+  /// In en, this message translates to:
+  /// **'VIN (17 characters)'**
+  String get vehicleVin;
+
+  /// No description provided for @vehicleMaker.
+  ///
+  /// In en, this message translates to:
+  /// **'Maker'**
+  String get vehicleMaker;
+
+  /// No description provided for @vehicleBrand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get vehicleBrand;
+
+  /// No description provided for @vehicleModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get vehicleModel;
+
+  /// No description provided for @vehicleTrim.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim (optional)'**
+  String get vehicleTrim;
+
+  /// No description provided for @vehicleYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get vehicleYear;
+
+  /// No description provided for @vehicleColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get vehicleColor;
+
+  /// No description provided for @vehicleColorOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Color (optional)'**
+  String get vehicleColorOptional;
+
+  /// No description provided for @vehiclePlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate'**
+  String get vehiclePlate;
+
+  /// No description provided for @vehicleTankCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Tank Capacity (optional)'**
+  String get vehicleTankCapacity;
+
+  /// No description provided for @vehicleCityMpg.
+  ///
+  /// In en, this message translates to:
+  /// **'City MPG'**
+  String get vehicleCityMpg;
+
+  /// No description provided for @vehicleHwyMpg.
+  ///
+  /// In en, this message translates to:
+  /// **'Hwy MPG'**
+  String get vehicleHwyMpg;
+
+  /// No description provided for @vehicleCombinedMpg.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined'**
+  String get vehicleCombinedMpg;
+
+  /// No description provided for @vehicleMeterReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter Reading ({unit})'**
+  String vehicleMeterReading(String unit);
+
+  /// No description provided for @vehiclePurchasePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase Price ({currency})'**
+  String vehiclePurchasePrice(String currency);
+
+  /// No description provided for @vehicleNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get vehicleNotes;
+
+  /// No description provided for @vehicleNotesOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes (optional)'**
+  String get vehicleNotesOptional;
+
+  /// No description provided for @vehicleMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'Mileage'**
+  String get vehicleMileage;
+
+  /// No description provided for @vehicleRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration'**
+  String get vehicleRegistration;
+
+  /// No description provided for @vehicleRegistrationExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration Expiry'**
+  String get vehicleRegistrationExpiry;
+
+  /// No description provided for @vehicleInvalidMeterReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid meter reading'**
+  String get vehicleInvalidMeterReading;
+
+  /// No description provided for @vehiclePhotoUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo unavailable'**
+  String get vehiclePhotoUnavailable;
+
+  /// No description provided for @vehiclePhotoPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not pick photo: {error}'**
+  String vehiclePhotoPickFailed(String error);
+
+  /// No description provided for @vehicleEditIdentityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit vehicle identity?'**
+  String get vehicleEditIdentityTitle;
+
+  /// {action} is a localized verb such as Deactivate or Reactivate
+  ///
+  /// In en, this message translates to:
+  /// **'{action} vehicle?'**
+  String vehicleActionConfirm(String action);
+
+  /// No description provided for @vehicleDeactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get vehicleDeactivate;
+
+  /// No description provided for @vehicleReactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactivate'**
+  String get vehicleReactivate;
+
+  /// No description provided for @vehicleDeactivateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate vehicle?'**
+  String get vehicleDeactivateTitle;
+
+  /// No description provided for @vehicleReactivateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactivate vehicle?'**
+  String get vehicleReactivateTitle;
+
+  /// Whole sentences per action rather than interpolating a verb — a verb slotted into a sentence does not survive translation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to deactivate {vehicle}?'**
+  String vehicleDeactivateBody(String vehicle);
+
+  /// No description provided for @vehicleReactivateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to reactivate {vehicle}?'**
+  String vehicleReactivateBody(String vehicle);
+
+  /// No description provided for @stationDeactivateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to deactivate \"{station}\"?'**
+  String stationDeactivateBody(String station);
+
+  /// No description provided for @stationReactivateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to reactivate \"{station}\"?'**
+  String stationReactivateBody(String station);
+
+  /// No description provided for @stationDeactivateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate station?'**
+  String get stationDeactivateTitle;
+
+  /// No description provided for @stationReactivateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactivate station?'**
+  String get stationReactivateTitle;
+
+  /// No description provided for @stationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas Stations'**
+  String get stationTitle;
+
+  /// No description provided for @stationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load gas stations'**
+  String get stationLoadFailed;
+
+  /// No description provided for @stationEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No gas stations yet'**
+  String get stationEmpty;
+
+  /// No description provided for @stationEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to add your first gas station.'**
+  String get stationEmptyHint;
+
+  /// No description provided for @stationActionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} station?'**
+  String stationActionConfirm(String action);
+
+  /// No description provided for @stationName.
+  ///
+  /// In en, this message translates to:
+  /// **'Station Name'**
+  String get stationName;
+
+  /// No description provided for @stationHintCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to create new station'**
+  String get stationHintCreate;
+
+  /// No description provided for @stationHintSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select or type new station'**
+  String get stationHintSelect;
+
+  /// No description provided for @stationNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Station Name *'**
+  String get stationNameRequired;
+
+  /// No description provided for @stationAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get stationAddress;
+
+  /// No description provided for @stationCityRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'City *'**
+  String get stationCityRequired;
+
+  /// No description provided for @stationStateProvince.
+  ///
+  /// In en, this message translates to:
+  /// **'State/Province'**
+  String get stationStateProvince;
+
+  /// No description provided for @stationCountryRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Country *'**
+  String get stationCountryRequired;
+
+  /// No description provided for @stationPostalCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Zip/Postal Code'**
+  String get stationPostalCode;
+
+  /// No description provided for @stationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get stationDescription;
+
+  /// No description provided for @stationCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create station: {error}'**
+  String stationCreateFailed(String error);
+
+  /// No description provided for @stationUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update station: {error}'**
+  String stationUpdateFailed(String error);
+
+  /// No description provided for @stationLocationCaptured.
+  ///
+  /// In en, this message translates to:
+  /// **'Location and address captured'**
+  String get stationLocationCaptured;
+
+  /// No description provided for @stationLocationNoAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Location captured (address lookup unavailable)'**
+  String get stationLocationNoAddress;
+
+  /// No description provided for @stationLocationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get location. Check permissions.'**
+  String get stationLocationDenied;
+
+  /// No description provided for @stationLocationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Location error: {error}'**
+  String stationLocationError(String error);
+
+  /// No description provided for @stationSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to {action} station: {error}'**
+  String stationSaveFailed(String action, String error);
+
+  /// No description provided for @sectionIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity'**
+  String get sectionIdentity;
+
+  /// No description provided for @sectionAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get sectionAppearance;
+
+  /// No description provided for @sectionEngine.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine'**
+  String get sectionEngine;
+
+  /// No description provided for @sectionOwnership.
+  ///
+  /// In en, this message translates to:
+  /// **'Ownership'**
+  String get sectionOwnership;
+
+  /// No description provided for @sectionNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get sectionNotes;
+
+  /// No description provided for @sectionChangeHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Change history'**
+  String get sectionChangeHistory;
+
+  /// No description provided for @fieldDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get fieldDate;
+
+  /// No description provided for @fuelTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Type'**
+  String get fuelTypeLabel;
+
+  /// No description provided for @fuelGradeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Grade'**
+  String get fuelGradeLabel;
+
+  /// No description provided for @engineTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine Type'**
+  String get engineTypeLabel;
+
+  /// No description provided for @ownershipStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ownership Status'**
+  String get ownershipStatusLabel;
+
+  /// No description provided for @optionRegular.
+  ///
+  /// In en, this message translates to:
+  /// **'Regular'**
+  String get optionRegular;
+
+  /// No description provided for @optionMidGrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Mid-Grade'**
+  String get optionMidGrade;
+
+  /// No description provided for @optionPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get optionPremium;
+
+  /// No description provided for @optionDiesel.
+  ///
+  /// In en, this message translates to:
+  /// **'Diesel'**
+  String get optionDiesel;
+
+  /// No description provided for @optionE85.
+  ///
+  /// In en, this message translates to:
+  /// **'E85'**
+  String get optionE85;
+
+  /// No description provided for @optionElectric.
+  ///
+  /// In en, this message translates to:
+  /// **'Electric'**
+  String get optionElectric;
+
+  /// No description provided for @optionOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get optionOther;
+
+  /// No description provided for @optionGasoline.
+  ///
+  /// In en, this message translates to:
+  /// **'Gasoline'**
+  String get optionGasoline;
+
+  /// No description provided for @optionHybrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Hybrid'**
+  String get optionHybrid;
+
+  /// No description provided for @optionPlugInHybrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Plug-in Hybrid'**
+  String get optionPlugInHybrid;
+
+  /// No description provided for @optionHydrogen.
+  ///
+  /// In en, this message translates to:
+  /// **'Hydrogen'**
+  String get optionHydrogen;
+
+  /// No description provided for @optionCng.
+  ///
+  /// In en, this message translates to:
+  /// **'CNG'**
+  String get optionCng;
+
+  /// No description provided for @optionOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'Owned'**
+  String get optionOwned;
+
+  /// No description provided for @optionFinanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Financed'**
+  String get optionFinanced;
+
+  /// No description provided for @optionLeased.
+  ///
+  /// In en, this message translates to:
+  /// **'Leased'**
+  String get optionLeased;
+
+  /// No description provided for @optionCompany.
+  ///
+  /// In en, this message translates to:
+  /// **'Company'**
+  String get optionCompany;
+
+  /// No description provided for @validationVinRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'VIN is required'**
+  String get validationVinRequired;
+
+  /// No description provided for @validationVinLength.
+  ///
+  /// In en, this message translates to:
+  /// **'VIN must be exactly 17 characters'**
+  String get validationVinLength;
+
+  /// No description provided for @validationMakerRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Maker is required'**
+  String get validationMakerRequired;
+
+  /// No description provided for @validationMakerTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Maker must be 50 characters or less'**
+  String get validationMakerTooLong;
+
+  /// No description provided for @validationBrandRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand is required'**
+  String get validationBrandRequired;
+
+  /// No description provided for @validationBrandTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand must be 50 characters or less'**
+  String get validationBrandTooLong;
+
+  /// No description provided for @validationModelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Model is required'**
+  String get validationModelRequired;
+
+  /// No description provided for @validationModelTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Model must be 50 characters or less'**
+  String get validationModelTooLong;
+
+  /// No description provided for @validationPlateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate is required'**
+  String get validationPlateRequired;
+
+  /// No description provided for @validationPlateTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate must be 20 characters or less'**
+  String get validationPlateTooLong;
+
+  /// No description provided for @validationYearRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Year is required'**
+  String get validationYearRequired;
+
+  /// No description provided for @validationYearRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a year between {min} and {max}'**
+  String validationYearRange(int min, int max);
+
+  /// No description provided for @validationOdometerRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Odometer is required'**
+  String get validationOdometerRequired;
+
+  /// No description provided for @validationOdometerInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid odometer reading'**
+  String get validationOdometerInvalid;
+
+  /// No description provided for @validationFuelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel amount is required'**
+  String get validationFuelRequired;
+
+  /// No description provided for @validationFuelInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid fuel amount'**
+  String get validationFuelInvalid;
+
+  /// No description provided for @validationPriceRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Price is required'**
+  String get validationPriceRequired;
+
+  /// No description provided for @validationPriceInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid price'**
+  String get validationPriceInvalid;
+
+  /// No description provided for @validationDistanceInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid distance'**
+  String get validationDistanceInvalid;
+
+  /// No description provided for @validationOdometerBelowCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Odometer cannot be less than current reading ({current})'**
+  String validationOdometerBelowCurrent(String current);
+
+  /// No description provided for @validationOdometerLargeGap.
+  ///
+  /// In en, this message translates to:
+  /// **'Large gap: odometer is {gap} from expected ({expected})'**
+  String validationOdometerLargeGap(String gap, String expected);
+
   /// No description provided for @automobileRecordsInsurance.
   ///
   /// In en, this message translates to:

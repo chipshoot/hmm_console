@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,6 +20,7 @@ class GasLogListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final gasLogsAsync = ref.watch(gasLogsStateProvider);
     final autoId = ref.watch(selectedAutomobileIdProvider);
     final settings = ref.watch(gasLogSettingsProvider);
@@ -32,7 +35,7 @@ class GasLogListScreen extends ConsumerWidget {
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Delete failed: ${next.error}'),
+            content: Text(l.gasLogDeleteFailed('${next.error}')),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -40,7 +43,7 @@ class GasLogListScreen extends ConsumerWidget {
     });
 
     return CommonScreenScaffold(
-      title: 'Gas Logs',
+      title: l.gasLogTitle,
       withPadding: false,
       actions: [
         IconButton(
@@ -66,7 +69,7 @@ class GasLogListScreen extends ConsumerWidget {
                       size: 48,
                       color: Theme.of(context).colorScheme.error),
                   const SizedBox(height: 16),
-                  Text('Failed to load gas logs',
+                  Text(l.gasLogLoadFailed,
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(error.toString(),
@@ -76,7 +79,7 @@ class GasLogListScreen extends ConsumerWidget {
                   FilledButton.tonal(
                     onPressed: () =>
                         ref.read(gasLogsStateProvider.notifier).refresh(),
-                    child: const Text('Retry'),
+                    child: Text(l.commonRetry),
                   ),
                 ],
               ),
@@ -93,7 +96,7 @@ class GasLogListScreen extends ConsumerWidget {
                               .colorScheme
                               .onSurfaceVariant),
                       const SizedBox(height: 16),
-                      Text('No gas logs yet',
+                      Text(l.gasLogEmpty,
                           style:
                               Theme.of(context).textTheme.headlineSmall),
                       const SizedBox(height: 8),
@@ -161,23 +164,24 @@ class GasLogListScreen extends ConsumerWidget {
     int autoId,
     GasLog gasLog,
   ) {
+    final l = AppLocalizations.of(context);
     final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
         Theme.of(context).platform == TargetPlatform.macOS;
     showAdaptiveDialog(
       context: context,
       builder: (ctx) => AlertDialog.adaptive(
-        title: const Text('Delete Gas Log'),
+        title: Text(l.gasLogDeleteTitle),
         content:
-            const Text('Are you sure you want to delete this gas log?'),
+            Text(l.gasLogDeleteBody),
         actions: [
           isApple
               ? CupertinoDialogAction(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(l.commonCancel),
                 )
               : TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(l.commonCancel),
                 ),
           isApple
               ? CupertinoDialogAction(
@@ -188,7 +192,7 @@ class GasLogListScreen extends ConsumerWidget {
                         .read(deleteGasLogStateProvider.notifier)
                         .delete(autoId, gasLog.id!);
                   },
-                  child: const Text('Delete'),
+                  child: Text(l.commonDelete),
                 )
               : TextButton(
                   onPressed: () {
@@ -197,7 +201,7 @@ class GasLogListScreen extends ConsumerWidget {
                         .read(deleteGasLogStateProvider.notifier)
                         .delete(autoId, gasLog.id!);
                   },
-                  child: Text('Delete',
+                  child: Text(l.commonDelete,
                       style: TextStyle(
                           color: Theme.of(context).colorScheme.error)),
                 ),
@@ -214,12 +218,13 @@ class _LoadMoreButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Center(
         child: FilledButton.tonal(
           onPressed: onPressed,
-          child: const Text('Load More'),
+          child: Text(l.gasLogLoadMore),
         ),
       ),
     );

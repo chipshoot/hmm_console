@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -132,6 +134,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
       _odometerCtrl.text,
       _distanceCtrl.text,
       auto.meterReading,
+      AppLocalizations.of(context),
     );
     if (warning != _odometerGapWarning) {
       setState(() => _odometerGapWarning = warning);
@@ -305,6 +308,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final createState = ref.watch(createGasLogStateProvider);
     final updateState = ref.watch(updateGasLogStateProvider);
     final isLoading = createState.isLoading || updateState.isLoading;
@@ -313,14 +317,14 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
       if (!mounted) return;
       if (next.hasValue && next.value != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gas log created')),
+          SnackBar(content: Text(l.gasLogCreated)),
         );
         context.pop();
       }
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(l.commonError('${next.error}')),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -331,14 +335,14 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
       if (!mounted) return;
       if (next.hasValue && next.value != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gas log updated')),
+          SnackBar(content: Text(l.gasLogUpdated)),
         );
         context.pop();
       }
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(l.commonError('${next.error}')),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -380,12 +384,12 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                     final auto = _selectedAutomobile;
                     if (auto != null) {
                       return validateOdometerAgainstMeter(
-                          value, auto.meterReading);
+                          value, auto.meterReading, l);
                     }
                   }
-                  return validateOdometer(value);
+                  return validateOdometer(value, l);
                 },
-                label: 'Odometer ($distLabel)',
+                label: l.gasLogOdometer(distLabel),
                 keyboardType: NumericInput.decimal.keyboardType,
                 inputFormatters: NumericInput.decimal.formatters,
               ),
@@ -402,16 +406,16 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _distanceCtrl,
-                fieldValidator: validateDistance,
-                label: 'Distance ($distLabel)',
+                fieldValidator: (v) => validateDistance(v, l),
+                label: l.gasLogDistance(distLabel),
                 keyboardType: NumericInput.decimal.keyboardType,
                 inputFormatters: NumericInput.decimal.formatters,
               ),
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _fuelCtrl,
-                fieldValidator: validateFuel,
-                label: 'Fuel ($fuelLabel)',
+                fieldValidator: (v) => validateFuel(v, l),
+                label: l.gasLogFuel(fuelLabel),
                 keyboardType: NumericInput.decimal.keyboardType,
                 inputFormatters: NumericInput.decimal.formatters,
               ),
@@ -427,8 +431,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                   Expanded(
                     child: AppTextFormField(
                       fieldController: _unitPriceCtrl,
-                      fieldValidator: validatePrice,
-                      label: 'Unit Price ($currSymbol/$fuelLabel)',
+                      fieldValidator: (v) => validatePrice(v, l),
+                      label: l.gasLogUnitPrice(currSymbol, fuelLabel),
                       keyboardType: NumericInput.decimal.keyboardType,
                       inputFormatters: NumericInput.decimal.formatters,
                     ),
@@ -437,8 +441,8 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
                   Expanded(
                     child: AppTextFormField(
                       fieldController: _totalPriceCtrl,
-                      fieldValidator: validatePrice,
-                      label: 'Total Price ($currSymbol)',
+                      fieldValidator: (v) => validatePrice(v, l),
+                      label: l.gasLogTotalPrice(currSymbol),
                       keyboardType: NumericInput.decimal.keyboardType,
                       inputFormatters: NumericInput.decimal.formatters,
                     ),
@@ -447,7 +451,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
               ),
               GapWidgets.h16,
               SwitchListTile(
-                title: const Text('Full Tank'),
+                title: Text(l.gasLogFullTank),
                 value: _isFullTank,
                 onChanged: (v) => setState(() => _isFullTank = v),
                 contentPadding: EdgeInsets.zero,
@@ -463,7 +467,7 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
               AppTextFormField(
                 fieldController: _commentCtrl,
                 fieldValidator: (_) => null,
-                label: 'Comment (optional)',
+                label: l.gasLogComment,
               ),
               GapWidgets.h24,
               HighlightButton(
@@ -482,13 +486,14 @@ class _GasLogFormScreenState extends ConsumerState<GasLogFormScreen>
   }
 
   void _submit() {
+    final l = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedStation == null &&
         (_initialStationName == null || _initialStationName!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please select or enter a gas station'),
+          content: Text(l.gasLogSelectStation),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );

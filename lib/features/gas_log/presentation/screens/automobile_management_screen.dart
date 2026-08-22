@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,20 +18,21 @@ class AutomobileManagementScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final automobilesAsync = ref.watch(automobilesStateProvider);
 
     ref.listen<AsyncValue<void>>(deactivateAutomobileStateProvider, (_, next) {
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(l.commonError('${next.error}')),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
       if (next.hasValue && !next.isLoading) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vehicle status updated')),
+          SnackBar(content: Text(l.vehicleStatusUpdated)),
         );
       }
     });
@@ -38,7 +41,7 @@ class AutomobileManagementScreen extends ConsumerWidget {
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(l.commonError('${next.error}')),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -46,7 +49,7 @@ class AutomobileManagementScreen extends ConsumerWidget {
     });
 
     return CommonScreenScaffold(
-      title: 'Manage Vehicles',
+      title: l.vehicleManageTitle,
       withPadding: false,
       child: Stack(
         children: [
@@ -60,7 +63,7 @@ class AutomobileManagementScreen extends ConsumerWidget {
                       size: 48,
                       color: Theme.of(context).colorScheme.error),
                   const SizedBox(height: 16),
-                  Text('Failed to load vehicles',
+                  Text(l.vehicleLoadFailed,
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(error.toString(),
@@ -70,7 +73,7 @@ class AutomobileManagementScreen extends ConsumerWidget {
                   FilledButton.tonal(
                     onPressed: () =>
                         ref.read(automobilesStateProvider.notifier).refresh(),
-                    child: const Text('Retry'),
+                    child: Text(l.commonRetry),
                   ),
                 ],
               ),
@@ -86,10 +89,10 @@ class AutomobileManagementScreen extends ConsumerWidget {
                           color:
                               Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(height: 16),
-                      Text('No vehicles yet',
+                      Text(l.vehicleEmpty,
                           style: Theme.of(context).textTheme.headlineSmall),
                       const SizedBox(height: 8),
-                      const Text('Tap + to add your first vehicle.'),
+                      Text(l.vehicleEmptyHint),
                     ],
                   ),
                 );
@@ -107,11 +110,11 @@ class AutomobileManagementScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 8, bottom: 80),
                   children: [
                     if (active.isNotEmpty) ...[
-                      _SectionHeader(title: 'Active (${active.length})'),
+                      _SectionHeader(title: l.vehicleActiveCount(active.length)),
                       ...active.map((auto) => _buildTile(context, ref, auto)),
                     ],
                     if (inactive.isNotEmpty) ...[
-                      _SectionHeader(title: 'Inactive (${inactive.length})'),
+                      _SectionHeader(title: l.vehicleInactiveCount(inactive.length)),
                       ...inactive
                           .map((auto) => _buildTile(context, ref, auto)),
                     ],
@@ -146,8 +149,14 @@ class AutomobileManagementScreen extends ConsumerWidget {
 
   void _confirmToggleActive(
       BuildContext context, WidgetRef ref, Automobile auto) {
-    final action = auto.isActive ? 'deactivate' : 'reactivate';
-    final actionLabel = action[0].toUpperCase() + action.substring(1);
+    final l = AppLocalizations.of(context);
+    // Whole sentences per action rather than a capitalized English verb
+    // interpolated into one — that construction has no correct translation.
+    final title =
+        auto.isActive ? l.vehicleDeactivateTitle : l.vehicleReactivateTitle;
+    final body = auto.isActive
+        ? l.vehicleDeactivateBody(auto.displayName)
+        : l.vehicleReactivateBody(auto.displayName);
     final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
         Theme.of(context).platform == TargetPlatform.macOS;
 
@@ -201,19 +210,17 @@ class AutomobileManagementScreen extends ConsumerWidget {
     showAdaptiveDialog(
       context: context,
       builder: (ctx) => AlertDialog.adaptive(
-        title: Text('$actionLabel vehicle?'),
-        content: Text(
-          'Are you sure you want to $action ${auto.displayName}?',
-        ),
+        title: Text(title),
+        content: Text(body),
         actions: [
           isApple
               ? CupertinoDialogAction(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l.commonCancel),
                 )
               : TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l.commonCancel),
                 ),
           isApple
               ? CupertinoDialogAction(
@@ -222,14 +229,14 @@ class AutomobileManagementScreen extends ConsumerWidget {
                     Navigator.of(ctx).pop();
                     performAction();
                   },
-                  child: Text(actionLabel),
+                  child: Text(auto.isActive ? l.vehicleDeactivate : l.vehicleReactivate),
                 )
               : FilledButton(
                   onPressed: () {
                     Navigator.of(ctx).pop();
                     performAction();
                   },
-                  child: Text(actionLabel),
+                  child: Text(auto.isActive ? l.vehicleDeactivate : l.vehicleReactivate),
                 ),
         ],
       ),

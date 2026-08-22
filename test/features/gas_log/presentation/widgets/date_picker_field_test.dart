@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/gas_log/presentation/widgets/date_picker_field.dart';
 import 'package:intl/intl.dart';
 
@@ -9,6 +10,10 @@ void main() {
     ValueChanged<DateTime>? onDateChanged,
   }) {
     return MaterialApp(
+      // Required: the widget reads its label from AppLocalizations, and a
+      // bare MaterialApp leaves that null so it throws while building.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: Padding(
           padding: const EdgeInsets.all(16),

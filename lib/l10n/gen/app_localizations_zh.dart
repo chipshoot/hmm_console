@@ -408,6 +408,482 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncAnyway => '仍要同步';
 
   @override
+  String get commonRetry => '重试';
+
+  @override
+  String get commonEdit => '编辑';
+
+  @override
+  String commonError(String error) {
+    return '错误：$error';
+  }
+
+  @override
+  String get gasLogTitle => '加油记录';
+
+  @override
+  String get gasLogLoadFailed => '无法加载加油记录';
+
+  @override
+  String get gasLogEmpty => '暂无加油记录';
+
+  @override
+  String get gasLogLoadMore => '加载更多';
+
+  @override
+  String get gasLogDeleteTitle => '删除加油记录';
+
+  @override
+  String get gasLogDeleteBody => '确定要删除这条加油记录吗？';
+
+  @override
+  String gasLogDeleteFailed(String error) {
+    return '删除失败：$error';
+  }
+
+  @override
+  String get gasLogCreated => '加油记录已创建';
+
+  @override
+  String get gasLogUpdated => '加油记录已更新';
+
+  @override
+  String gasLogOdometer(String unit) {
+    return '里程表（$unit）';
+  }
+
+  @override
+  String gasLogDistance(String unit) {
+    return '行驶距离（$unit）';
+  }
+
+  @override
+  String gasLogFuel(String unit) {
+    return '加油量（$unit）';
+  }
+
+  @override
+  String gasLogUnitPrice(String currency, String unit) {
+    return '单价（$currency/$unit）';
+  }
+
+  @override
+  String gasLogTotalPrice(String currency) {
+    return '总金额（$currency）';
+  }
+
+  @override
+  String get gasLogFullTank => '加满';
+
+  @override
+  String get gasLogComment => '备注（选填）';
+
+  @override
+  String get gasLogSelectStation => '请选择或输入加油站';
+
+  @override
+  String get vehicleNewTitle => '新增车辆';
+
+  @override
+  String get vehicleCreated => '车辆已创建';
+
+  @override
+  String get vehicleUpdated => '车辆已更新';
+
+  @override
+  String get vehicleNotFound => '未找到该车辆';
+
+  @override
+  String get vehicleInformation => '车辆信息';
+
+  @override
+  String get vehicleManageTitle => '管理车辆';
+
+  @override
+  String get vehicleSelectTitle => '选择车辆';
+
+  @override
+  String get vehicleManage => '管理';
+
+  @override
+  String get vehicleManageVehicles => '管理车辆';
+
+  @override
+  String get vehicleLoadFailed => '无法加载车辆';
+
+  @override
+  String get vehicleEmpty => '暂无车辆';
+
+  @override
+  String get vehicleEmptyHint => '点击 + 添加你的第一辆车。';
+
+  @override
+  String get vehicleNoneFound => '未找到车辆';
+
+  @override
+  String get vehicleNoneFoundHint => '先添加一辆车即可开始。';
+
+  @override
+  String get vehicleStatusUpdated => '车辆状态已更新';
+
+  @override
+  String vehicleActiveCount(int count) {
+    return '使用中（$count）';
+  }
+
+  @override
+  String vehicleInactiveCount(int count) {
+    return '已停用（$count）';
+  }
+
+  @override
+  String get vehicleVin => '车架号（17 位）';
+
+  @override
+  String get vehicleMaker => '制造商';
+
+  @override
+  String get vehicleBrand => '品牌';
+
+  @override
+  String get vehicleModel => '车型';
+
+  @override
+  String get vehicleTrim => '配置（选填）';
+
+  @override
+  String get vehicleYear => '年份';
+
+  @override
+  String get vehicleColor => '颜色';
+
+  @override
+  String get vehicleColorOptional => '颜色（选填）';
+
+  @override
+  String get vehiclePlate => '车牌号';
+
+  @override
+  String get vehicleTankCapacity => '油箱容量（选填）';
+
+  @override
+  String get vehicleCityMpg => '市区油耗';
+
+  @override
+  String get vehicleHwyMpg => '高速油耗';
+
+  @override
+  String get vehicleCombinedMpg => '综合油耗';
+
+  @override
+  String vehicleMeterReading(String unit) {
+    return '里程表读数（$unit）';
+  }
+
+  @override
+  String vehiclePurchasePrice(String currency) {
+    return '购车价格（$currency）';
+  }
+
+  @override
+  String get vehicleNotes => '备注';
+
+  @override
+  String get vehicleNotesOptional => '备注（选填）';
+
+  @override
+  String get vehicleMileage => '里程';
+
+  @override
+  String get vehicleRegistration => '行驶证';
+
+  @override
+  String get vehicleRegistrationExpiry => '行驶证有效期';
+
+  @override
+  String get vehicleInvalidMeterReading => '请输入有效的里程表读数';
+
+  @override
+  String get vehiclePhotoUnavailable => '照片不可用';
+
+  @override
+  String vehiclePhotoPickFailed(String error) {
+    return '无法选择照片：$error';
+  }
+
+  @override
+  String get vehicleEditIdentityTitle => '修改车辆识别信息？';
+
+  @override
+  String vehicleActionConfirm(String action) {
+    return '$action这辆车？';
+  }
+
+  @override
+  String get vehicleDeactivate => '停用';
+
+  @override
+  String get vehicleReactivate => '重新启用';
+
+  @override
+  String get vehicleDeactivateTitle => '停用这辆车？';
+
+  @override
+  String get vehicleReactivateTitle => '重新启用这辆车？';
+
+  @override
+  String vehicleDeactivateBody(String vehicle) {
+    return '确定要停用$vehicle吗？';
+  }
+
+  @override
+  String vehicleReactivateBody(String vehicle) {
+    return '确定要重新启用$vehicle吗？';
+  }
+
+  @override
+  String stationDeactivateBody(String station) {
+    return '确定要停用“$station”吗？';
+  }
+
+  @override
+  String stationReactivateBody(String station) {
+    return '确定要重新启用“$station”吗？';
+  }
+
+  @override
+  String get stationDeactivateTitle => '停用这个加油站？';
+
+  @override
+  String get stationReactivateTitle => '重新启用这个加油站？';
+
+  @override
+  String get stationTitle => '加油站';
+
+  @override
+  String get stationLoadFailed => '无法加载加油站';
+
+  @override
+  String get stationEmpty => '暂无加油站';
+
+  @override
+  String get stationEmptyHint => '点击 + 添加你的第一个加油站。';
+
+  @override
+  String stationActionConfirm(String action) {
+    return '$action这个加油站？';
+  }
+
+  @override
+  String get stationName => '加油站名称';
+
+  @override
+  String get stationHintCreate => '输入名称以新建加油站';
+
+  @override
+  String get stationHintSelect => '选择或输入新的加油站';
+
+  @override
+  String get stationNameRequired => '加油站名称 *';
+
+  @override
+  String get stationAddress => '地址';
+
+  @override
+  String get stationCityRequired => '城市 *';
+
+  @override
+  String get stationStateProvince => '省/州';
+
+  @override
+  String get stationCountryRequired => '国家 *';
+
+  @override
+  String get stationPostalCode => '邮政编码';
+
+  @override
+  String get stationDescription => '描述';
+
+  @override
+  String stationCreateFailed(String error) {
+    return '创建加油站失败：$error';
+  }
+
+  @override
+  String stationUpdateFailed(String error) {
+    return '更新加油站失败：$error';
+  }
+
+  @override
+  String get stationLocationCaptured => '已获取位置和地址';
+
+  @override
+  String get stationLocationNoAddress => '已获取位置（无法查询地址）';
+
+  @override
+  String get stationLocationDenied => '无法获取位置，请检查权限设置。';
+
+  @override
+  String stationLocationError(String error) {
+    return '定位错误：$error';
+  }
+
+  @override
+  String stationSaveFailed(String action, String error) {
+    return '$action加油站失败：$error';
+  }
+
+  @override
+  String get sectionIdentity => '识别信息';
+
+  @override
+  String get sectionAppearance => '外观';
+
+  @override
+  String get sectionEngine => '发动机';
+
+  @override
+  String get sectionOwnership => '拥有方式';
+
+  @override
+  String get sectionNotes => '备注';
+
+  @override
+  String get sectionChangeHistory => '变更记录';
+
+  @override
+  String get fieldDate => '日期';
+
+  @override
+  String get fuelTypeLabel => '燃油类型';
+
+  @override
+  String get fuelGradeLabel => '燃油标号';
+
+  @override
+  String get engineTypeLabel => '发动机类型';
+
+  @override
+  String get ownershipStatusLabel => '拥有方式';
+
+  @override
+  String get optionRegular => '普通';
+
+  @override
+  String get optionMidGrade => '中级';
+
+  @override
+  String get optionPremium => '高级';
+
+  @override
+  String get optionDiesel => '柴油';
+
+  @override
+  String get optionE85 => 'E85 乙醇汽油';
+
+  @override
+  String get optionElectric => '纯电动';
+
+  @override
+  String get optionOther => '其他';
+
+  @override
+  String get optionGasoline => '汽油';
+
+  @override
+  String get optionHybrid => '混合动力';
+
+  @override
+  String get optionPlugInHybrid => '插电式混合动力';
+
+  @override
+  String get optionHydrogen => '氢燃料';
+
+  @override
+  String get optionCng => '压缩天然气';
+
+  @override
+  String get optionOwned => '全款拥有';
+
+  @override
+  String get optionFinanced => '贷款购买';
+
+  @override
+  String get optionLeased => '租赁';
+
+  @override
+  String get optionCompany => '公司车辆';
+
+  @override
+  String get validationVinRequired => '请输入车架号';
+
+  @override
+  String get validationVinLength => '车架号必须为 17 位';
+
+  @override
+  String get validationMakerRequired => '请输入制造商';
+
+  @override
+  String get validationMakerTooLong => '制造商不能超过 50 个字符';
+
+  @override
+  String get validationBrandRequired => '请输入品牌';
+
+  @override
+  String get validationBrandTooLong => '品牌不能超过 50 个字符';
+
+  @override
+  String get validationModelRequired => '请输入车型';
+
+  @override
+  String get validationModelTooLong => '车型不能超过 50 个字符';
+
+  @override
+  String get validationPlateRequired => '请输入车牌号';
+
+  @override
+  String get validationPlateTooLong => '车牌号不能超过 20 个字符';
+
+  @override
+  String get validationYearRequired => '请输入年份';
+
+  @override
+  String validationYearRange(int min, int max) {
+    return '请输入 $min 到 $max 之间的年份';
+  }
+
+  @override
+  String get validationOdometerRequired => '请输入里程表读数';
+
+  @override
+  String get validationOdometerInvalid => '请输入有效的里程表读数';
+
+  @override
+  String get validationFuelRequired => '请输入加油量';
+
+  @override
+  String get validationFuelInvalid => '请输入有效的加油量';
+
+  @override
+  String get validationPriceRequired => '请输入金额';
+
+  @override
+  String get validationPriceInvalid => '请输入有效的金额';
+
+  @override
+  String get validationDistanceInvalid => '请输入有效的行驶距离';
+
+  @override
+  String validationOdometerBelowCurrent(String current) {
+    return '里程表读数不能小于当前读数（$current）';
+  }
+
+  @override
+  String validationOdometerLargeGap(String gap, String expected) {
+    return '差距过大：里程表读数与预期值（$expected）相差 $gap';
+  }
+
+  @override
   String get automobileRecordsInsurance => '保险';
 
   @override

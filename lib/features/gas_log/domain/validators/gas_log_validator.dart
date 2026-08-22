@@ -1,39 +1,53 @@
+import '../../../../l10n/gen/app_localizations.dart';
+
+/// Form validation for the gas-log entry screen.
+///
+/// Every method takes an [AppLocalizations] because the messages are read by a
+/// person and must follow the app's language. The mixin is applied to `State`
+/// subclasses, which do have a `BuildContext`, but the localizations are passed
+/// in rather than resolved from a context here: the mixin carries no `on State`
+/// constraint (the tests apply it to a plain class), and a validator handed its
+/// inputs is easier to test than one reaching for ambient state.
 mixin GasLogValidator {
-  String? validateOdometer(String? value) {
-    if (value == null || value.isEmpty) return 'Odometer is required';
+  String? validateOdometer(String? value, AppLocalizations l) {
+    if (value == null || value.isEmpty) return l.validationOdometerRequired;
     final v = double.tryParse(value);
-    if (v == null || v < 0) return 'Enter a valid odometer reading';
+    if (v == null || v < 0) return l.validationOdometerInvalid;
     return null;
   }
 
-  String? validateFuel(String? value) {
-    if (value == null || value.isEmpty) return 'Fuel amount is required';
+  String? validateFuel(String? value, AppLocalizations l) {
+    if (value == null || value.isEmpty) return l.validationFuelRequired;
     final v = double.tryParse(value);
-    if (v == null || v <= 0) return 'Enter a valid fuel amount';
+    if (v == null || v <= 0) return l.validationFuelInvalid;
     return null;
   }
 
-  String? validatePrice(String? value) {
-    if (value == null || value.isEmpty) return 'Price is required';
+  String? validatePrice(String? value, AppLocalizations l) {
+    if (value == null || value.isEmpty) return l.validationPriceRequired;
     final v = double.tryParse(value);
-    if (v == null || v < 0) return 'Enter a valid price';
+    if (v == null || v < 0) return l.validationPriceInvalid;
     return null;
   }
 
-  String? validateDistance(String? value) {
+  String? validateDistance(String? value, AppLocalizations l) {
     if (value == null || value.isEmpty) return null; // optional
     final v = double.tryParse(value);
-    if (v == null || v < 0) return 'Enter a valid distance';
+    if (v == null || v < 0) return l.validationDistanceInvalid;
     return null;
   }
 
   /// For real-time logs: odometer must be >= automobile's current meterReading.
-  String? validateOdometerAgainstMeter(String? value, int currentMeterReading) {
-    final base = validateOdometer(value);
+  String? validateOdometerAgainstMeter(
+    String? value,
+    int currentMeterReading,
+    AppLocalizations l,
+  ) {
+    final base = validateOdometer(value, l);
     if (base != null) return base;
     final v = double.parse(value!);
     if (v < currentMeterReading) {
-      return 'Odometer cannot be less than current reading ($currentMeterReading)';
+      return l.validationOdometerBelowCurrent('$currentMeterReading');
     }
     return null;
   }
@@ -43,7 +57,8 @@ mixin GasLogValidator {
   String? warnOdometerGap(
     String? odometerValue,
     String? distanceValue,
-    int currentMeterReading, {
+    int currentMeterReading,
+    AppLocalizations l, {
     double threshold = 500,
   }) {
     final odo = double.tryParse(odometerValue ?? '');
@@ -52,7 +67,10 @@ mixin GasLogValidator {
     final expected = currentMeterReading + dist;
     final gap = (odo - expected).abs();
     if (gap > threshold) {
-      return 'Large gap: odometer is ${gap.toStringAsFixed(0)} from expected (${expected.toStringAsFixed(0)})';
+      return l.validationOdometerLargeGap(
+        gap.toStringAsFixed(0),
+        expected.toStringAsFixed(0),
+      );
     }
     return null;
   }

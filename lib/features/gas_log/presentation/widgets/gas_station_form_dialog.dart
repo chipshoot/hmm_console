@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../geocoding/data/repositories/geocoding_repository.dart';
@@ -68,6 +70,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
   }
 
   Future<void> _captureLocation() async {
+    final l = AppLocalizations.of(context);
     setState(() => _isLocating = true);
     try {
       final position = await ref.read(currentPositionProvider.future);
@@ -103,23 +106,23 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
               }
             });
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Location and address captured')),
+              SnackBar(content: Text(l.stationLocationCaptured)),
             );
           }
         } catch (_) {
           // Geocoding failed but GPS succeeded — still useful
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Location captured (address lookup unavailable)'),
+              SnackBar(
+                content: Text(l.stationLocationNoAddress),
               ),
             );
           }
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not get location. Check permissions.'),
+          SnackBar(
+            content: Text(l.stationLocationDenied),
           ),
         );
       }
@@ -127,7 +130,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Location error: $e')));
+        ).showSnackBar(SnackBar(content: Text(l.stationLocationError('$e'))));
       }
     } finally {
       if (mounted) setState(() => _isLocating = false);
@@ -174,9 +177,15 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
       }
     } catch (e) {
       if (mounted) {
-        final action = _isEditing ? 'update' : 'create';
+        final l = AppLocalizations.of(context);
+        // Separate messages per action: a verb interpolated into a sentence
+        // does not survive translation.
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to $action station: $e')),
+          SnackBar(
+            content: Text(_isEditing
+                ? l.stationUpdateFailed('$e')
+                : l.stationCreateFailed('$e')),
+          ),
         );
       }
     } finally {
@@ -188,6 +197,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final title = _isEditing ? 'Edit Gas Station' : 'Add Gas Station';
     final submitLabel = _isEditing ? 'Save' : 'Add Station';
 
@@ -217,9 +227,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                   const SizedBox(height: 20),
                   TextFormField(
                     controller: _nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Station Name *',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l.stationNameRequired,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) {
@@ -235,9 +245,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _addressCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Address',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l.stationAddress,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (v) => v != null && v.length > 200
                         ? 'Max 200 characters'
@@ -250,9 +260,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                       Expanded(
                         child: TextFormField(
                           controller: _cityCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'City *',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l.stationCityRequired,
+                            border: const OutlineInputBorder(),
                           ),
                           validator: (v) {
                             if (v == null || v.trim().isEmpty) {
@@ -270,9 +280,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                       Expanded(
                         child: TextFormField(
                           controller: _stateCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'State/Province',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l.stationStateProvince,
+                            border: const OutlineInputBorder(),
                           ),
                           validator: (v) => v != null && v.length > 50
                               ? 'Max 50 characters'
@@ -288,9 +298,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                       Expanded(
                         child: TextFormField(
                           controller: _countryCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Country *',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l.stationCountryRequired,
+                            border: const OutlineInputBorder(),
                           ),
                           validator: (v) {
                             if (v == null || v.trim().isEmpty) {
@@ -308,9 +318,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                       Expanded(
                         child: TextFormField(
                           controller: _zipCodeCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Zip/Postal Code',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l.stationPostalCode,
+                            border: const OutlineInputBorder(),
                           ),
                           validator: (v) => v != null && v.length > 20
                               ? 'Max 20 characters'
@@ -323,9 +333,9 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _descriptionCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l.stationDescription,
+                      border: const OutlineInputBorder(),
                     ),
                     maxLines: 2,
                     validator: (v) => v != null && v.length > 500
@@ -359,7 +369,7 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
                         onPressed: _isSubmitting
                             ? null
                             : () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
+                        child: Text(l.commonCancel),
                       ),
                       const SizedBox(width: 8),
                       FilledButton(

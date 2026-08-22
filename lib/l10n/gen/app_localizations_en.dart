@@ -428,6 +428,485 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncAnyway => 'Sync anyway';
 
   @override
+  String get commonRetry => 'Retry';
+
+  @override
+  String get commonEdit => 'Edit';
+
+  @override
+  String commonError(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get gasLogTitle => 'Gas Logs';
+
+  @override
+  String get gasLogLoadFailed => 'Failed to load gas logs';
+
+  @override
+  String get gasLogEmpty => 'No gas logs yet';
+
+  @override
+  String get gasLogLoadMore => 'Load More';
+
+  @override
+  String get gasLogDeleteTitle => 'Delete Gas Log';
+
+  @override
+  String get gasLogDeleteBody =>
+      'Are you sure you want to delete this gas log?';
+
+  @override
+  String gasLogDeleteFailed(String error) {
+    return 'Delete failed: $error';
+  }
+
+  @override
+  String get gasLogCreated => 'Gas log created';
+
+  @override
+  String get gasLogUpdated => 'Gas log updated';
+
+  @override
+  String gasLogOdometer(String unit) {
+    return 'Odometer ($unit)';
+  }
+
+  @override
+  String gasLogDistance(String unit) {
+    return 'Distance ($unit)';
+  }
+
+  @override
+  String gasLogFuel(String unit) {
+    return 'Fuel ($unit)';
+  }
+
+  @override
+  String gasLogUnitPrice(String currency, String unit) {
+    return 'Unit Price ($currency/$unit)';
+  }
+
+  @override
+  String gasLogTotalPrice(String currency) {
+    return 'Total Price ($currency)';
+  }
+
+  @override
+  String get gasLogFullTank => 'Full Tank';
+
+  @override
+  String get gasLogComment => 'Comment (optional)';
+
+  @override
+  String get gasLogSelectStation => 'Please select or enter a gas station';
+
+  @override
+  String get vehicleNewTitle => 'New Vehicle';
+
+  @override
+  String get vehicleCreated => 'Vehicle created';
+
+  @override
+  String get vehicleUpdated => 'Vehicle updated';
+
+  @override
+  String get vehicleNotFound => 'Vehicle not found';
+
+  @override
+  String get vehicleInformation => 'Vehicle Information';
+
+  @override
+  String get vehicleManageTitle => 'Manage Vehicles';
+
+  @override
+  String get vehicleSelectTitle => 'Select Vehicle';
+
+  @override
+  String get vehicleManage => 'Manage';
+
+  @override
+  String get vehicleManageVehicles => 'Manage Vehicles';
+
+  @override
+  String get vehicleLoadFailed => 'Failed to load vehicles';
+
+  @override
+  String get vehicleEmpty => 'No vehicles yet';
+
+  @override
+  String get vehicleEmptyHint => 'Tap + to add your first vehicle.';
+
+  @override
+  String get vehicleNoneFound => 'No vehicles found';
+
+  @override
+  String get vehicleNoneFoundHint => 'Add a vehicle to get started.';
+
+  @override
+  String get vehicleStatusUpdated => 'Vehicle status updated';
+
+  @override
+  String vehicleActiveCount(int count) {
+    return 'Active ($count)';
+  }
+
+  @override
+  String vehicleInactiveCount(int count) {
+    return 'Inactive ($count)';
+  }
+
+  @override
+  String get vehicleVin => 'VIN (17 characters)';
+
+  @override
+  String get vehicleMaker => 'Maker';
+
+  @override
+  String get vehicleBrand => 'Brand';
+
+  @override
+  String get vehicleModel => 'Model';
+
+  @override
+  String get vehicleTrim => 'Trim (optional)';
+
+  @override
+  String get vehicleYear => 'Year';
+
+  @override
+  String get vehicleColor => 'Color';
+
+  @override
+  String get vehicleColorOptional => 'Color (optional)';
+
+  @override
+  String get vehiclePlate => 'Plate';
+
+  @override
+  String get vehicleTankCapacity => 'Tank Capacity (optional)';
+
+  @override
+  String get vehicleCityMpg => 'City MPG';
+
+  @override
+  String get vehicleHwyMpg => 'Hwy MPG';
+
+  @override
+  String get vehicleCombinedMpg => 'Combined';
+
+  @override
+  String vehicleMeterReading(String unit) {
+    return 'Meter Reading ($unit)';
+  }
+
+  @override
+  String vehiclePurchasePrice(String currency) {
+    return 'Purchase Price ($currency)';
+  }
+
+  @override
+  String get vehicleNotes => 'Notes';
+
+  @override
+  String get vehicleNotesOptional => 'Notes (optional)';
+
+  @override
+  String get vehicleMileage => 'Mileage';
+
+  @override
+  String get vehicleRegistration => 'Registration';
+
+  @override
+  String get vehicleRegistrationExpiry => 'Registration Expiry';
+
+  @override
+  String get vehicleInvalidMeterReading => 'Enter a valid meter reading';
+
+  @override
+  String get vehiclePhotoUnavailable => 'Photo unavailable';
+
+  @override
+  String vehiclePhotoPickFailed(String error) {
+    return 'Could not pick photo: $error';
+  }
+
+  @override
+  String get vehicleEditIdentityTitle => 'Edit vehicle identity?';
+
+  @override
+  String vehicleActionConfirm(String action) {
+    return '$action vehicle?';
+  }
+
+  @override
+  String get vehicleDeactivate => 'Deactivate';
+
+  @override
+  String get vehicleReactivate => 'Reactivate';
+
+  @override
+  String get vehicleDeactivateTitle => 'Deactivate vehicle?';
+
+  @override
+  String get vehicleReactivateTitle => 'Reactivate vehicle?';
+
+  @override
+  String vehicleDeactivateBody(String vehicle) {
+    return 'Are you sure you want to deactivate $vehicle?';
+  }
+
+  @override
+  String vehicleReactivateBody(String vehicle) {
+    return 'Are you sure you want to reactivate $vehicle?';
+  }
+
+  @override
+  String stationDeactivateBody(String station) {
+    return 'Are you sure you want to deactivate \"$station\"?';
+  }
+
+  @override
+  String stationReactivateBody(String station) {
+    return 'Are you sure you want to reactivate \"$station\"?';
+  }
+
+  @override
+  String get stationDeactivateTitle => 'Deactivate station?';
+
+  @override
+  String get stationReactivateTitle => 'Reactivate station?';
+
+  @override
+  String get stationTitle => 'Gas Stations';
+
+  @override
+  String get stationLoadFailed => 'Failed to load gas stations';
+
+  @override
+  String get stationEmpty => 'No gas stations yet';
+
+  @override
+  String get stationEmptyHint => 'Tap + to add your first gas station.';
+
+  @override
+  String stationActionConfirm(String action) {
+    return '$action station?';
+  }
+
+  @override
+  String get stationName => 'Station Name';
+
+  @override
+  String get stationHintCreate => 'Type to create new station';
+
+  @override
+  String get stationHintSelect => 'Select or type new station';
+
+  @override
+  String get stationNameRequired => 'Station Name *';
+
+  @override
+  String get stationAddress => 'Address';
+
+  @override
+  String get stationCityRequired => 'City *';
+
+  @override
+  String get stationStateProvince => 'State/Province';
+
+  @override
+  String get stationCountryRequired => 'Country *';
+
+  @override
+  String get stationPostalCode => 'Zip/Postal Code';
+
+  @override
+  String get stationDescription => 'Description';
+
+  @override
+  String stationCreateFailed(String error) {
+    return 'Failed to create station: $error';
+  }
+
+  @override
+  String stationUpdateFailed(String error) {
+    return 'Failed to update station: $error';
+  }
+
+  @override
+  String get stationLocationCaptured => 'Location and address captured';
+
+  @override
+  String get stationLocationNoAddress =>
+      'Location captured (address lookup unavailable)';
+
+  @override
+  String get stationLocationDenied =>
+      'Could not get location. Check permissions.';
+
+  @override
+  String stationLocationError(String error) {
+    return 'Location error: $error';
+  }
+
+  @override
+  String stationSaveFailed(String action, String error) {
+    return 'Failed to $action station: $error';
+  }
+
+  @override
+  String get sectionIdentity => 'Identity';
+
+  @override
+  String get sectionAppearance => 'Appearance';
+
+  @override
+  String get sectionEngine => 'Engine';
+
+  @override
+  String get sectionOwnership => 'Ownership';
+
+  @override
+  String get sectionNotes => 'Notes';
+
+  @override
+  String get sectionChangeHistory => 'Change history';
+
+  @override
+  String get fieldDate => 'Date';
+
+  @override
+  String get fuelTypeLabel => 'Fuel Type';
+
+  @override
+  String get fuelGradeLabel => 'Fuel Grade';
+
+  @override
+  String get engineTypeLabel => 'Engine Type';
+
+  @override
+  String get ownershipStatusLabel => 'Ownership Status';
+
+  @override
+  String get optionRegular => 'Regular';
+
+  @override
+  String get optionMidGrade => 'Mid-Grade';
+
+  @override
+  String get optionPremium => 'Premium';
+
+  @override
+  String get optionDiesel => 'Diesel';
+
+  @override
+  String get optionE85 => 'E85';
+
+  @override
+  String get optionElectric => 'Electric';
+
+  @override
+  String get optionOther => 'Other';
+
+  @override
+  String get optionGasoline => 'Gasoline';
+
+  @override
+  String get optionHybrid => 'Hybrid';
+
+  @override
+  String get optionPlugInHybrid => 'Plug-in Hybrid';
+
+  @override
+  String get optionHydrogen => 'Hydrogen';
+
+  @override
+  String get optionCng => 'CNG';
+
+  @override
+  String get optionOwned => 'Owned';
+
+  @override
+  String get optionFinanced => 'Financed';
+
+  @override
+  String get optionLeased => 'Leased';
+
+  @override
+  String get optionCompany => 'Company';
+
+  @override
+  String get validationVinRequired => 'VIN is required';
+
+  @override
+  String get validationVinLength => 'VIN must be exactly 17 characters';
+
+  @override
+  String get validationMakerRequired => 'Maker is required';
+
+  @override
+  String get validationMakerTooLong => 'Maker must be 50 characters or less';
+
+  @override
+  String get validationBrandRequired => 'Brand is required';
+
+  @override
+  String get validationBrandTooLong => 'Brand must be 50 characters or less';
+
+  @override
+  String get validationModelRequired => 'Model is required';
+
+  @override
+  String get validationModelTooLong => 'Model must be 50 characters or less';
+
+  @override
+  String get validationPlateRequired => 'Plate is required';
+
+  @override
+  String get validationPlateTooLong => 'Plate must be 20 characters or less';
+
+  @override
+  String get validationYearRequired => 'Year is required';
+
+  @override
+  String validationYearRange(int min, int max) {
+    return 'Enter a year between $min and $max';
+  }
+
+  @override
+  String get validationOdometerRequired => 'Odometer is required';
+
+  @override
+  String get validationOdometerInvalid => 'Enter a valid odometer reading';
+
+  @override
+  String get validationFuelRequired => 'Fuel amount is required';
+
+  @override
+  String get validationFuelInvalid => 'Enter a valid fuel amount';
+
+  @override
+  String get validationPriceRequired => 'Price is required';
+
+  @override
+  String get validationPriceInvalid => 'Enter a valid price';
+
+  @override
+  String get validationDistanceInvalid => 'Enter a valid distance';
+
+  @override
+  String validationOdometerBelowCurrent(String current) {
+    return 'Odometer cannot be less than current reading ($current)';
+  }
+
+  @override
+  String validationOdometerLargeGap(String gap, String expected) {
+    return 'Large gap: odometer is $gap from expected ($expected)';
+  }
+
+  @override
   String get automobileRecordsInsurance => 'Insurance';
 
   @override

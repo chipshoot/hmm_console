@@ -284,6 +284,332 @@
   "syncCellularBody": "Your network policy is set to \"WiFi only\", but you tapped Sync now. Proceeding will use cellular data.",
   "syncAnyway": "Sync anyway",
 
+  "commonRetry": "Retry",
+  "commonEdit": "Edit",
+  "commonError": "Error: {error}",
+  "@commonError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "gasLogTitle": "Gas Logs",
+  "gasLogLoadFailed": "Failed to load gas logs",
+  "gasLogEmpty": "No gas logs yet",
+  "gasLogLoadMore": "Load More",
+  "gasLogDeleteTitle": "Delete Gas Log",
+  "gasLogDeleteBody": "Are you sure you want to delete this gas log?",
+  "gasLogDeleteFailed": "Delete failed: {error}",
+  "@gasLogDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "gasLogCreated": "Gas log created",
+  "gasLogUpdated": "Gas log updated",
+
+  "gasLogOdometer": "Odometer ({unit})",
+  "@gasLogOdometer": {
+    "description": "{unit} is a unit symbol like mi or km — never translated, it comes from DistanceUnit.label",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "gasLogDistance": "Distance ({unit})",
+  "@gasLogDistance": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "gasLogFuel": "Fuel ({unit})",
+  "@gasLogFuel": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "gasLogUnitPrice": "Unit Price ({currency}/{unit})",
+  "@gasLogUnitPrice": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "gasLogTotalPrice": "Total Price ({currency})",
+  "@gasLogTotalPrice": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "gasLogFullTank": "Full Tank",
+  "gasLogComment": "Comment (optional)",
+  "gasLogSelectStation": "Please select or enter a gas station",
+
+  "vehicleNewTitle": "New Vehicle",
+  "vehicleCreated": "Vehicle created",
+  "vehicleUpdated": "Vehicle updated",
+  "vehicleNotFound": "Vehicle not found",
+  "vehicleInformation": "Vehicle Information",
+  "vehicleManageTitle": "Manage Vehicles",
+  "vehicleSelectTitle": "Select Vehicle",
+  "vehicleManage": "Manage",
+  "vehicleManageVehicles": "Manage Vehicles",
+  "vehicleLoadFailed": "Failed to load vehicles",
+  "vehicleEmpty": "No vehicles yet",
+  "vehicleEmptyHint": "Tap + to add your first vehicle.",
+  "vehicleNoneFound": "No vehicles found",
+  "vehicleNoneFoundHint": "Add a vehicle to get started.",
+  "vehicleStatusUpdated": "Vehicle status updated",
+  "vehicleActiveCount": "Active ({count})",
+  "@vehicleActiveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "vehicleInactiveCount": "Inactive ({count})",
+  "@vehicleInactiveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "vehicleVin": "VIN (17 characters)",
+  "vehicleMaker": "Maker",
+  "vehicleBrand": "Brand",
+  "vehicleModel": "Model",
+  "vehicleTrim": "Trim (optional)",
+  "vehicleYear": "Year",
+  "vehicleColor": "Color",
+  "vehicleColorOptional": "Color (optional)",
+  "vehiclePlate": "Plate",
+  "vehicleTankCapacity": "Tank Capacity (optional)",
+  "vehicleCityMpg": "City MPG",
+  "vehicleHwyMpg": "Hwy MPG",
+  "vehicleCombinedMpg": "Combined",
+  "vehicleMeterReading": "Meter Reading ({unit})",
+  "@vehicleMeterReading": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "vehiclePurchasePrice": "Purchase Price ({currency})",
+  "@vehiclePurchasePrice": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleNotes": "Notes",
+  "vehicleNotesOptional": "Notes (optional)",
+  "vehicleMileage": "Mileage",
+  "vehicleRegistration": "Registration",
+  "vehicleRegistrationExpiry": "Registration Expiry",
+  "vehicleInvalidMeterReading": "Enter a valid meter reading",
+  "vehiclePhotoUnavailable": "Photo unavailable",
+  "vehiclePhotoPickFailed": "Could not pick photo: {error}",
+  "@vehiclePhotoPickFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleEditIdentityTitle": "Edit vehicle identity?",
+  "vehicleActionConfirm": "{action} vehicle?",
+  "@vehicleActionConfirm": {
+    "description": "{action} is a localized verb such as Deactivate or Reactivate",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleDeactivate": "Deactivate",
+  "vehicleReactivate": "Reactivate",
+
+  "vehicleDeactivateTitle": "Deactivate vehicle?",
+  "vehicleReactivateTitle": "Reactivate vehicle?",
+  "vehicleDeactivateBody": "Are you sure you want to deactivate {vehicle}?",
+  "@vehicleDeactivateBody": {
+    "description": "Whole sentences per action rather than interpolating a verb — a verb slotted into a sentence does not survive translation.",
+    "placeholders": { "vehicle": { "type": "String" } }
+  },
+  "vehicleReactivateBody": "Are you sure you want to reactivate {vehicle}?",
+  "@vehicleReactivateBody": {
+    "placeholders": { "vehicle": { "type": "String" } }
+  },
+  "stationDeactivateBody": "Are you sure you want to deactivate \"{station}\"?",
+  "@stationDeactivateBody": {
+    "placeholders": { "station": { "type": "String" } }
+  },
+  "stationReactivateBody": "Are you sure you want to reactivate \"{station}\"?",
+  "@stationReactivateBody": {
+    "placeholders": { "station": { "type": "String" } }
+  },
+  "stationDeactivateTitle": "Deactivate station?",
+  "stationReactivateTitle": "Reactivate station?",
+
+  "stationTitle": "Gas Stations",
+  "stationLoadFailed": "Failed to load gas stations",
+  "stationEmpty": "No gas stations yet",
+  "stationEmptyHint": "Tap + to add your first gas station.",
+  "stationActionConfirm": "{action} station?",
+  "@stationActionConfirm": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "stationName": "Station Name",
+  "stationHintCreate": "Type to create new station",
+  "stationHintSelect": "Select or type new station",
+  "stationNameRequired": "Station Name *",
+  "stationAddress": "Address",
+  "stationCityRequired": "City *",
+  "stationStateProvince": "State/Province",
+  "stationCountryRequired": "Country *",
+  "stationPostalCode": "Zip/Postal Code",
+  "stationDescription": "Description",
+  "stationCreateFailed": "Failed to create station: {error}",
+  "@stationCreateFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "stationUpdateFailed": "Failed to update station: {error}",
+  "@stationUpdateFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "stationLocationCaptured": "Location and address captured",
+  "stationLocationNoAddress": "Location captured (address lookup unavailable)",
+  "stationLocationDenied": "Could not get location. Check permissions.",
+  "stationLocationError": "Location error: {error}",
+  "@stationLocationError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "stationSaveFailed": "Failed to {action} station: {error}",
+  "@stationSaveFailed": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "sectionIdentity": "Identity",
+  "sectionAppearance": "Appearance",
+  "sectionEngine": "Engine",
+  "sectionOwnership": "Ownership",
+  "sectionNotes": "Notes",
+  "sectionChangeHistory": "Change history",
+
+  "fieldDate": "Date",
+
+  "fuelTypeLabel": "Fuel Type",
+  "fuelGradeLabel": "Fuel Grade",
+  "engineTypeLabel": "Engine Type",
+  "ownershipStatusLabel": "Ownership Status",
+
+  "@_dropdownValues": {
+    "description": "Display copy for the dropdown option strings. The STORED value stays the untranslated literal ('Regular', 'Gasoline', 'Owned', …) — see gas_log/presentation/widgets/option_labels.dart. Translating the stored value would corrupt saved records and the API wire format."
+  },
+  "optionRegular": "Regular",
+  "optionMidGrade": "Mid-Grade",
+  "optionPremium": "Premium",
+  "optionDiesel": "Diesel",
+  "optionE85": "E85",
+  "optionElectric": "Electric",
+  "optionOther": "Other",
+  "optionGasoline": "Gasoline",
+  "optionHybrid": "Hybrid",
+  "optionPlugInHybrid": "Plug-in Hybrid",
+  "optionHydrogen": "Hydrogen",
+  "optionCng": "CNG",
+  "optionOwned": "Owned",
+  "optionFinanced": "Financed",
+  "optionLeased": "Leased",
+  "optionCompany": "Company",
+
+  "@_validators": {
+    "description": "Form validation messages. Returned by the AutomobileValidator / GasLogValidator mixins, which now take an AppLocalizations."
+  },
+  "validationVinRequired": "VIN is required",
+  "validationVinLength": "VIN must be exactly 17 characters",
+  "validationMakerRequired": "Maker is required",
+  "validationMakerTooLong": "Maker must be 50 characters or less",
+  "validationBrandRequired": "Brand is required",
+  "validationBrandTooLong": "Brand must be 50 characters or less",
+  "validationModelRequired": "Model is required",
+  "validationModelTooLong": "Model must be 50 characters or less",
+  "validationPlateRequired": "Plate is required",
+  "validationPlateTooLong": "Plate must be 20 characters or less",
+  "validationYearRequired": "Year is required",
+  "validationYearRange": "Enter a year between {min} and {max}",
+  "@validationYearRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "validationOdometerRequired": "Odometer is required",
+  "validationOdometerInvalid": "Enter a valid odometer reading",
+  "validationFuelRequired": "Fuel amount is required",
+  "validationFuelInvalid": "Enter a valid fuel amount",
+  "validationPriceRequired": "Price is required",
+  "validationPriceInvalid": "Enter a valid price",
+  "validationDistanceInvalid": "Enter a valid distance",
+  "validationOdometerBelowCurrent": "Odometer cannot be less than current reading ({current})",
+  "@validationOdometerBelowCurrent": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      }
+    }
+  },
+  "validationOdometerLargeGap": "Large gap: odometer is {gap} from expected ({expected})",
+  "@validationOdometerLargeGap": {
+    "placeholders": {
+      "gap": {
+        "type": "String"
+      },
+      "expected": {
+        "type": "String"
+      }
+    }
+  },
+
   "automobileRecordsInsurance": "Insurance",
   "automobileRecordsServiceHistory": "Service history",
   "automobileRecordsScheduledService": "Scheduled service",

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,17 +15,18 @@ class AutomobileSelectorScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final automobilesAsync = ref.watch(automobilesStateProvider);
     final distLabel = ref.watch(gasLogSettingsProvider).distanceUnit.label;
 
     return CommonScreenScaffold(
-      title: 'Select Vehicle',
+      title: l.vehicleSelectTitle,
       withPadding: false,
       actions: [
         TextButton.icon(
           onPressed: () => context.push('/automobiles/manage'),
           icon: const Icon(Icons.settings),
-          label: const Text('Manage'),
+          label: Text(l.vehicleManage),
         ),
       ],
       child: automobilesAsync.when(
@@ -35,7 +38,7 @@ class AutomobileSelectorScreen extends ConsumerWidget {
               Icon(Icons.error_outline,
                   size: 48, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 16),
-              Text('Failed to load vehicles',
+              Text(l.vehicleLoadFailed,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Text(error.toString(),
@@ -45,7 +48,7 @@ class AutomobileSelectorScreen extends ConsumerWidget {
               FilledButton.tonal(
                 onPressed: () =>
                     ref.read(automobilesStateProvider.notifier).refresh(),
-                child: const Text('Retry'),
+                child: Text(l.commonRetry),
               ),
             ],
           ),
@@ -60,14 +63,14 @@ class AutomobileSelectorScreen extends ConsumerWidget {
                       size: 64,
                       color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(height: 16),
-                  Text('No vehicles found',
+                  Text(l.vehicleNoneFound,
                       style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: 8),
-                  const Text('Add a vehicle to get started.'),
+                  Text(l.vehicleNoneFoundHint),
                   const SizedBox(height: 16),
                   FilledButton.tonal(
                     onPressed: () => context.push('/automobiles/manage'),
-                    child: const Text('Manage Vehicles'),
+                    child: Text(l.vehicleManageVehicles),
                   ),
                 ],
               ),

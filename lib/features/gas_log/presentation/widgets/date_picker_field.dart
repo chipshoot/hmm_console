@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 class DatePickerField extends StatelessWidget {
@@ -13,11 +15,12 @@ class DatePickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return InkWell(
       onTap: () => _pickDate(context),
       child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'Date',
+        decoration: InputDecoration(
+          labelText: l.fieldDate,
           border: OutlineInputBorder(),
           suffixIcon: Icon(Icons.calendar_today),
         ),

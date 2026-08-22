@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
@@ -230,10 +232,11 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   // -------------------- Per-card save handlers --------------------
 
   Future<bool> _saveMileage() async {
+    final l = AppLocalizations.of(context);
     final newMeter = int.tryParse(_meterReadingCtrl.text);
     if (newMeter == null || newMeter < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid meter reading')),
+        SnackBar(content: Text(l.vehicleInvalidMeterReading)),
       );
       return false;
     }
@@ -252,6 +255,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   // -------------------- Photo banner --------------------
 
   Future<void> _pickAndSavePhoto() async {
+    final l = AppLocalizations.of(context);
     if (_photoBusy) return;
     setState(() => _photoBusy = true);
     try {
@@ -271,7 +275,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not pick photo: $e')),
+        SnackBar(content: Text(l.vehiclePhotoPickFailed('$e'))),
       );
     } finally {
       if (mounted) setState(() => _photoBusy = false);
@@ -398,19 +402,20 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final settings = ref.watch(gasLogSettingsProvider);
     final distLabel = settings.distanceUnit.label;
 
     ref.listen<AsyncValue<void>>(updateAutomobileStateProvider, (_, next) {
       if (next.hasValue && !next.isLoading && !next.isRefreshing) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vehicle updated')),
+          SnackBar(content: Text(l.vehicleUpdated)),
         );
       }
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(l.commonError('${next.error}')),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -419,15 +424,15 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
     if (_original == null) {
       return CommonScreenScaffold(
-        title: 'Vehicle Information',
-        child: const Center(child: Text('Vehicle not found')),
+        title: l.vehicleInformation,
+        child: Center(child: Text(l.vehicleNotFound)),
       );
     }
 
     final orig = _original!;
 
     return CommonScreenScaffold(
-      title: 'Vehicle Information',
+      title: l.vehicleInformation,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusScope.of(context).unfocus(),
@@ -448,13 +453,13 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               // 2. Mileage
               EditableInfoCard(
                 icon: Icons.speed_outlined,
-                title: 'Mileage',
+                title: l.vehicleMileage,
                 displayBuilder: (_) =>
                     _readOnlyRow('Meter reading', '${orig.meterReading} $distLabel'),
                 editorBuilder: (_) => AppTextFormField(
                   fieldController: _meterReadingCtrl,
-                  fieldValidator: validateMeterReading,
-                  label: 'Meter Reading ($distLabel)',
+                  fieldValidator: (v) => validateMeterReading(v, l),
+                  label: l.vehicleMeterReading(distLabel),
                   keyboardType: NumericInput.integer.keyboardType,
                   inputFormatters: NumericInput.integer.formatters,
                 ),
@@ -469,7 +474,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               if (settings.showRegistration) ...[
                 EditableInfoCard(
                   icon: Icons.assignment_outlined,
-                  title: 'Registration',
+                  title: l.vehicleRegistration,
                   displayBuilder: (_) => _readOnlyRow(
                     'Expiry',
                     orig.registrationExpiryDate != null
@@ -478,7 +483,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                   ),
                   editorBuilder: (_) => _optionalDatePicker(
                     context,
-                    label: 'Registration Expiry',
+                    label: l.vehicleRegistrationExpiry,
                     date: _registrationExpiryDate,
                     onChanged: (d) =>
                         setState(() => _registrationExpiryDate = d),
@@ -496,7 +501,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               // 5. Notes
               EditableInfoCard(
                 icon: Icons.notes_outlined,
-                title: 'Notes',
+                title: l.vehicleNotes,
                 displayBuilder: (_) => Text(
                   orig.notes?.isNotEmpty == true ? orig.notes! : 'No notes',
                   style: orig.notes?.isNotEmpty == true
@@ -509,7 +514,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                 editorBuilder: (_) => AppTextFormField(
                   fieldController: _notesCtrl,
                   fieldValidator: (_) => null,
-                  label: 'Notes (optional)',
+                  label: l.vehicleNotesOptional,
                 ),
                 onSave: _saveNotes,
                 onCancel: () => setState(_resetNotes),
@@ -518,7 +523,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
               // 6. Audit log (read-only)
               if (orig.auditLog.isNotEmpty) ...[
-                _sectionTitle(context, 'Change history'),
+                _sectionTitle(context, l.sectionChangeHistory),
                 GapWidgets.h8,
                 ..._buildAuditList(context, orig.auditLog),
                 GapWidgets.h24,
@@ -531,6 +536,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   }
 
   Widget _photoBanner(Automobile orig) {
+    final l = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
     final photo = orig.primaryImage;
     return Card(
@@ -584,7 +590,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                         errorPlaceholder: Container(
                           color: cs.surfaceContainerHighest,
                           alignment: Alignment.center,
-                          child: const Text('Photo unavailable'),
+                          child: Text(l.vehiclePhotoUnavailable),
                         ),
                       ),
                     ),
@@ -593,7 +599,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                     error: (_, _) => Container(
                       color: cs.surfaceContainerHighest,
                       alignment: Alignment.center,
-                      child: const Text('Photo unavailable'),
+                      child: Text(l.vehiclePhotoUnavailable),
                     ),
                   );
                 },
@@ -629,6 +635,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   }
 
   Widget _identityCard(BuildContext context, Automobile orig) {
+    final l = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
     return Card(
       margin: EdgeInsets.zero,
@@ -681,7 +688,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                       TextButton(
                         onPressed:
                             _identitySaving ? null : _cancelIdentity,
-                        child: const Text('Cancel'),
+                        child: Text(l.commonCancel),
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
@@ -700,41 +707,43 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     );
   }
 
-  List<Widget> _identityEditFields() => [
+  List<Widget> _identityEditFields() {
+    final l = AppLocalizations.of(context);
+    return [
         AppTextFormField(
           fieldController: _vinCtrl,
-          fieldValidator: validateVin,
-          label: 'VIN (17 characters)',
+          fieldValidator: (v) => validateVin(v, l),
+          label: l.vehicleVin,
         ),
         GapWidgets.h16,
         AppTextFormField(
           fieldController: _makerCtrl,
-          fieldValidator: validateMaker,
-          label: 'Maker',
+          fieldValidator: (v) => validateMaker(v, l),
+          label: l.vehicleMaker,
         ),
         GapWidgets.h16,
         AppTextFormField(
           fieldController: _brandCtrl,
-          fieldValidator: validateBrand,
-          label: 'Brand',
+          fieldValidator: (v) => validateBrand(v, l),
+          label: l.vehicleBrand,
         ),
         GapWidgets.h16,
         AppTextFormField(
           fieldController: _modelCtrl,
-          fieldValidator: validateModel,
-          label: 'Model',
+          fieldValidator: (v) => validateModel(v, l),
+          label: l.vehicleModel,
         ),
         GapWidgets.h16,
         AppTextFormField(
           fieldController: _trimCtrl,
           fieldValidator: (_) => null,
-          label: 'Trim (optional)',
+          label: l.vehicleTrim,
         ),
         GapWidgets.h16,
         AppTextFormField(
           fieldController: _yearCtrl,
-          fieldValidator: validateYear,
-          label: 'Year',
+          fieldValidator: (v) => validateYear(v, l),
+          label: l.vehicleYear,
           keyboardType: NumericInput.integer.keyboardType,
           inputFormatters: NumericInput.integer.formatters,
         ),
@@ -755,15 +764,15 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               child: AppTextFormField(
                 fieldController: _colorCtrl,
                 fieldValidator: (_) => null,
-                label: 'Color',
+                label: l.vehicleColor,
               ),
             ),
             GapWidgets.w16,
             Expanded(
               child: AppTextFormField(
                 fieldController: _plateCtrl,
-                fieldValidator: validatePlate,
-                label: 'Plate',
+                fieldValidator: (v) => validatePlate(v, l),
+                label: l.vehiclePlate,
               ),
             ),
           ],
@@ -773,7 +782,8 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           value: _ownershipStatus,
           onChanged: (v) => setState(() => _ownershipStatus = v ?? 'Owned'),
         ),
-      ];
+    ];
+  }
 
   List<Widget> _identityReadOnlyFields(Automobile orig) => [
         _readOnlyRow('VIN', orig.vin ?? 'N/A'),
@@ -873,10 +883,11 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   /// fields on confirm. Mirrors the iOS HIG "destructive but recoverable"
   /// pattern.
   Future<void> _confirmUnlockImmutables(BuildContext context) async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit vehicle identity?'),
+        title: Text(l.vehicleEditIdentityTitle),
         content: const Text(
           'VIN, maker, brand, model, year, engine, and fuel type normally '
           'do not change. Edit these only to correct a typo from when the '
@@ -885,11 +896,11 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(l.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Edit'),
+            child: Text(l.commonEdit),
           ),
         ],
       ),

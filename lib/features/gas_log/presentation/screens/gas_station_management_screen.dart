@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/widgets/screen_scaffold.dart';
@@ -13,10 +15,11 @@ class GasStationManagementScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final stationsAsync = ref.watch(gasStationsStateProvider);
 
     return CommonScreenScaffold(
-      title: 'Gas Stations',
+      title: l.stationTitle,
       withPadding: false,
       child: Stack(
         children: [
@@ -30,7 +33,7 @@ class GasStationManagementScreen extends ConsumerWidget {
                       size: 48,
                       color: Theme.of(context).colorScheme.error),
                   const SizedBox(height: 16),
-                  Text('Failed to load gas stations',
+                  Text(l.stationLoadFailed,
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(error.toString(),
@@ -40,7 +43,7 @@ class GasStationManagementScreen extends ConsumerWidget {
                   FilledButton.tonal(
                     onPressed: () =>
                         ref.read(gasStationsStateProvider.notifier).refresh(),
-                    child: const Text('Retry'),
+                    child: Text(l.commonRetry),
                   ),
                 ],
               ),
@@ -56,10 +59,10 @@ class GasStationManagementScreen extends ConsumerWidget {
                           color:
                               Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(height: 16),
-                      Text('No gas stations yet',
+                      Text(l.stationEmpty,
                           style: Theme.of(context).textTheme.headlineSmall),
                       const SizedBox(height: 8),
-                      const Text('Tap + to add your first gas station.'),
+                      Text(l.stationEmptyHint),
                     ],
                   ),
                 );
@@ -79,11 +82,11 @@ class GasStationManagementScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 8, bottom: 80),
                   children: [
                     if (active.isNotEmpty) ...[
-                      _SectionHeader(title: 'Active (${active.length})'),
+                      _SectionHeader(title: l.vehicleActiveCount(active.length)),
                       ...active.map((s) => _buildTile(context, ref, s)),
                     ],
                     if (inactive.isNotEmpty) ...[
-                      _SectionHeader(title: 'Inactive (${inactive.length})'),
+                      _SectionHeader(title: l.vehicleInactiveCount(inactive.length)),
                       ...inactive.map((s) => _buildTile(context, ref, s)),
                     ],
                   ],
@@ -122,27 +125,29 @@ class GasStationManagementScreen extends ConsumerWidget {
 
   void _confirmToggleActive(
       BuildContext context, WidgetRef ref, GasStation station) {
-    final action = station.isActive ? 'deactivate' : 'reactivate';
-    final actionLabel = action[0].toUpperCase() + action.substring(1);
+    final l = AppLocalizations.of(context);
+    final title =
+        station.isActive ? l.stationDeactivateTitle : l.stationReactivateTitle;
+    final body = station.isActive
+        ? l.stationDeactivateBody(station.name)
+        : l.stationReactivateBody(station.name);
     final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
         Theme.of(context).platform == TargetPlatform.macOS;
 
     showAdaptiveDialog(
       context: context,
       builder: (ctx) => AlertDialog.adaptive(
-        title: Text('$actionLabel station?'),
-        content: Text(
-          'Are you sure you want to $action "${station.name}"?',
-        ),
+        title: Text(title),
+        content: Text(body),
         actions: [
           isApple
               ? CupertinoDialogAction(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l.commonCancel),
                 )
               : TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l.commonCancel),
                 ),
           isApple
               ? CupertinoDialogAction(
@@ -162,7 +167,7 @@ class GasStationManagementScreen extends ConsumerWidget {
                           );
                     }
                   },
-                  child: Text(actionLabel),
+                  child: Text(station.isActive ? l.vehicleDeactivate : l.vehicleReactivate),
                 )
               : FilledButton(
                   onPressed: () {
@@ -180,7 +185,7 @@ class GasStationManagementScreen extends ConsumerWidget {
                           );
                     }
                   },
-                  child: Text(actionLabel),
+                  child: Text(station.isActive ? l.vehicleDeactivate : l.vehicleReactivate),
                 ),
         ],
       ),

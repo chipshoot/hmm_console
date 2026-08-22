@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -105,6 +107,7 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final stationsAsync = ref.watch(gasStationsStateProvider);
     final gasLogsAsync = ref.watch(gasLogsStateProvider);
     final gasLogs = gasLogsAsync.hasValue
@@ -116,8 +119,8 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
     return stationsAsync.when(
       loading: () => TextFormField(
         initialValue: widget.initialValue ?? '',
-        decoration: const InputDecoration(
-          labelText: 'Station Name',
+        decoration: InputDecoration(
+          labelText: l.stationName,
           border: OutlineInputBorder(),
           suffixIcon: SizedBox(
             width: 20,
@@ -140,6 +143,7 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
   }
 
   Widget _buildAutocomplete(List<GasStation> stations, Position? userPos) {
+    final l = AppLocalizations.of(context);
     String displayName(GasStation s) => stationDisplayName(s, stations);
 
     String? distanceLabel(GasStation s) {
@@ -177,11 +181,11 @@ class _StationDropdownState extends ConsumerState<StationDropdown> {
           controller: controller,
           focusNode: focusNode,
           decoration: InputDecoration(
-            labelText: 'Station Name',
+            labelText: l.stationName,
             border: const OutlineInputBorder(),
             hintText: stations.isEmpty
-                ? 'Type to create new station'
-                : 'Select or type new station',
+                ? l.stationHintCreate
+                : l.stationHintSelect,
             suffixIcon: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

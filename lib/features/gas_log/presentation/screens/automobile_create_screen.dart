@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -85,19 +87,20 @@ class _AutomobileCreateScreenState
     final settings = ref.watch(gasLogSettingsProvider);
     final distLabel = settings.distanceUnit.label;
     final currSymbol = settings.currency.symbol;
+    final l = AppLocalizations.of(context);
 
     ref.listen<AsyncValue<Automobile?>>(createAutomobileStateProvider,
         (_, next) {
       if (next.hasValue && next.value != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vehicle created')),
+          SnackBar(content: Text(l.vehicleCreated)),
         );
         context.pop();
       }
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text(l.commonError('${next.error}')),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -105,7 +108,7 @@ class _AutomobileCreateScreenState
     });
 
     return CommonScreenScaffold(
-      title: 'New Vehicle',
+      title: l.vehicleNewTitle,
       // Tap outside any field to dismiss the keyboard. The iOS number pad
       // has no Done/Return key, so without this users have no obvious way
       // to close it after entering year/MPG/price.
@@ -119,30 +122,30 @@ class _AutomobileCreateScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // --- Identity ---
-              _sectionTitle(context, 'Identity'),
+              _sectionTitle(context, l.sectionIdentity),
               GapWidgets.h8,
               AppTextFormField(
                 fieldController: _vinCtrl,
-                fieldValidator: validateVin,
-                label: 'VIN (17 characters)',
+                fieldValidator: (v) => validateVin(v, l),
+                label: l.vehicleVin,
               ),
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _makerCtrl,
-                fieldValidator: validateMaker,
-                label: 'Maker',
+                fieldValidator: (v) => validateMaker(v, l),
+                label: l.vehicleMaker,
               ),
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _brandCtrl,
-                fieldValidator: validateBrand,
-                label: 'Brand',
+                fieldValidator: (v) => validateBrand(v, l),
+                label: l.vehicleBrand,
               ),
               GapWidgets.h16,
               AppTextFormField(
                 fieldController: _modelCtrl,
-                fieldValidator: validateModel,
-                label: 'Model',
+                fieldValidator: (v) => validateModel(v, l),
+                label: l.vehicleModel,
               ),
               GapWidgets.h16,
               Row(
@@ -151,15 +154,15 @@ class _AutomobileCreateScreenState
                     child: AppTextFormField(
                       fieldController: _trimCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Trim (optional)',
+                      label: l.vehicleTrim,
                     ),
                   ),
                   GapWidgets.w16,
                   Expanded(
                     child: AppTextFormField(
                       fieldController: _yearCtrl,
-                      fieldValidator: validateYear,
-                      label: 'Year',
+                      fieldValidator: (v) => validateYear(v, l),
+                      label: l.vehicleYear,
                       keyboardType: NumericInput.integer.keyboardType,
                       inputFormatters: NumericInput.integer.formatters,
                     ),
@@ -169,7 +172,7 @@ class _AutomobileCreateScreenState
               GapWidgets.h24,
 
               // --- Appearance ---
-              _sectionTitle(context, 'Appearance'),
+              _sectionTitle(context, l.sectionAppearance),
               GapWidgets.h8,
               Row(
                 children: [
@@ -177,15 +180,15 @@ class _AutomobileCreateScreenState
                     child: AppTextFormField(
                       fieldController: _colorCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Color (optional)',
+                      label: l.vehicleColorOptional,
                     ),
                   ),
                   GapWidgets.w16,
                   Expanded(
                     child: AppTextFormField(
                       fieldController: _plateCtrl,
-                      fieldValidator: validatePlate,
-                      label: 'Plate',
+                      fieldValidator: (v) => validatePlate(v, l),
+                      label: l.vehiclePlate,
                     ),
                   ),
                 ],
@@ -193,7 +196,7 @@ class _AutomobileCreateScreenState
               GapWidgets.h24,
 
               // --- Engine ---
-              _sectionTitle(context, 'Engine'),
+              _sectionTitle(context, l.sectionEngine),
               GapWidgets.h8,
               EngineTypeDropdown(
                 value: _engineType,
@@ -210,7 +213,7 @@ class _AutomobileCreateScreenState
               AppTextFormField(
                 fieldController: _tankCapacityCtrl,
                 fieldValidator: (_) => null,
-                label: 'Tank Capacity (optional)',
+                label: l.vehicleTankCapacity,
                 keyboardType: NumericInput.decimal.keyboardType,
                 inputFormatters: NumericInput.decimal.formatters,
               ),
@@ -221,7 +224,7 @@ class _AutomobileCreateScreenState
                     child: AppTextFormField(
                       fieldController: _cityMpgCtrl,
                       fieldValidator: (_) => null,
-                      label: 'City MPG',
+                      label: l.vehicleCityMpg,
                       keyboardType: NumericInput.decimal.keyboardType,
                       inputFormatters: NumericInput.decimal.formatters,
                     ),
@@ -231,7 +234,7 @@ class _AutomobileCreateScreenState
                     child: AppTextFormField(
                       fieldController: _highwayMpgCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Hwy MPG',
+                      label: l.vehicleHwyMpg,
                       keyboardType: NumericInput.decimal.keyboardType,
                       inputFormatters: NumericInput.decimal.formatters,
                     ),
@@ -241,7 +244,7 @@ class _AutomobileCreateScreenState
                     child: AppTextFormField(
                       fieldController: _combinedMpgCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Combined',
+                      label: l.vehicleCombinedMpg,
                       keyboardType: NumericInput.decimal.keyboardType,
                       inputFormatters: NumericInput.decimal.formatters,
                     ),
@@ -251,12 +254,12 @@ class _AutomobileCreateScreenState
               GapWidgets.h24,
 
               // --- Ownership ---
-              _sectionTitle(context, 'Ownership'),
+              _sectionTitle(context, l.sectionOwnership),
               GapWidgets.h8,
               AppTextFormField(
                 fieldController: _meterReadingCtrl,
-                fieldValidator: validateMeterReading,
-                label: 'Meter Reading ($distLabel)',
+                fieldValidator: (v) => validateMeterReading(v, l),
+                label: l.vehicleMeterReading(distLabel),
                 keyboardType: NumericInput.integer.keyboardType,
                 inputFormatters: NumericInput.integer.formatters,
               ),
@@ -269,7 +272,7 @@ class _AutomobileCreateScreenState
               AppTextFormField(
                 fieldController: _purchasePriceCtrl,
                 fieldValidator: (_) => null,
-                label: 'Purchase Price ($currSymbol)',
+                label: l.vehiclePurchasePrice(currSymbol),
                 keyboardType: NumericInput.decimal.keyboardType,
                 inputFormatters: NumericInput.decimal.formatters,
               ),
@@ -282,12 +285,12 @@ class _AutomobileCreateScreenState
               GapWidgets.h24,
 
               // --- Notes ---
-              _sectionTitle(context, 'Notes'),
+              _sectionTitle(context, l.sectionNotes),
               GapWidgets.h8,
               AppTextFormField(
                 fieldController: _notesCtrl,
                 fieldValidator: (_) => null,
-                label: 'Notes (optional)',
+                label: l.vehicleNotesOptional,
               ),
               GapWidgets.h24,
 
