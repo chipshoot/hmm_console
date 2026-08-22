@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**hmm_console** is a cross-platform Flutter app (Android, iOS, Web, Windows, macOS, Linux) serving as the client for the HomeMadeMessage (Hmm) backend API. It provides personal note management, vehicle records/expense tracking, and productivity features. Auth is via Firebase; local storage uses a **Drift (SQLite)** database; data can run fully local, sync to a personal cloud (OneDrive), or sync with the Hmm REST API at `api.homemademessage.com` — selectable at runtime via the `DataMode` system.
+**hmm_console** is a cross-platform Flutter app (Android, iOS, Web, Windows, macOS, Linux) serving as the client for the HomeMadeMessage (Hmm) backend API. It provides personal note management, vehicle records/expense tracking, and productivity features. Auth is via the self-hosted **Hmm IdP** (OpenID Connect at `idp.homemademessage.com`) — *not* Firebase, despite Firebase still being initialized at startup; local storage uses a **Drift (SQLite)** database; data can run fully local, sync to a personal cloud (OneDrive), or sync with the Hmm REST API at `api.homemademessage.com` — selectable at runtime via the `DataMode` system.
 
 ## Common Commands
 
@@ -53,7 +53,7 @@ Data (Repositories, Data Sources, Mappers, Models)
 - **Data mode (local / cloudStorage / cloudApi):** `lib/core/data/data_mode.dart` defines a `DataMode` enum and `DataModeNotifier` (persisted via `shared_preferences`). `lib/core/data/repository_providers.dart` selects each repository implementation by mode — local Drift repos back both `local` and `cloudStorage` (the latter layers a sync engine on top of the same store), while `cloudApi` uses API-backed repositories. See the Data layer & sync section below.
 - **Routing:** GoRouter with auth-based redirect. Routes defined in `lib/core/navigation/`. Unauthenticated users redirect to `/auth`.
 - **Localization:** Flutter gen-l10n (`l10n.yaml`, ARB files in `lib/l10n/`, generated `AppLocalizations` in `lib/l10n/gen/`). Locale is driven by `lib/core/i18n/locale_provider.dart`. Currently `en` and `zh`.
-- **Error handling:** Sealed `AppException` hierarchy in `lib/core/exceptions/app_exceptions.dart`. Firebase errors map to `AppFirebaseException`. Errors propagate through Riverpod's `AsyncValue`.
+- **Error handling:** Sealed `AppException` hierarchy in `lib/core/exceptions/app_exceptions.dart`. Auth failures surface as `AuthTokenException` (invalid credentials, email not confirmed, account locked) and transport failures as `NetworkException` — both raised by `idp_token_service.dart`. `AppFirebaseException` still exists in the hierarchy but is **never thrown** by any code. Errors propagate through Riverpod's `AsyncValue`.
 
 ### Feature modules (`lib/features/`)
 
@@ -61,7 +61,7 @@ All features use Riverpod for DI/state. Data source depends on the active `DataM
 
 | Feature | Purpose | Data Source |
 |---------|---------|-------------|
-| `auth/` | Firebase login (email/password, Google, reset) | Firebase Auth (remote) |
+| `auth/` | Email/password login + registration against the Hmm IdP. Google/Apple sign-in and in-app password reset are **not implemented** (see Auth flow) | Hmm IdP (remote) |
 | `onboarding/` | First-run onboarding flow | — |
 | `notes/` | Personal note management | Drift / Hmm API (by mode) |
 | `gas_log/` | Fuel logs, stations, discounts | Drift / Hmm API (by mode) |
@@ -95,9 +95,17 @@ All features use Riverpod for DI/state. Data source depends on the active `DataM
 
 ### Auth flow
 
-Login → `LoginState` (AsyncNotifier) → `LoginUseCase` → `AuthRepository` → `AuthRemoteDataSource` → Firebase Auth → auth state stream triggers GoRouter redirect to dashboard.
+Login → `LoginState` (AsyncNotifier) → `LoginUseCase` → `AuthRepository` → `AuthRemoteDataSource` → `IdpTokenService.authorize()` → `POST {idp}/connect/token` → tokens persisted by `TokenStorage` (`flutter_secure_storage`) → auth state stream triggers GoRouter redirect to dashboard.
 
-Supports: email/password, Google Sign-In, password reset.
+The IdP is the OpenID Connect server in the `Hmm` repo (`Hmm.Idp`), configured in `lib/core/network/idp_config.dart`: production `https://idp.homemademessage.com`, client `hmm.mobile`, scopes `openid profile hmmapi offline_access`. `auth_interceptor` attaches the stored access token as a Bearer header on every API call.
+
+**Implemented:** email/password login; registration (`POST /api/account/register`); resend email confirmation (`POST /api/account/resend-confirmation`).
+
+**Not implemented — do not assume these work:**
+- *Google / Apple sign-in.* The `SocialLogin` widget exists but is never rendered by `login_screen.dart`, and the `google_sign_in` dependency is never imported anywhere in `lib/`.
+- *In-app password reset.* `forgot_password_screen.dart` is a static "coming soon" screen directing users to the identity portal.
+
+**Operational consequence:** because auth is self-hosted rather than Firebase, login is only as available as the IdP VPS. When that host is down the app reports "No internet connection" (`idp_token_service.dart:45` maps `connectionError` → `NetworkException.noConnection()`), which misleadingly blames the device's network.
 
 ### Data model pattern
 
@@ -110,6 +118,8 @@ Each domain area defines an abstract repository interface (e.g. `IHmmNoteReposit
 ## Firebase
 
 Project ID: `home-made-message`. Firebase emulators configured in `firebase.json` (auth:9099, firestore:8082, storage:9199). Emulator usage is commented out in `main.dart`.
+
+**Firebase is vestigial — nothing depends on it.** `Firebase.initializeApp()` still runs at startup (`main.dart:15`), and `firebase_core` / `firebase_auth` / `google_sign_in` are still in `pubspec.yaml`, but the only files referencing Firebase are `main.dart`, the generated `firebase_options.dart`, and the unused `AppFirebaseException`. Authentication moved to the Hmm IdP (see Auth flow); no feature code calls Firebase Auth. Treat this section as a record of what is still wired up, not of anything the app relies on. Removing the init call and the three dependencies is safe cleanup that nobody has done yet.
 
 ## Target Platforms
 - iOS (primary) - iPhone and iPad
