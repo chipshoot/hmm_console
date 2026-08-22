@@ -4,33 +4,20 @@ import 'package:path/path.dart' as p;
 
 import '../settings/settings_controller.dart';
 
+/// Where the app reads and writes data.
+///
+/// Display copy for these values lives in `core/i18n/enum_labels.dart`
+/// (`.label(l)` / `.describe(l)`), not here — a domain enum should not decide
+/// what English word appears on screen. See that file for why the split is
+/// load-bearing and not just tidiness.
 enum DataMode {
   local,
   cloudStorage,
   cloudApi;
-
-  String get displayName => switch (this) {
-        local => 'Local (Offline)',
-        cloudStorage => 'Cloud Storage',
-        cloudApi => 'Cloud (API)',
-      };
-
-  String get description => switch (this) {
-        local =>
-          'Your data stays on this device. No sync, no account needed.',
-        cloudStorage =>
-          'Data is stored locally and synced to your personal cloud account (OneDrive).',
-        cloudApi =>
-          'Data is stored locally and synced with the Hmm backend API.',
-      };
 }
 
 enum CloudProvider {
   onedrive;
-
-  String get displayName => switch (this) {
-        onedrive => 'OneDrive',
-      };
 }
 
 /// Thin view over the unified settings. Preserves the public surface; the

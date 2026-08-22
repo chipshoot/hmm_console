@@ -10,6 +10,7 @@ import 'package:hmm_console/core/data/vault/vault_key_service.dart';
 import 'package:hmm_console/core/data/vault/vault_session.dart';
 import 'package:hmm_console/core/data/vault/vault_store.dart';
 import 'package:hmm_console/features/settings/presentation/widgets/secure_vault_section.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 /// Fixed-state fake for [VaultSessionController]. The provider type
 /// parameter pins the notifier type to VaultSessionController itself, so
@@ -76,13 +77,28 @@ class _FakeVaultSessionController extends VaultSessionController {
   }
 }
 
-Widget _host(_FakeVaultSessionController controller) {
+/// Mounts the section with real localizations.
+///
+/// The delegates are not optional scaffolding: [SecureVaultSection] reads its
+/// copy from `AppLocalizations`, and a bare `MaterialApp` leaves that null, so
+/// the widget throws while building rather than failing an expectation.
+///
+/// [locale] defaults to English so the assertions below stay readable; the zh
+/// test at the bottom passes `Locale('zh')` to prove the translations are
+/// actually reachable through the widget, not merely present in the ARB.
+Widget _host(
+  _FakeVaultSessionController controller, {
+  Locale locale = const Locale('en'),
+}) {
   return ProviderScope(
     overrides: [
       vaultSessionProvider.overrideWith(() => controller),
     ],
-    child: const MaterialApp(
-      home: Scaffold(body: SecureVaultSection()),
+    child: MaterialApp(
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(body: SecureVaultSection()),
     ),
   );
 }
@@ -319,8 +335,10 @@ void main() {
         overrides: [
           vaultKeyServiceProvider.overrideWith((ref) async => svc),
         ],
-        child: const MaterialApp(
-          home: Scaffold(body: SecureVaultSection()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SecureVaultSection()),
         ),
       ));
       // Let initState's refresh() (and the widget rebuild it triggers)
@@ -331,6 +349,44 @@ void main() {
 
       expect(find.text('Set up Secure Vault'), findsOneWidget);
       expect(find.text('Secure Vault — locked'), findsNothing);
+    });
+  });
+
+  group('Chinese', () {
+    // The reason this feature was localized at all. Every other test in this
+    // file passes with the ARB translations missing, wrong, or never reached —
+    // they only ever assert the English strings. These are the tests that fail
+    // if zh regresses.
+
+    testWidgets('renders the vault rows in Chinese, not English', (t) async {
+      await t.pumpWidget(_host(
+        _FakeVaultSessionController(VaultStatus.locked),
+        locale: const Locale('zh'),
+      ));
+
+      expect(find.text('安全保险库——已锁定'), findsOneWidget);
+      expect(find.text('解锁'), findsOneWidget);
+      expect(find.text('重置安全保险库'), findsOneWidget);
+
+      // Asserted negatively too: without this, a locale that silently fell
+      // back to English would still satisfy a "finds something" check.
+      expect(find.text('Secure Vault — locked'), findsNothing);
+      expect(find.text('Unlock'), findsNothing);
+    });
+
+    testWidgets('the RESET confirmation token stays untranslated', (t) async {
+      // The token is typed by the user and compared by exact string match. If
+      // a translator ever "helpfully" localizes it, the reset button can never
+      // enable — the vault becomes impossible to reset on a Chinese device.
+      await t.pumpWidget(_host(
+        _FakeVaultSessionController(VaultStatus.locked),
+        locale: const Locale('zh'),
+      ));
+
+      await t.tap(find.text('重置安全保险库'));
+      await t.pumpAndSettle();
+
+      expect(find.textContaining('RESET'), findsWidgets);
     });
   });
 }

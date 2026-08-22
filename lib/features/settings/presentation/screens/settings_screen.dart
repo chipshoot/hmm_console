@@ -15,6 +15,7 @@ import '../../../../core/data/vault/vault_gc.dart';
 import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/onedrive_config.dart';
 import '../../../../core/data/sync/sync_controller.dart';
+import '../../../../core/i18n/enum_labels.dart';
 import '../../../../core/i18n/locale_provider.dart';
 import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/widgets/quick_panel/quick_panel_settings.dart';
@@ -34,8 +35,11 @@ class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   Future<void> _pickDatabaseFolder(BuildContext context, WidgetRef ref) async {
+    // Resolved before the first await: `context` may be unmounted by the time
+    // the picker returns, and AppLocalizations.of needs a live one.
+    final l = AppLocalizations.of(context);
     final result = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Choose database folder',
+      dialogTitle: l.settingsChooseDatabaseFolder,
     );
     if (result == null) return;
 
@@ -45,27 +49,27 @@ class SettingsScreen extends ConsumerWidget {
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Database location set to $result. Restart app to apply.'),
-        ),
+        SnackBar(content: Text(l.settingsDatabaseLocationSet(result))),
       );
     }
   }
 
   Future<void> _resetToDefault(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     await ref.read(settingsProvider.notifier).setLocalDbPath('');
     ref.invalidate(databasePathProvider);
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reset to default location. Restart app to apply.')),
+        SnackBar(content: Text(l.settingsDatabaseLocationReset)),
       );
     }
   }
 
   Future<void> _pickVaultFolder(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     final result = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Choose vault folder (e.g. inside your OneDrive)',
+      dialogTitle: l.settingsChooseVaultFolder,
     );
     if (result == null) return;
 
@@ -80,16 +84,13 @@ class SettingsScreen extends ConsumerWidget {
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Vault folder set to $result/vault. New photos will land there.',
-          ),
-        ),
+        SnackBar(content: Text(l.settingsVaultFolderSet(result))),
       );
     }
   }
 
   Future<void> _resetVaultFolder(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     await ref.read(settingsProvider.notifier).setCloudStorageVaultPath('');
     ref.invalidate(cloudStorageVaultPathProvider);
     ref.invalidate(vaultRootDirectoryProvider);
@@ -99,12 +100,7 @@ class SettingsScreen extends ConsumerWidget {
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Vault folder reset to default (app docs). '
-            'cloudStorage byte sync will not work until you choose a folder.',
-          ),
-        ),
+        SnackBar(content: Text(l.settingsVaultFolderReset)),
       );
     }
   }
@@ -115,6 +111,7 @@ class SettingsScreen extends ConsumerWidget {
   /// with a dry-run, confirms, then deletes.
   Future<void> _cleanUpVault(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = AppLocalizations.of(context);
     try {
       final store = await ref.read(vaultStoreProvider.future);
       final db = ref.read(hmmDatabaseProvider);
@@ -124,7 +121,7 @@ class SettingsScreen extends ConsumerWidget {
 
       if (preview.isClean) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('No unused photo files to clean up.')),
+          SnackBar(content: Text(l.settingsCleanUpNone)),
         );
         return;
       }
@@ -133,22 +130,22 @@ class SettingsScreen extends ConsumerWidget {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Clean up unused photos?'),
-          content: Text(
-            'Found ${preview.deletedCount} unused file'
-            '${preview.deletedCount == 1 ? '' : 's'} '
-            '(${_formatBytes(preview.bytesReclaimed)}) left behind by '
-            'cancelled or replaced photo picks. These are not referenced '
-            'by any vehicle and can be safely deleted.',
-          ),
+          title: Text(l.settingsCleanUpTitle),
+          // Pluralisation moved into the ARB: the old string hand-built
+          // "file"/"files" with a ternary, which has no correct answer in
+          // Chinese and would have to be rewritten per locale.
+          content: Text(l.settingsCleanUpBody(
+            preview.deletedCount,
+            _formatBytes(preview.bytesReclaimed),
+          )),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l.commonCancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Delete'),
+              child: Text(l.commonDelete),
             ),
           ],
         ),
@@ -161,17 +158,16 @@ class SettingsScreen extends ConsumerWidget {
       final result = await gc.sweep(fresh);
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            'Reclaimed ${result.deletedCount} file'
-            '${result.deletedCount == 1 ? '' : 's'} '
-            '(${_formatBytes(result.bytesReclaimed)}).',
-          ),
+          content: Text(l.settingsCleanUpDone(
+            result.deletedCount,
+            _formatBytes(result.bytesReclaimed),
+          )),
         ),
       );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Clean-up failed: $e'),
+          content: Text(l.settingsCleanUpFailed('$e')),
           duration: const Duration(seconds: 6),
         ),
       );
@@ -186,11 +182,12 @@ class SettingsScreen extends ConsumerWidget {
 
   Future<void> _signInOneDrive(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = AppLocalizations.of(context);
     try {
       await ref.read(oneDriveAuthProvider).signIn();
       ref.invalidate(oneDriveAuthStateProvider);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Signed in to OneDrive')),
+        SnackBar(content: Text(l.settingsSignedInOneDrive)),
       );
     } on OneDriveAuthException catch (e) {
       messenger.showSnackBar(
@@ -205,7 +202,7 @@ class SettingsScreen extends ConsumerWidget {
       // disappearing silently.
       messenger.showSnackBar(
         SnackBar(
-          content: Text('OneDrive sign-in failed: $e'),
+          content: Text(l.settingsSignInOneDriveFailed('$e')),
           duration: const Duration(seconds: 6),
         ),
       );
@@ -213,11 +210,12 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _signOutOneDrive(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     await ref.read(oneDriveAuthProvider).signOut();
     ref.invalidate(oneDriveAuthStateProvider);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Signed out of OneDrive')),
+        SnackBar(content: Text(l.settingsSignedOutOneDrive)),
       );
     }
   }
@@ -233,7 +231,8 @@ class SettingsScreen extends ConsumerWidget {
 
     final controller = ref.read(syncControllerProvider);
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(const SnackBar(content: Text('Syncing…')));
+    final l = AppLocalizations.of(context);
+    messenger.showSnackBar(SnackBar(content: Text(l.settingsSyncing)));
     final result = await controller.triggerManualSync();
     messenger.clearSnackBars();
     if (result == null) {
@@ -243,12 +242,12 @@ class SettingsScreen extends ConsumerWidget {
     if (result.success) {
       messenger.showSnackBar(SnackBar(
         content: Text(
-          'Synced — pushed ${result.pushedNotes} / pulled ${result.pulledNotes} notes',
+          l.settingsSyncSucceeded(result.pushedNotes, result.pulledNotes),
         ),
       ));
     } else {
       messenger.showSnackBar(SnackBar(
-        content: Text('Sync failed: ${result.errors.first.message}'),
+        content: Text(l.settingsSyncFailed(result.errors.first.message)),
         duration: const Duration(seconds: 6),
       ));
     }
@@ -272,8 +271,8 @@ class SettingsScreen extends ConsumerWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.apps),
-              title: const Text('Launcher'),
-              subtitle: const Text('Pin favorites and set search aliases'),
+              title: Text(l.settingsLauncher),
+              subtitle: Text(l.settingsLauncherSubtitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.pushNamed(RouterNames.launcherManage.name),
             ),
@@ -312,9 +311,8 @@ class SettingsScreen extends ConsumerWidget {
               final geo = ref.watch(geoCaptureEnabledProvider);
               return SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Add location to new notes'),
-                subtitle: const Text(
-                    'Capture your location when you create a note'),
+                title: Text(l.settingsGeoCapture),
+                subtitle: Text(l.settingsGeoCaptureSubtitle),
                 value: geo.asData?.value ?? false,
                 onChanged: geo.isLoading
                     ? null
@@ -346,7 +344,7 @@ class SettingsScreen extends ConsumerWidget {
               items: DataMode.values
                   .map((m) => DropdownMenuItem(
                         value: m,
-                        child: Text(m.displayName),
+                        child: Text(m.displayName(l)),
                       ))
                   .toList(),
               onChanged: (v) {
@@ -354,7 +352,7 @@ class SettingsScreen extends ConsumerWidget {
                   ref.read(dataModeProvider.notifier).setMode(v);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Switched to ${v.displayName}. Restart app to apply.'),
+                      content: Text(l.settingsSwitchedToMode(v.displayName(l))),
                     ),
                   );
                 }
@@ -362,7 +360,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             GapWidgets.h8,
             Text(
-              dataMode.description,
+              dataMode.describe(l),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -378,7 +376,7 @@ class SettingsScreen extends ConsumerWidget {
                 items: CloudProvider.values
                     .map((p) => DropdownMenuItem(
                           value: p,
-                          child: Text(p.displayName),
+                          child: Text(p.displayName(l)),
                         ))
                     .toList(),
                 onChanged: (v) {
@@ -403,7 +401,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
               if (!OneDriveConfig.isConfigured)
                 Text(
-                  'OneDrive client ID not set. Rebuild with --dart-define=ONEDRIVE_CLIENT_ID=<app-id> (see docs/cloud_storage_setup.md §1).',
+                  l.settingsOneDriveClientIdMissing,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.error,
                       ),
@@ -422,7 +420,7 @@ class SettingsScreen extends ConsumerWidget {
                               label: Text(l.settingsSignInOneDrive),
                             ),
                       loading: () => const LinearProgressIndicator(),
-                      error: (e, _) => Text('Auth state error: $e'),
+                      error: (e, _) => Text(l.settingsAuthStateError('$e')),
                     ),
             ],
             if (dataMode != DataMode.local) ...[
@@ -452,9 +450,8 @@ class SettingsScreen extends ConsumerWidget {
               final enabled = ref.watch(quickPanelEnabledProvider);
               return SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Quick access panel'),
-                subtitle: const Text(
-                    'Long-press the bottom-right corner for Home & quick Sync'),
+                title: Text(l.settingsQuickPanel),
+                subtitle: Text(l.settingsQuickPanelSubtitle),
                 value: enabled,
                 onChanged: (v) =>
                     ref.read(quickPanelEnabledProvider.notifier).setEnabled(v),
@@ -466,8 +463,8 @@ class SettingsScreen extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 enabled: enabled,
                 leading: const Icon(Icons.touch_app_outlined),
-                title: const Text('Show me how'),
-                subtitle: const Text('Replay the quick-access hint'),
+                title: Text(l.settingsQuickPanelReplay),
+                subtitle: Text(l.settingsQuickPanelReplaySubtitle),
                 onTap: enabled
                     ? () =>
                         ref.read(quickPanelHintShownProvider.notifier).replay()
@@ -484,9 +481,9 @@ class SettingsScreen extends ConsumerWidget {
               GapWidgets.h16,
               dbPathAsync.when(
                 data: (path) => InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Database Location',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l.settingsDatabaseLocation,
+                    border: const OutlineInputBorder(),
                   ),
                   child: Row(
                     children: [
@@ -502,7 +499,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('Error: $e'),
+                error: (e, _) => Text(l.settingsGenericError('$e')),
               ),
               GapWidgets.h8,
               Row(
@@ -510,12 +507,12 @@ class SettingsScreen extends ConsumerWidget {
                   OutlinedButton.icon(
                     onPressed: () => _pickDatabaseFolder(context, ref),
                     icon: const Icon(Icons.folder_open, size: 18),
-                    label: const Text('Change Location'),
+                    label: Text(l.settingsChangeLocation),
                   ),
                   GapWidgets.w8,
                   TextButton(
                     onPressed: () => _resetToDefault(context, ref),
-                    child: const Text('Reset to Default'),
+                    child: Text(l.settingsResetToDefault),
                   ),
                 ],
               ),
@@ -529,26 +526,22 @@ class SettingsScreen extends ConsumerWidget {
               OutlinedButton.icon(
                 onPressed: () => _cleanUpVault(context, ref),
                 icon: const Icon(Icons.cleaning_services_outlined, size: 18),
-                label: const Text('Clean up unused photos'),
+                label: Text(l.settingsCleanUpPhotos),
               ),
             ],
             GapWidgets.h24,
             const Divider(),
             GapWidgets.h24,
             Text(
-              'Vehicle Information',
+              l.settingsVehicleInformation,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
             GapWidgets.h8,
             SwitchListTile(
-              title: const Text('Show Registration card'),
-              subtitle: const Text(
-                'Turn off if your jurisdiction no longer requires '
-                'periodic vehicle-registration renewal (e.g. Ontario '
-                'retired the renewal sticker in 2022).',
-              ),
+              title: Text(l.settingsShowRegistration),
+              subtitle: Text(l.settingsShowRegistrationSubtitle),
               isThreeLine: true,
               contentPadding: EdgeInsets.zero,
               value: settings.showRegistration,
@@ -562,7 +555,7 @@ class SettingsScreen extends ConsumerWidget {
             const Divider(),
             GapWidgets.h24,
             Text(
-              'Gas Log Defaults',
+              l.settingsGasLogDefaults,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -570,14 +563,17 @@ class SettingsScreen extends ConsumerWidget {
             GapWidgets.h16,
             DropdownButtonFormField<DistanceUnit>(
               initialValue: settings.distanceUnit,
-              decoration: const InputDecoration(
-                labelText: 'Distance Unit',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.settingsDistanceUnit,
+                border: const OutlineInputBorder(),
               ),
+              // .displayName(l), never .apiValue: the persisted value stays
+              // 'Mile' regardless of what this dropdown shows. (Not .label —
+              // that is the unit symbol, "mi".)
               items: DistanceUnit.values
                   .map((u) => DropdownMenuItem(
                         value: u,
-                        child: Text(u.displayName),
+                        child: Text(u.displayName(l)),
                       ))
                   .toList(),
               onChanged: (v) {
@@ -591,14 +587,14 @@ class SettingsScreen extends ConsumerWidget {
             GapWidgets.h16,
             DropdownButtonFormField<FuelUnit>(
               initialValue: settings.fuelUnit,
-              decoration: const InputDecoration(
-                labelText: 'Fuel Unit',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.settingsFuelUnit,
+                border: const OutlineInputBorder(),
               ),
               items: FuelUnit.values
                   .map((u) => DropdownMenuItem(
                         value: u,
-                        child: Text(u.displayName),
+                        child: Text(u.displayName(l)),
                       ))
                   .toList(),
               onChanged: (v) {
@@ -612,14 +608,14 @@ class SettingsScreen extends ConsumerWidget {
             GapWidgets.h16,
             DropdownButtonFormField<CurrencyCode>(
               initialValue: settings.currency,
-              decoration: const InputDecoration(
-                labelText: 'Currency',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l.settingsCurrency,
+                border: const OutlineInputBorder(),
               ),
               items: CurrencyCode.values
                   .map((c) => DropdownMenuItem(
                         value: c,
-                        child: Text(c.displayName),
+                        child: Text(c.displayName(l)),
                       ))
                   .toList(),
               onChanged: (v) {
@@ -651,22 +647,21 @@ class _VaultFolderRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pathAsync = ref.watch(cloudStorageVaultPathProvider);
     final cs = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         pathAsync.when(
           data: (path) => InputDecorator(
-            decoration: const InputDecoration(
-              labelText: 'Vault folder (for photos)',
-              border: OutlineInputBorder(),
-              helperText:
-                  'Point this inside your OneDrive folder so vehicle '
-                  'photos sync across devices automatically.',
+            decoration: InputDecoration(
+              labelText: l.settingsVaultFolderLabel,
+              border: const OutlineInputBorder(),
+              helperText: l.settingsVaultFolderHelper,
               helperMaxLines: 3,
             ),
             child: Text(
               path == null || path.isEmpty
-                  ? 'Default (app sandbox — no cross-device sync)'
+                  ? l.settingsVaultFolderDefault
                   : '$path/vault',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontStyle:
@@ -678,7 +673,7 @@ class _VaultFolderRow extends ConsumerWidget {
             ),
           ),
           loading: () => const LinearProgressIndicator(),
-          error: (e, _) => Text('Vault path error: $e'),
+          error: (e, _) => Text(l.settingsVaultPathError('$e')),
         ),
         GapWidgets.h8,
         Row(
@@ -686,7 +681,7 @@ class _VaultFolderRow extends ConsumerWidget {
             OutlinedButton.icon(
               onPressed: onPick,
               icon: const Icon(Icons.folder_open, size: 18),
-              label: const Text('Choose Folder'),
+              label: Text(l.settingsChooseFolder),
             ),
             GapWidgets.w8,
             pathAsync.when(
@@ -694,7 +689,7 @@ class _VaultFolderRow extends ConsumerWidget {
                   ? const SizedBox.shrink()
                   : TextButton(
                       onPressed: onReset,
-                      child: const Text('Reset to Default'),
+                      child: Text(l.settingsResetToDefault),
                     ),
               loading: () => const SizedBox.shrink(),
               error: (_, _) => const SizedBox.shrink(),
@@ -716,6 +711,7 @@ class _SyncNetworkPolicySection extends ConsumerWidget {
     final policyNotifier = ref.watch(syncSettingsProvider.notifier);
     final current = ref.watch(syncSettingsProvider).networkPolicy;
     final theme = Theme.of(context);
+    final l = AppLocalizations.of(context);
 
     // RadioGroup<T> is the post-Flutter-3.32 ancestor that owns the
     // shared selection — gets us off the deprecated per-tile
@@ -726,7 +722,7 @@ class _SyncNetworkPolicySection extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, top: 4, bottom: 4),
           child: Text(
-            'Sync over',
+            l.settingsSyncOver,
             style: theme.textTheme.titleSmall,
           ),
         ),
@@ -735,26 +731,23 @@ class _SyncNetworkPolicySection extends ConsumerWidget {
           onChanged: (v) {
             if (v != null) policyNotifier.setNetworkPolicy(v);
           },
-          child: const Column(
+          // No longer const: the tiles now read their copy from
+          // AppLocalizations, which is resolved per build.
+          child: Column(
             children: [
               RadioListTile<SyncNetworkPolicy>(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 value: SyncNetworkPolicy.wifiOnly,
-                title: Text('WiFi only'),
-                subtitle: Text(
-                  'Auto-sync waits for WiFi. Manual "Sync now" asks first '
-                  "when you're on cellular.",
-                ),
+                title: Text(l.settingsSyncWifiOnly),
+                subtitle: Text(l.settingsSyncWifiOnlySubtitle),
               ),
               RadioListTile<SyncNetworkPolicy>(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 value: SyncNetworkPolicy.anyNetwork,
-                title: Text('Any network'),
-                subtitle: Text(
-                  'Auto-sync may use cellular data. You pay for any overage.',
-                ),
+                title: Text(l.settingsSyncAnyNetwork),
+                subtitle: Text(l.settingsSyncAnyNetworkSubtitle),
               ),
             ],
           ),

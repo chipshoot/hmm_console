@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/i18n/enum_labels.dart';
+import '../../../../l10n/gen/app_localizations.dart';
 import '../../../settings/providers/gas_log_settings_provider.dart';
 import '../../providers/intro_card_provider.dart';
 
@@ -19,6 +21,7 @@ class DefaultsIntroCard extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final mode = ref.watch(dataModeProvider);
     final gas = ref.watch(gasLogSettingsProvider);
+    final l = AppLocalizations.of(context);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -47,10 +50,14 @@ class DefaultsIntroCard extends ConsumerWidget {
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
-            _row('Data storage', mode.displayName),
-            _row('Distance', gas.distanceUnit.displayName),
-            _row('Fuel volume', gas.fuelUnit.displayName),
-            _row('Currency', gas.currency.displayName),
+            // The row labels here are still English, like the rest of the
+            // dashboard; only the *values* are localized, because they come
+            // from enums the settings screen already translates. Localizing
+            // this feature is separate follow-up work.
+            _row('Data storage', mode.displayName(l)),
+            _row('Distance', gas.distanceUnit.displayName(l)),
+            _row('Fuel volume', gas.fuelUnit.displayName(l)),
+            _row('Currency', gas.currency.displayName(l)),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,

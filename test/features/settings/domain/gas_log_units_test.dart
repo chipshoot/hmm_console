@@ -19,9 +19,19 @@ void main() {
       expect(DistanceUnit.kilometer.label, 'km');
     });
 
-    test('displayName matches apiValue', () {
+    test('apiValue is a stable wire literal, not display copy', () {
+      // Replaces an older "displayName matches apiValue" test. That getter is
+      // gone: it made the text in the settings dropdown the same string that
+      // gets persisted and sent to the API, so localizing the UI would have
+      // written a translated word into storage and broken fromApiValue.
+      // Display copy now lives in core/i18n/enum_labels.dart.
+      expect(DistanceUnit.mile.apiValue, 'Mile');
+      expect(DistanceUnit.kilometer.apiValue, 'Kilometer');
+    });
+
+    test('every value round-trips through its apiValue', () {
       for (final unit in DistanceUnit.values) {
-        expect(unit.displayName, unit.apiValue);
+        expect(DistanceUnit.fromApiValue(unit.apiValue), unit);
       }
     });
 
@@ -55,9 +65,14 @@ void main() {
       expect(FuelUnit.liter.label, 'L');
     });
 
-    test('displayName matches apiValue', () {
+    test('apiValue is a stable wire literal, not display copy', () {
+      expect(FuelUnit.gallon.apiValue, 'Gallon');
+      expect(FuelUnit.liter.apiValue, 'Liter');
+    });
+
+    test('every value round-trips through its apiValue', () {
       for (final unit in FuelUnit.values) {
-        expect(unit.displayName, unit.apiValue);
+        expect(FuelUnit.fromApiValue(unit.apiValue), unit);
       }
     });
 
@@ -99,9 +114,15 @@ void main() {
       expect(CurrencyCode.cny.symbol, '\u00a5');
     });
 
-    test('displayName matches apiValue', () {
+    test('apiValue is the ISO 4217 code', () {
+      expect(CurrencyCode.cad.apiValue, 'CAD');
+      expect(CurrencyCode.usd.apiValue, 'USD');
+      expect(CurrencyCode.cny.apiValue, 'CNY');
+    });
+
+    test('every value round-trips through its apiValue', () {
       for (final code in CurrencyCode.values) {
-        expect(code.displayName, code.apiValue);
+        expect(CurrencyCode.fromApiValue(code.apiValue), code);
       }
     });
 

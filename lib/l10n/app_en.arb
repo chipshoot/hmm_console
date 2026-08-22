@@ -26,6 +26,264 @@
   "commonSave": "Save",
   "commonDelete": "Delete",
 
+  "settingsLauncher": "Launcher",
+  "settingsLauncherSubtitle": "Pin favorites and set search aliases",
+  "settingsGeoCapture": "Add location to new notes",
+  "settingsGeoCaptureSubtitle": "Capture your location when you create a note",
+  "settingsQuickPanel": "Quick access panel",
+  "settingsQuickPanelSubtitle": "Long-press the bottom-right corner for Home & quick Sync",
+  "settingsQuickPanelReplay": "Show me how",
+  "settingsQuickPanelReplaySubtitle": "Replay the quick-access hint",
+
+  "settingsSwitchedToMode": "Switched to {mode}. Restart app to apply.",
+  "@settingsSwitchedToMode": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsOneDriveClientIdMissing": "OneDrive client ID not set. Rebuild with --dart-define=ONEDRIVE_CLIENT_ID=<app-id> (see docs/cloud_storage_setup.md §1).",
+  "@settingsOneDriveClientIdMissing": {
+    "description": "Developer-facing build configuration error. The flag name and file path are literal and must not be translated."
+  },
+  "settingsAuthStateError": "Auth state error: {error}",
+  "@settingsAuthStateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsDatabaseLocation": "Database Location",
+  "settingsChangeLocation": "Change Location",
+  "settingsResetToDefault": "Reset to Default",
+  "settingsChooseDatabaseFolder": "Choose database folder",
+  "settingsDatabaseLocationSet": "Database location set to {path}. Restart app to apply.",
+  "@settingsDatabaseLocationSet": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDatabaseLocationReset": "Reset to default location. Restart app to apply.",
+  "settingsGenericError": "Error: {error}",
+  "@settingsGenericError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsChooseVaultFolder": "Choose vault folder (e.g. inside your OneDrive)",
+  "settingsVaultFolderSet": "Vault folder set to {path}/vault. New photos will land there.",
+  "@settingsVaultFolderSet": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsVaultFolderReset": "Vault folder reset to default (app docs). cloudStorage byte sync will not work until you choose a folder.",
+  "settingsVaultFolderLabel": "Vault folder (for photos)",
+  "settingsVaultFolderHelper": "Point this inside your OneDrive folder so vehicle photos sync across devices automatically.",
+  "settingsVaultFolderDefault": "Default (app sandbox — no cross-device sync)",
+  "settingsVaultPathError": "Vault path error: {error}",
+  "@settingsVaultPathError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsChooseFolder": "Choose Folder",
+
+  "settingsCleanUpPhotos": "Clean up unused photos",
+  "settingsCleanUpNone": "No unused photo files to clean up.",
+  "settingsCleanUpTitle": "Clean up unused photos?",
+  "settingsCleanUpBody": "Found {count, plural, =1{1 unused file} other{{count} unused files}} ({size}) left behind by cancelled or replaced photo picks. These are not referenced by any vehicle and can be safely deleted.",
+  "@settingsCleanUpBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCleanUpDone": "Reclaimed {count, plural, =1{1 file} other{{count} files}} ({size}).",
+  "@settingsCleanUpDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCleanUpFailed": "Clean-up failed: {error}",
+  "@settingsCleanUpFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsSignedInOneDrive": "Signed in to OneDrive",
+  "settingsSignInOneDriveFailed": "OneDrive sign-in failed: {error}",
+  "@settingsSignInOneDriveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSignedOutOneDrive": "Signed out of OneDrive",
+
+  "settingsSyncing": "Syncing…",
+  "settingsSyncSucceeded": "Synced — pushed {pushed} / pulled {pulled} notes",
+  "@settingsSyncSucceeded": {
+    "placeholders": {
+      "pushed": {
+        "type": "int"
+      },
+      "pulled": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsSyncFailed": "Sync failed: {error}",
+  "@settingsSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSyncOver": "Sync over",
+  "settingsSyncWifiOnly": "WiFi only",
+  "settingsSyncWifiOnlySubtitle": "Auto-sync waits for WiFi. Manual \"Sync now\" asks first when you're on cellular.",
+  "settingsSyncAnyNetwork": "Any network",
+  "settingsSyncAnyNetworkSubtitle": "Auto-sync may use cellular data. You pay for any overage.",
+
+  "settingsVehicleInformation": "Vehicle Information",
+  "settingsShowRegistration": "Show Registration card",
+  "settingsShowRegistrationSubtitle": "Turn off if your jurisdiction no longer requires periodic vehicle-registration renewal (e.g. Ontario retired the renewal sticker in 2022).",
+
+  "settingsGasLogDefaults": "Gas Log Defaults",
+  "settingsDistanceUnit": "Distance Unit",
+  "settingsFuelUnit": "Fuel Unit",
+  "settingsCurrency": "Currency",
+
+  "unitMile": "Mile",
+  "unitKilometer": "Kilometer",
+  "@unitKilometer": {
+    "description": "Display name only. The persisted/API value stays the literal 'Kilometer' in DistanceUnit.apiValue and must never be translated."
+  },
+  "unitGallon": "Gallon",
+  "unitLiter": "Liter",
+
+  "dataModeLocal": "Local (Offline)",
+  "dataModeLocalDescription": "Your data stays on this device. No sync, no account needed.",
+  "dataModeCloudStorage": "Cloud Storage",
+  "dataModeCloudStorageDescription": "Data is stored locally and synced to your personal cloud account (OneDrive).",
+  "dataModeCloudApi": "Cloud (API)",
+  "dataModeCloudApiDescription": "Data is stored locally and synced with the Hmm backend API.",
+
+  "vaultSectionTitle": "Secure Vault",
+  "vaultSetUpTitle": "Set up Secure Vault",
+  "vaultSetUpSubtitle": "Encrypt sensitive attachments (e.g. registration, VIN photos) with a passphrase",
+  "vaultLockedTitle": "Secure Vault — locked",
+  "vaultLockedSubtitle": "Unlock to view or add sensitive attachments",
+  "vaultUnlock": "Unlock",
+  "vaultOnTitle": "Secure Vault — on",
+  "vaultOnSubtitle": "Sensitive attachments are unlocked on this device",
+  "vaultLockNow": "Lock now",
+  "vaultNeedsResetTitle": "Secure Vault — needs reset",
+  "vaultNeedsResetSubtitle": "The vault configuration could not be read and must be reset",
+  "vaultResetTitle": "Reset Secure Vault",
+  "vaultResetSubtitle": "Forgot your passphrase? Reset erases the vault",
+  "vaultIncorrectPassphrase": "Incorrect passphrase.",
+  "vaultPassphrase": "Passphrase",
+  "vaultConfirmPassphrase": "Confirm passphrase",
+  "vaultForgotWarning": "If you forget this passphrase, these files cannot be recovered.",
+  "vaultPassphrasesDoNotMatch": "Passphrases do not match.",
+  "vaultSetUpAction": "Set Up",
+  "vaultUnlockDialogTitle": "Unlock Secure Vault",
+  "vaultResetWarning": "This permanently deletes every file in the Secure Vault. This can't be undone. Type {token} to confirm.",
+  "@vaultResetWarning": {
+    "description": "{token} is the literal word the user must type. It stays untranslated in every locale so the typed value matches on any keyboard.",
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+  "vaultResetTypeToken": "Type {token}",
+  "@vaultResetTypeToken": {
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+
+  "syncStatusSyncing": "Syncing now…",
+  "syncStatusFailing": "Sync failing — last {count} attempts",
+  "@syncStatusFailing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncStatusWaitingWifi": "Waiting for WiFi to sync",
+  "syncStatusLastFailed": "Last sync failed",
+  "syncStatusSynced": "Synced {when}",
+  "@syncStatusSynced": {
+    "description": "{when} is a relative time such as 'just now' or '5 minutes ago'",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStatusNever": "Not synced yet",
+  "syncRelativeJustNow": "just now",
+  "syncRelativeMinutes": "{count, plural, =1{1 minute ago} other{{count} minutes ago}}",
+  "@syncRelativeMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncRelativeHours": "{count, plural, =1{1 hour ago} other{{count} hours ago}}",
+  "@syncRelativeHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncRelativeDays": "{count, plural, =1{1 day ago} other{{count} days ago}}",
+  "@syncRelativeDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncCellularTitle": "Sync over cellular?",
+  "syncCellularBody": "Your network policy is set to \"WiFi only\", but you tapped Sync now. Proceeding will use cellular data.",
+  "syncAnyway": "Sync anyway",
+
   "automobileRecordsInsurance": "Insurance",
   "automobileRecordsServiceHistory": "Service history",
   "automobileRecordsScheduledService": "Scheduled service",

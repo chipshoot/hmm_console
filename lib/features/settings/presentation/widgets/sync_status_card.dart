@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/sync/sync_controller.dart';
+import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/sync_settings.dart';
 import '../../providers/sync_settings_provider.dart';
 
@@ -40,6 +41,7 @@ class _Body extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final status = controller.status;
     final theme = Theme.of(context);
+    final l = AppLocalizations.of(context);
 
     Widget leading;
     String headline;
@@ -50,29 +52,29 @@ class _Body extends ConsumerWidget {
         dimension: 18,
         child: CircularProgressIndicator(strokeWidth: 2),
       );
-      headline = 'Syncing now…';
+      headline = l.syncStatusSyncing;
     } else if (status.consecutiveFailures >= 3) {
       // Persistent badge after 3 failures in a row (decision B2 in
       // task_plan.md). At this point the user should notice — a
       // transient snackbar isn't enough.
       leading = Icon(Icons.error, color: theme.colorScheme.error);
-      headline = 'Sync failing — last ${status.consecutiveFailures} attempts';
+      headline = l.syncStatusFailing(status.consecutiveFailures);
       headlineColor = theme.colorScheme.error;
     } else if (status.lastAutoTriggerSkippedForNetwork) {
       // WiFi-only policy blocked the most recent auto-trigger. Stays
       // visible until the next real sync runs (manual or auto when
       // WiFi comes back).
       leading = Icon(Icons.wifi_off, color: theme.colorScheme.tertiary);
-      headline = 'Waiting for WiFi to sync';
+      headline = l.syncStatusWaitingWifi;
     } else if (status.lastResult != null && !status.lastResult!.success) {
       leading = Icon(Icons.warning_amber, color: theme.colorScheme.tertiary);
-      headline = 'Last sync failed';
+      headline = l.syncStatusLastFailed;
     } else if (status.lastSyncAt != null) {
       leading = Icon(Icons.cloud_done, color: theme.colorScheme.primary);
-      headline = 'Synced ${_relativeTime(status.lastSyncAt!)}';
+      headline = l.syncStatusSynced(_relativeTime(status.lastSyncAt!, l));
     } else {
       leading = const Icon(Icons.cloud_off);
-      headline = 'Not synced yet';
+      headline = l.syncStatusNever;
     }
 
     return Card(
@@ -114,7 +116,7 @@ class _Body extends ConsumerWidget {
                       if (!proceed) return;
                       await controller.triggerManualSync();
                     },
-              child: const Text('Sync now'),
+              child: Text(l.settingsSyncNow),
             ),
           ],
         ),
@@ -122,21 +124,17 @@ class _Body extends ConsumerWidget {
     );
   }
 
-  /// Human-readable "N seconds/minutes/hours ago". Intentionally not
-  /// localised yet — matches the rest of the settings screen.
-  String _relativeTime(DateTime past) {
+  /// Human-readable "N minutes/hours/days ago".
+  ///
+  /// Plural forms come from the ARB rather than a `s`-appending ternary:
+  /// Chinese has no plural inflection, so the old approach had no correct
+  /// translation at all.
+  String _relativeTime(DateTime past, AppLocalizations l) {
     final delta = DateTime.now().toUtc().difference(past);
-    if (delta.inSeconds < 60) return 'just now';
-    if (delta.inMinutes < 60) {
-      final m = delta.inMinutes;
-      return '$m minute${m == 1 ? '' : 's'} ago';
-    }
-    if (delta.inHours < 24) {
-      final h = delta.inHours;
-      return '$h hour${h == 1 ? '' : 's'} ago';
-    }
-    final d = delta.inDays;
-    return '$d day${d == 1 ? '' : 's'} ago';
+    if (delta.inSeconds < 60) return l.syncRelativeJustNow;
+    if (delta.inMinutes < 60) return l.syncRelativeMinutes(delta.inMinutes);
+    if (delta.inHours < 24) return l.syncRelativeHours(delta.inHours);
+    return l.syncRelativeDays(delta.inDays);
   }
 }
 
@@ -163,22 +161,20 @@ Future<bool> confirmManualSyncIfOnCellular(
   if (results.contains(ConnectivityResult.wifi)) return true;
 
   if (!context.mounted) return false;
+  final l = AppLocalizations.of(context);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Sync over cellular?'),
-      content: const Text(
-        'Your network policy is set to "WiFi only", but you tapped Sync '
-        'now. Proceeding will use cellular data.',
-      ),
+      title: Text(l.syncCellularTitle),
+      content: Text(l.syncCellularBody),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Cancel'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Sync anyway'),
+          child: Text(l.syncAnyway),
         ),
       ],
     ),

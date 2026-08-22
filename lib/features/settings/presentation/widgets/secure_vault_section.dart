@@ -22,9 +22,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/vault/vault_session.dart';
 import '../../../../core/widgets/gaps.dart';
+import '../../../../l10n/gen/app_localizations.dart';
 
-const _forgotPassphraseWarning =
-    'If you forget this passphrase, these files cannot be recovered.';
+/// The word the user must type to confirm a vault reset.
+///
+/// Deliberately NOT localized. It is a value the user types, not copy they
+/// read: translating it would demand a Chinese IME to destroy a vault, and the
+/// comparison at the bottom of this file is an exact string match. The ARB
+/// strings that mention it take it as a placeholder, so each locale phrases the
+/// sentence naturally while the token itself stays constant.
 const _resetConfirmToken = 'RESET';
 
 class SecureVaultSection extends ConsumerStatefulWidget {
@@ -57,12 +63,13 @@ class _SecureVaultSectionState extends ConsumerState<SecureVaultSection> {
   Widget build(BuildContext context) {
     final status = ref.watch(vaultSessionProvider);
     final theme = Theme.of(context);
+    final l = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Secure Vault',
+          l.vaultSectionTitle,
           style: theme.textTheme.titleMedium
               ?.copyWith(fontWeight: FontWeight.bold),
         ),
@@ -77,17 +84,15 @@ class _SecureVaultSectionState extends ConsumerState<SecureVaultSection> {
     WidgetRef ref,
     VaultStatus status,
   ) {
+    final l = AppLocalizations.of(context);
     switch (status) {
       case VaultStatus.absent:
         return [
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.lock_outline),
-            title: const Text('Set up Secure Vault'),
-            subtitle: const Text(
-              'Encrypt sensitive attachments (e.g. registration, VIN photos) '
-              'with a passphrase',
-            ),
+            title: Text(l.vaultSetUpTitle),
+            subtitle: Text(l.vaultSetUpSubtitle),
             onTap: () => _showSetupDialog(context, ref),
           ),
         ];
@@ -96,12 +101,11 @@ class _SecureVaultSectionState extends ConsumerState<SecureVaultSection> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.lock_outline),
-            title: const Text('Secure Vault — locked'),
-            subtitle:
-                const Text('Unlock to view or add sensitive attachments'),
+            title: Text(l.vaultLockedTitle),
+            subtitle: Text(l.vaultLockedSubtitle),
             trailing: TextButton(
               onPressed: () => _unlock(context, ref),
-              child: const Text('Unlock'),
+              child: Text(l.vaultUnlock),
             ),
           ),
           _resetRow(context, ref),
@@ -111,14 +115,12 @@ class _SecureVaultSectionState extends ConsumerState<SecureVaultSection> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.lock_open_outlined),
-            title: const Text('Secure Vault — on'),
-            subtitle: const Text(
-              'Sensitive attachments are unlocked on this device',
-            ),
+            title: Text(l.vaultOnTitle),
+            subtitle: Text(l.vaultOnSubtitle),
             trailing: TextButton(
               onPressed: () =>
                   ref.read(vaultSessionProvider.notifier).lockNow(),
-              child: const Text('Lock now'),
+              child: Text(l.vaultLockNow),
             ),
           ),
           _resetRow(context, ref),
@@ -129,10 +131,8 @@ class _SecureVaultSectionState extends ConsumerState<SecureVaultSection> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.warning_amber_outlined,
                 color: Theme.of(context).colorScheme.error),
-            title: const Text('Secure Vault — needs reset'),
-            subtitle: const Text(
-              'The vault configuration could not be read and must be reset',
-            ),
+            title: Text(l.vaultNeedsResetTitle),
+            subtitle: Text(l.vaultNeedsResetSubtitle),
           ),
           _resetRow(context, ref),
         ];
@@ -140,11 +140,12 @@ class _SecureVaultSectionState extends ConsumerState<SecureVaultSection> {
   }
 
   Widget _resetRow(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.restart_alt),
-      title: const Text('Reset Secure Vault'),
-      subtitle: const Text('Forgot your passphrase? Reset erases the vault'),
+      title: Text(l.vaultResetTitle),
+      subtitle: Text(l.vaultResetSubtitle),
       onTap: () => _showResetDialog(context, ref),
     );
   }
@@ -179,7 +180,9 @@ class _SecureVaultSectionState extends ConsumerState<SecureVaultSection> {
     final ok = await controller.unlockWithPassphrase(passphrase);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Incorrect passphrase.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).vaultIncorrectPassphrase),
+        ),
       );
     }
   }
@@ -222,9 +225,10 @@ class _SetupDialogState extends State<_SetupDialog> {
         .textTheme
         .bodySmall
         ?.copyWith(color: Theme.of(context).colorScheme.error);
+    final l = AppLocalizations.of(context);
 
     return AlertDialog(
-      title: const Text('Set up Secure Vault'),
+      title: Text(l.vaultSetUpTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,34 +237,33 @@ class _SetupDialogState extends State<_SetupDialog> {
             controller: _passCtrl,
             obscureText: true,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Passphrase'),
+            decoration: InputDecoration(labelText: l.vaultPassphrase),
             onChanged: (_) => setState(() {}),
           ),
           GapWidgets.h8,
           TextField(
             controller: _confirmCtrl,
             obscureText: true,
-            decoration:
-                const InputDecoration(labelText: 'Confirm passphrase'),
+            decoration: InputDecoration(labelText: l.vaultConfirmPassphrase),
             onChanged: (_) => setState(() {}),
           ),
           GapWidgets.h16,
-          Text(_forgotPassphraseWarning, style: errorStyle),
+          Text(l.vaultForgotWarning, style: errorStyle),
           if (mismatch) ...[
             GapWidgets.h8,
-            Text('Passphrases do not match.', style: errorStyle),
+            Text(l.vaultPassphrasesDoNotMatch, style: errorStyle),
           ],
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed:
               matches ? () => Navigator.of(context).pop(_passCtrl.text) : null,
-          child: const Text('Set Up'),
+          child: Text(l.vaultSetUpAction),
         ),
       ],
     );
@@ -285,26 +288,27 @@ class _UnlockDialogState extends State<_UnlockDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Unlock Secure Vault'),
+      title: Text(l.vaultUnlockDialogTitle),
       content: TextField(
         controller: _passCtrl,
         obscureText: true,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Passphrase'),
+        decoration: InputDecoration(labelText: l.vaultPassphrase),
         onChanged: (_) => setState(() {}),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: _passCtrl.text.isEmpty
               ? null
               : () => Navigator.of(context).pop(_passCtrl.text),
-          child: const Text('Unlock'),
+          child: Text(l.vaultUnlock),
         ),
       ],
     );
@@ -329,21 +333,23 @@ class _ResetDialogState extends State<_ResetDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Reset Secure Vault'),
+      title: Text(l.vaultResetTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'This permanently deletes every file in the Secure Vault. '
-            "This can't be undone. Type $_resetConfirmToken to confirm.",
-          ),
+          // The token is passed in rather than baked into the sentence, so
+          // every locale shows the same word the comparison below expects.
+          Text(l.vaultResetWarning(_resetConfirmToken)),
           GapWidgets.h16,
           TextField(
             controller: _tokenCtrl,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Type RESET'),
+            decoration: InputDecoration(
+              labelText: l.vaultResetTypeToken(_resetConfirmToken),
+            ),
             onChanged: (_) => setState(() {}),
           ),
         ],
@@ -351,7 +357,7 @@ class _ResetDialogState extends State<_ResetDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: _tokenCtrl.text == _resetConfirmToken
@@ -360,7 +366,7 @@ class _ResetDialogState extends State<_ResetDialog> {
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
-          child: const Text('Reset Secure Vault'),
+          child: Text(l.vaultResetTitle),
         ),
       ],
     );
