@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,6 +92,7 @@ class _ScheduledServiceFormScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final saving = ref.watch(mutateScheduledServiceStateProvider).isLoading;
 
     ref.listen<AsyncValue<void>>(mutateScheduledServiceStateProvider,
@@ -127,7 +130,7 @@ class _ScheduledServiceFormScreenState
                       fieldController: _nameCtrl,
                       fieldValidator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
-                      label: 'Name',
+                      label: l.recordsScheduleName,
                     ),
                     const SizedBox(height: 16),
                     ServiceTypeDropdown(
@@ -141,7 +144,7 @@ class _ScheduledServiceFormScreenState
                           child: AppTextFormField(
                             fieldController: _intervalDaysCtrl,
                             fieldValidator: _validateOptionalInt,
-                            label: 'Every N days',
+                            label: l.recordsEveryNDays,
                             keyboardType: TextInputType.number,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
@@ -153,7 +156,7 @@ class _ScheduledServiceFormScreenState
                           child: AppTextFormField(
                             fieldController: _intervalMileageCtrl,
                             fieldValidator: _validateOptionalInt,
-                            label: 'Every N miles',
+                            label: l.recordsEveryNMiles,
                             keyboardType: TextInputType.number,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
@@ -164,7 +167,7 @@ class _ScheduledServiceFormScreenState
                     ),
                     const SizedBox(height: 16),
                     OptionalDatePicker(
-                      label: 'Next due date',
+                      label: l.recordsNextDueDateLabel,
                       date: _nextDueDate,
                       onChanged: (d) => setState(() => _nextDueDate = d),
                     ),
@@ -172,7 +175,7 @@ class _ScheduledServiceFormScreenState
                     AppTextFormField(
                       fieldController: _nextDueMileageCtrl,
                       fieldValidator: _validateOptionalInt,
-                      label: 'Next due mileage',
+                      label: l.recordsNextDueMileageLabel,
                       keyboardType: TextInputType.number,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
@@ -180,7 +183,7 @@ class _ScheduledServiceFormScreenState
                     ),
                     const SizedBox(height: 16),
                     SwitchListTile(
-                      title: const Text('Active'),
+                      title: Text(l.recordsActive),
                       value: _isActive,
                       onChanged: (v) => setState(() => _isActive = v),
                     ),
@@ -188,7 +191,7 @@ class _ScheduledServiceFormScreenState
                     AppTextFormField(
                       fieldController: _notesCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Notes',
+                      label: l.recordsNotes,
                     ),
                     const SizedBox(height: 24),
                     HighlightButton(
@@ -212,6 +215,7 @@ class _ScheduledServiceFormScreenState
   }
 
   Future<void> _submit() async {
+    final l = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
     final intervalDays = _intervalDaysCtrl.text.trim().isEmpty
         ? null
@@ -221,8 +225,8 @@ class _ScheduledServiceFormScreenState
         : int.parse(_intervalMileageCtrl.text);
     if (intervalDays == null && intervalMileage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Set at least one interval (days or mileage)')),
+        SnackBar(
+            content: Text(l.recordsIntervalRequired)),
       );
       return;
     }

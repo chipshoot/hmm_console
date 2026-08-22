@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../record_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/entities/line_item_type.dart';
@@ -56,6 +60,7 @@ class _ServiceLineItemRowState extends State<ServiceLineItemRow> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -70,7 +75,7 @@ class _ServiceLineItemRowState extends State<ServiceLineItemRow> {
             },
             items: [
               for (final t in LineItemType.values)
-                DropdownMenuItem(value: t, child: Text(t.displayName)),
+                DropdownMenuItem(value: t, child: Text(t.label(l))),
             ],
           ),
           const SizedBox(width: 8),
@@ -79,7 +84,7 @@ class _ServiceLineItemRowState extends State<ServiceLineItemRow> {
             child: TextField(
               key: const Key('li-name'),
               controller: _name,
-              decoration: const InputDecoration(hintText: 'Item'),
+              decoration: InputDecoration(hintText: l.recordsItemHint),
               onChanged: (_) => _emit(),
             ),
           ),
@@ -91,7 +96,7 @@ class _ServiceLineItemRowState extends State<ServiceLineItemRow> {
               controller: _qty,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(hintText: 'Qty'),
+              decoration: InputDecoration(hintText: l.recordsQtyHint),
               onChanged: (_) => setState(_emit),
             ),
           ),
@@ -105,7 +110,7 @@ class _ServiceLineItemRowState extends State<ServiceLineItemRow> {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
               ],
-              decoration: const InputDecoration(hintText: 'Unit'),
+              decoration: InputDecoration(hintText: l.recordsUnitHint),
               onChanged: (_) => setState(_emit),
             ),
           ),

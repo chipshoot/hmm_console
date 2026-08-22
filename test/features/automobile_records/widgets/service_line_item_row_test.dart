@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/line_item_type.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/part_item.dart';
 import 'package:hmm_console/features/automobile_records/presentation/widgets/service_line_item_row.dart';
@@ -9,6 +10,10 @@ void main() {
     PartItem? changed;
     var removed = false;
     await t.pumpWidget(MaterialApp(
+      // Required: these widgets read copy from AppLocalizations; a bare
+      // MaterialApp leaves it null and the widget throws while building.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: ServiceLineItemRow(
           item: const PartItem(
@@ -29,6 +34,8 @@ void main() {
       (t) async {
     PartItem? changed;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: ServiceLineItemRow(
           item: const PartItem(name: 'Oil', quantity: 1, unitCost: 17.95),
@@ -46,6 +53,8 @@ void main() {
       (t) async {
     PartItem? changed;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: ServiceLineItemRow(
           item: const PartItem(

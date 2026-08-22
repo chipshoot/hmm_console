@@ -610,6 +610,128 @@
     }
   },
 
+
+  "@_automobileRecords": {
+    "description": "Insurance policies, scheduled services and service records for a vehicle."
+  },
+  "recordsAddPolicy": "Add policy",
+  "recordsNoPolicies": "No insurance policies yet",
+  "recordsNoPoliciesHint": "Tap + to record this vehicle's policy.",
+  "recordsPoliciesLoadFailed": "Failed to load policies",
+  "recordsDeletePolicyTitle": "Delete policy?",
+  "recordsDeletePolicyBody": "Delete policy {number} from {provider}?",
+  "@recordsDeletePolicyBody": {
+    "placeholders": { "number": { "type": "String" }, "provider": { "type": "String" } }
+  },
+  "recordsPolicyNumber": "Policy {number}",
+  "@recordsPolicyNumber": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "recordsProvider": "Provider",
+  "recordsPolicyNumberLabel": "Policy number",
+  "recordsEffectiveDate": "Effective date",
+  "recordsExpiryDate": "Expiry date",
+  "recordsPremium": "Premium",
+  "recordsCurrencyShort": "CCY",
+  "@recordsCurrencyShort": {
+    "description": "Very short column label for a currency code next to an amount field."
+  },
+  "recordsDeductible": "Deductible (optional)",
+  "recordsActive": "Active",
+  "recordsNotes": "Notes",
+  "recordsDatesRequired": "Effective and expiry dates are required",
+  "recordsDateOrderInvalid": "Effective date must be before expiry date",
+
+  "recordsAddSchedule": "Add schedule",
+  "recordsNoSchedules": "No scheduled services yet",
+  "recordsNoSchedulesHint": "Tap + to set up a recurring reminder.",
+  "recordsSchedulesLoadFailed": "Failed to load schedules",
+  "recordsDeleteScheduleTitle": "Delete schedule?",
+  "recordsDeleteScheduleBody": "Delete schedule \"{name}\"?",
+  "@recordsDeleteScheduleBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "recordsNextDueDate": "Next due {date}",
+  "@recordsNextDueDate": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "recordsNextDueMileage": "Next due {mileage} {unit}",
+  "@recordsNextDueMileage": {
+    "description": "{unit} is a unit symbol such as mi or km and is never translated.",
+    "placeholders": { "mileage": { "type": "String" }, "unit": { "type": "String" } }
+  },
+  "recordsScheduleName": "Name",
+  "recordsEveryNDays": "Every N days",
+  "recordsEveryNMiles": "Every N miles",
+  "recordsNextDueDateLabel": "Next due date",
+  "recordsNextDueMileageLabel": "Next due mileage",
+  "recordsIntervalRequired": "Set at least one interval (days or mileage)",
+
+  "recordsAddRecord": "Add record",
+  "recordsNoServiceRecords": "No service records yet",
+  "recordsNoServiceRecordsHint": "Tap + to log this vehicle's first service.",
+  "recordsServiceLoadFailed": "Failed to load service records",
+  "recordsDeleteServiceTitle": "Delete service record?",
+  "recordsServiceDateMileage": "{date} • {mileage} {unit}",
+  "@recordsServiceDateMileage": {
+    "placeholders": { "date": { "type": "String" }, "mileage": { "type": "String" }, "unit": { "type": "String" } }
+  },
+  "recordsItemCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "@recordsItemCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "recordsRecordCount": "{count, plural, =1{1 record on file} other{{count} records on file}}",
+  "@recordsRecordCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "recordsActiveSchedules": "{count, plural, =1{1 active schedule} other{{count} active schedules}}",
+  "@recordsActiveSchedules": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "recordsServiceName": "Service name",
+  "recordsReference": "Reference # (optional)",
+  "recordsServiceDate": "Service date",
+  "recordsMileage": "Mileage",
+  "recordsServiceTypes": "Service types",
+  "recordsDescription": "Description",
+  "recordsShopName": "Shop name (optional)",
+  "recordsMarkdownHint": "Supports markdown",
+  "recordsPreview": "Preview",
+  "recordsTakePhoto": "Take a photo",
+  "recordsChoosePhoto": "Choose a photo",
+  "recordsChoosePdf": "Choose a PDF",
+  "recordsNeedsCloudAi": "Needs Cloud AI (change in Settings)",
+  "recordsScanReceipt": "Scan a receipt",
+  "recordsCompleteFields": "Please complete the highlighted fields (e.g. Mileage).",
+  "recordsServiceDateRequired": "Service date is required",
+  "recordsLineItemNameRequired": "Each line item needs a name",
+  "recordsRemoveStoredImagesTitle": "Remove stored images?",
+  "recordsKeepAttached": "Keep attached",
+
+  "recordsLineItems": "Line items",
+  "recordsAddItem": "Add item",
+  "recordsTax": "Tax",
+  "recordsItemHint": "Item",
+  "recordsQtyHint": "Qty",
+  "recordsUnitHint": "Unit",
+  "recordsAmountHint": "0.00",
+
+  "recordsVehicleNotes": "Vehicle Notes",
+
+  "@_recordEnums": {
+    "description": "UI labels for ServiceType / LineItemType. The wire values (ServiceType.wireValue, LineItemType.wireName) and ServiceType.displayName stay English — displayName feeds the persisted note subject in local_service_record_repository."
+  },
+  "serviceTypeOilChange": "Oil change",
+  "serviceTypeTireRotation": "Tire rotation",
+  "serviceTypeBrake": "Brake",
+  "serviceTypeInspection": "Inspection",
+  "serviceTypeRepair": "Repair",
+  "serviceTypeOther": "Other",
+  "lineItemLabour": "Labour",
+  "lineItemPart": "Part",
+  "lineItemFee": "Fee",
+
   "automobileRecordsInsurance": "Insurance",
   "automobileRecordsServiceHistory": "Service history",
   "automobileRecordsScheduledService": "Scheduled service",

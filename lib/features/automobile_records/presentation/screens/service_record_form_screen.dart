@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../record_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -143,6 +147,7 @@ class _ServiceRecordFormScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final saving = ref.watch(mutateServiceRecordStateProvider).isLoading;
 
     ref.listen<AsyncValue<void>>(mutateServiceRecordStateProvider, (_, next) {
@@ -183,17 +188,17 @@ class _ServiceRecordFormScreenState
                     AppTextFormField(
                       fieldController: _nameCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Service name',
+                      label: l.recordsServiceName,
                     ),
                     const SizedBox(height: 16),
                     AppTextFormField(
                       fieldController: _refCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Reference # (optional)',
+                      label: l.recordsReference,
                     ),
                     const SizedBox(height: 16),
                     OptionalDatePicker(
-                      label: 'Service date',
+                      label: l.recordsServiceDate,
                       date: _date,
                       onChanged: (d) => setState(() => _date = d),
                     ),
@@ -201,7 +206,7 @@ class _ServiceRecordFormScreenState
                     AppTextFormField(
                       fieldController: _mileageCtrl,
                       fieldValidator: _validatePositiveInt,
-                      label: 'Mileage',
+                      label: l.recordsMileage,
                       keyboardType: TextInputType.number,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
@@ -210,7 +215,7 @@ class _ServiceRecordFormScreenState
                     const SizedBox(height: 16),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('Service types',
+                      child: Text(l.recordsServiceTypes,
                           style: Theme.of(context).textTheme.labelLarge),
                     ),
                     const SizedBox(height: 8),
@@ -220,7 +225,7 @@ class _ServiceRecordFormScreenState
                       children: [
                         for (final t in ServiceType.values)
                           FilterChip(
-                            label: Text(t.displayName),
+                            label: Text(t.label(l)),
                             selected: _types.contains(t),
                             onSelected: (on) => setState(() {
                               if (on) {
@@ -237,7 +242,7 @@ class _ServiceRecordFormScreenState
                     AppTextFormField(
                       fieldController: _descriptionCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Description',
+                      label: l.recordsDescription,
                     ),
                     const SizedBox(height: 16),
                     ServiceLineItemsEditor(
@@ -253,14 +258,14 @@ class _ServiceRecordFormScreenState
                     AppTextFormField(
                       fieldController: _shopCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Shop name (optional)',
+                      label: l.recordsShopName,
                     ),
                     const SizedBox(height: 16),
                     AppTextFormField(
                       fieldController: _notesCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Notes',
-                      helperText: 'Supports markdown',
+                      label: l.recordsNotes,
+                      helperText: l.recordsMarkdownHint,
                       onChanged: (_) => setState(() {}),
                     ),
                     Align(
@@ -275,7 +280,7 @@ class _ServiceRecordFormScreenState
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('Preview',
+                        child: Text(l.recordsPreview,
                             style: Theme.of(context).textTheme.labelSmall),
                       ),
                       NoteMarkdownBody(
@@ -399,6 +404,7 @@ class _ServiceRecordFormScreenState
       );
 
   Future<void> _showScanSheet() async {
+    final l = AppLocalizations.of(context);
     final cloudAi = ref.read(receiptExtractorModeProvider) ==
         ReceiptExtractorMode.cloudAi;
     final source = await showModalBottomSheet<_ScanSource>(
@@ -409,12 +415,12 @@ class _ServiceRecordFormScreenState
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Take a photo'),
+              title: Text(l.recordsTakePhoto),
               onTap: () => Navigator.pop(ctx, _ScanSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose a photo'),
+              title: Text(l.recordsChoosePhoto),
               onTap: () => Navigator.pop(ctx, _ScanSource.photo),
             ),
             // PDFs are readable only by the Cloud AI extractor; on-device OCR
@@ -422,10 +428,10 @@ class _ServiceRecordFormScreenState
             ListTile(
               enabled: cloudAi,
               leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('Choose a PDF'),
+              title: Text(l.recordsChoosePdf),
               subtitle: cloudAi
                   ? null
-                  : const Text('Needs Cloud AI (change in Settings)'),
+                  : Text(l.recordsNeedsCloudAi),
               onTap: cloudAi ? () => Navigator.pop(ctx, _ScanSource.pdf) : null,
             ),
           ],
@@ -532,6 +538,7 @@ class _ServiceRecordFormScreenState
       _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim();
 
   Future<void> _submit() async {
+    final l = AppLocalizations.of(context);
     // Re-entrancy guard: the two-phase inline save does async work (create +
     // persist) before notifier.save flips the shared loading state, so the
     // button's `saving` flag alone can't block a double-tap. Everything up to
@@ -542,15 +549,15 @@ class _ServiceRecordFormScreenState
       // didn't fill) can be scrolled off-screen above the line items, making
       // the button look dead — surface why the save didn't go through.
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please complete the highlighted fields (e.g. Mileage).'),
+        SnackBar(
+          content: Text(l.recordsCompleteFields),
         ),
       );
       return;
     }
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Service date is required')),
+        SnackBar(content: Text(l.recordsServiceDateRequired)),
       );
       return;
     }
@@ -558,7 +565,7 @@ class _ServiceRecordFormScreenState
     final items = _keptItems;
     if (items.any((p) => p.name.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Each line item needs a name')),
+        SnackBar(content: Text(l.recordsLineItemNameRequired)),
       );
       return;
     }
@@ -670,10 +677,11 @@ class _ServiceRecordFormScreenState
   /// Asks whether to delete stored images the user removed from the notes text.
   /// Returns true = delete, false = keep attached (default on dismiss).
   Future<bool> _confirmRemoveInlineImages(int count) async {
+    final l = AppLocalizations.of(context);
     final res = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove stored images?'),
+        title: Text(l.recordsRemoveStoredImagesTitle),
         content: Text(
           'You removed $count image${count == 1 ? '' : 's'} from the notes. '
           'Delete the stored image${count == 1 ? '' : 's'}, or keep '
@@ -682,11 +690,11 @@ class _ServiceRecordFormScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Keep attached'),
+            child: Text(l.recordsKeepAttached),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(l.commonDelete),
           ),
         ],
       ),
@@ -719,11 +727,12 @@ class _ScanReceiptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final cloud = mode == ReceiptExtractorMode.cloudAi;
     return Card(
       child: ListTile(
         leading: const Icon(Icons.document_scanner_outlined),
-        title: const Text('Scan a receipt'),
+        title: Text(l.recordsScanReceipt),
         subtitle: Text(
           scanning
               ? 'Reading receipt…'

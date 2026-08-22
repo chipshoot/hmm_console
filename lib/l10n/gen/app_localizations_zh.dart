@@ -884,6 +884,270 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get recordsAddPolicy => '添加保单';
+
+  @override
+  String get recordsNoPolicies => '暂无保险保单';
+
+  @override
+  String get recordsNoPoliciesHint => '点击 + 记录这辆车的保单。';
+
+  @override
+  String get recordsPoliciesLoadFailed => '无法加载保单';
+
+  @override
+  String get recordsDeletePolicyTitle => '删除保单？';
+
+  @override
+  String recordsDeletePolicyBody(String number, String provider) {
+    return '确定要删除 $provider 的保单 $number 吗？';
+  }
+
+  @override
+  String recordsPolicyNumber(String number) {
+    return '保单 $number';
+  }
+
+  @override
+  String get recordsProvider => '保险公司';
+
+  @override
+  String get recordsPolicyNumberLabel => '保单号';
+
+  @override
+  String get recordsEffectiveDate => '生效日期';
+
+  @override
+  String get recordsExpiryDate => '到期日期';
+
+  @override
+  String get recordsPremium => '保费';
+
+  @override
+  String get recordsCurrencyShort => '币种';
+
+  @override
+  String get recordsDeductible => '免赔额（选填）';
+
+  @override
+  String get recordsActive => '生效中';
+
+  @override
+  String get recordsNotes => '备注';
+
+  @override
+  String get recordsDatesRequired => '必须填写生效日期和到期日期';
+
+  @override
+  String get recordsDateOrderInvalid => '生效日期必须早于到期日期';
+
+  @override
+  String get recordsAddSchedule => '添加保养计划';
+
+  @override
+  String get recordsNoSchedules => '暂无保养计划';
+
+  @override
+  String get recordsNoSchedulesHint => '点击 + 设置周期性提醒。';
+
+  @override
+  String get recordsSchedulesLoadFailed => '无法加载保养计划';
+
+  @override
+  String get recordsDeleteScheduleTitle => '删除保养计划？';
+
+  @override
+  String recordsDeleteScheduleBody(String name) {
+    return '确定要删除保养计划“$name”吗？';
+  }
+
+  @override
+  String recordsNextDueDate(String date) {
+    return '下次到期 $date';
+  }
+
+  @override
+  String recordsNextDueMileage(String mileage, String unit) {
+    return '下次到期 $mileage $unit';
+  }
+
+  @override
+  String get recordsScheduleName => '名称';
+
+  @override
+  String get recordsEveryNDays => '每 N 天';
+
+  @override
+  String get recordsEveryNMiles => '每 N 英里';
+
+  @override
+  String get recordsNextDueDateLabel => '下次到期日期';
+
+  @override
+  String get recordsNextDueMileageLabel => '下次到期里程';
+
+  @override
+  String get recordsIntervalRequired => '请至少设置一个间隔（天数或里程）';
+
+  @override
+  String get recordsAddRecord => '添加记录';
+
+  @override
+  String get recordsNoServiceRecords => '暂无维修保养记录';
+
+  @override
+  String get recordsNoServiceRecordsHint => '点击 + 记录这辆车的第一次保养。';
+
+  @override
+  String get recordsServiceLoadFailed => '无法加载维修保养记录';
+
+  @override
+  String get recordsDeleteServiceTitle => '删除维修保养记录？';
+
+  @override
+  String recordsServiceDateMileage(String date, String mileage, String unit) {
+    return '$date • $mileage $unit';
+  }
+
+  @override
+  String recordsItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个项目',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsRecordCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已有 $count 条记录',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsActiveSchedules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个生效中的计划',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsServiceName => '保养项目名称';
+
+  @override
+  String get recordsReference => '单号（选填）';
+
+  @override
+  String get recordsServiceDate => '保养日期';
+
+  @override
+  String get recordsMileage => '里程';
+
+  @override
+  String get recordsServiceTypes => '保养类型';
+
+  @override
+  String get recordsDescription => '描述';
+
+  @override
+  String get recordsShopName => '维修店名称（选填）';
+
+  @override
+  String get recordsMarkdownHint => '支持 Markdown';
+
+  @override
+  String get recordsPreview => '预览';
+
+  @override
+  String get recordsTakePhoto => '拍照';
+
+  @override
+  String get recordsChoosePhoto => '选择照片';
+
+  @override
+  String get recordsChoosePdf => '选择 PDF';
+
+  @override
+  String get recordsNeedsCloudAi => '需要云端 AI（可在设置中更改）';
+
+  @override
+  String get recordsScanReceipt => '扫描收据';
+
+  @override
+  String get recordsCompleteFields => '请填写高亮的必填项（例如里程）。';
+
+  @override
+  String get recordsServiceDateRequired => '请填写保养日期';
+
+  @override
+  String get recordsLineItemNameRequired => '每个明细项都需要名称';
+
+  @override
+  String get recordsRemoveStoredImagesTitle => '删除已保存的图片？';
+
+  @override
+  String get recordsKeepAttached => '保留附件';
+
+  @override
+  String get recordsLineItems => '明细项';
+
+  @override
+  String get recordsAddItem => '添加明细';
+
+  @override
+  String get recordsTax => '税费';
+
+  @override
+  String get recordsItemHint => '项目';
+
+  @override
+  String get recordsQtyHint => '数量';
+
+  @override
+  String get recordsUnitHint => '单价';
+
+  @override
+  String get recordsAmountHint => '0.00';
+
+  @override
+  String get recordsVehicleNotes => '车辆备注';
+
+  @override
+  String get serviceTypeOilChange => '更换机油';
+
+  @override
+  String get serviceTypeTireRotation => '轮胎换位';
+
+  @override
+  String get serviceTypeBrake => '刹车';
+
+  @override
+  String get serviceTypeInspection => '检查';
+
+  @override
+  String get serviceTypeRepair => '维修';
+
+  @override
+  String get serviceTypeOther => '其他';
+
+  @override
+  String get lineItemLabour => '工时';
+
+  @override
+  String get lineItemPart => '配件';
+
+  @override
+  String get lineItemFee => '费用';
+
+  @override
   String get automobileRecordsInsurance => '保险';
 
   @override

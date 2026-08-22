@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/entities/line_item_type.dart';
@@ -63,6 +65,7 @@ class _ServiceLineItemsEditorState extends State<ServiceLineItemsEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final subtotal = _totalFor(LineItemType.labour) +
         _totalFor(LineItemType.part) +
@@ -87,7 +90,7 @@ class _ServiceLineItemsEditorState extends State<ServiceLineItemsEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Line items', style: theme.textTheme.titleSmall),
+        Text(l.recordsLineItems, style: theme.textTheme.titleSmall),
         for (var i = 0; i < _items.length; i++)
           ServiceLineItemRow(
             key: ValueKey(_keys[i]),
@@ -104,7 +107,7 @@ class _ServiceLineItemsEditorState extends State<ServiceLineItemsEditor> {
           child: TextButton.icon(
             onPressed: _add,
             icon: const Icon(Icons.add),
-            label: const Text('Add item'),
+            label: Text(l.recordsAddItem),
           ),
         ),
         const Divider(),
@@ -114,7 +117,7 @@ class _ServiceLineItemsEditorState extends State<ServiceLineItemsEditor> {
         totalLine('Subtotal', subtotal),
         Row(
           children: [
-            const Expanded(child: Text('Tax')),
+            Expanded(child: Text(l.recordsTax)),
             SizedBox(
               width: 90,
               child: TextField(
@@ -126,7 +129,7 @@ class _ServiceLineItemsEditorState extends State<ServiceLineItemsEditor> {
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
                 ],
-                decoration: const InputDecoration(hintText: '0.00'),
+                decoration: InputDecoration(hintText: l.recordsAmountHint),
                 onChanged: (_) {
                   setState(() {});
                   _emit();

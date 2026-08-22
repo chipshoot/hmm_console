@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/line_item_type.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/part_item.dart';
 import 'package:hmm_console/features/automobile_records/presentation/widgets/service_line_items_editor.dart';
@@ -10,6 +11,10 @@ void main() {
       PartItem(type: LineItemType.part, name: 'Oil', quantity: 2, unitCost: 10.0),
     ];
     await t.pumpWidget(MaterialApp(
+      // Required: these widgets read copy from AppLocalizations; a bare
+      // MaterialApp leaves it null and the widget throws while building.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: ServiceLineItemsEditor(
           initialItems: items,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -115,19 +117,20 @@ class _InsurancePoliciesScreenState
   }
 
   Future<void> _confirmDelete(AutoInsurancePolicy p) async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete policy?'),
-        content: Text('Delete policy ${p.policyNumber} from ${p.provider}?'),
+        title: Text(l.recordsDeletePolicyTitle),
+        content: Text(l.recordsDeletePolicyBody(p.policyNumber, p.provider)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(l.commonDelete),
           ),
         ],
       ),
@@ -152,6 +155,7 @@ class _PolicyTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final df = DateFormat.yMMMd();
     final cs = Theme.of(context).colorScheme;
     final active = policy.isCurrentlyActive;
@@ -187,7 +191,7 @@ class _PolicyTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Policy ${policy.policyNumber}'),
+            Text(l.recordsPolicyNumber(policy.policyNumber)),
             Text(
                 '${df.format(policy.effectiveDate)} – ${df.format(policy.expiryDate)}'),
             Text(
@@ -211,18 +215,19 @@ class _EmptyState extends StatelessWidget {
   final VoidCallback onAdd;
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.shield_outlined, size: 64),
           const SizedBox(height: 16),
-          Text('No insurance policies yet',
+          Text(l.recordsNoPolicies,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          const Text('Tap + to record this vehicle\'s policy.'),
+          Text(l.recordsNoPoliciesHint),
           const SizedBox(height: 16),
-          FilledButton.tonal(onPressed: onAdd, child: const Text('Add policy')),
+          FilledButton.tonal(onPressed: onAdd, child: Text(l.recordsAddPolicy)),
         ],
       ),
     );
@@ -235,6 +240,7 @@ class _ErrorState extends StatelessWidget {
   final VoidCallback onRetry;
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -242,14 +248,14 @@ class _ErrorState extends StatelessWidget {
           Icon(Icons.error_outline,
               size: 48, color: Theme.of(context).colorScheme.error),
           const SizedBox(height: 16),
-          Text('Failed to load policies',
+          Text(l.recordsPoliciesLoadFailed,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(dioErrorMessage(error),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 16),
-          FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
+          FilledButton.tonal(onPressed: onRetry, child: Text(l.commonRetry)),
         ],
       ),
     );

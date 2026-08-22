@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../record_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -124,18 +128,19 @@ class _ScheduledServicesScreenState
   }
 
   Future<void> _confirmDelete(AutoScheduledService s) async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete schedule?'),
-        content: Text('Delete schedule "${s.name}"?'),
+        title: Text(l.recordsDeleteScheduleTitle),
+        content: Text(l.recordsDeleteScheduleBody(s.name)),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
+              child: Text(l.commonCancel)),
           FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Delete')),
+              child: Text(l.commonDelete)),
         ],
       ),
     );
@@ -159,6 +164,7 @@ class _ScheduleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final df = DateFormat.yMMMd();
     final cs = Theme.of(context).colorScheme;
     final overdue = schedule.nextDueDate != null &&
@@ -210,11 +216,11 @@ class _ScheduleTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(schedule.type.displayName),
+            Text(schedule.type.label(l)),
             if (schedule.nextDueDate != null)
-              Text('Next due ${df.format(schedule.nextDueDate!)}')
+              Text(l.recordsNextDueDate(df.format(schedule.nextDueDate!)))
             else if (schedule.nextDueMileage != null)
-              Text('Next due ${schedule.nextDueMileage} mi'),
+              Text(l.recordsNextDueMileage('${schedule.nextDueMileage}', 'mi')),
             Text(_intervalLabel(schedule)),
           ],
         ),
@@ -242,19 +248,20 @@ class _EmptyState extends StatelessWidget {
   final VoidCallback onAdd;
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.event_repeat_outlined, size: 64),
           const SizedBox(height: 16),
-          Text('No scheduled services yet',
+          Text(l.recordsNoSchedules,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          const Text('Tap + to set up a recurring reminder.'),
+          Text(l.recordsNoSchedulesHint),
           const SizedBox(height: 16),
           FilledButton.tonal(
-              onPressed: onAdd, child: const Text('Add schedule')),
+              onPressed: onAdd, child: Text(l.recordsAddSchedule)),
         ],
       ),
     );
@@ -267,6 +274,7 @@ class _ErrorState extends StatelessWidget {
   final VoidCallback onRetry;
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -274,14 +282,14 @@ class _ErrorState extends StatelessWidget {
           Icon(Icons.error_outline,
               size: 48, color: Theme.of(context).colorScheme.error),
           const SizedBox(height: 16),
-          Text('Failed to load schedules',
+          Text(l.recordsSchedulesLoadFailed,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(dioErrorMessage(error),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 16),
-          FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
+          FilledButton.tonal(onPressed: onRetry, child: Text(l.commonRetry)),
         ],
       ),
     );

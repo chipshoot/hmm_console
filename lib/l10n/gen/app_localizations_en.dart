@@ -907,6 +907,277 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get recordsAddPolicy => 'Add policy';
+
+  @override
+  String get recordsNoPolicies => 'No insurance policies yet';
+
+  @override
+  String get recordsNoPoliciesHint => 'Tap + to record this vehicle\'s policy.';
+
+  @override
+  String get recordsPoliciesLoadFailed => 'Failed to load policies';
+
+  @override
+  String get recordsDeletePolicyTitle => 'Delete policy?';
+
+  @override
+  String recordsDeletePolicyBody(String number, String provider) {
+    return 'Delete policy $number from $provider?';
+  }
+
+  @override
+  String recordsPolicyNumber(String number) {
+    return 'Policy $number';
+  }
+
+  @override
+  String get recordsProvider => 'Provider';
+
+  @override
+  String get recordsPolicyNumberLabel => 'Policy number';
+
+  @override
+  String get recordsEffectiveDate => 'Effective date';
+
+  @override
+  String get recordsExpiryDate => 'Expiry date';
+
+  @override
+  String get recordsPremium => 'Premium';
+
+  @override
+  String get recordsCurrencyShort => 'CCY';
+
+  @override
+  String get recordsDeductible => 'Deductible (optional)';
+
+  @override
+  String get recordsActive => 'Active';
+
+  @override
+  String get recordsNotes => 'Notes';
+
+  @override
+  String get recordsDatesRequired => 'Effective and expiry dates are required';
+
+  @override
+  String get recordsDateOrderInvalid =>
+      'Effective date must be before expiry date';
+
+  @override
+  String get recordsAddSchedule => 'Add schedule';
+
+  @override
+  String get recordsNoSchedules => 'No scheduled services yet';
+
+  @override
+  String get recordsNoSchedulesHint => 'Tap + to set up a recurring reminder.';
+
+  @override
+  String get recordsSchedulesLoadFailed => 'Failed to load schedules';
+
+  @override
+  String get recordsDeleteScheduleTitle => 'Delete schedule?';
+
+  @override
+  String recordsDeleteScheduleBody(String name) {
+    return 'Delete schedule \"$name\"?';
+  }
+
+  @override
+  String recordsNextDueDate(String date) {
+    return 'Next due $date';
+  }
+
+  @override
+  String recordsNextDueMileage(String mileage, String unit) {
+    return 'Next due $mileage $unit';
+  }
+
+  @override
+  String get recordsScheduleName => 'Name';
+
+  @override
+  String get recordsEveryNDays => 'Every N days';
+
+  @override
+  String get recordsEveryNMiles => 'Every N miles';
+
+  @override
+  String get recordsNextDueDateLabel => 'Next due date';
+
+  @override
+  String get recordsNextDueMileageLabel => 'Next due mileage';
+
+  @override
+  String get recordsIntervalRequired =>
+      'Set at least one interval (days or mileage)';
+
+  @override
+  String get recordsAddRecord => 'Add record';
+
+  @override
+  String get recordsNoServiceRecords => 'No service records yet';
+
+  @override
+  String get recordsNoServiceRecordsHint =>
+      'Tap + to log this vehicle\'s first service.';
+
+  @override
+  String get recordsServiceLoadFailed => 'Failed to load service records';
+
+  @override
+  String get recordsDeleteServiceTitle => 'Delete service record?';
+
+  @override
+  String recordsServiceDateMileage(String date, String mileage, String unit) {
+    return '$date • $mileage $unit';
+  }
+
+  @override
+  String recordsItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsRecordCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count records on file',
+      one: '1 record on file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recordsActiveSchedules(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count active schedules',
+      one: '1 active schedule',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recordsServiceName => 'Service name';
+
+  @override
+  String get recordsReference => 'Reference # (optional)';
+
+  @override
+  String get recordsServiceDate => 'Service date';
+
+  @override
+  String get recordsMileage => 'Mileage';
+
+  @override
+  String get recordsServiceTypes => 'Service types';
+
+  @override
+  String get recordsDescription => 'Description';
+
+  @override
+  String get recordsShopName => 'Shop name (optional)';
+
+  @override
+  String get recordsMarkdownHint => 'Supports markdown';
+
+  @override
+  String get recordsPreview => 'Preview';
+
+  @override
+  String get recordsTakePhoto => 'Take a photo';
+
+  @override
+  String get recordsChoosePhoto => 'Choose a photo';
+
+  @override
+  String get recordsChoosePdf => 'Choose a PDF';
+
+  @override
+  String get recordsNeedsCloudAi => 'Needs Cloud AI (change in Settings)';
+
+  @override
+  String get recordsScanReceipt => 'Scan a receipt';
+
+  @override
+  String get recordsCompleteFields =>
+      'Please complete the highlighted fields (e.g. Mileage).';
+
+  @override
+  String get recordsServiceDateRequired => 'Service date is required';
+
+  @override
+  String get recordsLineItemNameRequired => 'Each line item needs a name';
+
+  @override
+  String get recordsRemoveStoredImagesTitle => 'Remove stored images?';
+
+  @override
+  String get recordsKeepAttached => 'Keep attached';
+
+  @override
+  String get recordsLineItems => 'Line items';
+
+  @override
+  String get recordsAddItem => 'Add item';
+
+  @override
+  String get recordsTax => 'Tax';
+
+  @override
+  String get recordsItemHint => 'Item';
+
+  @override
+  String get recordsQtyHint => 'Qty';
+
+  @override
+  String get recordsUnitHint => 'Unit';
+
+  @override
+  String get recordsAmountHint => '0.00';
+
+  @override
+  String get recordsVehicleNotes => 'Vehicle Notes';
+
+  @override
+  String get serviceTypeOilChange => 'Oil change';
+
+  @override
+  String get serviceTypeTireRotation => 'Tire rotation';
+
+  @override
+  String get serviceTypeBrake => 'Brake';
+
+  @override
+  String get serviceTypeInspection => 'Inspection';
+
+  @override
+  String get serviceTypeRepair => 'Repair';
+
+  @override
+  String get serviceTypeOther => 'Other';
+
+  @override
+  String get lineItemLabour => 'Labour';
+
+  @override
+  String get lineItemPart => 'Part';
+
+  @override
+  String get lineItemFee => 'Fee';
+
+  @override
   String get automobileRecordsInsurance => 'Insurance';
 
   @override

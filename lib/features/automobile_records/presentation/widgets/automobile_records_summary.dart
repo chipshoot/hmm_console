@@ -43,6 +43,7 @@ class _AutomobileRecordsSummaryState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -55,7 +56,7 @@ class _AutomobileRecordsSummaryState
         Card(
           child: ListTile(
             leading: const Icon(Icons.sticky_note_2_outlined),
-            title: const Text('Notes'),
+            title: Text(l10n.recordsNotes),
             trailing: const Icon(Icons.chevron_right),
             onTap: () =>
                 context.push('/automobiles/manage/${widget.automobileId}/notes'),
@@ -101,7 +102,7 @@ class _InsuranceSummaryCard extends ConsumerWidget {
                 policy.provider,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              Text('Policy ${policy.policyNumber}'),
+              Text(l10n.recordsPolicyNumber(policy.policyNumber)),
               Text(
                 'Expires ${df.format(policy.expiryDate)} '
                 '($daysToExpiry day${daysToExpiry == 1 ? '' : 's'})',
@@ -154,7 +155,7 @@ class _ServiceSummaryCard extends ConsumerWidget {
               ),
               Text(
                   '${df.format(latest.date)} • ${latest.mileage} mi'),
-              Text('${records.length} record${records.length == 1 ? '' : 's'} on file'),
+              Text(l10n.recordsRecordCount(records.length)),
             ],
           );
         },
@@ -215,7 +216,7 @@ class _ScheduleSummaryCard extends ConsumerWidget {
                 ),
               ),
               if (total > 1)
-                Text('$total active schedules'),
+                Text(l10n.recordsActiveSchedules(total)),
             ],
           );
         },

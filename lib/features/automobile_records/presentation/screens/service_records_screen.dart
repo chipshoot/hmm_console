@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../record_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -113,19 +117,20 @@ class _ServiceRecordsScreenState
   }
 
   Future<void> _confirmDelete(ServiceRecord r) async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete service record?'),
+        title: Text(l.recordsDeleteServiceTitle),
         content: Text(
             'Delete ${r.primaryType.displayName} on ${DateFormat.yMMMd().format(r.date)}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
+              child: Text(l.commonCancel)),
           FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Delete')),
+              child: Text(l.commonDelete)),
         ],
       ),
     );
@@ -149,6 +154,7 @@ class _ServiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final df = DateFormat.yMMMd();
     return Card(
       child: ListTile(
@@ -156,7 +162,7 @@ class _ServiceTile extends StatelessWidget {
         title: Text(
           (record.name != null && record.name!.isNotEmpty)
               ? record.name!
-              : record.types.map((t) => t.displayName).join(', '),
+              : record.types.map((t) => t.label(l)).join(', '),
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Column(
@@ -166,7 +172,7 @@ class _ServiceTile extends StatelessWidget {
             // When a name is the headline, still surface every category tag so
             // multi-type records don't hide their categories.
             if (record.name != null && record.name!.isNotEmpty)
-              Text(record.types.map((t) => t.displayName).join(', '),
+              Text(record.types.map((t) => t.label(l)).join(', '),
                   style: Theme.of(context).textTheme.bodySmall),
             if (record.shopName != null && record.shopName!.isNotEmpty)
               Text(record.shopName!),
@@ -205,18 +211,19 @@ class _EmptyState extends StatelessWidget {
   final VoidCallback onAdd;
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.build_outlined, size: 64),
           const SizedBox(height: 16),
-          Text('No service records yet',
+          Text(l.recordsNoServiceRecords,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          const Text('Tap + to log this vehicle\'s first service.'),
+          Text(l.recordsNoServiceRecordsHint),
           const SizedBox(height: 16),
-          FilledButton.tonal(onPressed: onAdd, child: const Text('Add record')),
+          FilledButton.tonal(onPressed: onAdd, child: Text(l.recordsAddRecord)),
         ],
       ),
     );
@@ -229,6 +236,7 @@ class _ErrorState extends StatelessWidget {
   final VoidCallback onRetry;
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -236,14 +244,14 @@ class _ErrorState extends StatelessWidget {
           Icon(Icons.error_outline,
               size: 48, color: Theme.of(context).colorScheme.error),
           const SizedBox(height: 16),
-          Text('Failed to load service records',
+          Text(l.recordsServiceLoadFailed,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(dioErrorMessage(error),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 16),
-          FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
+          FilledButton.tonal(onPressed: onRetry, child: Text(l.commonRetry)),
         ],
       ),
     );

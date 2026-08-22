@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../notes/presentation/widgets/attached_notes_section.dart';
@@ -11,10 +13,11 @@ class VehicleNotesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Vehicle Notes')),
+      appBar: AppBar(title: Text(l.recordsVehicleNotes)),
       body: SingleChildScrollView(
-        child: AttachedNotesSection(parentId: automobileId, title: 'Notes'),
+        child: AttachedNotesSection(parentId: automobileId, title: l.recordsNotes),
       ),
     );
   }

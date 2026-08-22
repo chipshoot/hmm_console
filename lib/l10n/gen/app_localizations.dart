@@ -1610,6 +1610,468 @@ abstract class AppLocalizations {
   /// **'Large gap: odometer is {gap} from expected ({expected})'**
   String validationOdometerLargeGap(String gap, String expected);
 
+  /// No description provided for @recordsAddPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Add policy'**
+  String get recordsAddPolicy;
+
+  /// No description provided for @recordsNoPolicies.
+  ///
+  /// In en, this message translates to:
+  /// **'No insurance policies yet'**
+  String get recordsNoPolicies;
+
+  /// No description provided for @recordsNoPoliciesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to record this vehicle\'s policy.'**
+  String get recordsNoPoliciesHint;
+
+  /// No description provided for @recordsPoliciesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load policies'**
+  String get recordsPoliciesLoadFailed;
+
+  /// No description provided for @recordsDeletePolicyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete policy?'**
+  String get recordsDeletePolicyTitle;
+
+  /// No description provided for @recordsDeletePolicyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete policy {number} from {provider}?'**
+  String recordsDeletePolicyBody(String number, String provider);
+
+  /// No description provided for @recordsPolicyNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Policy {number}'**
+  String recordsPolicyNumber(String number);
+
+  /// No description provided for @recordsProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get recordsProvider;
+
+  /// No description provided for @recordsPolicyNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Policy number'**
+  String get recordsPolicyNumberLabel;
+
+  /// No description provided for @recordsEffectiveDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Effective date'**
+  String get recordsEffectiveDate;
+
+  /// No description provided for @recordsExpiryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiry date'**
+  String get recordsExpiryDate;
+
+  /// No description provided for @recordsPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get recordsPremium;
+
+  /// Very short column label for a currency code next to an amount field.
+  ///
+  /// In en, this message translates to:
+  /// **'CCY'**
+  String get recordsCurrencyShort;
+
+  /// No description provided for @recordsDeductible.
+  ///
+  /// In en, this message translates to:
+  /// **'Deductible (optional)'**
+  String get recordsDeductible;
+
+  /// No description provided for @recordsActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get recordsActive;
+
+  /// No description provided for @recordsNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get recordsNotes;
+
+  /// No description provided for @recordsDatesRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Effective and expiry dates are required'**
+  String get recordsDatesRequired;
+
+  /// No description provided for @recordsDateOrderInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Effective date must be before expiry date'**
+  String get recordsDateOrderInvalid;
+
+  /// No description provided for @recordsAddSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Add schedule'**
+  String get recordsAddSchedule;
+
+  /// No description provided for @recordsNoSchedules.
+  ///
+  /// In en, this message translates to:
+  /// **'No scheduled services yet'**
+  String get recordsNoSchedules;
+
+  /// No description provided for @recordsNoSchedulesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to set up a recurring reminder.'**
+  String get recordsNoSchedulesHint;
+
+  /// No description provided for @recordsSchedulesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load schedules'**
+  String get recordsSchedulesLoadFailed;
+
+  /// No description provided for @recordsDeleteScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete schedule?'**
+  String get recordsDeleteScheduleTitle;
+
+  /// No description provided for @recordsDeleteScheduleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete schedule \"{name}\"?'**
+  String recordsDeleteScheduleBody(String name);
+
+  /// No description provided for @recordsNextDueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Next due {date}'**
+  String recordsNextDueDate(String date);
+
+  /// {unit} is a unit symbol such as mi or km and is never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Next due {mileage} {unit}'**
+  String recordsNextDueMileage(String mileage, String unit);
+
+  /// No description provided for @recordsScheduleName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get recordsScheduleName;
+
+  /// No description provided for @recordsEveryNDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Every N days'**
+  String get recordsEveryNDays;
+
+  /// No description provided for @recordsEveryNMiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Every N miles'**
+  String get recordsEveryNMiles;
+
+  /// No description provided for @recordsNextDueDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Next due date'**
+  String get recordsNextDueDateLabel;
+
+  /// No description provided for @recordsNextDueMileageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Next due mileage'**
+  String get recordsNextDueMileageLabel;
+
+  /// No description provided for @recordsIntervalRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Set at least one interval (days or mileage)'**
+  String get recordsIntervalRequired;
+
+  /// No description provided for @recordsAddRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Add record'**
+  String get recordsAddRecord;
+
+  /// No description provided for @recordsNoServiceRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No service records yet'**
+  String get recordsNoServiceRecords;
+
+  /// No description provided for @recordsNoServiceRecordsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to log this vehicle\'s first service.'**
+  String get recordsNoServiceRecordsHint;
+
+  /// No description provided for @recordsServiceLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load service records'**
+  String get recordsServiceLoadFailed;
+
+  /// No description provided for @recordsDeleteServiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete service record?'**
+  String get recordsDeleteServiceTitle;
+
+  /// No description provided for @recordsServiceDateMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} • {mileage} {unit}'**
+  String recordsServiceDateMileage(String date, String mileage, String unit);
+
+  /// No description provided for @recordsItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item} other{{count} items}}'**
+  String recordsItemCount(int count);
+
+  /// No description provided for @recordsRecordCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 record on file} other{{count} records on file}}'**
+  String recordsRecordCount(int count);
+
+  /// No description provided for @recordsActiveSchedules.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 active schedule} other{{count} active schedules}}'**
+  String recordsActiveSchedules(int count);
+
+  /// No description provided for @recordsServiceName.
+  ///
+  /// In en, this message translates to:
+  /// **'Service name'**
+  String get recordsServiceName;
+
+  /// No description provided for @recordsReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference # (optional)'**
+  String get recordsReference;
+
+  /// No description provided for @recordsServiceDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Service date'**
+  String get recordsServiceDate;
+
+  /// No description provided for @recordsMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'Mileage'**
+  String get recordsMileage;
+
+  /// No description provided for @recordsServiceTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'Service types'**
+  String get recordsServiceTypes;
+
+  /// No description provided for @recordsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get recordsDescription;
+
+  /// No description provided for @recordsShopName.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop name (optional)'**
+  String get recordsShopName;
+
+  /// No description provided for @recordsMarkdownHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Supports markdown'**
+  String get recordsMarkdownHint;
+
+  /// No description provided for @recordsPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get recordsPreview;
+
+  /// No description provided for @recordsTakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get recordsTakePhoto;
+
+  /// No description provided for @recordsChoosePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a photo'**
+  String get recordsChoosePhoto;
+
+  /// No description provided for @recordsChoosePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a PDF'**
+  String get recordsChoosePdf;
+
+  /// No description provided for @recordsNeedsCloudAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs Cloud AI (change in Settings)'**
+  String get recordsNeedsCloudAi;
+
+  /// No description provided for @recordsScanReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a receipt'**
+  String get recordsScanReceipt;
+
+  /// No description provided for @recordsCompleteFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please complete the highlighted fields (e.g. Mileage).'**
+  String get recordsCompleteFields;
+
+  /// No description provided for @recordsServiceDateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Service date is required'**
+  String get recordsServiceDateRequired;
+
+  /// No description provided for @recordsLineItemNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Each line item needs a name'**
+  String get recordsLineItemNameRequired;
+
+  /// No description provided for @recordsRemoveStoredImagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove stored images?'**
+  String get recordsRemoveStoredImagesTitle;
+
+  /// No description provided for @recordsKeepAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep attached'**
+  String get recordsKeepAttached;
+
+  /// No description provided for @recordsLineItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Line items'**
+  String get recordsLineItems;
+
+  /// No description provided for @recordsAddItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get recordsAddItem;
+
+  /// No description provided for @recordsTax.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax'**
+  String get recordsTax;
+
+  /// No description provided for @recordsItemHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Item'**
+  String get recordsItemHint;
+
+  /// No description provided for @recordsQtyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get recordsQtyHint;
+
+  /// No description provided for @recordsUnitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get recordsUnitHint;
+
+  /// No description provided for @recordsAmountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'0.00'**
+  String get recordsAmountHint;
+
+  /// No description provided for @recordsVehicleNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Notes'**
+  String get recordsVehicleNotes;
+
+  /// No description provided for @serviceTypeOilChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Oil change'**
+  String get serviceTypeOilChange;
+
+  /// No description provided for @serviceTypeTireRotation.
+  ///
+  /// In en, this message translates to:
+  /// **'Tire rotation'**
+  String get serviceTypeTireRotation;
+
+  /// No description provided for @serviceTypeBrake.
+  ///
+  /// In en, this message translates to:
+  /// **'Brake'**
+  String get serviceTypeBrake;
+
+  /// No description provided for @serviceTypeInspection.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspection'**
+  String get serviceTypeInspection;
+
+  /// No description provided for @serviceTypeRepair.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair'**
+  String get serviceTypeRepair;
+
+  /// No description provided for @serviceTypeOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get serviceTypeOther;
+
+  /// No description provided for @lineItemLabour.
+  ///
+  /// In en, this message translates to:
+  /// **'Labour'**
+  String get lineItemLabour;
+
+  /// No description provided for @lineItemPart.
+  ///
+  /// In en, this message translates to:
+  /// **'Part'**
+  String get lineItemPart;
+
+  /// No description provided for @lineItemFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee'**
+  String get lineItemFee;
+
   /// No description provided for @automobileRecordsInsurance.
   ///
   /// In en, this message translates to:

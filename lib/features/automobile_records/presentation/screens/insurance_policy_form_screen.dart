@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,6 +92,7 @@ class _InsurancePolicyFormScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final mutationState = ref.watch(mutateInsurancePolicyStateProvider);
     final saving = mutationState.isLoading;
 
@@ -126,24 +129,24 @@ class _InsurancePolicyFormScreenState
                       fieldController: _providerCtrl,
                       fieldValidator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
-                      label: 'Provider',
+                      label: l.recordsProvider,
                     ),
                     const SizedBox(height: 16),
                     AppTextFormField(
                       fieldController: _policyNumberCtrl,
                       fieldValidator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
-                      label: 'Policy number',
+                      label: l.recordsPolicyNumberLabel,
                     ),
                     const SizedBox(height: 16),
                     OptionalDatePicker(
-                      label: 'Effective date',
+                      label: l.recordsEffectiveDate,
                       date: _effective,
                       onChanged: (d) => setState(() => _effective = d),
                     ),
                     const SizedBox(height: 16),
                     OptionalDatePicker(
-                      label: 'Expiry date',
+                      label: l.recordsExpiryDate,
                       date: _expiry,
                       onChanged: (d) => setState(() => _expiry = d),
                     ),
@@ -155,7 +158,7 @@ class _InsurancePolicyFormScreenState
                           child: AppTextFormField(
                             fieldController: _premiumCtrl,
                             fieldValidator: _validateAmount,
-                            label: 'Premium',
+                            label: l.recordsPremium,
                             keyboardType:
                                 const TextInputType.numberWithOptions(
                                     decimal: true),
@@ -168,7 +171,7 @@ class _InsurancePolicyFormScreenState
                             fieldController:
                                 TextEditingController(text: _currency),
                             fieldValidator: (_) => null,
-                            label: 'CCY',
+                            label: l.recordsCurrencyShort,
                           ),
                         ),
                       ],
@@ -178,14 +181,14 @@ class _InsurancePolicyFormScreenState
                       fieldController: _deductibleCtrl,
                       fieldValidator: (v) =>
                           (v == null || v.isEmpty) ? null : _validateAmount(v),
-                      label: 'Deductible (optional)',
+                      label: l.recordsDeductible,
                       keyboardType: const TextInputType.numberWithOptions(
                           decimal: true),
                       inputFormatters: [_decimalFormatter],
                     ),
                     const SizedBox(height: 16),
                     SwitchListTile(
-                      title: const Text('Active'),
+                      title: Text(l.recordsActive),
                       value: _isActive,
                       onChanged: (v) => setState(() => _isActive = v),
                     ),
@@ -193,7 +196,7 @@ class _InsurancePolicyFormScreenState
                     AppTextFormField(
                       fieldController: _notesCtrl,
                       fieldValidator: (_) => null,
-                      label: 'Notes',
+                      label: l.recordsNotes,
                     ),
                     const SizedBox(height: 24),
                     HighlightButton(
@@ -221,18 +224,19 @@ class _InsurancePolicyFormScreenState
       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'));
 
   Future<void> _submit() async {
+    final l = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
     if (_effective == null || _expiry == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Effective and expiry dates are required')),
+        SnackBar(
+            content: Text(l.recordsDatesRequired)),
       );
       return;
     }
     if (!_effective!.isBefore(_expiry!)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Effective date must be before expiry date')),
+        SnackBar(
+            content: Text(l.recordsDateOrderInvalid)),
       );
       return;
     }
