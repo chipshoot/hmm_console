@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
@@ -46,7 +47,11 @@ void main() {
           hmmNoteRepositoryProvider.overrideWithValue(_NoNotes()),
           cheatsheetsStateProvider.overrideWith(_SeededCheatsheets.new),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: router,
+    ),
       ),
     );
     await tester.pumpAndSettle();

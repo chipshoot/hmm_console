@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/gen/app_localizations.dart';
+import '../../data/cheatsheet_templates.dart';
+
 import '../../../../core/navigation/route_names.dart';
 import '../../domain/entities/cheatsheet_card.dart';
 import '../../states/cheatsheets_state.dart';
@@ -42,15 +45,16 @@ class _CheatsheetWalletScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final cards = ref.watch(cheatsheetsStateProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cheatsheets'),
+        title: Text(l.cheatsheetWalletTitle),
         actions: [
           IconButton(
             key: const Key('wallet-add'),
             icon: const Icon(Icons.add),
-            tooltip: 'New cheatsheet',
+            tooltip: l.cheatsheetNew,
             onPressed: () => ref.read(cheatsheetCreateCardProvider)(context),
           ),
         ],
@@ -61,7 +65,7 @@ class _CheatsheetWalletScreenState
           key: const Key('wallet-error'),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Could not load your cheatsheets.\n$e'),
+            child: Text(l.cheatsheetLoadFailed('$e')),
           ),
         ),
         data: _body,
@@ -70,12 +74,13 @@ class _CheatsheetWalletScreenState
   }
 
   Widget _body(List<CheatsheetCard> all) {
+    final l = AppLocalizations.of(context);
     if (all.isEmpty) {
-      return const Center(
-        key: Key('wallet-empty'),
+      return Center(
+        key: const Key('wallet-empty'),
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text('No cheatsheets yet. Tap + to make one.'),
+          padding: const EdgeInsets.all(24),
+          child: Text(l.cheatsheetEmpty),
         ),
       );
     }
@@ -89,8 +94,8 @@ class _CheatsheetWalletScreenState
           padding: const EdgeInsets.all(12),
           child: TextField(
             key: const Key('wallet-search'),
-            decoration: const InputDecoration(
-              hintText: 'Search cheatsheets',
+            decoration: InputDecoration(
+              hintText: l.cheatsheetSearchHint,
               prefixIcon: Icon(Icons.search),
             ),
             onChanged: (v) => setState(() => _query = v),
@@ -117,10 +122,10 @@ class _CheatsheetWalletScreenState
             ),
           ),
         if (matches.isEmpty)
-          const Expanded(
+          Expanded(
             child: Center(
-              key: Key('wallet-no-matches'),
-              child: Text('Nothing matches that search.'),
+              key: const Key('wallet-no-matches'),
+              child: Text(l.cheatsheetNoMatches),
             ),
           )
         else
@@ -152,6 +157,7 @@ class _CheatsheetWalletScreenState
   }
 
   Widget _groupedList(List<CheatsheetCard> cards) {
+    final l = AppLocalizations.of(context);
     final groups = <String, List<CheatsheetCard>>{};
     for (final c in cards) {
       groups.putIfAbsent(c.walletGroup, () => []).add(c);
@@ -175,8 +181,11 @@ class _CheatsheetWalletScreenState
           Padding(
             key: Key('wallet-group-$name'),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            // The KEY stays `name` (the stored English group) so the widget
+            // key and the sort order are language-independent; only the text
+            // shown is translated. See cheatsheet_templates.dart.
             child: Text(
-              name.toUpperCase(),
+              cheatsheetGroupLabel(name, l).toUpperCase(),
               style: Theme.of(context).textTheme.labelSmall,
             ),
           ),

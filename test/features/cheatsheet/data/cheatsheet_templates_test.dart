@@ -1,9 +1,17 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_templates.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 void main() {
+  late AppLocalizations en;
+
+  setUp(() async {
+    en = await AppLocalizations.delegate.load(const Locale('en'));
+  });
+
   CheatsheetTemplate byId(String id) =>
-      CheatsheetTemplates.all.firstWhere((t) => t.id == id);
+      CheatsheetTemplates.all(en).firstWhere((t) => t.id == id);
 
   test('accidentClaim instantiates labelled unbound rows', () {
     final card = CheatsheetTemplates.instantiate(byId('accidentClaim'), 'c1');
@@ -21,7 +29,7 @@ void main() {
   });
 
   test('every template instantiates cleanly with unbound rows', () {
-    for (final t in CheatsheetTemplates.all) {
+    for (final t in CheatsheetTemplates.all(en)) {
       final card = CheatsheetTemplates.instantiate(t, 'id-${t.id}');
       expect(card.id, 'id-${t.id}');
       expect(card.templateId, t.id);
@@ -35,13 +43,13 @@ void main() {
   });
 
   test('template ids are unique', () {
-    final ids = CheatsheetTemplates.all.map((t) => t.id).toList();
+    final ids = CheatsheetTemplates.all(en).map((t) => t.id).toList();
     expect(ids.toSet().length, ids.length);
   });
 
   test('the expected starter set ships', () {
     expect(
-      CheatsheetTemplates.all.map((t) => t.id),
+      CheatsheetTemplates.all(en).map((t) => t.id),
       containsAll(['accidentClaim', 'healthInfo', 'document', 'blank']),
     );
   });

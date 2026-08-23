@@ -359,6 +359,83 @@
   "notesVaultSetUpPrompt": "Set up Secure Vault in Settings to view this image."
 ,
 
+  "@_cheatsheet": {
+    "description": "Cheatsheet wallet cards. Note the split: template ROW LABELS are translated because they seed a user document (nothing matches on them), while walletGroup keeps an English key because the wallet groups by exact string — see cheatsheet_templates.dart."
+  },
+  "cheatsheetWalletTitle": "Cheatsheets",
+  "cheatsheetNew": "New cheatsheet",
+  "cheatsheetLoadFailed": "Could not load your cheatsheets.\n{error}",
+  "@cheatsheetLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "cheatsheetEmpty": "No cheatsheets yet. Tap + to make one.",
+  "cheatsheetSearchHint": "Search cheatsheets",
+  "cheatsheetNoMatches": "Nothing matches that search.",
+  "cheatsheetGone": "That cheatsheet no longer exists.",
+  "cheatsheetSaveFailed": "Could not save this cheatsheet: {error}",
+  "@cheatsheetSaveFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "cheatsheetDeleteFailed": "Could not delete this cheatsheet: {error}",
+  "@cheatsheetDeleteFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "cheatsheetDeleteTitle": "Delete this cheatsheet?",
+  "cheatsheetEditTooltip": "Edit cheatsheet",
+  "cheatsheetDeleteTooltip": "Delete cheatsheet",
+  "cheatsheetOpenSource": "Open source",
+  "cheatsheetOpenSourceTooltip": "Open the source note",
+  "cheatsheetOpenFailed": "Could not open that.",
+  "cheatsheetTitleLabel": "Title",
+  "cheatsheetWalletGroupLabel": "Wallet group",
+  "cheatsheetNewRow": "New row",
+  "cheatsheetAddRow": "Add row",
+  "cheatsheetRemoveRow": "Remove this row",
+
+  "cheatsheetSourceLoadFailed": "Could not load notes: {error}",
+  "@cheatsheetSourceLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "cheatsheetSourceEmpty": "No notes to reference yet.",
+  "cheatsheetSourceNoMatches": "No notes match that search.",
+  "cheatsheetSourceBack": "Back to the note list",
+  "cheatsheetWholeNote": "The whole note",
+  "cheatsheetSourceSearchHint": "Search notes",
+  "cheatsheetSourceOther": "Other notes",
+  "cheatsheetSourceDomainVehicle": "Vehicle",
+  "@cheatsheetSourceDomainVehicle": {
+    "description": "Heading over the notes ranked first for a vehicle-domain card. SourceDomain carries an id, not this copy."
+  },
+
+  "@_cheatsheetWalletGroups": {
+    "description": "Display labels for the walletGroup values seeded by templates. The STORED value stays English ('Vehicle', 'Health', 'Reference', 'Ungrouped') because the wallet groups cards by exact string — a translated value would split one group in two when the user changes language. A group the user types themselves is shown verbatim."
+  },
+  "cheatsheetGroupVehicle": "Vehicle",
+  "cheatsheetGroupHealth": "Health",
+  "cheatsheetGroupReference": "Reference",
+  "cheatsheetGroupUngrouped": "Ungrouped",
+
+  "@_cheatsheetTemplates": {
+    "description": "Template titles and seed row labels. These are copied INTO a new card and become editable document content, so translating them is correct — a card created in Chinese should read in Chinese. Nothing matches on a row label."
+  },
+  "cheatsheetTemplateAccidentClaim": "Accident Claim",
+  "cheatsheetTemplateHealthInfo": "Health Info",
+  "cheatsheetTemplateDocument": "Document",
+  "cheatsheetTemplateBlank": "Blank",
+  "cheatsheetRowPlate": "Plate",
+  "cheatsheetRowVin": "VIN",
+  "cheatsheetRowInsurer": "Insurer",
+  "cheatsheetRowPolicyNumber": "Policy #",
+  "cheatsheetRowDriver": "Driver",
+  "cheatsheetRowPhone": "Phone",
+  "cheatsheetRowAddress": "Address",
+  "cheatsheetRowPerson": "Person",
+  "cheatsheetRowFamilyDoctor": "Family doctor",
+  "cheatsheetRowDoctorPhone": "Doctor phone",
+  "cheatsheetRowPharmacy": "Pharmacy",
+  "cheatsheetRowPharmacyPhone": "Pharmacy phone",
+  "cheatsheetRowSection1": "Section 1",
+
   "commonRetry": "Retry",
   "commonEdit": "Edit",
   "commonError": "Error: {error}",

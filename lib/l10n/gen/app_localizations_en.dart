@@ -576,6 +576,161 @@ class AppLocalizationsEn extends AppLocalizations {
       'Set up Secure Vault in Settings to view this image.';
 
   @override
+  String get cheatsheetWalletTitle => 'Cheatsheets';
+
+  @override
+  String get cheatsheetNew => 'New cheatsheet';
+
+  @override
+  String cheatsheetLoadFailed(String error) {
+    return 'Could not load your cheatsheets.\n$error';
+  }
+
+  @override
+  String get cheatsheetEmpty => 'No cheatsheets yet. Tap + to make one.';
+
+  @override
+  String get cheatsheetSearchHint => 'Search cheatsheets';
+
+  @override
+  String get cheatsheetNoMatches => 'Nothing matches that search.';
+
+  @override
+  String get cheatsheetGone => 'That cheatsheet no longer exists.';
+
+  @override
+  String cheatsheetSaveFailed(String error) {
+    return 'Could not save this cheatsheet: $error';
+  }
+
+  @override
+  String cheatsheetDeleteFailed(String error) {
+    return 'Could not delete this cheatsheet: $error';
+  }
+
+  @override
+  String get cheatsheetDeleteTitle => 'Delete this cheatsheet?';
+
+  @override
+  String get cheatsheetEditTooltip => 'Edit cheatsheet';
+
+  @override
+  String get cheatsheetDeleteTooltip => 'Delete cheatsheet';
+
+  @override
+  String get cheatsheetOpenSource => 'Open source';
+
+  @override
+  String get cheatsheetOpenSourceTooltip => 'Open the source note';
+
+  @override
+  String get cheatsheetOpenFailed => 'Could not open that.';
+
+  @override
+  String get cheatsheetTitleLabel => 'Title';
+
+  @override
+  String get cheatsheetWalletGroupLabel => 'Wallet group';
+
+  @override
+  String get cheatsheetNewRow => 'New row';
+
+  @override
+  String get cheatsheetAddRow => 'Add row';
+
+  @override
+  String get cheatsheetRemoveRow => 'Remove this row';
+
+  @override
+  String cheatsheetSourceLoadFailed(String error) {
+    return 'Could not load notes: $error';
+  }
+
+  @override
+  String get cheatsheetSourceEmpty => 'No notes to reference yet.';
+
+  @override
+  String get cheatsheetSourceNoMatches => 'No notes match that search.';
+
+  @override
+  String get cheatsheetSourceBack => 'Back to the note list';
+
+  @override
+  String get cheatsheetWholeNote => 'The whole note';
+
+  @override
+  String get cheatsheetSourceSearchHint => 'Search notes';
+
+  @override
+  String get cheatsheetSourceOther => 'Other notes';
+
+  @override
+  String get cheatsheetSourceDomainVehicle => 'Vehicle';
+
+  @override
+  String get cheatsheetGroupVehicle => 'Vehicle';
+
+  @override
+  String get cheatsheetGroupHealth => 'Health';
+
+  @override
+  String get cheatsheetGroupReference => 'Reference';
+
+  @override
+  String get cheatsheetGroupUngrouped => 'Ungrouped';
+
+  @override
+  String get cheatsheetTemplateAccidentClaim => 'Accident Claim';
+
+  @override
+  String get cheatsheetTemplateHealthInfo => 'Health Info';
+
+  @override
+  String get cheatsheetTemplateDocument => 'Document';
+
+  @override
+  String get cheatsheetTemplateBlank => 'Blank';
+
+  @override
+  String get cheatsheetRowPlate => 'Plate';
+
+  @override
+  String get cheatsheetRowVin => 'VIN';
+
+  @override
+  String get cheatsheetRowInsurer => 'Insurer';
+
+  @override
+  String get cheatsheetRowPolicyNumber => 'Policy #';
+
+  @override
+  String get cheatsheetRowDriver => 'Driver';
+
+  @override
+  String get cheatsheetRowPhone => 'Phone';
+
+  @override
+  String get cheatsheetRowAddress => 'Address';
+
+  @override
+  String get cheatsheetRowPerson => 'Person';
+
+  @override
+  String get cheatsheetRowFamilyDoctor => 'Family doctor';
+
+  @override
+  String get cheatsheetRowDoctorPhone => 'Doctor phone';
+
+  @override
+  String get cheatsheetRowPharmacy => 'Pharmacy';
+
+  @override
+  String get cheatsheetRowPharmacyPhone => 'Pharmacy phone';
+
+  @override
+  String get cheatsheetRowSection1 => 'Section 1';
+
+  @override
   String get commonRetry => 'Retry';
 
   @override

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/cheatsheet_templates.dart';
@@ -87,6 +89,7 @@ class _CheatsheetDesignerScreenState
   }
 
   Widget _loadExisting(String id) {
+    final l = AppLocalizations.of(context);
     final cards = ref.watch(cheatsheetsStateProvider);
     return cards.when(
       loading: () =>
@@ -98,10 +101,10 @@ class _CheatsheetDesignerScreenState
           if (c.id == id) found = c;
         }
         if (found == null) {
-          return const Scaffold(
+          return Scaffold(
             body: Center(
-              key: Key('designer-not-found'),
-              child: Text('That cheatsheet no longer exists.'),
+              key: const Key('designer-not-found'),
+              child: Text(l.cheatsheetGone),
             ),
           );
         }
@@ -117,11 +120,13 @@ class _CheatsheetDesignerScreenState
     );
   }
 
-  Widget _templateChooser() => Scaffold(
-        appBar: AppBar(title: const Text('New cheatsheet')),
+  Widget _templateChooser() {
+    final l = AppLocalizations.of(context);
+    return Scaffold(
+        appBar: AppBar(title: Text(l.cheatsheetNew)),
         body: ListView(
           children: [
-            for (final t in CheatsheetTemplates.all)
+            for (final t in CheatsheetTemplates.all(l))
               ListTile(
                 key: Key('template-${t.id}'),
                 title: Text(t.title),
@@ -134,13 +139,14 @@ class _CheatsheetDesignerScreenState
                 onTap: () {
                   // startFromTemplate mints a fresh id, replacing whatever the
                   // editor held.
-                  _editor.startFromTemplate(t.id);
+                  _editor.startFromTemplate(t.id, l);
                   setState(() => _started = true);
                 },
               ),
           ],
         ),
       );
+  }
 
   Future<void> _bind(int index) async {
     // Read from the editor, not from widget.cardId: on a create the card only
@@ -155,6 +161,7 @@ class _CheatsheetDesignerScreenState
   }
 
   Future<void> _save() async {
+    final l = AppLocalizations.of(context);
     // The upsert is a read-then-write with no uniqueness constraint behind
     // it, so two in-flight saves of a new card can both decide to create and
     // leave two notes sharing one card id.
@@ -178,21 +185,23 @@ class _CheatsheetDesignerScreenState
           'nothing was written.');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save this cheatsheet: $e')),
+        SnackBar(content: Text(l.cheatsheetSaveFailed('$e'))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
-  Widget _form(CheatsheetCard card) => Scaffold(
+  Widget _form(CheatsheetCard card) {
+    final l = AppLocalizations.of(context);
+    return Scaffold(
         appBar: AppBar(
           title: Text(widget.cardId == null ? 'New cheatsheet' : 'Edit'),
           actions: [
             TextButton(
               key: const Key('designer-save'),
               onPressed: _saving ? null : _save,
-              child: const Text('Save'),
+              child: Text(l.commonSave),
             ),
           ],
         ),
@@ -202,14 +211,14 @@ class _CheatsheetDesignerScreenState
             TextField(
               key: const Key('designer-title'),
               controller: _title,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: InputDecoration(labelText: l.cheatsheetTitleLabel),
               onChanged: _editor.setTitle,
             ),
             const SizedBox(height: 12),
             TextField(
               key: const Key('designer-wallet-group'),
               controller: _walletGroup,
-              decoration: const InputDecoration(labelText: 'Wallet group'),
+              decoration: InputDecoration(labelText: l.cheatsheetWalletGroupLabel),
               onChanged: _editor.setWalletGroup,
             ),
             const SizedBox(height: 24),
@@ -221,13 +230,13 @@ class _CheatsheetDesignerScreenState
                   child: TextField(
                     key: const Key('designer-new-row'),
                     controller: _newRowLabel,
-                    decoration: const InputDecoration(labelText: 'New row'),
+                    decoration: InputDecoration(labelText: l.cheatsheetNewRow),
                   ),
                 ),
                 IconButton(
                   key: const Key('designer-add-row'),
                   icon: const Icon(Icons.add),
-                  tooltip: 'Add row',
+                  tooltip: l.cheatsheetAddRow,
                   onPressed: () {
                     final label = _newRowLabel.text.trim();
                     if (label.isEmpty) return;
@@ -240,8 +249,10 @@ class _CheatsheetDesignerScreenState
           ],
         ),
       );
+  }
 
   Widget _rowTile(CheatsheetCard card, int i) {
+    final l = AppLocalizations.of(context);
     final row = card.rows[i];
     final source = row.source;
     return Card(
@@ -257,7 +268,7 @@ class _CheatsheetDesignerScreenState
                 IconButton(
                   key: Key('row-$i-remove'),
                   icon: const Icon(Icons.close),
-                  tooltip: 'Remove this row',
+                  tooltip: l.cheatsheetRemoveRow,
                   onPressed: () => _editor.removeRow(i),
                 ),
               ],
@@ -285,7 +296,7 @@ class _CheatsheetDesignerScreenState
                   ),
                 FilterChip(
                   key: Key('row-$i-open-source'),
-                  label: const Text('Open source'),
+                  label: Text(l.cheatsheetOpenSource),
                   selected: row.openSource,
                   onSelected: (v) => _editor.setOpenSource(i, v),
                 ),

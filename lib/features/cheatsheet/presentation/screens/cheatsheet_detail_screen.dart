@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -74,6 +76,7 @@ class CheatsheetDetailScreen extends ConsumerWidget {
   /// first — and says plainly that the referenced notes survive, since a card
   /// is a view onto them, not a container for them.
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     // Captured before the await: `ref.read` throws once this widget is
     // unmounted, and the dialog is an await gap during which that can happen.
     final cheatsheets = ref.read(cheatsheetsStateProvider.notifier);
@@ -81,7 +84,7 @@ class CheatsheetDetailScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete this cheatsheet?'),
+        title: Text(l.cheatsheetDeleteTitle),
         content: const Text(
           'The notes it references are not deleted — only this card.',
         ),
@@ -89,12 +92,12 @@ class CheatsheetDetailScreen extends ConsumerWidget {
           TextButton(
             key: const Key('delete-cancel'),
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l.commonCancel),
           ),
           TextButton(
             key: const Key('delete-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            child: Text(l.commonDelete),
           ),
         ],
       ),
@@ -110,7 +113,7 @@ class CheatsheetDetailScreen extends ConsumerWidget {
           'the card is still stored.');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not delete this cheatsheet: $e')),
+        SnackBar(content: Text(l.cheatsheetDeleteFailed('$e'))),
       );
       return;
     }
@@ -121,6 +124,7 @@ class CheatsheetDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final cards = ref.watch(cheatsheetsStateProvider);
     final card = _findCard(cards.value ?? const [], cardId);
 
@@ -128,10 +132,10 @@ class CheatsheetDetailScreen extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (card == null) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          key: Key('detail-not-found'),
-          child: Text('That cheatsheet no longer exists.'),
+          key: const Key('detail-not-found'),
+          child: Text(l.cheatsheetGone),
         ),
       );
     }
@@ -145,14 +149,14 @@ class CheatsheetDetailScreen extends ConsumerWidget {
           IconButton(
             key: const Key('detail-edit'),
             icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edit cheatsheet',
+            tooltip: l.cheatsheetEditTooltip,
             onPressed: () =>
                 ref.read(cheatsheetEditCardProvider)(context, cardId),
           ),
           IconButton(
             key: const Key('detail-delete'),
             icon: const Icon(Icons.delete_outline),
-            tooltip: 'Delete cheatsheet',
+            tooltip: l.cheatsheetDeleteTooltip,
             onPressed: () => _confirmDelete(context, ref),
           ),
         ],
@@ -187,6 +191,7 @@ class _RowTile extends ConsumerWidget {
   final ResolvedValue value;
 
   Future<void> _launch(BuildContext context, WidgetRef ref, String text) async {
+    final l = AppLocalizations.of(context);
     try {
       await ref.read(launchActionProvider)(row.valueAction, text);
     } on Exception catch (e) {
@@ -197,13 +202,14 @@ class _RowTile extends ConsumerWidget {
           '($e); showed the user a message.');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open that.')),
+        SnackBar(content: Text(l.cheatsheetOpenFailed)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final CheatsheetSource? source = row.source;
     final muted = Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: Theme.of(context).disabledColor,
@@ -243,7 +249,7 @@ class _RowTile extends ConsumerWidget {
           ? IconButton(
               key: Key('row-$index-open-source'),
               icon: const Icon(Icons.open_in_new),
-              tooltip: 'Open the source note',
+              tooltip: l.cheatsheetOpenSourceTooltip,
               onPressed: () => ref.read(cheatsheetOpenSourceProvider)(
                 context,
                 source.noteUuid,

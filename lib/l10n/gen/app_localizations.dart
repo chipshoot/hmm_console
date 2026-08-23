@@ -1016,6 +1016,300 @@ abstract class AppLocalizations {
   /// **'Set up Secure Vault in Settings to view this image.'**
   String get notesVaultSetUpPrompt;
 
+  /// No description provided for @cheatsheetWalletTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheatsheets'**
+  String get cheatsheetWalletTitle;
+
+  /// No description provided for @cheatsheetNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New cheatsheet'**
+  String get cheatsheetNew;
+
+  /// No description provided for @cheatsheetLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load your cheatsheets.\n{error}'**
+  String cheatsheetLoadFailed(String error);
+
+  /// No description provided for @cheatsheetEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No cheatsheets yet. Tap + to make one.'**
+  String get cheatsheetEmpty;
+
+  /// No description provided for @cheatsheetSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search cheatsheets'**
+  String get cheatsheetSearchHint;
+
+  /// No description provided for @cheatsheetNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing matches that search.'**
+  String get cheatsheetNoMatches;
+
+  /// No description provided for @cheatsheetGone.
+  ///
+  /// In en, this message translates to:
+  /// **'That cheatsheet no longer exists.'**
+  String get cheatsheetGone;
+
+  /// No description provided for @cheatsheetSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save this cheatsheet: {error}'**
+  String cheatsheetSaveFailed(String error);
+
+  /// No description provided for @cheatsheetDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete this cheatsheet: {error}'**
+  String cheatsheetDeleteFailed(String error);
+
+  /// No description provided for @cheatsheetDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this cheatsheet?'**
+  String get cheatsheetDeleteTitle;
+
+  /// No description provided for @cheatsheetEditTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit cheatsheet'**
+  String get cheatsheetEditTooltip;
+
+  /// No description provided for @cheatsheetDeleteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete cheatsheet'**
+  String get cheatsheetDeleteTooltip;
+
+  /// No description provided for @cheatsheetOpenSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source'**
+  String get cheatsheetOpenSource;
+
+  /// No description provided for @cheatsheetOpenSourceTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the source note'**
+  String get cheatsheetOpenSourceTooltip;
+
+  /// No description provided for @cheatsheetOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open that.'**
+  String get cheatsheetOpenFailed;
+
+  /// No description provided for @cheatsheetTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get cheatsheetTitleLabel;
+
+  /// No description provided for @cheatsheetWalletGroupLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet group'**
+  String get cheatsheetWalletGroupLabel;
+
+  /// No description provided for @cheatsheetNewRow.
+  ///
+  /// In en, this message translates to:
+  /// **'New row'**
+  String get cheatsheetNewRow;
+
+  /// No description provided for @cheatsheetAddRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Add row'**
+  String get cheatsheetAddRow;
+
+  /// No description provided for @cheatsheetRemoveRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this row'**
+  String get cheatsheetRemoveRow;
+
+  /// No description provided for @cheatsheetSourceLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load notes: {error}'**
+  String cheatsheetSourceLoadFailed(String error);
+
+  /// No description provided for @cheatsheetSourceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes to reference yet.'**
+  String get cheatsheetSourceEmpty;
+
+  /// No description provided for @cheatsheetSourceNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes match that search.'**
+  String get cheatsheetSourceNoMatches;
+
+  /// No description provided for @cheatsheetSourceBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the note list'**
+  String get cheatsheetSourceBack;
+
+  /// No description provided for @cheatsheetWholeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The whole note'**
+  String get cheatsheetWholeNote;
+
+  /// No description provided for @cheatsheetSourceSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes'**
+  String get cheatsheetSourceSearchHint;
+
+  /// No description provided for @cheatsheetSourceOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other notes'**
+  String get cheatsheetSourceOther;
+
+  /// Heading over the notes ranked first for a vehicle-domain card. SourceDomain carries an id, not this copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle'**
+  String get cheatsheetSourceDomainVehicle;
+
+  /// No description provided for @cheatsheetGroupVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle'**
+  String get cheatsheetGroupVehicle;
+
+  /// No description provided for @cheatsheetGroupHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Health'**
+  String get cheatsheetGroupHealth;
+
+  /// No description provided for @cheatsheetGroupReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference'**
+  String get cheatsheetGroupReference;
+
+  /// No description provided for @cheatsheetGroupUngrouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungrouped'**
+  String get cheatsheetGroupUngrouped;
+
+  /// No description provided for @cheatsheetTemplateAccidentClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Accident Claim'**
+  String get cheatsheetTemplateAccidentClaim;
+
+  /// No description provided for @cheatsheetTemplateHealthInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Info'**
+  String get cheatsheetTemplateHealthInfo;
+
+  /// No description provided for @cheatsheetTemplateDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get cheatsheetTemplateDocument;
+
+  /// No description provided for @cheatsheetTemplateBlank.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank'**
+  String get cheatsheetTemplateBlank;
+
+  /// No description provided for @cheatsheetRowPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate'**
+  String get cheatsheetRowPlate;
+
+  /// No description provided for @cheatsheetRowVin.
+  ///
+  /// In en, this message translates to:
+  /// **'VIN'**
+  String get cheatsheetRowVin;
+
+  /// No description provided for @cheatsheetRowInsurer.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurer'**
+  String get cheatsheetRowInsurer;
+
+  /// No description provided for @cheatsheetRowPolicyNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Policy #'**
+  String get cheatsheetRowPolicyNumber;
+
+  /// No description provided for @cheatsheetRowDriver.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver'**
+  String get cheatsheetRowDriver;
+
+  /// No description provided for @cheatsheetRowPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get cheatsheetRowPhone;
+
+  /// No description provided for @cheatsheetRowAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get cheatsheetRowAddress;
+
+  /// No description provided for @cheatsheetRowPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Person'**
+  String get cheatsheetRowPerson;
+
+  /// No description provided for @cheatsheetRowFamilyDoctor.
+  ///
+  /// In en, this message translates to:
+  /// **'Family doctor'**
+  String get cheatsheetRowFamilyDoctor;
+
+  /// No description provided for @cheatsheetRowDoctorPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Doctor phone'**
+  String get cheatsheetRowDoctorPhone;
+
+  /// No description provided for @cheatsheetRowPharmacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Pharmacy'**
+  String get cheatsheetRowPharmacy;
+
+  /// No description provided for @cheatsheetRowPharmacyPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Pharmacy phone'**
+  String get cheatsheetRowPharmacyPhone;
+
+  /// No description provided for @cheatsheetRowSection1.
+  ///
+  /// In en, this message translates to:
+  /// **'Section 1'**
+  String get cheatsheetRowSection1;
+
   /// No description provided for @commonRetry.
   ///
   /// In en, this message translates to:

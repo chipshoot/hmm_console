@@ -552,6 +552,161 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesVaultSetUpPrompt => '请先在设置中启用安全保险库才能查看这张图片。';
 
   @override
+  String get cheatsheetWalletTitle => '速查卡';
+
+  @override
+  String get cheatsheetNew => '新建速查卡';
+
+  @override
+  String cheatsheetLoadFailed(String error) {
+    return '无法加载速查卡。\n$error';
+  }
+
+  @override
+  String get cheatsheetEmpty => '暂无速查卡。点击 + 新建一张。';
+
+  @override
+  String get cheatsheetSearchHint => '搜索速查卡';
+
+  @override
+  String get cheatsheetNoMatches => '没有匹配的结果。';
+
+  @override
+  String get cheatsheetGone => '这张速查卡已不存在。';
+
+  @override
+  String cheatsheetSaveFailed(String error) {
+    return '无法保存这张速查卡：$error';
+  }
+
+  @override
+  String cheatsheetDeleteFailed(String error) {
+    return '无法删除这张速查卡：$error';
+  }
+
+  @override
+  String get cheatsheetDeleteTitle => '删除这张速查卡？';
+
+  @override
+  String get cheatsheetEditTooltip => '编辑速查卡';
+
+  @override
+  String get cheatsheetDeleteTooltip => '删除速查卡';
+
+  @override
+  String get cheatsheetOpenSource => '打开来源';
+
+  @override
+  String get cheatsheetOpenSourceTooltip => '打开来源笔记';
+
+  @override
+  String get cheatsheetOpenFailed => '无法打开。';
+
+  @override
+  String get cheatsheetTitleLabel => '标题';
+
+  @override
+  String get cheatsheetWalletGroupLabel => '分组';
+
+  @override
+  String get cheatsheetNewRow => '新增行';
+
+  @override
+  String get cheatsheetAddRow => '添加行';
+
+  @override
+  String get cheatsheetRemoveRow => '删除这一行';
+
+  @override
+  String cheatsheetSourceLoadFailed(String error) {
+    return '无法加载笔记：$error';
+  }
+
+  @override
+  String get cheatsheetSourceEmpty => '还没有可引用的笔记。';
+
+  @override
+  String get cheatsheetSourceNoMatches => '没有匹配的笔记。';
+
+  @override
+  String get cheatsheetSourceBack => '返回笔记列表';
+
+  @override
+  String get cheatsheetWholeNote => '整条笔记';
+
+  @override
+  String get cheatsheetSourceSearchHint => '搜索笔记';
+
+  @override
+  String get cheatsheetSourceOther => '其他笔记';
+
+  @override
+  String get cheatsheetSourceDomainVehicle => '车辆';
+
+  @override
+  String get cheatsheetGroupVehicle => '车辆';
+
+  @override
+  String get cheatsheetGroupHealth => '健康';
+
+  @override
+  String get cheatsheetGroupReference => '参考';
+
+  @override
+  String get cheatsheetGroupUngrouped => '未分组';
+
+  @override
+  String get cheatsheetTemplateAccidentClaim => '事故理赔';
+
+  @override
+  String get cheatsheetTemplateHealthInfo => '健康信息';
+
+  @override
+  String get cheatsheetTemplateDocument => '文档';
+
+  @override
+  String get cheatsheetTemplateBlank => '空白';
+
+  @override
+  String get cheatsheetRowPlate => '车牌号';
+
+  @override
+  String get cheatsheetRowVin => '车架号';
+
+  @override
+  String get cheatsheetRowInsurer => '保险公司';
+
+  @override
+  String get cheatsheetRowPolicyNumber => '保单号';
+
+  @override
+  String get cheatsheetRowDriver => '驾驶人';
+
+  @override
+  String get cheatsheetRowPhone => '电话';
+
+  @override
+  String get cheatsheetRowAddress => '地址';
+
+  @override
+  String get cheatsheetRowPerson => '本人';
+
+  @override
+  String get cheatsheetRowFamilyDoctor => '家庭医生';
+
+  @override
+  String get cheatsheetRowDoctorPhone => '医生电话';
+
+  @override
+  String get cheatsheetRowPharmacy => '药房';
+
+  @override
+  String get cheatsheetRowPharmacyPhone => '药房电话';
+
+  @override
+  String get cheatsheetRowSection1 => '第 1 节';
+
+  @override
   String get commonRetry => '重试';
 
   @override

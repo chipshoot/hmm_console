@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_wallet_screen.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
@@ -51,7 +52,10 @@ void main() {
           cheatsheetCreateCardProvider
               .overrideWithValue((_) => opened.add('#create')),
         ],
-        child: const MaterialApp(home: CheatsheetWalletScreen()),
+        child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: CheatsheetWalletScreen()),
       ),
     );
     await tester.pumpAndSettle();

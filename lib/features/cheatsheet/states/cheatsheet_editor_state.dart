@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/gen/app_localizations.dart';
+
 import '../../../core/util/uuid.dart';
 import '../data/cheatsheet_templates.dart';
 import '../domain/entities/cheatsheet_card.dart';
@@ -38,10 +40,15 @@ class CheatsheetEditor extends Notifier<CheatsheetCard> {
   CheatsheetCard build() => _blank;
 
   /// Begin a new card. The id is minted here, once.
-  void startFromTemplate(String templateId) {
-    final template = CheatsheetTemplates.all.firstWhere(
+  ///
+  /// [l] is passed in rather than resolved from a context: this is a Notifier
+  /// with no element tree, and the template's row labels are localized because
+  /// they seed the card's editable content (see `cheatsheet_templates.dart`).
+  void startFromTemplate(String templateId, AppLocalizations l) {
+    final templates = CheatsheetTemplates.all(l);
+    final template = templates.firstWhere(
       (t) => t.id == templateId,
-      orElse: () => CheatsheetTemplates.all.firstWhere((t) => t.id == 'blank'),
+      orElse: () => templates.firstWhere((t) => t.id == 'blank'),
     );
     state = CheatsheetTemplates.instantiate(
       template,

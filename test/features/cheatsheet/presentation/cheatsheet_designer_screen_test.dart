@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
@@ -67,7 +68,10 @@ void main() {
             },
           ),
         ],
-        child: MaterialApp(home: CheatsheetDesignerScreen(cardId: cardId)),
+        child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: CheatsheetDesignerScreen(cardId: cardId)),
       ),
     );
     await tester.pumpAndSettle();
@@ -227,14 +231,20 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: const MaterialApp(home: SizedBox.shrink()),
+            child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: SizedBox.shrink()),
           ),
         );
         await tester.pumpAndSettle();
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: const MaterialApp(home: CheatsheetDesignerScreen()),
+            child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: CheatsheetDesignerScreen()),
           ),
         );
         await tester.pumpAndSettle();

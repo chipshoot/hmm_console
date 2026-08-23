@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
@@ -129,6 +130,9 @@ void main() {
           noteCatalogRepositoryProvider.overrideWithValue(_FakeCatalogs()),
         ],
         child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
           home: Scaffold(
             body: SourcePicker(
               templateId: templateId,

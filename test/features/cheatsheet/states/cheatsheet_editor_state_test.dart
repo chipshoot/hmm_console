@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
@@ -25,6 +27,12 @@ const _source = CheatsheetSource(
 );
 
 void main() {
+  late AppLocalizations en;
+
+  setUp(() async {
+    en = await AppLocalizations.delegate.load(const Locale('en'));
+  });
+
   ProviderContainer containerWith({String Function()? idGen}) {
     final c = ProviderContainer(
       overrides: [
@@ -46,7 +54,7 @@ void main() {
       final container = containerWith();
       final editor = editorOf(container);
 
-      editor.startFromTemplate('accidentClaim');
+      editor.startFromTemplate('accidentClaim', en);
       final card = container.read(cheatsheetEditorProvider);
 
       expect(card.id, isNotEmpty);
@@ -59,8 +67,8 @@ void main() {
     test('two new cards get distinct ids from the real generator', () {
       final a = containerWith();
       final b = containerWith();
-      editorOf(a).startFromTemplate('blank');
-      editorOf(b).startFromTemplate('blank');
+      editorOf(a).startFromTemplate('blank', en);
+      editorOf(b).startFromTemplate('blank', en);
 
       expect(
         a.read(cheatsheetEditorProvider).id,
@@ -70,7 +78,7 @@ void main() {
 
     test('the id generator is injectable', () {
       final container = containerWith(idGen: () => 'fixed');
-      editorOf(container).startFromTemplate('blank');
+      editorOf(container).startFromTemplate('blank', en);
 
       expect(container.read(cheatsheetEditorProvider).id, 'fixed');
     });
@@ -80,7 +88,7 @@ void main() {
     test('bindRow binds only the targeted row', () {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
-      editor.startFromTemplate('accidentClaim');
+      editor.startFromTemplate('accidentClaim', en);
 
       editor.bindRow(0, _source);
       final card = container.read(cheatsheetEditorProvider);
@@ -92,7 +100,7 @@ void main() {
     test('unbindRow clears a binding', () {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
-      editor.startFromTemplate('accidentClaim');
+      editor.startFromTemplate('accidentClaim', en);
       editor.bindRow(0, _source);
 
       editor.unbindRow(0);
@@ -103,7 +111,7 @@ void main() {
     test('add and remove rows', () {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
-      editor.startFromTemplate('blank');
+      editor.startFromTemplate('blank', en);
 
       editor.addRow('Plate');
       editor.addRow('VIN');
@@ -118,7 +126,7 @@ void main() {
     test('value actions are set explicitly, never inferred', () {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
-      editor.startFromTemplate('accidentClaim');
+      editor.startFromTemplate('accidentClaim', en);
 
       expect(container.read(cheatsheetEditorProvider).rows[0].valueAction,
           ValueAction.none);
@@ -131,7 +139,7 @@ void main() {
     test('setOpenSource toggles the affordance', () {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
-      editor.startFromTemplate('accidentClaim');
+      editor.startFromTemplate('accidentClaim', en);
 
       editor.setOpenSource(0, false);
       expect(
@@ -141,7 +149,7 @@ void main() {
     test('out-of-range row indexes are ignored, not thrown', () {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
-      editor.startFromTemplate('blank');
+      editor.startFromTemplate('blank', en);
 
       expect(() => editor.bindRow(3, _source), returnsNormally);
       expect(() => editor.removeRow(3), returnsNormally);
@@ -153,7 +161,7 @@ void main() {
     test('title, wallet group and tags are settable', () {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
-      editor.startFromTemplate('blank');
+      editor.startFromTemplate('blank', en);
 
       editor.setTitle('My Card');
       editor.setWalletGroup('Vehicle');
@@ -202,7 +210,7 @@ void main() {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
 
-      editor.startFromTemplate('accidentClaim');
+      editor.startFromTemplate('accidentClaim', en);
       editor.bindRow(0, _source);
       await editor.commit();
 

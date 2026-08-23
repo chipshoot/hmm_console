@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/gen/app_localizations.dart';
+
 import '../../../../core/data/repository_providers.dart';
 import '../../../notes/data/models/hmm_note.dart';
 import '../../domain/entities/cheatsheet_source.dart';
@@ -93,6 +95,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final notes = ref.watch(cheatsheetSourceNotesProvider(widget.templateId));
     return SafeArea(
       child: notes.when(
@@ -102,7 +105,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
         ),
         error: (e, _) => Padding(
           padding: const EdgeInsets.all(24),
-          child: Text('Could not load notes: $e'),
+          child: Text(l.cheatsheetSourceLoadFailed('$e')),
         ),
         data: (scoped) => _note == null
             ? _noteStep(scoped)
@@ -112,6 +115,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
   }
 
   Widget _noteStep(ScopedSourceNotes scoped) {
+    final l = AppLocalizations.of(context);
     final q = _query.trim().toLowerCase();
     List<HmmNote> matching(List<HmmNote> notes) => q.isEmpty
         ? notes
@@ -125,11 +129,11 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
     // built lazily — a vault of a few thousand notes should not cost a few
     // thousand widgets to show ten.
     final rows = <Object>[
-      if (domain != null && preferred.isNotEmpty) _domainHeading(domain.id),
+      if (domain != null && preferred.isNotEmpty) _domainHeading(domain.id, l),
       ...preferred,
       // The second header only earns its place when there is something above
       // it; with no domain matches the list reads better as one plain list.
-      if (preferred.isNotEmpty && other.isNotEmpty) 'Other notes',
+      if (preferred.isNotEmpty && other.isNotEmpty) l.cheatsheetSourceOther,
       ...other,
     ];
 
@@ -142,24 +146,24 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
           padding: const EdgeInsets.all(12),
           child: TextField(
             key: const Key('source-picker-search'),
-            decoration: const InputDecoration(
-              hintText: 'Search notes',
+            decoration: InputDecoration(
+              hintText: l.cheatsheetSourceSearchHint,
               prefixIcon: Icon(Icons.search),
             ),
             onChanged: (v) => setState(() => _query = v),
           ),
         ),
         if (nothingAtAll)
-          const Padding(
-            key: Key('source-picker-empty'),
+          Padding(
+            key: const Key('source-picker-empty'),
             padding: EdgeInsets.all(24),
-            child: Text('No notes to reference yet.'),
+            child: Text(l.cheatsheetSourceEmpty),
           )
         else if (rows.isEmpty)
-          const Padding(
-            key: Key('source-picker-no-matches'),
+          Padding(
+            key: const Key('source-picker-no-matches'),
             padding: EdgeInsets.all(24),
-            child: Text('No notes match that search.'),
+            child: Text(l.cheatsheetSourceNoMatches),
           )
         else
           Flexible(
@@ -184,6 +188,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
   }
 
   Widget _granularityStep(BuildContext context, HmmNote n) {
+    final l = AppLocalizations.of(context);
     final fields = NotePieceExtractor.fieldPaths(n.content);
     final headings =
         NotePieceExtractor.sectionHeadings(n.description ?? n.content);
@@ -195,7 +200,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
           leading: IconButton(
             key: const Key('source-picker-back'),
             icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back to the note list',
+            tooltip: l.cheatsheetSourceBack,
             onPressed: () => setState(() => _note = null),
           ),
           title: Text(n.subject),
@@ -222,7 +227,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
               const _SectionLabel('Whole note'),
               ListTile(
                 key: const Key('granularity-whole'),
-                title: const Text('The whole note'),
+                title: Text(l.cheatsheetWholeNote),
                 onTap: () => _select(SourceGranularity.whole, null),
               ),
             ],
@@ -243,8 +248,8 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
 /// Still English, like the other 19 strings in this feature — the cheatsheet
 /// screens predate any `AppLocalizations` use. When they are localized this is
 /// the single place the picker's domain headings need to change.
-String _domainHeading(SourceDomainId id) => switch (id) {
-      SourceDomainId.vehicle => 'Vehicle',
+String _domainHeading(SourceDomainId id, AppLocalizations l) => switch (id) {
+      SourceDomainId.vehicle => l.cheatsheetSourceDomainVehicle,
     };
 
 class _SectionLabel extends StatelessWidget {
