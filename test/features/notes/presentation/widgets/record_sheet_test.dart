@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/picker/file_byte_source.dart';
 import 'package:hmm_console/core/data/attachments/recorder/audio_recorder.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/record_sheet.dart';
@@ -29,6 +30,9 @@ Widget _harness(_FakeRecorder rec, void Function(PickedFileBytes?) onResult) {
   return ProviderScope(
     overrides: [audioRecorderProvider.overrideWithValue(rec)],
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: Consumer(builder: (context, ref, _) {
           return ElevatedButton(

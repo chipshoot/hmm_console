@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_markdown_body.dart';
@@ -24,6 +25,9 @@ final Uint8List _png = Uint8List.fromList(<int>[
 void main() {
   testWidgets('renders a real inline image via the resolver', (tester) async {
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: NoteMarkdownBody(
           data: '![x](hmm-attachment://attachments/note-1/a.png)',
@@ -39,6 +43,9 @@ void main() {
   testWidgets('renders a pending inline image from the staged bytes map',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: NoteMarkdownBody(
           data: '![x](hmm-attachment://pending/u1)',
@@ -53,6 +60,9 @@ void main() {
   testWidgets('renders plain markdown text with no inline image',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(body: NoteMarkdownBody(data: 'hello **world**')),
     ));
     await tester.pump();

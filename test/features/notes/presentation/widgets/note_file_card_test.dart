@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_file_card.dart';
 
 void main() {
   testWidgets('shows filename + size, fires onOpen and onRemove', (t) async {
     var opened = false, removed = false;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: NoteFileCard(
           name: 'report.pdf',
@@ -25,6 +29,9 @@ void main() {
 
   testWidgets('read-only hides the remove button', (t) async {
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: NoteFileCard(name: 'a.pdf', byteSize: 10, readOnly: true),
       ),

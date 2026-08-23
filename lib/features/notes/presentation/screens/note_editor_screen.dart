@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -153,11 +155,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   /// Persists the note (create or update) and returns its id.
   Future<int?> _save() async {
+    final l = AppLocalizations.of(context);
     final subject = _subjectCtrl.text.trim();
     if (subject.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Subject is required')));
+      ).showSnackBar(SnackBar(content: Text(l.notesSubjectRequired)));
       return null;
     }
     // Save-time-lock guard (Task B5, binding constraint): a sensitive pick
@@ -287,6 +290,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// VaultKeyService.unlock's `StateError('vault not configured')` instead
   /// of routing to the "Set up Secure Vault in Settings" message below.
   Future<bool> _ensureVaultUnlocked() async {
+    final l = AppLocalizations.of(context);
     await ref.read(vaultSessionProvider.notifier).refresh();
     final status = ref.read(vaultSessionProvider);
     if (status == VaultStatus.unlocked) return true;
@@ -313,7 +317,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final ok = await ctrl.unlockWithPassphrase(passphrase);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Incorrect passphrase.')),
+        SnackBar(content: Text(l.vaultIncorrectPassphrase)),
       );
     }
     return ok;
@@ -381,10 +385,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// Returns true = delete them, false = keep them attached (default on
   /// dismiss). A stored image is never dropped without this confirmation.
   Future<bool> _confirmRemoveImages(int count) async {
+    final l = AppLocalizations.of(context);
     final res = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove stored images?'),
+        title: Text(l.notesRemoveStoredImagesTitle),
         content: Text(
           'You removed $count image${count == 1 ? '' : 's'} from this note. '
           'Delete the stored image${count == 1 ? '' : 's'}, or keep '
@@ -393,11 +398,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Keep attached'),
+            child: Text(l.notesKeepAttached),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(l.commonDelete),
           ),
         ],
       ),
@@ -435,6 +440,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// OneNote-style: tap the date line to edit the note date (date + time).
   /// Cupertino modal on Apple; Material date-then-time on Android.
   Future<void> _pickNoteDate() async {
+    final l = AppLocalizations.of(context);
     final platform = Theme.of(context).platform;
     final isApple =
         platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
@@ -453,7 +459,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     CupertinoButton(
-                      child: const Text('Done'),
+                      child: Text(l.notesDone),
                       onPressed: () {
                         setState(() => _noteDate = temp);
                         Navigator.of(ctx).pop();
@@ -501,6 +507,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   /// Compact nav bar (no large title — the subject *is* the page title).
   PreferredSizeWidget _buildNav(BuildContext context, AppColors c) {
+    final l = AppLocalizations.of(context);
     final platform = Theme.of(context).platform;
     final isApple =
         platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
@@ -532,13 +539,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     return AppBar(
       backgroundColor: c.groupedBackground,
       actions: [
-        TextButton(onPressed: _busy ? null : onSave, child: const Text('Save')),
+        TextButton(onPressed: _busy ? null : onSave, child: Text(l.commonSave)),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     _loadExisting();
     final c = context.appColors;
     // The keyboard's bottom inset lifts the in-body MediaToolbar above it;
@@ -595,8 +603,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           color: c.label,
                           fontSize: 26,
                         ),
-                        decoration: const InputDecoration(
-                          hintText: 'Title',
+                        decoration: InputDecoration(
+                          hintText: l.notesTitleHint,
                           border: InputBorder.none,
                           isCollapsed: true,
                         ),
@@ -670,8 +678,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           color: c.label,
                           height: 1.4,
                         ),
-                        decoration: const InputDecoration(
-                          hintText: 'Start writing…',
+                        decoration: InputDecoration(
+                          hintText: l.notesBodyHint,
                           border: InputBorder.none,
                           isCollapsed: true,
                         ),
@@ -733,6 +741,7 @@ class _SubsystemStrip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final c = context.appColors;
     final anchorsAsync = ref.watch(subsystemAnchorsProvider);
     return Container(
@@ -777,9 +786,9 @@ class _SubsystemStrip extends ConsumerWidget {
                     fontSize: 15,
                   ),
                   items: [
-                    const DropdownMenuItem<int?>(
+                    DropdownMenuItem<int?>(
                       value: null,
-                      child: Text('None'),
+                      child: Text(l.notesNone),
                     ),
                     for (final a in anchors)
                       DropdownMenuItem<int?>(
@@ -822,26 +831,27 @@ class _EditorVaultUnlockDialogState extends State<_EditorVaultUnlockDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Unlock Secure Vault'),
+      title: Text(l.vaultUnlockDialogTitle),
       content: TextField(
         controller: _passCtrl,
         obscureText: true,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Passphrase'),
+        decoration: InputDecoration(labelText: l.vaultPassphrase),
         onChanged: (_) => setState(() {}),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: _passCtrl.text.isEmpty
               ? null
               : () => Navigator.of(context).pop(_passCtrl.text),
-          child: const Text('Unlock'),
+          child: Text(l.vaultUnlock),
         ),
       ],
     );

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_audio_card.dart';
 
 void main() {
   testWidgets('renders name + a play button and a remove button', (t) async {
     var removed = false;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: NoteAudioCard(
           name: 'recording-1.m4a',
@@ -22,6 +26,9 @@ void main() {
 
   testWidgets('read-only hides the remove button', (t) async {
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: NoteAudioCard(
             name: 'a.m4a', resolvePath: () async => '/tmp/x.m4a', readOnly: true),

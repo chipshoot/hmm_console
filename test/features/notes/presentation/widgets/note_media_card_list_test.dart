@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_media_card_list.dart';
 
@@ -19,6 +20,9 @@ void main() {
     var removed = -1;
     await t.pumpWidget(ProviderScope(
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         home: Scaffold(
           body: NoteMediaCardList(
             saved: const [],
@@ -37,6 +41,9 @@ void main() {
   testWidgets('readonly (no pending) shows no remove buttons', (t) async {
     await t.pumpWidget(ProviderScope(
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         home: Scaffold(
           body: NoteMediaCardList(
               saved: const [], pending: [_pick()], readOnly: true),

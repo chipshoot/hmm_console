@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../catalog_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,7 +16,6 @@ import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
 import '../widgets/note_list_tile.dart';
 import '../widgets/sort_sheet.dart';
-import '../../../../core/notes/catalog_palette.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -24,12 +27,13 @@ class NotesListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final async = ref.watch(notesListStateProvider);
     final notifier = ref.read(notesListStateProvider.notifier);
     final usage = ref.watch(filterUsageProvider).value ?? const {};
 
     return AppScaffold(
-      title: 'Notes',
+      title: l.notesTitle,
       drawer: async.maybeWhen(
         data: (data) => _FilterDrawer(data: data),
         orElse: () => null,
@@ -87,7 +91,7 @@ class NotesListScreen extends ConsumerWidget {
         ],
         error: (e, _) => [
           SliverFillRemaining(
-            child: Center(child: Text('Failed to load notes: $e')),
+            child: Center(child: Text(l.notesLoadFailed('$e'))),
           ),
         ],
         data: (data) {
@@ -105,7 +109,7 @@ class NotesListScreen extends ConsumerWidget {
               }
             }
           }
-          final mainLabel = activeDomain?.style.displayName ??
+          final mainLabel = (activeDomain == null ? null : domainLabel(activeDomain.key, l)) ??
               ((f == null || f.isEmpty) ? 'All' : 'Filtered');
           final subDomain =
               (activeDomain != null && activeDomain.catalogs.length > 1)
@@ -123,9 +127,9 @@ class NotesListScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.all(8),
               child: TextField(
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   prefixIcon: Icon(Icons.search),
-                  hintText: 'Search subjects',
+                  hintText: l.notesSearchHint,
                   isDense: true,
                   border: OutlineInputBorder(),
                 ),
@@ -247,13 +251,14 @@ class _SubFilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final c = context.appColors;
-    final allLabel = 'All ${domain.style.displayName}';
+    final allLabel = l.notesAllInDomain(domainLabel(domain.key, l));
     String label = allLabel;
     if (selectedCatalogId != null) {
       for (final cat in domain.catalogs) {
         if (cat.id == selectedCatalogId) {
-          label = CatalogPalette.styleFor(cat.name).displayName;
+          label = catalogLabel(cat.name, l);
           break;
         }
       }
@@ -266,7 +271,7 @@ class _SubFilterButton extends StatelessWidget {
         for (final cat in domain.catalogs)
           PopupMenuItem<int>(
             value: cat.id,
-            child: Text(CatalogPalette.styleFor(cat.name).displayName),
+            child: Text(catalogLabel(cat.name, l)),
           ),
       ],
       child: Container(
@@ -300,6 +305,7 @@ class _FilterDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final c = context.appColors;
     final notifier = ref.read(notesListStateProvider.notifier);
     final usage = ref.watch(filterUsageProvider).value ?? const {};
@@ -331,13 +337,13 @@ class _FilterDrawer extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 8),
-              child: Text('FILTER',
+              child: Text(l.notesFilter,
                   style: DesignTokens.caption
                       .copyWith(color: c.secondaryLabel, letterSpacing: 0.5)),
             ),
             tile(
               leading: dot(c.tertiaryLabel),
-              title: 'All',
+              title: l.notesAll,
               selected: f == null || f.isEmpty,
               onTap: () {
                 notifier.setFilter(null);
@@ -347,7 +353,7 @@ class _FilterDrawer extends ConsumerWidget {
             for (final g in groups)
               tile(
                 leading: dot(g.style.color),
-                title: g.style.displayName,
+                title: domainLabel(g.key, l),
                 selected: f != null && setEquals(f, g.catalogIds),
                 onTap: () {
                   ref.read(filterUsageProvider.notifier).record(g.key);

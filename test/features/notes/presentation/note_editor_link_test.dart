@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker.dart';
@@ -110,6 +111,8 @@ Future<void> _pump(WidgetTester tester, MutateNote mutate) async {
         notesListStateProvider.overrideWith(_StubListState.new),
       ],
       child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: _router(),
         theme: ThemeData(extensions: const [AppColors.light]),
       ),

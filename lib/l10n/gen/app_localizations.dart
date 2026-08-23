@@ -758,6 +758,264 @@ abstract class AppLocalizations {
   /// **'Sync anyway'**
   String get syncAnyway;
 
+  /// No description provided for @catalogGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get catalogGeneral;
+
+  /// No description provided for @catalogGasLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas Log'**
+  String get catalogGasLog;
+
+  /// No description provided for @catalogAutomobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Automobile'**
+  String get catalogAutomobile;
+
+  /// No description provided for @catalogInsurance.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance'**
+  String get catalogInsurance;
+
+  /// No description provided for @catalogScheduledService.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled Service'**
+  String get catalogScheduledService;
+
+  /// No description provided for @catalogServiceRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Service Record'**
+  String get catalogServiceRecord;
+
+  /// No description provided for @catalogNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get catalogNote;
+
+  /// No description provided for @domainAutomobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Automobile'**
+  String get domainAutomobile;
+
+  /// No description provided for @domainGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get domainGeneral;
+
+  /// No description provided for @domainOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get domainOther;
+
+  /// No description provided for @notesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notesTitle;
+
+  /// No description provided for @notesSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search subjects'**
+  String get notesSearchHint;
+
+  /// No description provided for @notesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load notes: {error}'**
+  String notesLoadFailed(String error);
+
+  /// No description provided for @notesFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'FILTER'**
+  String get notesFilter;
+
+  /// No description provided for @notesAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get notesAll;
+
+  /// No description provided for @notesAllNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'All notes'**
+  String get notesAllNotes;
+
+  /// No description provided for @notesAllInDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'All {domain}'**
+  String notesAllInDomain(String domain);
+
+  /// No description provided for @notesNoteCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note} other{{count} notes}}'**
+  String notesNoteCount(int count);
+
+  /// No description provided for @notesSelectNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a note'**
+  String get notesSelectNote;
+
+  /// No description provided for @notesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get notesNone;
+
+  /// No description provided for @notesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet'**
+  String get notesEmpty;
+
+  /// No description provided for @notesNoUnattached.
+  ///
+  /// In en, this message translates to:
+  /// **'No unattached notes'**
+  String get notesNoUnattached;
+
+  /// No description provided for @notesNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes'**
+  String get notesNoMatches;
+
+  /// No description provided for @notesSearchNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes'**
+  String get notesSearchNotes;
+
+  /// No description provided for @notesLinkedUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked note unavailable'**
+  String get notesLinkedUnavailable;
+
+  /// No description provided for @notesGenericFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {error}'**
+  String notesGenericFailure(String error);
+
+  /// No description provided for @notesSubjectRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject is required'**
+  String get notesSubjectRequired;
+
+  /// No description provided for @notesTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get notesTitleHint;
+
+  /// No description provided for @notesBodyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Start writing…'**
+  String get notesBodyHint;
+
+  /// No description provided for @notesDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get notesDone;
+
+  /// No description provided for @notesRemoveStoredImagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove stored images?'**
+  String get notesRemoveStoredImagesTitle;
+
+  /// No description provided for @notesKeepAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep attached'**
+  String get notesKeepAttached;
+
+  /// No description provided for @notesEditAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get notesEditAction;
+
+  /// No description provided for @notesViewRaw.
+  ///
+  /// In en, this message translates to:
+  /// **'View raw content'**
+  String get notesViewRaw;
+
+  /// No description provided for @notesRawContentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw content'**
+  String get notesRawContentTitle;
+
+  /// No description provided for @notesSubsystemsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subsystems'**
+  String get notesSubsystemsTitle;
+
+  /// Display label for the Automobile subsystem anchor. The anchor note's stored SUBJECT stays the English literal 'Automobile' (see features/notes/data/subsystem_anchor.dart) — only this label is translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Automobile'**
+  String get notesSubsystemAutomobile;
+
+  /// No description provided for @notesRecordMicPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission needed to record'**
+  String get notesRecordMicPermission;
+
+  /// No description provided for @notesRecordStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start recording'**
+  String get notesRecordStartFailed;
+
+  /// No description provided for @notesRecordTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording is too long; please record a shorter one'**
+  String get notesRecordTooLong;
+
+  /// No description provided for @notesRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording…  {time}'**
+  String notesRecording(String time);
+
+  /// No description provided for @notesRecordStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get notesRecordStop;
+
+  /// No description provided for @notesVaultSetUpPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up Secure Vault in Settings to view this image.'**
+  String get notesVaultSetUpPrompt;
+
   /// No description provided for @commonRetry.
   ///
   /// In en, this message translates to:

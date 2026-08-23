@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
@@ -37,6 +38,9 @@ void main() {
         attachmentResolverProvider.overrideWith((ref) async => _FakeResolver()),
       ],
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         theme: ThemeData(extensions: const [AppColors.light]),
         home: const NoteDetailScreen(noteId: 1),
       ),
@@ -73,6 +77,9 @@ void main() {
         attachmentResolverProvider.overrideWith((ref) async => _FakeResolver()),
       ],
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         theme: ThemeData(extensions: const [AppColors.light]),
         home: const NoteDetailScreen(noteId: 1),
       ),

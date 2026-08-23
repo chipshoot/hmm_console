@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,10 +23,11 @@ class RawContentScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final async = ref.watch(noteDetailProvider(noteId));
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Raw content'),
+        title: Text(l.notesRawContentTitle),
         actions: [
           async.maybeWhen(
             data: (d) => IconButton(

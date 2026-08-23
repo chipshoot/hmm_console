@@ -11,6 +11,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
@@ -92,6 +93,9 @@ Widget _harness({
           .overrideWith(() => _FakeVaultSessionController(status)),
     ],
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: SizedBox(
           width: 100,
@@ -170,6 +174,9 @@ void main() {
             .overrideWith(() => _FakeVaultSessionController(VaultStatus.locked)),
       ],
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         home: Scaffold(
           body: SizedBox(
             width: 100,

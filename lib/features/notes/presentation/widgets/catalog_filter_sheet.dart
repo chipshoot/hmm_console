@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 
+import '../catalog_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
+
 import '../../../../core/notes/catalog_palette.dart';
 import 'domain_groups.dart';
 
@@ -34,12 +38,13 @@ class CatalogFilterSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return SafeArea(
       child: ListView(
         shrinkWrap: true,
         children: [
           ListTile(
-            title: const Text('All notes'),
+            title: Text(l.notesAllNotes),
             trailing: selected == null ? const Icon(Icons.check) : null,
             onTap: () {
               onApply(null);
@@ -50,13 +55,13 @@ class CatalogFilterSheet extends StatelessWidget {
           for (final g in groups)
             ExpansionTile(
               leading: CircleAvatar(radius: 6, backgroundColor: g.style.color),
-              title: Text(g.style.displayName),
+              title: Text(domainLabel(g.key, l)),
               subtitle:
-                  Text('${g.noteCount} note${g.noteCount == 1 ? '' : 's'}'),
+                  Text(l.notesNoteCount(g.noteCount)),
               childrenPadding: const EdgeInsets.only(left: 16),
               children: [
                 ListTile(
-                  title: Text('All ${g.style.displayName}'),
+                  title: Text(l.notesAllInDomain(domainLabel(g.key, l))),
                   trailing: setEquals(selected, g.catalogIds)
                       ? const Icon(Icons.check)
                       : null,
@@ -67,7 +72,7 @@ class CatalogFilterSheet extends StatelessWidget {
                     leading: CircleAvatar(
                         radius: 5,
                         backgroundColor: CatalogPalette.styleFor(c.name).color),
-                    title: Text(CatalogPalette.styleFor(c.name).displayName),
+                    title: Text(catalogLabel(c.name, l)),
                     trailing: Text('${counts[c.id] ?? 0}'),
                     selected: selected != null &&
                         selected!.length == 1 &&

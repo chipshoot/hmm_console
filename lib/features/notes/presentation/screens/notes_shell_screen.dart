@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../states/note_selection.dart';
@@ -10,6 +12,7 @@ class NotesShellScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= kNotesWideBreakpoint;
@@ -23,7 +26,7 @@ class NotesShellScreen extends ConsumerWidget {
               const VerticalDivider(width: 1),
               Expanded(
                 child: selectedId == null
-                    ? const Center(child: Text('Select a note'))
+                    ? Center(child: Text(l.notesSelectNote))
                     : NoteDetailScreen(noteId: selectedId),
               ),
             ],

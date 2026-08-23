@@ -15,6 +15,8 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/attachments/attachment_ref.dart';
@@ -62,13 +64,14 @@ class SensitiveAttachmentImage extends ConsumerWidget {
   }
 
   Future<void> _unlock(BuildContext context, WidgetRef wref) async {
+    final l = AppLocalizations.of(context);
     final status = wref.read(vaultSessionProvider);
     if (status == VaultStatus.absent || status == VaultStatus.corrupt) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content:
-                Text('Set up Secure Vault in Settings to view this image.'),
+                Text(l.notesVaultSetUpPrompt),
           ),
         );
       }
@@ -85,7 +88,7 @@ class SensitiveAttachmentImage extends ConsumerWidget {
     final ok = await ctrl.unlockWithPassphrase(passphrase);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Incorrect passphrase.')),
+        SnackBar(content: Text(l.vaultIncorrectPassphrase)),
       );
     }
   }
@@ -238,26 +241,27 @@ class _SensitiveUnlockDialogState extends State<_SensitiveUnlockDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Unlock Secure Vault'),
+      title: Text(l.vaultUnlockDialogTitle),
       content: TextField(
         controller: _passCtrl,
         obscureText: true,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Passphrase'),
+        decoration: InputDecoration(labelText: l.vaultPassphrase),
         onChanged: (_) => setState(() {}),
         onSubmitted: (v) => Navigator.of(context).pop(v),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l.commonCancel),
         ),
         FilledButton(
           onPressed: _passCtrl.text.isEmpty
               ? null
               : () => Navigator.of(context).pop(_passCtrl.text),
-          child: const Text('Unlock'),
+          child: Text(l.vaultUnlock),
         ),
       ],
     );

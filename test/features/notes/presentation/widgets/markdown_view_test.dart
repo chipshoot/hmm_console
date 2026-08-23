@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/markdown_view.dart';
 
 void main() {
@@ -10,6 +11,9 @@ void main() {
     // so it needs a ProviderScope ancestor.
     await tester.pumpWidget(const ProviderScope(
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         home: Scaffold(body: MarkdownView('# Title\n\nBody text')),
       ),
     ));

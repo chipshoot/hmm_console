@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
@@ -15,8 +17,9 @@ Future<PickedFileBytes?> showRecordSheet(
   final recorder = ref.read(audioRecorderProvider);
   if (!await recorder.hasPermission()) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Microphone permission needed to record')));
+      final l = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l.notesRecordMicPermission)));
     }
     return null;
   }
@@ -25,8 +28,9 @@ Future<PickedFileBytes?> showRecordSheet(
   } catch (_) {
     await recorder.cancel();
     if (context.mounted) {
+      final l = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not start recording')));
+          SnackBar(content: Text(l.notesRecordStartFailed)));
     }
     return null;
   }
@@ -78,6 +82,7 @@ class _RecordSheetBodyState extends State<_RecordSheetBody> {
   }
 
   Future<void> _stop() async {
+    final l = AppLocalizations.of(context);
     if (_busy) return;
     setState(() => _busy = true);
     _ticker?.cancel();
@@ -89,8 +94,8 @@ class _RecordSheetBodyState extends State<_RecordSheetBody> {
     }
     if (rec.bytes.lengthInBytes > kMaxAttachmentBytes) {
       // Discard rather than fail at save time (recording lives only in memory).
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Recording is too long; please record a shorter one')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l.notesRecordTooLong)));
       Navigator.of(context).pop(null);
       return;
     }
@@ -111,6 +116,7 @@ class _RecordSheetBodyState extends State<_RecordSheetBody> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -122,7 +128,7 @@ class _RecordSheetBodyState extends State<_RecordSheetBody> {
               children: [
                 const Icon(Icons.fiber_manual_record, color: Colors.red),
                 const SizedBox(width: 8),
-                Text('Recording…  $_time',
+                Text(l.notesRecording(_time),
                     style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
@@ -132,10 +138,10 @@ class _RecordSheetBodyState extends State<_RecordSheetBody> {
               children: [
                 TextButton(
                     onPressed: _busy ? null : _cancel,
-                    child: const Text('Cancel')),
+                    child: Text(l.commonCancel)),
                 FilledButton(
                     onPressed: _busy ? null : _stop,
-                    child: const Text('Stop')),
+                    child: Text(l.notesRecordStop)),
               ],
             ),
           ],

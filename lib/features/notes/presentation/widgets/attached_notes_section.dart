@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,6 +25,7 @@ class AttachedNotesSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final async = ref.watch(attachedNotesProvider(parentId));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,10 +59,10 @@ class AttachedNotesSection extends ConsumerWidget {
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator())),
           error: (e, _) => Padding(
-              padding: const EdgeInsets.all(16), child: Text('Failed: $e')),
+              padding: const EdgeInsets.all(16), child: Text(l.notesGenericFailure('$e'))),
           data: (notes) => notes.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(16), child: Text('No notes yet'))
+              ? Padding(
+                  padding: EdgeInsets.all(16), child: Text(l.notesEmpty))
               : Column(
                   children: [
                     for (final n in notes)
@@ -86,6 +89,7 @@ class AttachedNotesSection extends ConsumerWidget {
   }
 
   Future<void> _attachExisting(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     final general = await ref.read(generalCatalogProvider.future);
     final candidates = await ref
         .read(hmmNoteRepositoryProvider)
@@ -95,9 +99,9 @@ class AttachedNotesSection extends ConsumerWidget {
       context: context,
       builder: (_) => SafeArea(
         child: candidates.isEmpty
-            ? const Padding(
+            ? Padding(
                 padding: EdgeInsets.all(24),
-                child: Text('No unattached notes'))
+                child: Text(l.notesNoUnattached))
             : ListView(
                 shrinkWrap: true,
                 children: [

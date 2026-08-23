@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -187,7 +189,8 @@ class MarkdownView extends ConsumerWidget {
       // through to the same non-crashing "unavailable" affordance.
     }
     if (!context.mounted) return;
+    final l = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Linked note unavailable')));
+        SnackBar(content: Text(l.notesLinkedUnavailable)));
   }
 }

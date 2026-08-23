@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../catalog_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
+
 import '../../../../core/data/local/database.dart';
 import '../../../../core/notes/catalog_palette.dart';
 import '../../../../core/widgets/app_list_row.dart';
@@ -17,6 +21,7 @@ class NoteListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final style = CatalogPalette.styleFor(catalog?.name);
     final preview = notePreview(note.content);
     final date = note.effectiveNoteDate.toLocal().toString().split(' ').first;
@@ -31,7 +36,7 @@ class NoteListTile extends StatelessWidget {
       ),
       title: Text(note.subject),
       primary: preview.isEmpty ? null : Text(preview),
-      secondary: Text('${style.displayName} · $date'),
+      secondary: Text('${catalogLabel(catalog?.name, l)} · $date'),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/note_location.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_location_card.dart';
 
@@ -7,6 +8,9 @@ void main() {
   testWidgets('shows label and a remove button when not read-only', (t) async {
     var removed = false;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: NoteLocationCard(
           location: const NoteLocation(
@@ -24,6 +28,9 @@ void main() {
   testWidgets('falls back to coordinates and hides remove when read-only',
       (t) async {
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       home: Scaffold(
         body: NoteLocationCard(
           location: const NoteLocation(latitude: 47.6, longitude: -122.3),

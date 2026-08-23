@@ -408,6 +408,150 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncAnyway => '仍要同步';
 
   @override
+  String get catalogGeneral => '常规';
+
+  @override
+  String get catalogGasLog => '加油记录';
+
+  @override
+  String get catalogAutomobile => '车辆';
+
+  @override
+  String get catalogInsurance => '保险';
+
+  @override
+  String get catalogScheduledService => '保养计划';
+
+  @override
+  String get catalogServiceRecord => '维修保养记录';
+
+  @override
+  String get catalogNote => '笔记';
+
+  @override
+  String get domainAutomobile => '车辆';
+
+  @override
+  String get domainGeneral => '常规';
+
+  @override
+  String get domainOther => '其他';
+
+  @override
+  String get notesTitle => '笔记';
+
+  @override
+  String get notesSearchHint => '搜索标题';
+
+  @override
+  String notesLoadFailed(String error) {
+    return '无法加载笔记：$error';
+  }
+
+  @override
+  String get notesFilter => '筛选';
+
+  @override
+  String get notesAll => '全部';
+
+  @override
+  String get notesAllNotes => '所有笔记';
+
+  @override
+  String notesAllInDomain(String domain) {
+    return '全部$domain';
+  }
+
+  @override
+  String notesNoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条笔记',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesSelectNote => '请选择一条笔记';
+
+  @override
+  String get notesNone => '无';
+
+  @override
+  String get notesEmpty => '暂无笔记';
+
+  @override
+  String get notesNoUnattached => '没有未关联的笔记';
+
+  @override
+  String get notesNoMatches => '没有笔记';
+
+  @override
+  String get notesSearchNotes => '搜索笔记';
+
+  @override
+  String get notesLinkedUnavailable => '关联的笔记不可用';
+
+  @override
+  String notesGenericFailure(String error) {
+    return '失败：$error';
+  }
+
+  @override
+  String get notesSubjectRequired => '请输入标题';
+
+  @override
+  String get notesTitleHint => '标题';
+
+  @override
+  String get notesBodyHint => '开始输入…';
+
+  @override
+  String get notesDone => '完成';
+
+  @override
+  String get notesRemoveStoredImagesTitle => '删除已保存的图片？';
+
+  @override
+  String get notesKeepAttached => '保留附件';
+
+  @override
+  String get notesEditAction => '编辑';
+
+  @override
+  String get notesViewRaw => '查看原始内容';
+
+  @override
+  String get notesRawContentTitle => '原始内容';
+
+  @override
+  String get notesSubsystemsTitle => '子系统';
+
+  @override
+  String get notesSubsystemAutomobile => '车辆';
+
+  @override
+  String get notesRecordMicPermission => '录音需要麦克风权限';
+
+  @override
+  String get notesRecordStartFailed => '无法开始录音';
+
+  @override
+  String get notesRecordTooLong => '录音过长，请录制短一些的内容';
+
+  @override
+  String notesRecording(String time) {
+    return '正在录音…  $time';
+  }
+
+  @override
+  String get notesRecordStop => '停止';
+
+  @override
+  String get notesVaultSetUpPrompt => '请先在设置中启用安全保险库才能查看这张图片。';
+
+  @override
   String get commonRetry => '重试';
 
   @override

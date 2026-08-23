@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_link_picker.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
@@ -83,6 +84,9 @@ Future<void> _pump(
     ProviderScope(
       overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         home: _Harness(
           onResult: onResult ?? (_) {},
           excludeNoteId: excludeNoteId,
@@ -139,7 +143,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [notesListStateProvider.overrideWith(_LoadingListState.new)],
-        child: const MaterialApp(home: _Harness(onResult: _noop)),
+        child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: _Harness(onResult: _noop)),
       ),
     );
     await tester.pumpAndSettle();
@@ -158,7 +165,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [notesListStateProvider.overrideWith(_ErrorListState.new)],
-        child: const MaterialApp(home: _Harness(onResult: _noop)),
+        child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: _Harness(onResult: _noop)),
       ),
     );
     await tester.pumpAndSettle();

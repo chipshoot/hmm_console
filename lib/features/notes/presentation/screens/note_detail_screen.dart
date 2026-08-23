@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../catalog_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,7 +12,6 @@ import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/inline_ref_uri.dart';
 import '../../../../core/data/local/database.dart';
 import '../../../../core/data/repository_providers.dart';
-import '../../../../core/notes/catalog_palette.dart';
 import '../../../../core/notes/editing/edit_dispatch.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../data/models/hmm_note.dart';
@@ -45,13 +48,14 @@ class NoteDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final async = ref.watch(noteDetailProvider(noteId));
     final registry = ref.watch(noteRenderRegistryProvider);
     final dispatch = ref.watch(editDispatchProvider);
 
     return AppScaffold(
       title: async.maybeWhen(
-        data: (d) => CatalogPalette.styleFor(d.catalog?.name).displayName,
+        data: (d) => catalogLabel(d.catalog?.name, l),
         orElse: () => 'Note',
       ),
       actions: [
@@ -79,13 +83,13 @@ class NoteDetailScreen extends ConsumerWidget {
               },
               itemBuilder: (context) => [
                 if (dispatch.canEdit(catalogName))
-                  const PopupMenuItem(
-                      value: _MenuAction.edit, child: Text('Edit')),
-                const PopupMenuItem(
+                  PopupMenuItem(
+                      value: _MenuAction.edit, child: Text(l.notesEditAction)),
+                PopupMenuItem(
                     value: _MenuAction.raw,
-                    child: Text('View raw content')),
-                const PopupMenuItem(
-                    value: _MenuAction.delete, child: Text('Delete')),
+                    child: Text(l.notesViewRaw)),
+                PopupMenuItem(
+                    value: _MenuAction.delete, child: Text(l.commonDelete)),
               ],
             );
           },

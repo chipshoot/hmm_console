@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/core/data/note_location.dart';
@@ -25,6 +26,9 @@ void main() {
   testWidgets('Save with empty subject shows validation error', (tester) async {
     await tester.pumpWidget(ProviderScope(
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         theme: ThemeData(extensions: const [AppColors.light]),
         home: const NoteEditorScreen(),
       ),
@@ -54,6 +58,8 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [mutateNoteProvider.overrideWithValue(fake)],
       child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: router,
         theme: ThemeData(extensions: const [AppColors.light]),
       ),

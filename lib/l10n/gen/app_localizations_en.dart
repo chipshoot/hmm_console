@@ -428,6 +428,154 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncAnyway => 'Sync anyway';
 
   @override
+  String get catalogGeneral => 'General';
+
+  @override
+  String get catalogGasLog => 'Gas Log';
+
+  @override
+  String get catalogAutomobile => 'Automobile';
+
+  @override
+  String get catalogInsurance => 'Insurance';
+
+  @override
+  String get catalogScheduledService => 'Scheduled Service';
+
+  @override
+  String get catalogServiceRecord => 'Service Record';
+
+  @override
+  String get catalogNote => 'Note';
+
+  @override
+  String get domainAutomobile => 'Automobile';
+
+  @override
+  String get domainGeneral => 'General';
+
+  @override
+  String get domainOther => 'Other';
+
+  @override
+  String get notesTitle => 'Notes';
+
+  @override
+  String get notesSearchHint => 'Search subjects';
+
+  @override
+  String notesLoadFailed(String error) {
+    return 'Failed to load notes: $error';
+  }
+
+  @override
+  String get notesFilter => 'FILTER';
+
+  @override
+  String get notesAll => 'All';
+
+  @override
+  String get notesAllNotes => 'All notes';
+
+  @override
+  String notesAllInDomain(String domain) {
+    return 'All $domain';
+  }
+
+  @override
+  String notesNoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes',
+      one: '1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesSelectNote => 'Select a note';
+
+  @override
+  String get notesNone => 'None';
+
+  @override
+  String get notesEmpty => 'No notes yet';
+
+  @override
+  String get notesNoUnattached => 'No unattached notes';
+
+  @override
+  String get notesNoMatches => 'No notes';
+
+  @override
+  String get notesSearchNotes => 'Search notes';
+
+  @override
+  String get notesLinkedUnavailable => 'Linked note unavailable';
+
+  @override
+  String notesGenericFailure(String error) {
+    return 'Failed: $error';
+  }
+
+  @override
+  String get notesSubjectRequired => 'Subject is required';
+
+  @override
+  String get notesTitleHint => 'Title';
+
+  @override
+  String get notesBodyHint => 'Start writing…';
+
+  @override
+  String get notesDone => 'Done';
+
+  @override
+  String get notesRemoveStoredImagesTitle => 'Remove stored images?';
+
+  @override
+  String get notesKeepAttached => 'Keep attached';
+
+  @override
+  String get notesEditAction => 'Edit';
+
+  @override
+  String get notesViewRaw => 'View raw content';
+
+  @override
+  String get notesRawContentTitle => 'Raw content';
+
+  @override
+  String get notesSubsystemsTitle => 'Subsystems';
+
+  @override
+  String get notesSubsystemAutomobile => 'Automobile';
+
+  @override
+  String get notesRecordMicPermission =>
+      'Microphone permission needed to record';
+
+  @override
+  String get notesRecordStartFailed => 'Could not start recording';
+
+  @override
+  String get notesRecordTooLong =>
+      'Recording is too long; please record a shorter one';
+
+  @override
+  String notesRecording(String time) {
+    return 'Recording…  $time';
+  }
+
+  @override
+  String get notesRecordStop => 'Stop';
+
+  @override
+  String get notesVaultSetUpPrompt =>
+      'Set up Secure Vault in Settings to view this image.';
+
+  @override
   String get commonRetry => 'Retry';
 
   @override

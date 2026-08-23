@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
@@ -25,7 +26,10 @@ void main() {
         noteDetailProvider(3)
             .overrideWith((ref) async => NoteDetailData(note, catalog)),
       ],
-      child: const MaterialApp(home: RawContentScreen(noteId: 3)),
+      child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: RawContentScreen(noteId: 3)),
     ));
     await tester.pumpAndSettle();
 

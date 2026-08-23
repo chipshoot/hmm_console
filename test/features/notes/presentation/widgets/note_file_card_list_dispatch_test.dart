@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_audio_card.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_file_card.dart';
@@ -15,6 +16,9 @@ void main() {
   testWidgets('audio ref → NoteAudioCard, pdf ref → NoteFileCard', (t) async {
     await t.pumpWidget(ProviderScope(
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         home: Scaffold(
           body: NoteFileCardList(saved: const [_pdf, _audio], readOnly: true),
         ),

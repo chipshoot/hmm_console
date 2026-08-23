@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/note_location.dart';
@@ -70,6 +71,9 @@ void main() {
         subsystemAnchorsProvider.overrideWith((ref) async => [_automobileAnchor]),
       ],
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         theme: ThemeData(extensions: const [AppColors.light]),
         home: const NoteEditorScreen(noteId: 1),
       ),
@@ -105,6 +109,8 @@ void main() {
         mutateNoteProvider.overrideWithValue(fake),
       ],
       child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: router,
         theme: ThemeData(extensions: const [AppColors.light]),
       ),

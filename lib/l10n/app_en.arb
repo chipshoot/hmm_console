@@ -284,6 +284,81 @@
   "syncCellularBody": "Your network policy is set to \"WiFi only\", but you tapped Sync now. Proceeding will use cellular data.",
   "syncAnyway": "Sync anyway",
 
+
+  "@_notes": {
+    "description": "Notes feature. Vault strings (vaultUnlock, vaultPassphrase, …) are reused from the settings pass."
+  },
+  "@_catalogLabels": {
+    "description": "Display labels for note catalogs and domains. The catalog NAMES they are keyed by ('General', 'Hmm.AutomobileMan.GasLog', …) are persisted and never translated — see core/notes/catalog_palette.dart."
+  },
+  "catalogGeneral": "General",
+  "catalogGasLog": "Gas Log",
+  "catalogAutomobile": "Automobile",
+  "catalogInsurance": "Insurance",
+  "catalogScheduledService": "Scheduled Service",
+  "catalogServiceRecord": "Service Record",
+  "catalogNote": "Note",
+  "domainAutomobile": "Automobile",
+  "domainGeneral": "General",
+  "domainOther": "Other",
+
+  "notesTitle": "Notes",
+  "notesSearchHint": "Search subjects",
+  "notesLoadFailed": "Failed to load notes: {error}",
+  "@notesLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "notesFilter": "FILTER",
+  "notesAll": "All",
+  "notesAllNotes": "All notes",
+  "notesAllInDomain": "All {domain}",
+  "@notesAllInDomain": {
+    "placeholders": { "domain": { "type": "String" } }
+  },
+  "notesNoteCount": "{count, plural, =1{1 note} other{{count} notes}}",
+  "@notesNoteCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "notesSelectNote": "Select a note",
+  "notesNone": "None",
+  "notesEmpty": "No notes yet",
+  "notesNoUnattached": "No unattached notes",
+  "notesNoMatches": "No notes",
+  "notesSearchNotes": "Search notes",
+  "notesLinkedUnavailable": "Linked note unavailable",
+  "notesGenericFailure": "Failed: {error}",
+  "@notesGenericFailure": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "notesSubjectRequired": "Subject is required",
+  "notesTitleHint": "Title",
+  "notesBodyHint": "Start writing…",
+  "notesDone": "Done",
+  "notesRemoveStoredImagesTitle": "Remove stored images?",
+  "notesKeepAttached": "Keep attached",
+  "notesEditAction": "Edit",
+  "notesViewRaw": "View raw content",
+  "notesRawContentTitle": "Raw content",
+
+  "notesSubsystemsTitle": "Subsystems",
+  "notesSubsystemAutomobile": "Automobile",
+  "@notesSubsystemAutomobile": {
+    "description": "Display label for the Automobile subsystem anchor. The anchor note's stored SUBJECT stays the English literal 'Automobile' (see features/notes/data/subsystem_anchor.dart) — only this label is translated."
+  },
+
+  "notesRecordMicPermission": "Microphone permission needed to record",
+  "notesRecordStartFailed": "Could not start recording",
+  "notesRecordTooLong": "Recording is too long; please record a shorter one",
+  "notesRecording": "Recording…  {time}",
+  "@notesRecording": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "notesRecordStop": "Stop",
+
+  "notesVaultSetUpPrompt": "Set up Secure Vault in Settings to view this image."
+,
+
   "commonRetry": "Retry",
   "commonEdit": "Edit",
   "commonError": "Error: {error}",

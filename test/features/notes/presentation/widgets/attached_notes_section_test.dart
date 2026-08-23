@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/attached_notes_section.dart';
@@ -17,6 +18,9 @@ void main() {
         attachedNotesProvider(7).overrideWith((ref) async => [note]),
       ],
       child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
           home: Scaffold(body: AttachedNotesSection(parentId: 7))),
     ));
     await tester.pumpAndSettle();
@@ -33,6 +37,9 @@ void main() {
         attachedNotesProvider(7).overrideWith((ref) async => const []),
       ],
       child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
           home: Scaffold(body: AttachedNotesSection(parentId: 7))),
     ));
     await tester.pumpAndSettle();
@@ -67,7 +74,11 @@ void main() {
           return const [];
         }),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: router,
+    ),
     ));
     await tester.pumpAndSettle();
 

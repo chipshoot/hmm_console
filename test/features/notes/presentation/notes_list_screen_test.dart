@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/core/widgets/app_row_separator.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
@@ -33,6 +34,9 @@ void main() {
         notesListStateProvider.overrideWith(_StubListState.new),
       ],
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         theme: ThemeData(extensions: const [AppColors.light]),
         home: const NotesListScreen(),
       ),
@@ -52,6 +56,9 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         theme: ThemeData(extensions: const [AppColors.light]),
         home: const NotesListScreen(),
       ),

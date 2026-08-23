@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/media_toolbar.dart';
@@ -9,6 +10,9 @@ void main() {
       (t) async {
     AttachmentPickSource? picked;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       theme: ThemeData(extensions: const [AppColors.light]),
       home: Scaffold(
         bottomNavigationBar:
@@ -25,6 +29,9 @@ void main() {
   testWidgets('PDF button fires onPickFile', (t) async {
     var tapped = false;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       theme: ThemeData(extensions: const [AppColors.light]),
       home: Scaffold(
         bottomNavigationBar:
@@ -41,6 +48,9 @@ void main() {
   testWidgets('mic button fires onRecord', (t) async {
     var tapped = false;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       theme: ThemeData(extensions: const [AppColors.light]),
       home: Scaffold(
         bottomNavigationBar: MediaToolbar(
@@ -54,6 +64,9 @@ void main() {
   testWidgets('sensitive-image button is absent when onPickSensitive is null',
       (t) async {
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       theme: ThemeData(extensions: const [AppColors.light]),
       home: Scaffold(
         bottomNavigationBar:
@@ -68,6 +81,9 @@ void main() {
       (t) async {
     AttachmentPickSource? picked;
     await t.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
       theme: ThemeData(extensions: const [AppColors.light]),
       home: Scaffold(
         bottomNavigationBar: MediaToolbar(

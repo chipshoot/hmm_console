@@ -28,6 +28,12 @@ Future<int> _ensureAnchorCatalogId(Ref ref) async {
 
 /// Ensure the anchor catalog + the anchor note for [key] exist (idempotent by
 /// the deterministic uuid). Returns the anchor note.
+///
+/// [displayName] becomes the note's **persisted subject** and must stay an
+/// English literal. It is synced, and an anchor created on a Chinese device
+/// would otherwise carry a different subject from the same anchor created in
+/// English. To show a translated name, map the subject through
+/// `subsystemLabel()` in `presentation/catalog_labels.dart` at render time.
 Future<HmmNote> ensureSubsystemAnchor(
   Ref ref, {
   required String key,

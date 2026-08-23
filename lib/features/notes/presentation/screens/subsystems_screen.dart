@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../catalog_labels.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,15 +17,16 @@ class SubsystemsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final async = ref.watch(subsystemAnchorsProvider);
     return AppScaffold(
-      title: 'Subsystems',
+      title: l.notesSubsystemsTitle,
       slivers: async.when<List<Widget>>(
         loading: () => const [
           SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
         ],
         error: (e, _) => [
-          SliverFillRemaining(child: Center(child: Text('Failed: $e'))),
+          SliverFillRemaining(child: Center(child: Text(l.notesGenericFailure('$e')))),
         ],
         data: (anchors) => [
           if (anchors.isEmpty)
@@ -41,7 +46,7 @@ class SubsystemsScreen extends ConsumerWidget {
                   }
                   final a = anchors[index ~/ 2];
                   return AppListRow(
-                    title: Text(a.subject),
+                    title: Text(subsystemLabel(a.subject, l)),
                     trailing: const Icon(Icons.chevron_right, size: 18),
                     onTap: () => context.push(
                       '/notes/subsystems/${a.id}?name=${Uri.encodeComponent(a.subject)}',

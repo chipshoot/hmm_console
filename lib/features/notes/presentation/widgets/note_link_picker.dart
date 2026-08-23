@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/hmm_note.dart';
@@ -28,6 +30,7 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
   String _query = '';
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final async = ref.watch(notesListStateProvider);
     return SafeArea(
       child: Padding(
@@ -41,8 +44,8 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
               padding: const EdgeInsets.all(12),
               child: TextField(
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Search notes',
+                decoration: InputDecoration(
+                  hintText: l.notesSearchNotes,
                   prefixIcon: Icon(Icons.search),
                 ),
                 onChanged: (v) => setState(() => _query = v),
@@ -56,6 +59,7 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
   }
 
   Widget _list(AsyncValue<NotesListData> async) {
+    final l = AppLocalizations.of(context);
     // Surface loading/error instead of silently collapsing to an empty list.
     if (async.isLoading && !async.hasValue) {
       return const Padding(
@@ -75,9 +79,9 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
         .where((n) => q.isEmpty || n.subject.toLowerCase().contains(q))
         .toList();
     if (items.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.all(24),
-        child: Center(child: Text('No notes')),
+        child: Center(child: Text(l.notesNoMatches)),
       );
     }
     return ListView.builder(
