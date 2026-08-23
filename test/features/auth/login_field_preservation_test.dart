@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/core.dart';
 import 'package:hmm_console/core/exceptions/app_exceptions.dart';
 import 'package:hmm_console/features/auth/presentation/screens/login_screen.dart';
@@ -26,7 +27,10 @@ void main() {
         overrides: [
           loginStateProvider.overrideWith(() => _FailingLoginState()),
         ],
-        child: const MaterialApp(home: LoginScreen()),
+        child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: LoginScreen()),
       ),
     );
     await tester.pumpAndSettle();

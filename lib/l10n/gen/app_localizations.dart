@@ -1448,6 +1448,222 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get launcherDestSettings;
 
+  /// No description provided for @authLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get authLogin;
+
+  /// No description provided for @authSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get authSignUp;
+
+  /// No description provided for @authEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get authEmail;
+
+  /// No description provided for @authPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get authPassword;
+
+  /// No description provided for @authConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get authConfirmPassword;
+
+  /// No description provided for @authUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get authUsername;
+
+  /// No description provided for @authForgotPasswordPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password?'**
+  String get authForgotPasswordPrompt;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password'**
+  String get authForgotPassword;
+
+  /// No description provided for @authResendEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend email'**
+  String get authResendEmail;
+
+  /// No description provided for @authGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get authGoogle;
+
+  /// No description provided for @authApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple'**
+  String get authApple;
+
+  /// No description provided for @dashboardSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get dashboardSettings;
+
+  /// No description provided for @dashboardSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get dashboardSignOut;
+
+  /// No description provided for @dashboardComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'{feature} coming soon...'**
+  String dashboardComingSoon(String feature);
+
+  /// No description provided for @dashboardLooksGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Looks good'**
+  String get dashboardLooksGood;
+
+  /// No description provided for @dashboardOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get dashboardOpenSettings;
+
+  /// No description provided for @dashboardDataStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Data storage'**
+  String get dashboardDataStorage;
+
+  /// No description provided for @dashboardDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get dashboardDistance;
+
+  /// No description provided for @dashboardFuelVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel volume'**
+  String get dashboardFuelVolume;
+
+  /// No description provided for @dashboardCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get dashboardCurrency;
+
+  /// No description provided for @dashboardWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome — quick start'**
+  String get dashboardWelcome;
+
+  /// No description provided for @dashboardDefaultsBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'We picked these defaults for you. Change them in Settings if anything looks off.'**
+  String get dashboardDefaultsBlurb;
+
+  /// No description provided for @onboardingWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome'**
+  String get onboardingWelcome;
+
+  /// No description provided for @onboardingNewUser.
+  ///
+  /// In en, this message translates to:
+  /// **'New to Hmm'**
+  String get onboardingNewUser;
+
+  /// No description provided for @onboardingNewUserSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start fresh on this device. Your data stays local until you turn on cloud sync in Settings.'**
+  String get onboardingNewUserSubtitle;
+
+  /// No description provided for @onboardingMigrating.
+  ///
+  /// In en, this message translates to:
+  /// **'I already use Hmm on another device'**
+  String get onboardingMigrating;
+
+  /// No description provided for @onboardingMigratingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to OneDrive and pull your existing data + settings down to this device.'**
+  String get onboardingMigratingSubtitle;
+
+  /// No description provided for @onboardingContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get onboardingContinue;
+
+  /// No description provided for @onboardingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get onboardingSkip;
+
+  /// No description provided for @receiptCloudAiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Cloud AI for receipts?'**
+  String get receiptCloudAiTitle;
+
+  /// No description provided for @receiptCloudAiBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your receipt photo or PDF will be uploaded to the Hmm server, which uses AI to read it and fill in the fields. On-device extraction keeps everything on your phone but can\'t read PDFs and won\'t itemize as accurately.'**
+  String get receiptCloudAiBody;
+
+  /// No description provided for @receiptEnableCloudAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Cloud AI'**
+  String get receiptEnableCloudAi;
+
+  /// No description provided for @receiptOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device (private)'**
+  String get receiptOnDevice;
+
+  /// No description provided for @receiptCloudAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud AI (more accurate)'**
+  String get receiptCloudAi;
+
+  /// No description provided for @receiptOnDeviceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads photos on your phone. Nothing is uploaded. Can\'t read PDFs.'**
+  String get receiptOnDeviceSubtitle;
+
+  /// No description provided for @receiptCloudAiSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploads the receipt for AI extraction. Reads PDFs and itemizes.'**
+  String get receiptCloudAiSubtitle;
+
   /// No description provided for @commonRetry.
   ///
   /// In en, this message translates to:

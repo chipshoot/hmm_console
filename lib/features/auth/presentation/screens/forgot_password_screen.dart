@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/core.dart';
 
 class ForgotPasswordScreen extends StatelessWidget {
@@ -6,8 +8,9 @@ class ForgotPasswordScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return CommonScreenScaffold(
-      title: 'Forgot Password',
+      title: l.authForgotPassword,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(

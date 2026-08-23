@@ -778,6 +778,117 @@ class AppLocalizationsZh extends AppLocalizations {
   String get launcherDestSettings => '设置';
 
   @override
+  String get authLogin => '登录';
+
+  @override
+  String get authSignUp => '注册';
+
+  @override
+  String get authEmail => '邮箱';
+
+  @override
+  String get authPassword => '密码';
+
+  @override
+  String get authConfirmPassword => '确认密码';
+
+  @override
+  String get authUsername => '用户名';
+
+  @override
+  String get authForgotPasswordPrompt => '忘记密码？';
+
+  @override
+  String get authForgotPassword => '找回密码';
+
+  @override
+  String get authResendEmail => '重新发送邮件';
+
+  @override
+  String get authGoogle => 'Google';
+
+  @override
+  String get authApple => 'Apple';
+
+  @override
+  String get dashboardSettings => '设置';
+
+  @override
+  String get dashboardSignOut => '退出登录';
+
+  @override
+  String dashboardComingSoon(String feature) {
+    return '$feature即将推出…';
+  }
+
+  @override
+  String get dashboardLooksGood => '就这样';
+
+  @override
+  String get dashboardOpenSettings => '打开设置';
+
+  @override
+  String get dashboardDataStorage => '数据存储';
+
+  @override
+  String get dashboardDistance => '距离';
+
+  @override
+  String get dashboardFuelVolume => '燃油量';
+
+  @override
+  String get dashboardCurrency => '货币';
+
+  @override
+  String get dashboardWelcome => '欢迎 — 快速开始';
+
+  @override
+  String get dashboardDefaultsBlurb => '我们为你选好了这些默认设置。如果有不合适的，可以在设置中修改。';
+
+  @override
+  String get onboardingWelcome => '欢迎';
+
+  @override
+  String get onboardingNewUser => '第一次使用 Hmm';
+
+  @override
+  String get onboardingNewUserSubtitle => '在这台设备上从零开始。在你于设置中开启云同步之前，数据只保存在本机。';
+
+  @override
+  String get onboardingMigrating => '我已在其他设备上使用 Hmm';
+
+  @override
+  String get onboardingMigratingSubtitle => '登录 OneDrive，把已有的数据和设置同步到这台设备。';
+
+  @override
+  String get onboardingContinue => '继续';
+
+  @override
+  String get onboardingSkip => '暂时跳过';
+
+  @override
+  String get receiptCloudAiTitle => '使用云端 AI 识别收据？';
+
+  @override
+  String get receiptCloudAiBody =>
+      '你的收据照片或 PDF 会上传到 Hmm 服务器，由 AI 读取并自动填写字段。本机识别不会离开手机，但无法读取 PDF，明细拆分也不够准确。';
+
+  @override
+  String get receiptEnableCloudAi => '启用云端 AI';
+
+  @override
+  String get receiptOnDevice => '本机识别（私密）';
+
+  @override
+  String get receiptCloudAi => '云端 AI（更准确）';
+
+  @override
+  String get receiptOnDeviceSubtitle => '在手机上识别照片，不会上传任何内容。无法读取 PDF。';
+
+  @override
+  String get receiptCloudAiSubtitle => '上传收据交由 AI 识别。可读取 PDF，并拆分明细。';
+
+  @override
   String get commonRetry => '重试';
 
   @override

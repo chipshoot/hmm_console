@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/core.dart';
 import 'package:hmm_console/features/auth/domain/logics/email_pass_validator.dart';
 
@@ -28,6 +30,7 @@ class UserPassForm extends StatelessWidget with EmailPassValidator {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       // AutofillGroup tells iOS / Android to treat the email + password
@@ -43,7 +46,7 @@ class UserPassForm extends StatelessWidget with EmailPassValidator {
               child: AppTextFormField(
                 fieldController: userNameController,
                 fieldValidator: validateEmail,
-                label: 'Email',
+                label: l.authEmail,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [
@@ -61,7 +64,7 @@ class UserPassForm extends StatelessWidget with EmailPassValidator {
                 fieldController: passwordController,
                 fieldValidator: validatePassword,
                 obscureText: true,
-                label: 'Password',
+                label: l.authPassword,
                 textInputAction: TextInputAction.done,
                 autofillHints: const [AutofillHints.password],
               ),

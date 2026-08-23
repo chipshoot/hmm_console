@@ -36,7 +36,7 @@ class DefaultsIntroCard extends ConsumerWidget {
                 Icon(Icons.celebration_outlined, color: cs.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Welcome — quick start',
+                  l.dashboardWelcome,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -45,19 +45,16 @@ class DefaultsIntroCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'We picked these defaults for you. Change them in Settings '
-              'if anything looks off.',
+              l.dashboardDefaultsBlurb,
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
-            // The row labels here are still English, like the rest of the
-            // dashboard; only the *values* are localized, because they come
-            // from enums the settings screen already translates. Localizing
-            // this feature is separate follow-up work.
-            _row('Data storage', mode.displayName(l)),
-            _row('Distance', gas.distanceUnit.displayName(l)),
-            _row('Fuel volume', gas.fuelUnit.displayName(l)),
-            _row('Currency', gas.currency.displayName(l)),
+            // Values come from the settings enums (already localized via
+            // enum_labels.dart); the row labels are this feature's own copy.
+            _row(l.dashboardDataStorage, mode.displayName(l)),
+            _row(l.dashboardDistance, gas.distanceUnit.displayName(l)),
+            _row(l.dashboardFuelVolume, gas.fuelUnit.displayName(l)),
+            _row(l.dashboardCurrency, gas.currency.displayName(l)),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -65,7 +62,7 @@ class DefaultsIntroCard extends ConsumerWidget {
                 TextButton(
                   onPressed: () =>
                       ref.read(introCardSeenProvider.notifier).markSeen(),
-                  child: const Text('Looks good'),
+                  child: Text(l.dashboardLooksGood),
                 ),
                 const SizedBox(width: 8),
                 FilledButton.tonalIcon(
@@ -74,7 +71,7 @@ class DefaultsIntroCard extends ConsumerWidget {
                     context.push('/settings');
                   },
                   icon: const Icon(Icons.settings_outlined, size: 18),
-                  label: const Text('Open settings'),
+                  label: Text(l.dashboardOpenSettings),
                 ),
               ],
             ),

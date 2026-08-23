@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/core.dart';
 import 'package:hmm_console/core/exceptions/app_exceptions.dart';
@@ -33,6 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final loginState = ref.watch(loginStateProvider);
     final messenger = ScaffoldMessenger.of(context);
     ref.listen(loginStateProvider, (prev, next) {
@@ -51,7 +54,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         SnackBarAction? action;
         if (isInvalidCredentials) {
           action = SnackBarAction(
-            label: 'Sign Up',
+            label: l.authSignUp,
             onPressed: () {
               messenger.hideCurrentSnackBar();
               AppRouter.go(context, RouterNames.register);
@@ -59,7 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
         } else if (isEmailNotConfirmed && _lastEmail.isNotEmpty) {
           action = SnackBarAction(
-            label: 'Resend email',
+            label: l.authResendEmail,
             onPressed: () async {
               messenger.hideCurrentSnackBar();
               await ref
@@ -96,7 +99,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     });
     return CommonScreenScaffold(
-      title: 'Login',
+      title: l.authLogin,
       child: loginState.isLoading
           ? const Center(child: CircularProgressIndicator.adaptive())
           : Column(
@@ -125,19 +128,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: () {
                         AppRouter.go(context, RouterNames.register);
                       },
-                      child: const Text('Sign Up'),
+                      child: Text(l.authSignUp),
                     ),
                   ],
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    const Text('Forgot your password?'),
+                    Text(l.authForgotPasswordPrompt),
                     TextButton(
                       onPressed: () {
                         AppRouter.go(context, RouterNames.forgotPassword);
                       },
-                      child: const Text('Forgot Password'),
+                      child: Text(l.authForgotPassword),
                     ),
                   ],
                 ),

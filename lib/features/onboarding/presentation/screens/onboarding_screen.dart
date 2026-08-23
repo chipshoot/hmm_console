@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -39,10 +41,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Welcome')),
+      appBar: AppBar(title: Text(l.onboardingWelcome)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -73,19 +76,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   setState(() => _choice = v);
                 },
                 child: Column(
-                  children: const [
+                  children: [
                     _ChoiceTile(
                       value: _Choice.newUser,
-                      title: 'New to Hmm',
-                      subtitle: 'Start fresh on this device. Your data stays '
-                          'local until you turn on cloud sync in Settings.',
+                      title: l.onboardingNewUser,
+                      subtitle: l.onboardingNewUserSubtitle,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     _ChoiceTile(
                       value: _Choice.migrating,
-                      title: 'I already use Hmm on another device',
-                      subtitle: "Sign in to OneDrive and pull your existing "
-                          "data + settings down to this device.",
+                      title: l.onboardingMigrating,
+                      subtitle: l.onboardingMigratingSubtitle,
                     ),
                   ],
                 ),
@@ -115,7 +116,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Continue'),
+                    : Text(l.onboardingContinue),
               ),
               if (_errorMessage != null) ...[
                 const SizedBox(height: 8),
@@ -125,7 +126,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 // sync from Settings whenever.
                 TextButton(
                   onPressed: _busy ? null : _skipAndFinish,
-                  child: const Text('Skip for now'),
+                  child: Text(l.onboardingSkip),
                 ),
               ],
             ],
@@ -218,7 +219,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 class _ChoiceTile extends StatelessWidget {
-  const _ChoiceTile({
+  _ChoiceTile({
     required this.value,
     required this.title,
     required this.subtitle,

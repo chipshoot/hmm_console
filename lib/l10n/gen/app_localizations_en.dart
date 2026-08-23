@@ -803,6 +803,122 @@ class AppLocalizationsEn extends AppLocalizations {
   String get launcherDestSettings => 'Settings';
 
   @override
+  String get authLogin => 'Login';
+
+  @override
+  String get authSignUp => 'Sign Up';
+
+  @override
+  String get authEmail => 'Email';
+
+  @override
+  String get authPassword => 'Password';
+
+  @override
+  String get authConfirmPassword => 'Confirm Password';
+
+  @override
+  String get authUsername => 'Username';
+
+  @override
+  String get authForgotPasswordPrompt => 'Forgot your password?';
+
+  @override
+  String get authForgotPassword => 'Forgot Password';
+
+  @override
+  String get authResendEmail => 'Resend email';
+
+  @override
+  String get authGoogle => 'Google';
+
+  @override
+  String get authApple => 'Apple';
+
+  @override
+  String get dashboardSettings => 'Settings';
+
+  @override
+  String get dashboardSignOut => 'Sign out';
+
+  @override
+  String dashboardComingSoon(String feature) {
+    return '$feature coming soon...';
+  }
+
+  @override
+  String get dashboardLooksGood => 'Looks good';
+
+  @override
+  String get dashboardOpenSettings => 'Open settings';
+
+  @override
+  String get dashboardDataStorage => 'Data storage';
+
+  @override
+  String get dashboardDistance => 'Distance';
+
+  @override
+  String get dashboardFuelVolume => 'Fuel volume';
+
+  @override
+  String get dashboardCurrency => 'Currency';
+
+  @override
+  String get dashboardWelcome => 'Welcome — quick start';
+
+  @override
+  String get dashboardDefaultsBlurb =>
+      'We picked these defaults for you. Change them in Settings if anything looks off.';
+
+  @override
+  String get onboardingWelcome => 'Welcome';
+
+  @override
+  String get onboardingNewUser => 'New to Hmm';
+
+  @override
+  String get onboardingNewUserSubtitle =>
+      'Start fresh on this device. Your data stays local until you turn on cloud sync in Settings.';
+
+  @override
+  String get onboardingMigrating => 'I already use Hmm on another device';
+
+  @override
+  String get onboardingMigratingSubtitle =>
+      'Sign in to OneDrive and pull your existing data + settings down to this device.';
+
+  @override
+  String get onboardingContinue => 'Continue';
+
+  @override
+  String get onboardingSkip => 'Skip for now';
+
+  @override
+  String get receiptCloudAiTitle => 'Use Cloud AI for receipts?';
+
+  @override
+  String get receiptCloudAiBody =>
+      'Your receipt photo or PDF will be uploaded to the Hmm server, which uses AI to read it and fill in the fields. On-device extraction keeps everything on your phone but can\'t read PDFs and won\'t itemize as accurately.';
+
+  @override
+  String get receiptEnableCloudAi => 'Enable Cloud AI';
+
+  @override
+  String get receiptOnDevice => 'On-device (private)';
+
+  @override
+  String get receiptCloudAi => 'Cloud AI (more accurate)';
+
+  @override
+  String get receiptOnDeviceSubtitle =>
+      'Reads photos on your phone. Nothing is uploaded. Can\'t read PDFs.';
+
+  @override
+  String get receiptCloudAiSubtitle =>
+      'Uploads the receipt for AI extraction. Reads PDFs and itemizes.';
+
+  @override
   String get commonRetry => 'Retry';
 
   @override

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/core.dart';
@@ -17,6 +19,7 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final registerState = ref.watch(registerStateProvider);
 
     ref.listen(registerStateProvider, (prev, next) {
@@ -47,7 +50,7 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
     });
 
     return CommonScreenScaffold(
-      title: 'Sign Up',
+      title: l.authSignUp,
       child: registerState.isLoading
           ? const Center(child: CircularProgressIndicator.adaptive())
           : SingleChildScrollView(
@@ -70,7 +73,7 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
                           AppTextFormField(
                             fieldController: _usernameController,
                             fieldValidator: _validateUsername,
-                            label: 'Username',
+                            label: l.authUsername,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.newUsername],
                           ),
@@ -78,7 +81,7 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
                           AppTextFormField(
                             fieldController: _emailController,
                             fieldValidator: validateEmail,
-                            label: 'Email',
+                            label: l.authEmail,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.email],
@@ -88,7 +91,7 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
                             fieldController: _passwordController,
                             fieldValidator: validatePassword,
                             obscureText: true,
-                            label: 'Password',
+                            label: l.authPassword,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.newPassword],
                           ),
@@ -97,7 +100,7 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
                             fieldController: _confirmPasswordController,
                             fieldValidator: _validateConfirmPassword,
                             obscureText: true,
-                            label: 'Confirm Password',
+                            label: l.authConfirmPassword,
                             textInputAction: TextInputAction.done,
                             autofillHints: const [AutofillHints.newPassword],
                           ),

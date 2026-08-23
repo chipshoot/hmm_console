@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/settings/settings_controller.dart';
@@ -16,6 +18,7 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
     WidgetRef ref,
     ReceiptExtractorMode mode,
   ) async {
+    final l = AppLocalizations.of(context);
     if (mode == ReceiptExtractorMode.cloudAi) {
       final consented =
           (await ref.read(settingsProvider.future)).receiptCloudConsent;
@@ -24,21 +27,16 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
         final ok = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Use Cloud AI for receipts?'),
-            content: const Text(
-              'Your receipt photo or PDF will be uploaded to the Hmm server, '
-              'which uses AI to read it and fill in the fields. On-device '
-              "extraction keeps everything on your phone but can't read PDFs "
-              "and won't itemize as accurately.",
-            ),
+            title: Text(l.receiptCloudAiTitle),
+            content: Text(l.receiptCloudAiBody),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
+                child: Text(l.commonCancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Enable Cloud AI'),
+                child: Text(l.receiptEnableCloudAi),
               ),
             ],
           ),
@@ -52,6 +50,7 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final mode = ref.watch(receiptExtractorModeProvider);
     final theme = Theme.of(context);
     return Column(
@@ -68,27 +67,21 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
           onChanged: (v) {
             if (v != null) _select(context, ref, v);
           },
-          child: const Column(
+          child: Column(
             children: [
               RadioListTile<ReceiptExtractorMode>(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 value: ReceiptExtractorMode.onDevice,
-                title: Text('On-device (private)'),
-                subtitle: Text(
-                  "Reads photos on your phone. Nothing is uploaded. Can't read "
-                  'PDFs.',
-                ),
+                title: Text(l.receiptOnDevice),
+                subtitle: Text(l.receiptOnDeviceSubtitle),
               ),
               RadioListTile<ReceiptExtractorMode>(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 value: ReceiptExtractorMode.cloudAi,
-                title: Text('Cloud AI (more accurate)'),
-                subtitle: Text(
-                  'Uploads the receipt for AI extraction. Reads PDFs and '
-                  'itemizes.',
-                ),
+                title: Text(l.receiptCloudAi),
+                subtitle: Text(l.receiptCloudAiSubtitle),
               ),
             ],
           ),

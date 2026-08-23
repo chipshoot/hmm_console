@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -196,6 +198,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildSearchBar(ColorScheme colorScheme) {
+    final l = AppLocalizations.of(context);
     // The home search bar is now the entry to the universal launcher.
     // Tapping it opens the focused search route where a leading '/'
     // triggers function search (plain text is reserved for the future
@@ -206,7 +209,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: TextField(
           enabled: false,
           decoration: InputDecoration(
-            hintText: 'Type / for features · ask AI (soon)',
+            hintText: l.launcherSearchHint,
             prefixIcon: const Icon(Icons.search),
             filled: true,
             fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -273,6 +276,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _showUserMenu() async {
+    final l = AppLocalizations.of(context);
     final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
         Theme.of(context).platform == TargetPlatform.macOS;
 
@@ -286,7 +290,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Navigator.pop(ctx);
                 context.push('/settings');
               },
-              child: const Text('Settings'),
+              child: Text(l.dashboardSettings),
             ),
             CupertinoActionSheetAction(
               isDestructiveAction: true,
@@ -295,12 +299,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ref.read(signOutUseCaseProvider).signOut();
 
               },
-              child: const Text('Sign out'),
+              child: Text(l.dashboardSignOut),
             ),
           ],
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l.commonCancel),
           ),
         ),
       );
@@ -320,23 +324,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         context: context,
         position: position,
         items: [
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'settings',
             child: Row(
               children: [
                 Icon(Icons.settings, size: 20),
                 SizedBox(width: 12),
-                Text('Settings'),
+                Text(l.dashboardSettings),
               ],
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'sign_out',
             child: Row(
               children: [
                 Icon(Icons.logout, size: 20),
                 SizedBox(width: 12),
-                Text('Sign out'),
+                Text(l.dashboardSignOut),
               ],
             ),
           ),
@@ -368,6 +372,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _navigateToFunction(AppFunction function) {
+    final l = AppLocalizations.of(context);
     switch (function.route) {
       case 'gas-log':
         context.push('/automobiles');
@@ -378,7 +383,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${function.title} coming soon...'),
+            content: Text(l.dashboardComingSoon(function.title)),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(

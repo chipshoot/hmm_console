@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/receipt_scan/presentation/receipt_extraction_settings_section.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Widget _host() => const ProviderScope(
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      
         home: Scaffold(body: ReceiptExtractionSettingsSection()),
       ),
     );

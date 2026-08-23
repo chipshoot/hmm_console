@@ -467,6 +467,52 @@
   "launcherDestCheatsheets": "Cheatsheets",
   "launcherDestSettings": "Settings",
 
+  "@_remainingFeatures": {
+    "description": "auth, dashboard, onboarding, receipt_scan. None of these carries display text that doubles as persisted data — ReceiptExtractorMode already separates .wire from its labels."
+  },
+  "authLogin": "Login",
+  "authSignUp": "Sign Up",
+  "authEmail": "Email",
+  "authPassword": "Password",
+  "authConfirmPassword": "Confirm Password",
+  "authUsername": "Username",
+  "authForgotPasswordPrompt": "Forgot your password?",
+  "authForgotPassword": "Forgot Password",
+  "authResendEmail": "Resend email",
+  "authGoogle": "Google",
+  "authApple": "Apple",
+
+  "dashboardSettings": "Settings",
+  "dashboardSignOut": "Sign out",
+  "dashboardComingSoon": "{feature} coming soon...",
+  "@dashboardComingSoon": {
+    "placeholders": { "feature": { "type": "String" } }
+  },
+  "dashboardLooksGood": "Looks good",
+  "dashboardOpenSettings": "Open settings",
+  "dashboardDataStorage": "Data storage",
+  "dashboardDistance": "Distance",
+  "dashboardFuelVolume": "Fuel volume",
+  "dashboardCurrency": "Currency",
+  "dashboardWelcome": "Welcome — quick start",
+  "dashboardDefaultsBlurb": "We picked these defaults for you. Change them in Settings if anything looks off.",
+
+  "onboardingWelcome": "Welcome",
+  "onboardingNewUser": "New to Hmm",
+  "onboardingNewUserSubtitle": "Start fresh on this device. Your data stays local until you turn on cloud sync in Settings.",
+  "onboardingMigrating": "I already use Hmm on another device",
+  "onboardingMigratingSubtitle": "Sign in to OneDrive and pull your existing data + settings down to this device.",
+  "onboardingContinue": "Continue",
+  "onboardingSkip": "Skip for now",
+
+  "receiptCloudAiTitle": "Use Cloud AI for receipts?",
+  "receiptCloudAiBody": "Your receipt photo or PDF will be uploaded to the Hmm server, which uses AI to read it and fill in the fields. On-device extraction keeps everything on your phone but can't read PDFs and won't itemize as accurately.",
+  "receiptEnableCloudAi": "Enable Cloud AI",
+  "receiptOnDevice": "On-device (private)",
+  "receiptCloudAi": "Cloud AI (more accurate)",
+  "receiptOnDeviceSubtitle": "Reads photos on your phone. Nothing is uploaded. Can't read PDFs.",
+  "receiptCloudAiSubtitle": "Uploads the receipt for AI extraction. Reads PDFs and itemizes.",
+
   "commonRetry": "Retry",
   "commonEdit": "Edit",
   "commonError": "Error: {error}",
