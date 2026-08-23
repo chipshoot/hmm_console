@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/features/launcher/presentation/launcher_search_screen.dart';
 import 'package:hmm_console/features/launcher/providers/launcher_prefs_provider.dart';
@@ -30,7 +31,11 @@ Future<void> _pump(WidgetTester t, {LauncherPrefs prefs = LauncherPrefs.empty}) 
     overrides: [
       launcherPrefsProvider.overrideWith(() => _StubPrefs(prefs)),
     ],
-    child: MaterialApp.router(routerConfig: _router()),
+    child: MaterialApp.router(
+      routerConfig: _router(),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+    ),
   ));
   await t.pumpAndSettle();
 }

@@ -1310,6 +1310,144 @@ abstract class AppLocalizations {
   /// **'Section 1'**
   String get cheatsheetRowSection1;
 
+  /// No description provided for @launcherTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Launcher'**
+  String get launcherTitle;
+
+  /// No description provided for @launcherPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned (drag to reorder)'**
+  String get launcherPinned;
+
+  /// No description provided for @launcherFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get launcherFavorites;
+
+  /// No description provided for @launcherAliases.
+  ///
+  /// In en, this message translates to:
+  /// **'Aliases'**
+  String get launcherAliases;
+
+  /// No description provided for @launcherNewAlias.
+  ///
+  /// In en, this message translates to:
+  /// **'New alias (e.g. cs)'**
+  String get launcherNewAlias;
+
+  /// No description provided for @launcherDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination'**
+  String get launcherDestination;
+
+  /// No description provided for @launcherAddAlias.
+  ///
+  /// In en, this message translates to:
+  /// **'Add alias'**
+  String get launcherAddAlias;
+
+  /// No description provided for @launcherNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching features'**
+  String get launcherNoMatches;
+
+  /// No description provided for @launcherTypeSlash.
+  ///
+  /// In en, this message translates to:
+  /// **'Type / to jump to a feature'**
+  String get launcherTypeSlash;
+
+  /// No description provided for @launcherRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get launcherRecent;
+
+  /// No description provided for @launcherAssistantStub.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the assistant — coming soon.\nType / to jump to a feature.'**
+  String get launcherAssistantStub;
+
+  /// No description provided for @launcherSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type / for features · ask AI (soon)'**
+  String get launcherSearchHint;
+
+  /// No description provided for @launcherAliasMapping.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{alias}\"  →  {destination}'**
+  String launcherAliasMapping(String alias, String destination);
+
+  /// No description provided for @launcherDestVehicles.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicles'**
+  String get launcherDestVehicles;
+
+  /// No description provided for @launcherDestGasLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas Log'**
+  String get launcherDestGasLog;
+
+  /// No description provided for @launcherDestServiceLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Service Log'**
+  String get launcherDestServiceLog;
+
+  /// No description provided for @launcherDestScheduledServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled Services'**
+  String get launcherDestScheduledServices;
+
+  /// No description provided for @launcherDestInsurance.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance'**
+  String get launcherDestInsurance;
+
+  /// No description provided for @launcherDestVehicleNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Notes'**
+  String get launcherDestVehicleNotes;
+
+  /// No description provided for @launcherDestNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get launcherDestNotes;
+
+  /// No description provided for @launcherDestGasStations.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas Stations'**
+  String get launcherDestGasStations;
+
+  /// No description provided for @launcherDestCheatsheets.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheatsheets'**
+  String get launcherDestCheatsheets;
+
+  /// No description provided for @launcherDestSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get launcherDestSettings;
+
   /// No description provided for @commonRetry.
   ///
   /// In en, this message translates to:

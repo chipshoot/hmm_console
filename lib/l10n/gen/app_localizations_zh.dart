@@ -707,6 +707,77 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cheatsheetRowSection1 => '第 1 节';
 
   @override
+  String get launcherTitle => '启动器';
+
+  @override
+  String get launcherPinned => '已固定（拖动排序）';
+
+  @override
+  String get launcherFavorites => '常用';
+
+  @override
+  String get launcherAliases => '别名';
+
+  @override
+  String get launcherNewAlias => '新建别名（例如 cs）';
+
+  @override
+  String get launcherDestination => '目标';
+
+  @override
+  String get launcherAddAlias => '添加别名';
+
+  @override
+  String get launcherNoMatches => '没有匹配的功能';
+
+  @override
+  String get launcherTypeSlash => '输入 / 快速跳转到功能';
+
+  @override
+  String get launcherRecent => '最近使用';
+
+  @override
+  String get launcherAssistantStub => 'AI 问答即将推出。\n输入 / 快速跳转到功能。';
+
+  @override
+  String get launcherSearchHint => '输入 / 搜索功能 · AI 问答（即将推出）';
+
+  @override
+  String launcherAliasMapping(String alias, String destination) {
+    return '“$alias”  →  $destination';
+  }
+
+  @override
+  String get launcherDestVehicles => '车辆';
+
+  @override
+  String get launcherDestGasLog => '加油记录';
+
+  @override
+  String get launcherDestServiceLog => '维修保养记录';
+
+  @override
+  String get launcherDestScheduledServices => '保养计划';
+
+  @override
+  String get launcherDestInsurance => '保险';
+
+  @override
+  String get launcherDestVehicleNotes => '车辆备注';
+
+  @override
+  String get launcherDestNotes => '笔记';
+
+  @override
+  String get launcherDestGasStations => '加油站';
+
+  @override
+  String get launcherDestCheatsheets => '速查卡';
+
+  @override
+  String get launcherDestSettings => '设置';
+
+  @override
   String get commonRetry => '重试';
 
   @override

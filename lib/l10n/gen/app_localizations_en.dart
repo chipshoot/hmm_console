@@ -731,6 +731,78 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cheatsheetRowSection1 => 'Section 1';
 
   @override
+  String get launcherTitle => 'Launcher';
+
+  @override
+  String get launcherPinned => 'Pinned (drag to reorder)';
+
+  @override
+  String get launcherFavorites => 'Favorites';
+
+  @override
+  String get launcherAliases => 'Aliases';
+
+  @override
+  String get launcherNewAlias => 'New alias (e.g. cs)';
+
+  @override
+  String get launcherDestination => 'Destination';
+
+  @override
+  String get launcherAddAlias => 'Add alias';
+
+  @override
+  String get launcherNoMatches => 'No matching features';
+
+  @override
+  String get launcherTypeSlash => 'Type / to jump to a feature';
+
+  @override
+  String get launcherRecent => 'Recent';
+
+  @override
+  String get launcherAssistantStub =>
+      'Ask the assistant — coming soon.\nType / to jump to a feature.';
+
+  @override
+  String get launcherSearchHint => 'Type / for features · ask AI (soon)';
+
+  @override
+  String launcherAliasMapping(String alias, String destination) {
+    return '\"$alias\"  →  $destination';
+  }
+
+  @override
+  String get launcherDestVehicles => 'Vehicles';
+
+  @override
+  String get launcherDestGasLog => 'Gas Log';
+
+  @override
+  String get launcherDestServiceLog => 'Service Log';
+
+  @override
+  String get launcherDestScheduledServices => 'Scheduled Services';
+
+  @override
+  String get launcherDestInsurance => 'Insurance';
+
+  @override
+  String get launcherDestVehicleNotes => 'Vehicle Notes';
+
+  @override
+  String get launcherDestNotes => 'Notes';
+
+  @override
+  String get launcherDestGasStations => 'Gas Stations';
+
+  @override
+  String get launcherDestCheatsheets => 'Cheatsheets';
+
+  @override
+  String get launcherDestSettings => 'Settings';
+
+  @override
   String get commonRetry => 'Retry';
 
   @override

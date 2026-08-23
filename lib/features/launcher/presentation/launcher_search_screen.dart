@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/launcher_destination.dart';
@@ -37,6 +39,7 @@ class _LauncherSearchScreenState extends ConsumerState<LauncherSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final prefs = ref.watch(launcherPrefsProvider);
     final mode = modeOf(_raw);
 
@@ -51,9 +54,9 @@ class _LauncherSearchScreenState extends ConsumerState<LauncherSearchScreen> {
         if (q.isEmpty) {
           body = _landing(prefs.favorites);
         } else {
-          final results = match(q, registry: launcherDestinations, aliases: prefs.aliases);
+          final results = match(q, registry: launcherDestinations(l), aliases: prefs.aliases);
           body = results.isEmpty
-              ? _empty('No matching features')
+              ? _empty(l.launcherNoMatches)
               : ListView(children: [for (final d in results) _tile(d)]);
         }
     }
@@ -65,9 +68,9 @@ class _LauncherSearchScreenState extends ConsumerState<LauncherSearchScreen> {
           controller: _controller,
           autofocus: true,
           onChanged: (v) => setState(() => _raw = v),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             border: InputBorder.none,
-            hintText: 'Type / for features · ask AI (soon)',
+            hintText: l.launcherSearchHint,
             prefixIcon: Icon(Icons.search),
           ),
         ),
@@ -83,26 +86,27 @@ class _LauncherSearchScreenState extends ConsumerState<LauncherSearchScreen> {
       );
 
   Widget _landing(List<String> favoriteIds) {
+    final l = AppLocalizations.of(context);
     final favorites = favoriteIds
-        .map((id) => launcherDestinationsById[id])
+        .map((id) => launcherDestinationsById(l)[id])
         .whereType<LauncherDestination>()
         .toList();
     final recents = ref
         .watch(launcherRecentsProvider)
-        .map((id) => launcherDestinationsById[id])
+        .map((id) => launcherDestinationsById(l)[id])
         .whereType<LauncherDestination>()
         .toList();
 
     if (favorites.isEmpty && recents.isEmpty) {
-      return _empty('Type / to jump to a feature');
+      return _empty(l.launcherTypeSlash);
     }
     return ListView(children: [
       if (favorites.isNotEmpty) ...[
-        _header('Favorites'),
+        _header(l.launcherFavorites),
         for (final d in favorites) _tile(d),
       ],
       if (recents.isNotEmpty) ...[
-        _header('Recent'),
+        _header(l.launcherRecent),
         for (final d in recents) _tile(d),
       ],
     ]);
@@ -118,8 +122,8 @@ class _LauncherSearchScreenState extends ConsumerState<LauncherSearchScreen> {
               Icon(Icons.auto_awesome,
                   size: 40, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 12),
-              const Text(
-                'Ask the assistant — coming soon.\nType / to jump to a feature.',
+              Text(
+                AppLocalizations.of(context).launcherAssistantStub,
                 textAlign: TextAlign.center,
               ),
             ],

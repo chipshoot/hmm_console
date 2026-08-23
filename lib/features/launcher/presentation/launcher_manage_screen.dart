@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/launcher_destination.dart';
@@ -33,12 +35,15 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
   /// by the index mismatch. ReorderableListView reports a `newIndex`
   /// one past the removed slot when dragging downward.
   Future<void> _reorderFavorites(int oldIndex, int newIndex) async {
+    // Only the ids matter here — reordering is language-independent, so the
+    // localizations are needed purely to build the lookup.
+    final byId = launcherDestinationsById(AppLocalizations.of(context));
     final favorites = ref.read(launcherPrefsProvider).favorites;
     final known = favorites
-        .where((id) => launcherDestinationsById.containsKey(id))
+        .where((id) => byId.containsKey(id))
         .toList();
     final unknown = favorites
-        .where((id) => !launcherDestinationsById.containsKey(id))
+        .where((id) => !byId.containsKey(id))
         .toList();
     if (newIndex > oldIndex) newIndex -= 1;
     final moved = known.removeAt(oldIndex);
@@ -71,21 +76,24 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final destinations = launcherDestinations(l);
+    final byId = launcherDestinationsById(l);
     final prefs = ref.watch(launcherPrefsProvider);
 
     final pinned = prefs.favorites
-        .map((id) => launcherDestinationsById[id])
+        .map((id) => byId[id])
         .whereType<LauncherDestination>()
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Launcher')),
+      appBar: AppBar(title: Text(l.launcherTitle)),
       body: ListView(
         children: [
           if (pinned.length > 1) ...[
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Text('Pinned (drag to reorder)',
+              child: Text(l.launcherPinned,
                   style: TextStyle(fontWeight: FontWeight.w600)),
             ),
             ReorderableListView(
@@ -105,11 +113,11 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
             ),
             const Divider(),
           ],
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text('Favorites', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(l.launcherFavorites, style: TextStyle(fontWeight: FontWeight.w600)),
           ),
-          for (final d in launcherDestinations)
+          for (final d in destinations)
             ListTile(
               leading: Icon(d.icon),
               title: Text(d.title),
@@ -121,13 +129,14 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
               ),
             ),
           const Divider(),
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('Aliases', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(l.launcherAliases, style: TextStyle(fontWeight: FontWeight.w600)),
           ),
           for (final entry in prefs.aliases.entries)
             ListTile(
-              title: Text('"${entry.key}"  →  ${launcherDestinationsById[entry.value]?.title ?? entry.value}'),
+              title: Text(l.launcherAliasMapping(entry.key,
+                  byId[entry.value]?.title ?? entry.value)),
               trailing: IconButton(
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () =>
@@ -142,8 +151,8 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
                 TextField(
                   key: const Key('alias-text'),
                   controller: _aliasController,
-                  decoration: const InputDecoration(
-                    labelText: 'New alias (e.g. cs)',
+                  decoration: InputDecoration(
+                    labelText: l.launcherNewAlias,
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -151,12 +160,12 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
                 DropdownButtonFormField<String>(
                   key: const Key('alias-dest'),
                   initialValue: _aliasDestId,
-                  decoration: const InputDecoration(
-                    labelText: 'Destination',
+                  decoration: InputDecoration(
+                    labelText: l.launcherDestination,
                     border: OutlineInputBorder(),
                   ),
                   items: [
-                    for (final d in launcherDestinations)
+                    for (final d in destinations)
                       DropdownMenuItem(value: d.id, child: Text(d.title)),
                   ],
                   onChanged: (v) => setState(() => _aliasDestId = v),
@@ -173,7 +182,7 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
                     key: const Key('alias-add'),
                     onPressed: _addAlias,
                     icon: const Icon(Icons.add),
-                    label: const Text('Add alias'),
+                    label: Text(l.launcherAddAlias),
                   ),
                 ),
               ],

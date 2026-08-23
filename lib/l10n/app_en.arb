@@ -436,6 +436,37 @@
   "cheatsheetRowPharmacyPhone": "Pharmacy phone",
   "cheatsheetRowSection1": "Section 1",
 
+  "@_launcher": {
+    "description": "Universal search launcher. Destination TITLES are translated (display only — favorites/aliases persist by destination id). SYNONYMS are search vocabulary, not copy: they are ADDED to rather than replaced, so a bilingual user can type either language whatever the UI locale is. See launcher_registry.dart."
+  },
+  "launcherTitle": "Launcher",
+  "launcherPinned": "Pinned (drag to reorder)",
+  "launcherFavorites": "Favorites",
+  "launcherAliases": "Aliases",
+  "launcherNewAlias": "New alias (e.g. cs)",
+  "launcherDestination": "Destination",
+  "launcherAddAlias": "Add alias",
+  "launcherNoMatches": "No matching features",
+  "launcherTypeSlash": "Type / to jump to a feature",
+  "launcherRecent": "Recent",
+  "launcherAssistantStub": "Ask the assistant — coming soon.\nType / to jump to a feature.",
+  "launcherSearchHint": "Type / for features · ask AI (soon)",
+  "launcherAliasMapping": "\"{alias}\"  →  {destination}",
+  "@launcherAliasMapping": {
+    "placeholders": { "alias": { "type": "String" }, "destination": { "type": "String" } }
+  },
+
+  "launcherDestVehicles": "Vehicles",
+  "launcherDestGasLog": "Gas Log",
+  "launcherDestServiceLog": "Service Log",
+  "launcherDestScheduledServices": "Scheduled Services",
+  "launcherDestInsurance": "Insurance",
+  "launcherDestVehicleNotes": "Vehicle Notes",
+  "launcherDestNotes": "Notes",
+  "launcherDestGasStations": "Gas Stations",
+  "launcherDestCheatsheets": "Cheatsheets",
+  "launcherDestSettings": "Settings",
+
   "commonRetry": "Retry",
   "commonEdit": "Edit",
   "commonError": "Error: {error}",

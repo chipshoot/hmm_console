@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/launcher/domain/launcher_prefs.dart';
 import 'package:hmm_console/features/launcher/presentation/launcher_manage_screen.dart';
 import 'package:hmm_console/features/launcher/providers/launcher_prefs_provider.dart';
@@ -33,7 +34,10 @@ Future<ProviderContainer> _pump(WidgetTester t) async {
       overrides: [launcherPrefsProvider.overrideWith(() => _StubPrefs())]);
   await t.pumpWidget(UncontrolledProviderScope(
     container: c,
-    child: const MaterialApp(home: LauncherManageScreen()),
+    child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: LauncherManageScreen()),
   ));
   await t.pumpAndSettle();
   return c;
@@ -69,7 +73,10 @@ void main() {
     ]);
     await t.pumpWidget(UncontrolledProviderScope(
       container: c,
-      child: const MaterialApp(home: LauncherManageScreen()),
+      child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: LauncherManageScreen()),
     ));
     await t.pumpAndSettle();
     // Drive the reorder callback directly (drag gestures are flaky in tests).
@@ -92,7 +99,10 @@ void main() {
     ]);
     await t.pumpWidget(UncontrolledProviderScope(
       container: c,
-      child: const MaterialApp(home: LauncherManageScreen()),
+      child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: LauncherManageScreen()),
     ));
     await t.pumpAndSettle();
     // Displayed list = [gasLog, notes, settings] (futureThing filtered out).
