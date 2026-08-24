@@ -9,6 +9,7 @@ import '../../features/gas_log/data/repositories/gas_station_repository.dart';
 import '../../features/gas_log/data/repositories/i_gas_log_repository.dart';
 import 'data_mode.dart';
 import '../../features/cheatsheet/data/i_cheatsheet_repository.dart';
+import '../../features/cheatsheet/data/repositories/cheatsheet_api_repository.dart';
 import 'local/local_automobile_repository.dart';
 import 'local/local_author_repository.dart';
 import 'local/local_cheatsheet_repository.dart';
@@ -98,5 +99,5 @@ final scheduledServiceRepositoryModeProvider =
 final cheatsheetRepositoryModeProvider = Provider<ICheatsheetRepository>((ref) {
   final mode = ref.watch(dataModeProvider);
   if (_useLocal(mode)) return ref.watch(localCheatsheetRepositoryProvider);
-  throw UnimplementedError('cheatsheet cloudApi repo ships in the backend plan');
+  return ref.watch(cheatsheetApiRepositoryProvider);
 });
