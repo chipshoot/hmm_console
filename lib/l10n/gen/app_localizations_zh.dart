@@ -1651,4 +1651,58 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get automobileRecordsNoSchedules => '尚未设置保养计划';
+
+  @override
+  String get contactBlockTitle => '联系方式';
+
+  @override
+  String get contactBlockAdd => '添加联系方式';
+
+  @override
+  String get contactBlockRemove => '移除联系方式';
+
+  @override
+  String get contactFieldRole => '类别';
+
+  @override
+  String get contactFieldName => '姓名';
+
+  @override
+  String get contactFieldOrganization => '机构';
+
+  @override
+  String get contactFieldPhone => '电话';
+
+  @override
+  String get contactFieldEmail => '电子邮箱';
+
+  @override
+  String get contactFieldAddress => '地址';
+
+  @override
+  String get contactFieldNotes => '备注';
+
+  @override
+  String get contactRoleAgent => '代理人';
+
+  @override
+  String get contactRoleDoctor => '医生';
+
+  @override
+  String get contactRoleHospital => '医院';
+
+  @override
+  String get contactRolePharmacy => '药房';
+
+  @override
+  String get contactRoleEmergency => '紧急联系';
+
+  @override
+  String get contactRoleFriend => '朋友';
+
+  @override
+  String get contactRoleFamily => '家人';
+
+  @override
+  String get contactRoleOther => '其他';
 }

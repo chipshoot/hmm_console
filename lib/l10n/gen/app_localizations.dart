@@ -3025,6 +3025,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No schedules set up'**
   String get automobileRecordsNoSchedules;
+
+  /// No description provided for @contactBlockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get contactBlockTitle;
+
+  /// No description provided for @contactBlockAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add contact'**
+  String get contactBlockAdd;
+
+  /// No description provided for @contactBlockRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove contact'**
+  String get contactBlockRemove;
+
+  /// No description provided for @contactFieldRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get contactFieldRole;
+
+  /// No description provided for @contactFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get contactFieldName;
+
+  /// No description provided for @contactFieldOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization'**
+  String get contactFieldOrganization;
+
+  /// No description provided for @contactFieldPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get contactFieldPhone;
+
+  /// No description provided for @contactFieldEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get contactFieldEmail;
+
+  /// No description provided for @contactFieldAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get contactFieldAddress;
+
+  /// No description provided for @contactFieldNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get contactFieldNotes;
+
+  /// No description provided for @contactRoleAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get contactRoleAgent;
+
+  /// No description provided for @contactRoleDoctor.
+  ///
+  /// In en, this message translates to:
+  /// **'Doctor'**
+  String get contactRoleDoctor;
+
+  /// No description provided for @contactRoleHospital.
+  ///
+  /// In en, this message translates to:
+  /// **'Hospital'**
+  String get contactRoleHospital;
+
+  /// No description provided for @contactRolePharmacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Pharmacy'**
+  String get contactRolePharmacy;
+
+  /// No description provided for @contactRoleEmergency.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency'**
+  String get contactRoleEmergency;
+
+  /// No description provided for @contactRoleFriend.
+  ///
+  /// In en, this message translates to:
+  /// **'Friend'**
+  String get contactRoleFriend;
+
+  /// No description provided for @contactRoleFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get contactRoleFamily;
+
+  /// No description provided for @contactRoleOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get contactRoleOther;
 }
 
 class _AppLocalizationsDelegate

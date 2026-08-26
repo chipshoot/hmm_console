@@ -1,25 +1,20 @@
 {
   "@@locale": "zh",
   "appTitle": "Hmm 控制台",
-
   "settingsTitle": "设置",
   "settingsLanguage": "语言",
   "settingsLanguageFollowSystem": "跟随系统",
   "settingsLanguageEnglish": "English",
   "settingsLanguageChinese": "中文",
-
   "settingsDataStorage": "数据存储",
   "settingsStorageMode": "存储模式",
   "settingsCloudProvider": "云服务",
-
   "settingsSignInOneDrive": "登录 OneDrive",
   "settingsSignOutOneDrive": "退出 OneDrive",
   "settingsSyncNow": "立即同步",
-
   "commonCancel": "取消",
   "commonSave": "保存",
   "commonDelete": "删除",
-
   "settingsLauncher": "启动器",
   "settingsLauncherSubtitle": "固定常用项并设置搜索别名",
   "settingsGeoCapture": "为新笔记添加位置",
@@ -28,11 +23,9 @@
   "settingsQuickPanelSubtitle": "长按右下角可打开主页和快速同步",
   "settingsQuickPanelReplay": "使用演示",
   "settingsQuickPanelReplaySubtitle": "重新播放快捷面板提示",
-
   "settingsSwitchedToMode": "已切换为{mode}。重启应用后生效。",
   "settingsOneDriveClientIdMissing": "未设置 OneDrive 客户端 ID。请使用 --dart-define=ONEDRIVE_CLIENT_ID=<app-id> 重新构建（参见 docs/cloud_storage_setup.md §1）。",
   "settingsAuthStateError": "登录状态错误：{error}",
-
   "settingsDatabaseLocation": "数据库位置",
   "settingsChangeLocation": "更改位置",
   "settingsResetToDefault": "恢复默认",
@@ -40,7 +33,6 @@
   "settingsDatabaseLocationSet": "数据库位置已设为 {path}。重启应用后生效。",
   "settingsDatabaseLocationReset": "已恢复默认位置。重启应用后生效。",
   "settingsGenericError": "错误：{error}",
-
   "settingsChooseVaultFolder": "选择保险库文件夹（例如放在 OneDrive 内）",
   "settingsVaultFolderSet": "保险库文件夹已设为 {path}/vault。新照片将保存在这里。",
   "settingsVaultFolderReset": "保险库文件夹已恢复默认（应用文档目录）。在你选择文件夹之前，cloudStorage 模式无法同步文件内容。",
@@ -49,18 +41,15 @@
   "settingsVaultFolderDefault": "默认（应用沙盒——不跨设备同步）",
   "settingsVaultPathError": "保险库路径错误：{error}",
   "settingsChooseFolder": "选择文件夹",
-
   "settingsCleanUpPhotos": "清理无用照片",
   "settingsCleanUpNone": "没有需要清理的无用照片。",
   "settingsCleanUpTitle": "清理无用照片？",
   "settingsCleanUpBody": "发现 {count, plural, other{{count} 个无用文件}}（{size}），是取消或替换照片时遗留的。它们没有被任何车辆引用，可以安全删除。",
   "settingsCleanUpDone": "已回收 {count, plural, other{{count} 个文件}}（{size}）。",
   "settingsCleanUpFailed": "清理失败：{error}",
-
   "settingsSignedInOneDrive": "已登录 OneDrive",
   "settingsSignInOneDriveFailed": "OneDrive 登录失败：{error}",
   "settingsSignedOutOneDrive": "已退出 OneDrive",
-
   "settingsSyncing": "正在同步…",
   "settingsSyncSucceeded": "同步完成——已上传 {pushed} 条 / 已下载 {pulled} 条笔记",
   "settingsSyncFailed": "同步失败：{error}",
@@ -69,28 +58,23 @@
   "settingsSyncWifiOnlySubtitle": "自动同步会等待 WiFi。使用蜂窝数据时，手动点击“立即同步”会先询问你。",
   "settingsSyncAnyNetwork": "任意网络",
   "settingsSyncAnyNetworkSubtitle": "自动同步可能使用蜂窝数据，超出的流量费用由你承担。",
-
   "settingsVehicleInformation": "车辆信息",
   "settingsShowRegistration": "显示行驶证卡片",
   "settingsShowRegistrationSubtitle": "如果你所在地区已不再要求定期更新车辆登记，可以关闭（例如安大略省已于 2022 年取消年检贴纸）。",
-
   "settingsGasLogDefaults": "加油记录默认值",
   "settingsDistanceUnit": "距离单位",
   "settingsFuelUnit": "燃油单位",
   "settingsCurrency": "货币",
-
   "unitMile": "英里",
   "unitKilometer": "公里",
   "unitGallon": "加仑",
   "unitLiter": "升",
-
   "dataModeLocal": "本地（离线）",
   "dataModeLocalDescription": "数据只保存在本机。不同步，也不需要账号。",
   "dataModeCloudStorage": "云存储",
   "dataModeCloudStorageDescription": "数据保存在本地，并同步到你自己的云盘账号（OneDrive）。",
   "dataModeCloudApi": "云端（API）",
   "dataModeCloudApiDescription": "数据保存在本地，并与 Hmm 后端 API 同步。",
-
   "vaultSectionTitle": "安全保险库",
   "vaultSetUpTitle": "设置安全保险库",
   "vaultSetUpSubtitle": "用密码加密敏感附件（例如行驶证、车架号照片）",
@@ -113,7 +97,6 @@
   "vaultUnlockDialogTitle": "解锁安全保险库",
   "vaultResetWarning": "这会永久删除安全保险库中的所有文件，且无法撤销。请输入 {token} 以确认。",
   "vaultResetTypeToken": "输入 {token}",
-
   "syncStatusSyncing": "正在同步…",
   "syncStatusFailing": "同步失败——最近 {count} 次尝试",
   "syncStatusWaitingWifi": "等待 WiFi 后同步",
@@ -127,8 +110,6 @@
   "syncCellularTitle": "使用蜂窝数据同步？",
   "syncCellularBody": "你的网络策略设为“仅 WiFi”，但你点击了立即同步。继续将使用蜂窝数据。",
   "syncAnyway": "仍要同步",
-
-
   "catalogGeneral": "常规",
   "catalogGasLog": "加油记录",
   "catalogAutomobile": "车辆",
@@ -139,7 +120,6 @@
   "domainAutomobile": "车辆",
   "domainGeneral": "常规",
   "domainOther": "其他",
-
   "notesTitle": "笔记",
   "notesSearchHint": "搜索标题",
   "notesLoadFailed": "无法加载笔记：{error}",
@@ -156,7 +136,6 @@
   "notesSearchNotes": "搜索笔记",
   "notesLinkedUnavailable": "关联的笔记不可用",
   "notesGenericFailure": "失败：{error}",
-
   "notesSubjectRequired": "请输入标题",
   "notesTitleHint": "标题",
   "notesBodyHint": "开始输入…",
@@ -166,19 +145,14 @@
   "notesEditAction": "编辑",
   "notesViewRaw": "查看原始内容",
   "notesRawContentTitle": "原始内容",
-
   "notesSubsystemsTitle": "子系统",
   "notesSubsystemAutomobile": "车辆",
-
   "notesRecordMicPermission": "录音需要麦克风权限",
   "notesRecordStartFailed": "无法开始录音",
   "notesRecordTooLong": "录音过长，请录制短一些的内容",
   "notesRecording": "正在录音…  {time}",
   "notesRecordStop": "停止",
-
-  "notesVaultSetUpPrompt": "请先在设置中启用安全保险库才能查看这张图片。"
-,
-
+  "notesVaultSetUpPrompt": "请先在设置中启用安全保险库才能查看这张图片。",
   "cheatsheetWalletTitle": "速查卡",
   "cheatsheetNew": "新建速查卡",
   "cheatsheetLoadFailed": "无法加载速查卡。\n{error}",
@@ -199,7 +173,6 @@
   "cheatsheetNewRow": "新增行",
   "cheatsheetAddRow": "添加行",
   "cheatsheetRemoveRow": "删除这一行",
-
   "cheatsheetSourceLoadFailed": "无法加载笔记：{error}",
   "cheatsheetSourceEmpty": "还没有可引用的笔记。",
   "cheatsheetSourceNoMatches": "没有匹配的笔记。",
@@ -208,12 +181,10 @@
   "cheatsheetSourceSearchHint": "搜索笔记",
   "cheatsheetSourceOther": "其他笔记",
   "cheatsheetSourceDomainVehicle": "车辆",
-
   "cheatsheetGroupVehicle": "车辆",
   "cheatsheetGroupHealth": "健康",
   "cheatsheetGroupReference": "参考",
   "cheatsheetGroupUngrouped": "未分组",
-
   "cheatsheetTemplateAccidentClaim": "事故理赔",
   "cheatsheetTemplateHealthInfo": "健康信息",
   "cheatsheetTemplateDocument": "文档",
@@ -231,7 +202,6 @@
   "cheatsheetRowPharmacy": "药房",
   "cheatsheetRowPharmacyPhone": "药房电话",
   "cheatsheetRowSection1": "第 1 节",
-
   "launcherTitle": "启动器",
   "launcherPinned": "已固定（拖动排序）",
   "launcherFavorites": "常用",
@@ -245,7 +215,6 @@
   "launcherAssistantStub": "AI 问答即将推出。\n输入 / 快速跳转到功能。",
   "launcherSearchHint": "输入 / 搜索功能 · AI 问答（即将推出）",
   "launcherAliasMapping": "“{alias}”  →  {destination}",
-
   "launcherDestVehicles": "车辆",
   "launcherDestGasLog": "加油记录",
   "launcherDestServiceLog": "维修保养记录",
@@ -256,7 +225,6 @@
   "launcherDestGasStations": "加油站",
   "launcherDestCheatsheets": "速查卡",
   "launcherDestSettings": "设置",
-
   "authLogin": "登录",
   "authSignUp": "注册",
   "authEmail": "邮箱",
@@ -268,7 +236,6 @@
   "authResendEmail": "重新发送邮件",
   "authGoogle": "Google",
   "authApple": "Apple",
-
   "dashboardSettings": "设置",
   "dashboardSignOut": "退出登录",
   "dashboardComingSoon": "{feature}即将推出…",
@@ -280,7 +247,6 @@
   "dashboardCurrency": "货币",
   "dashboardWelcome": "欢迎 — 快速开始",
   "dashboardDefaultsBlurb": "我们为你选好了这些默认设置。如果有不合适的，可以在设置中修改。",
-
   "onboardingWelcome": "欢迎",
   "onboardingNewUser": "第一次使用 Hmm",
   "onboardingNewUserSubtitle": "在这台设备上从零开始。在你于设置中开启云同步之前，数据只保存在本机。",
@@ -288,7 +254,6 @@
   "onboardingMigratingSubtitle": "登录 OneDrive，把已有的数据和设置同步到这台设备。",
   "onboardingContinue": "继续",
   "onboardingSkip": "暂时跳过",
-
   "receiptCloudAiTitle": "使用云端 AI 识别收据？",
   "receiptCloudAiBody": "你的收据照片或 PDF 会上传到 Hmm 服务器，由 AI 读取并自动填写字段。本机识别不会离开手机，但无法读取 PDF，明细拆分也不够准确。",
   "receiptEnableCloudAi": "启用云端 AI",
@@ -296,11 +261,9 @@
   "receiptCloudAi": "云端 AI（更准确）",
   "receiptOnDeviceSubtitle": "在手机上识别照片，不会上传任何内容。无法读取 PDF。",
   "receiptCloudAiSubtitle": "上传收据交由 AI 识别。可读取 PDF，并拆分明细。",
-
   "commonRetry": "重试",
   "commonEdit": "编辑",
   "commonError": "错误：{error}",
-
   "gasLogTitle": "加油记录",
   "gasLogLoadFailed": "无法加载加油记录",
   "gasLogEmpty": "暂无加油记录",
@@ -310,7 +273,6 @@
   "gasLogDeleteFailed": "删除失败：{error}",
   "gasLogCreated": "加油记录已创建",
   "gasLogUpdated": "加油记录已更新",
-
   "gasLogOdometer": "里程表（{unit}）",
   "gasLogDistance": "行驶距离（{unit}）",
   "gasLogFuel": "加油量（{unit}）",
@@ -319,7 +281,6 @@
   "gasLogFullTank": "加满",
   "gasLogComment": "备注（选填）",
   "gasLogSelectStation": "请选择或输入加油站",
-
   "vehicleNewTitle": "新增车辆",
   "vehicleCreated": "车辆已创建",
   "vehicleUpdated": "车辆已更新",
@@ -337,7 +298,6 @@
   "vehicleStatusUpdated": "车辆状态已更新",
   "vehicleActiveCount": "使用中（{count}）",
   "vehicleInactiveCount": "已停用（{count}）",
-
   "vehicleVin": "车架号（17 位）",
   "vehicleMaker": "制造商",
   "vehicleBrand": "品牌",
@@ -365,7 +325,6 @@
   "vehicleActionConfirm": "{action}这辆车？",
   "vehicleDeactivate": "停用",
   "vehicleReactivate": "重新启用",
-
   "vehicleDeactivateTitle": "停用这辆车？",
   "vehicleReactivateTitle": "重新启用这辆车？",
   "vehicleDeactivateBody": "确定要停用{vehicle}吗？",
@@ -374,7 +333,6 @@
   "stationReactivateBody": "确定要重新启用“{station}”吗？",
   "stationDeactivateTitle": "停用这个加油站？",
   "stationReactivateTitle": "重新启用这个加油站？",
-
   "stationTitle": "加油站",
   "stationLoadFailed": "无法加载加油站",
   "stationEmpty": "暂无加油站",
@@ -397,21 +355,17 @@
   "stationLocationDenied": "无法获取位置，请检查权限设置。",
   "stationLocationError": "定位错误：{error}",
   "stationSaveFailed": "{action}加油站失败：{error}",
-
   "sectionIdentity": "识别信息",
   "sectionAppearance": "外观",
   "sectionEngine": "发动机",
   "sectionOwnership": "拥有方式",
   "sectionNotes": "备注",
   "sectionChangeHistory": "变更记录",
-
   "fieldDate": "日期",
-
   "fuelTypeLabel": "燃油类型",
   "fuelGradeLabel": "燃油标号",
   "engineTypeLabel": "发动机类型",
   "ownershipStatusLabel": "拥有方式",
-
   "optionRegular": "普通",
   "optionMidGrade": "中级",
   "optionPremium": "高级",
@@ -428,7 +382,6 @@
   "optionFinanced": "贷款购买",
   "optionLeased": "租赁",
   "optionCompany": "公司车辆",
-
   "validationVinRequired": "请输入车架号",
   "validationVinLength": "车架号必须为 17 位",
   "validationMakerRequired": "请输入制造商",
@@ -450,8 +403,6 @@
   "validationDistanceInvalid": "请输入有效的行驶距离",
   "validationOdometerBelowCurrent": "里程表读数不能小于当前读数（{current}）",
   "validationOdometerLargeGap": "差距过大：里程表读数与预期值（{expected}）相差 {gap}",
-
-
   "recordsAddPolicy": "添加保单",
   "recordsNoPolicies": "暂无保险保单",
   "recordsNoPoliciesHint": "点击 + 记录这辆车的保单。",
@@ -470,7 +421,6 @@
   "recordsNotes": "备注",
   "recordsDatesRequired": "必须填写生效日期和到期日期",
   "recordsDateOrderInvalid": "生效日期必须早于到期日期",
-
   "recordsAddSchedule": "添加保养计划",
   "recordsNoSchedules": "暂无保养计划",
   "recordsNoSchedulesHint": "点击 + 设置周期性提醒。",
@@ -485,7 +435,6 @@
   "recordsNextDueDateLabel": "下次到期日期",
   "recordsNextDueMileageLabel": "下次到期里程",
   "recordsIntervalRequired": "请至少设置一个间隔（天数或里程）",
-
   "recordsAddRecord": "添加记录",
   "recordsNoServiceRecords": "暂无维修保养记录",
   "recordsNoServiceRecordsHint": "点击 + 记录这辆车的第一次保养。",
@@ -495,7 +444,6 @@
   "recordsItemCount": "{count, plural, other{{count} 个项目}}",
   "recordsRecordCount": "{count, plural, other{已有 {count} 条记录}}",
   "recordsActiveSchedules": "{count, plural, other{{count} 个生效中的计划}}",
-
   "recordsServiceName": "保养项目名称",
   "recordsReference": "单号（选填）",
   "recordsServiceDate": "保养日期",
@@ -515,7 +463,6 @@
   "recordsLineItemNameRequired": "每个明细项都需要名称",
   "recordsRemoveStoredImagesTitle": "删除已保存的图片？",
   "recordsKeepAttached": "保留附件",
-
   "recordsLineItems": "明细项",
   "recordsAddItem": "添加明细",
   "recordsTax": "税费",
@@ -523,9 +470,7 @@
   "recordsQtyHint": "数量",
   "recordsUnitHint": "单价",
   "recordsAmountHint": "0.00",
-
   "recordsVehicleNotes": "车辆备注",
-
   "serviceTypeOilChange": "更换机油",
   "serviceTypeTireRotation": "轮胎换位",
   "serviceTypeBrake": "刹车",
@@ -535,7 +480,6 @@
   "lineItemLabour": "工时",
   "lineItemPart": "配件",
   "lineItemFee": "费用",
-
   "automobileRecordsInsurance": "保险",
   "automobileRecordsServiceHistory": "维修保养记录",
   "automobileRecordsScheduledService": "保养计划",
@@ -543,5 +487,23 @@
   "automobileRecordsViewHistory": "查看记录",
   "automobileRecordsNoActivePolicy": "没有有效的保单",
   "automobileRecordsNoServiceRecords": "暂无保养记录",
-  "automobileRecordsNoSchedules": "尚未设置保养计划"
+  "automobileRecordsNoSchedules": "尚未设置保养计划",
+  "contactBlockTitle": "联系方式",
+  "contactBlockAdd": "添加联系方式",
+  "contactBlockRemove": "移除联系方式",
+  "contactFieldRole": "类别",
+  "contactFieldName": "姓名",
+  "contactFieldOrganization": "机构",
+  "contactFieldPhone": "电话",
+  "contactFieldEmail": "电子邮箱",
+  "contactFieldAddress": "地址",
+  "contactFieldNotes": "备注",
+  "contactRoleAgent": "代理人",
+  "contactRoleDoctor": "医生",
+  "contactRoleHospital": "医院",
+  "contactRolePharmacy": "药房",
+  "contactRoleEmergency": "紧急联系",
+  "contactRoleFriend": "朋友",
+  "contactRoleFamily": "家人",
+  "contactRoleOther": "其他"
 }

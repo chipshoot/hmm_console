@@ -1691,4 +1691,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get automobileRecordsNoSchedules => 'No schedules set up';
+
+  @override
+  String get contactBlockTitle => 'Contact';
+
+  @override
+  String get contactBlockAdd => 'Add contact';
+
+  @override
+  String get contactBlockRemove => 'Remove contact';
+
+  @override
+  String get contactFieldRole => 'Role';
+
+  @override
+  String get contactFieldName => 'Name';
+
+  @override
+  String get contactFieldOrganization => 'Organization';
+
+  @override
+  String get contactFieldPhone => 'Phone';
+
+  @override
+  String get contactFieldEmail => 'Email';
+
+  @override
+  String get contactFieldAddress => 'Address';
+
+  @override
+  String get contactFieldNotes => 'Notes';
+
+  @override
+  String get contactRoleAgent => 'Agent';
+
+  @override
+  String get contactRoleDoctor => 'Doctor';
+
+  @override
+  String get contactRoleHospital => 'Hospital';
+
+  @override
+  String get contactRolePharmacy => 'Pharmacy';
+
+  @override
+  String get contactRoleEmergency => 'Emergency';
+
+  @override
+  String get contactRoleFriend => 'Friend';
+
+  @override
+  String get contactRoleFamily => 'Family';
+
+  @override
+  String get contactRoleOther => 'Other';
 }
