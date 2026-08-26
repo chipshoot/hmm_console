@@ -1,10 +1,12 @@
+import '../../../../core/contact_block/contact_info.dart';
+import '../../../../core/data/attachments/attachment_ref.dart';
 import 'coverage_item.dart';
 
 /// Auto insurance policy attached to a vehicle. Mirrors the backend
 /// `AutoInsurancePolicy` note entity served from
 /// `/v1/automobiles/{autoId}/insurance-policies`.
 class AutoInsurancePolicy {
-  const AutoInsurancePolicy({
+  AutoInsurancePolicy({
     required this.id,
     required this.automobileId,
     required this.provider,
@@ -19,7 +21,9 @@ class AutoInsurancePolicy {
     this.isActive = true,
     this.createdDate,
     this.lastModifiedDate,
-  });
+    this.contacts = const [],
+    NoteAttachments? attachments,
+  }) : attachments = attachments ?? NoteAttachments.empty;
 
   final int id;
   final int automobileId;
@@ -35,6 +39,17 @@ class AutoInsurancePolicy {
   final bool isActive;
   final DateTime? createdDate;
   final DateTime? lastModifiedDate;
+
+  /// Embedded contact blocks - typically the agent, but a policy may carry a
+  /// claims line too. Shares the shape, editor and renderer used elsewhere; see
+  /// `lib/core/contact_block/`. Not a reference to a contact record: these
+  /// travel with the policy and are deleted with it.
+  final List<ContactInfo> contacts;
+
+  /// Read-through projection of the owning note's attachments column, same as
+  /// `ServiceRecord`. local/cloudStorage only - the API has no attachment
+  /// support for policies.
+  final NoteAttachments attachments;
 
   bool get isCurrentlyActive {
     final now = DateTime.now().toUtc();

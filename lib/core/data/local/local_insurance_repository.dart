@@ -1,3 +1,4 @@
+import '../../contact_block/contact_info_codec.dart';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,6 +84,7 @@ class LocalInsuranceRepository implements IInsuranceRepository {
       coverage: policy.coverage,
       notes: policy.notes,
       isActive: policy.isActive,
+      contacts: policy.contacts,
       createdDate: DateTime.now(),
       lastModifiedDate: DateTime.now(),
     );
@@ -111,6 +113,7 @@ class LocalInsuranceRepository implements IInsuranceRepository {
       coverage: policy.coverage,
       notes: policy.notes,
       isActive: policy.isActive,
+      contacts: policy.contacts,
       createdDate: policy.createdDate,
       lastModifiedDate: DateTime.now(),
     );
@@ -157,6 +160,10 @@ class LocalInsuranceRepository implements IInsuranceRepository {
         'createdDate': p.createdDate!.toUtc().toIso8601String(),
       if (p.lastModifiedDate != null)
         'lastModifiedDate': p.lastModifiedDate!.toUtc().toIso8601String(),
+      // Embedded under the shared key so every feature's blocks sit at the
+      // same path - that is what makes them cheatsheet-bindable without
+      // configuration.
+      ContactInfoCodec.contactsKey: ContactInfoCodec.listTo(p.contacts),
       '_v': 1,
     };
     return jsonEncode({
@@ -182,6 +189,7 @@ class LocalInsuranceRepository implements IInsuranceRepository {
         automobileId:
             body['automobileId'] as int? ?? note.parentNoteId ?? 0,
         provider: body['provider'] as String? ?? '',
+        contacts: ContactInfoCodec.listFrom(body[ContactInfoCodec.contactsKey]),
         policyNumber: body['policyNumber'] as String? ?? '',
         effectiveDate: DateTime.parse(body['effectiveDate'] as String),
         expiryDate: DateTime.parse(body['expiryDate'] as String),
