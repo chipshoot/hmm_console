@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../gas_log/states/automobiles_state.dart';
+import '../../../../core/contact_block/contact_info_labels.dart';
 import '../../domain/entities/auto_insurance_policy.dart';
 import '../../states/_records_automobile_id_provider.dart';
 import '../../states/insurance_policies_state.dart';
@@ -196,6 +197,22 @@ class _PolicyTile extends StatelessWidget {
                 '${df.format(policy.effectiveDate)} – ${df.format(policy.expiryDate)}'),
             Text(
                 '${policy.currency} ${policy.premium.toStringAsFixed(2)} premium'),
+            // The primary contact, so the agent's number is readable from the
+            // list rather than only inside the edit form.
+            if (policy.contacts.isNotEmpty)
+              Builder(builder: (context) {
+                final c = policy.contacts.first;
+                final parts = [
+                  contactRoleLabel(c.role, l),
+                  if (c.displayName.isNotEmpty) c.displayName,
+                  if ((c.phone ?? '').isNotEmpty) c.phone!,
+                ];
+                return Text(
+                  key: const Key('policyContactSummary'),
+                  parts.join(' · '),
+                  style: Theme.of(context).textTheme.bodySmall,
+                );
+              }),
           ],
         ),
         isThreeLine: true,

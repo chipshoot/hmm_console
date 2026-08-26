@@ -10,6 +10,8 @@ import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../../core/contact_block/contact_info.dart';
+import '../../../../core/contact_block/widgets/contact_info_editor.dart';
 import '../../domain/entities/auto_insurance_policy.dart';
 import '../../states/_records_automobile_id_provider.dart';
 import '../../states/mutate_insurance_policy_state.dart';
@@ -37,6 +39,10 @@ class _InsurancePolicyFormScreenState
   final _formKey = GlobalKey<FormState>();
   final _providerCtrl = TextEditingController();
   final _policyNumberCtrl = TextEditingController();
+
+  /// Embedded contact blocks, edited in place. The form owns the list; each
+  /// editor reports changes rather than holding its own copy.
+  List<ContactInfo> _contacts = [];
   final _premiumCtrl = TextEditingController();
   final _deductibleCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
@@ -75,6 +81,7 @@ class _InsurancePolicyFormScreenState
       _effective = policy.effectiveDate;
       _expiry = policy.expiryDate;
       _isActive = policy.isActive;
+      _contacts = List.of(policy.contacts);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -199,6 +206,47 @@ class _InsurancePolicyFormScreenState
                       label: l.recordsNotes,
                     ),
                     const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l.contactBlockTitle,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        TextButton.icon(
+                          key: const Key('addContactButton'),
+                          icon: const Icon(Icons.add),
+                          label: Text(l.contactBlockAdd),
+                          onPressed: () => setState(
+                            () => _contacts = [
+                              ..._contacts,
+                              const ContactInfo(role: ContactRoles.agent),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    for (var i = 0; i < _contacts.length; i++)
+                      Padding(
+                        // Keyed by index so removing one does not carry the
+                        // next block's controllers into the removed slot.
+                        key: ValueKey('contactBlock_$i'),
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: ContactInfoEditor(
+                          value: _contacts[i],
+                          onChanged: (c) {
+                            final next = List.of(_contacts);
+                            next[i] = c;
+                            _contacts = next;
+                          },
+                          onRemove: () => setState(() {
+                            final next = List.of(_contacts);
+                            next.removeAt(i);
+                            _contacts = next;
+                          }),
+                        ),
+                      ),
+                    const SizedBox(height: 24),
                     HighlightButton(
                       text: saving
                           ? 'Saving...'
@@ -256,6 +304,7 @@ class _InsurancePolicyFormScreenState
       coverage: _existing?.coverage ?? const [],
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       isActive: _isActive,
+      contacts: _contacts,
     );
 
     final notifier = ref.read(mutateInsurancePolicyStateProvider.notifier);
