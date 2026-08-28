@@ -15,6 +15,7 @@ import 'package:hmm_console/core/data/local/local_insurance_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/data/vault/vault_store.dart';
+import 'package:hmm_console/features/automobile_records/data/repositories/insurance_repository.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/auto_insurance_policy.dart';
 import 'package:hmm_console/features/automobile_records/states/mutate_insurance_policy_state.dart';
 
@@ -93,6 +94,36 @@ class _StubMode extends DataModeNotifier {
   DataMode build() => _m;
 }
 
+
+
+/// Delegates to the real repository but fails the final write, to prove the
+/// vault is not emptied by a save that never lands.
+class _FailingUpdateRepo implements IInsuranceRepository {
+  _FailingUpdateRepo(this.inner);
+  final IInsuranceRepository inner;
+  bool failNext = false;
+
+  @override
+  Future<void> updatePolicy(int autoId, int id, AutoInsurancePolicy p) {
+    if (failNext) throw StateError('write failed');
+    return inner.updatePolicy(autoId, id, p);
+  }
+
+  @override
+  Future<AutoInsurancePolicy> createPolicy(int autoId, AutoInsurancePolicy p) =>
+      inner.createPolicy(autoId, p);
+  @override
+  Future<List<AutoInsurancePolicy>> getPolicies(int autoId) =>
+      inner.getPolicies(autoId);
+  @override
+  Future<AutoInsurancePolicy?> getActivePolicy(int autoId) =>
+      inner.getActivePolicy(autoId);
+  @override
+  Future<AutoInsurancePolicy> getPolicyById(int autoId, int id) =>
+      inner.getPolicyById(autoId, id);
+  @override
+  Future<void> deletePolicy(int autoId, int id) => inner.deletePolicy(autoId, id);
+}
 
 void main() {
   late HmmDatabase db;
@@ -221,4 +252,46 @@ void main() {
     final reloaded = await insuranceRepo.getPolicyById(1, created.id);
     expect(reloaded.attachments.isEmpty, isTrue);
   });
+
+  test('a failed write does not destroy the removed attachment bytes', () async {
+    // Deleting before the write meant a failed save left the bytes gone while
+    // the stored note still listed their paths - an attachment that exists on
+    // screen and fails to open.
+    final failing = _FailingUpdateRepo(insuranceRepo);
+    final c = ProviderContainer(overrides: [
+      insuranceRepositoryModeProvider.overrideWithValue(failing),
+      vaultStoreProvider.overrideWith((ref) async => vault),
+      imageAttachmentPickerProvider
+          .overrideWith((ref) async => _FakePicker(vault)),
+      dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
+    ]);
+    addTearDown(c.dispose);
+
+    final created = await c
+        .read(mutateInsurancePolicyStateProvider.notifier)
+        .create(1, policy(), pendingImages: [card()]);
+    final ref = created!.attachments.images.single as VaultRef;
+
+    failing.failNext = true;
+    await c.read(mutateInsurancePolicyStateProvider.notifier).edit(
+          1,
+          created.id,
+          AutoInsurancePolicy(
+            id: created.id,
+            automobileId: 1,
+            provider: 'Intact',
+            policyNumber: 'POL-1',
+            effectiveDate: created.effectiveDate,
+            expiryDate: created.expiryDate,
+            premium: 1200,
+          ),
+          removed: [ref],
+        );
+
+    // The save failed, so the note still references these bytes; they must
+    // still be there.
+    expect(vault.deleted, isNot(contains(ref.path)));
+    expect(vault.store.containsKey(ref.path), isTrue);
+  });
+
 }

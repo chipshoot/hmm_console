@@ -59,7 +59,6 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final refs = await _persistPicks(id, pendingImages, pendingFiles);
-      await _deleteRemoved(removed);
 
       // policy.attachments already holds whatever the form retained, so new
       // picks are appended rather than replacing the set.
@@ -67,6 +66,12 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
       await ref
           .read(insuranceRepositoryModeProvider)
           .updatePolicy(autoId, id, merged);
+
+      // Only AFTER the write lands. Deleting first meant a failed save left
+      // the bytes gone while the stored note still listed their paths - an
+      // attachment visible in the list that fails to open. Deleting late can
+      // at worst orphan bytes, which wastes space; deleting early loses data.
+      await _deleteRemoved(removed);
     });
     if (state.hasValue) _invalidate();
   }

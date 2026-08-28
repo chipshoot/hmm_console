@@ -58,7 +58,8 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
           isEdit ? record : await repo.createRecord(autoId, record);
       final noteId = saved.id;
 
-      // 2. Persist pending picks + delete removed bytes. Only touch the
+      // 2. Persist pending picks. Removed bytes are deleted in step 5,
+      //    after the write. Only touch the
       //    vault/picker when there is actual attachment work — a plain
       //    record save must never initialise the vault (that init can fail
       //    or stall and would otherwise report the whole save as failed even
@@ -85,13 +86,6 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
           ));
         }
       }
-      if (!isCloudApi && removed.isNotEmpty) {
-        final store = await ref.read(vaultStoreProvider.future);
-        for (final r in removed) {
-          await store.delete(r.path);
-        }
-      }
-
       // 3. Assemble the merged attachment set (retained + new), split by type.
       bool isImage(VaultRef r) => r.contentType.startsWith('image/');
       final all = [...retained, ...newRefs];
@@ -106,6 +100,20 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
       if (needsWrite) {
         await repo.updateRecord(
             autoId, noteId, saved.copyWith(attachments: attachments));
+      }
+
+      // 5. Delete removed bytes only AFTER the write lands. Deleting first
+      //    meant a failed save left the bytes gone while the stored record
+      //    still listed their paths - an attachment visible in the list that
+      //    fails to open. Deleting late can at worst orphan bytes, which
+      //    wastes space; deleting early loses data. Note `removed` being
+      //    non-empty forces needsWrite above, so there is always a write to
+      //    have succeeded before this runs.
+      if (!isCloudApi && removed.isNotEmpty) {
+        final store = await ref.read(vaultStoreProvider.future);
+        for (final r in removed) {
+          await store.delete(r.path);
+        }
       }
     });
     if (state.hasValue) _invalidate();

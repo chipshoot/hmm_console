@@ -16,6 +16,7 @@ import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
 import 'package:hmm_console/core/data/local/local_service_record_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/data/vault/vault_store.dart';
+import 'package:hmm_console/features/automobile_records/data/repositories/service_record_repository.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/line_item_type.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/part_item.dart';
 import 'package:hmm_console/features/automobile_records/domain/entities/service_record.dart';
@@ -91,6 +92,32 @@ class _StubMode extends DataModeNotifier {
   final DataMode _m;
   @override
   DataMode build() => _m;
+}
+
+
+/// Delegates to the real repository but fails the final write, to prove the
+/// vault is not emptied by a save that never lands.
+class _FailingUpdateRepo implements IServiceRecordRepository {
+  _FailingUpdateRepo(this.inner);
+  final IServiceRecordRepository inner;
+  bool failNext = false;
+
+  @override
+  Future<void> updateRecord(int autoId, int id, ServiceRecord r) {
+    if (failNext) throw StateError('write failed');
+    return inner.updateRecord(autoId, id, r);
+  }
+
+  @override
+  Future<ServiceRecord> createRecord(int autoId, ServiceRecord r) =>
+      inner.createRecord(autoId, r);
+  @override
+  Future<List<ServiceRecord>> getRecords(int autoId) => inner.getRecords(autoId);
+  @override
+  Future<ServiceRecord> getRecordById(int autoId, int id) =>
+      inner.getRecordById(autoId, id);
+  @override
+  Future<void> deleteRecord(int autoId, int id) => inner.deleteRecord(autoId, id);
 }
 
 Automobile _seedAuto() => Automobile(
@@ -272,4 +299,37 @@ void main() {
     // No bytes were written to the vault in cloudApi mode.
     expect(vault.store, isEmpty);
   });
+
+  test('a failed write does not destroy the removed attachment bytes', () async {
+    // Deleting before the write meant a failed save left the bytes gone while
+    // the stored note still listed their paths.
+    final failing = _FailingUpdateRepo(serviceRepo);
+    final c = ProviderContainer(overrides: [
+      serviceRecordRepositoryModeProvider.overrideWithValue(failing),
+      vaultStoreProvider.overrideWith((ref) async => vault),
+      imageAttachmentPickerProvider
+          .overrideWith((ref) async => _FakePicker(vault)),
+      dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
+    ]);
+    addTearDown(c.dispose);
+
+    final created = await serviceRepo.createRecord(autoId, newRecord());
+    const ref = VaultRef(
+        path: 'attachments/note-y/keep.pdf',
+        contentType: 'application/pdf',
+        byteSize: 3);
+    vault.store[ref.path] = Uint8List.fromList([1, 2, 3]);
+
+    failing.failNext = true;
+    await c.read(mutateServiceRecordStateProvider.notifier).save(
+          autoId: autoId,
+          record: created,
+          isEdit: true,
+          removed: const [ref],
+        );
+
+    expect(vault.deleted, isNot(contains(ref.path)));
+    expect(vault.store.containsKey(ref.path), isTrue);
+  });
+
 }
