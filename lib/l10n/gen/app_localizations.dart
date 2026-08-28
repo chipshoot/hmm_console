@@ -3133,6 +3133,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get contactRoleOther;
+
+  /// No description provided for @vehicleRegistrationSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration'**
+  String get vehicleRegistrationSection;
+
+  /// No description provided for @vehicleRegistrationNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration number'**
+  String get vehicleRegistrationNumber;
+
+  /// No description provided for @vehicleRegistrationJurisdiction.
+  ///
+  /// In en, this message translates to:
+  /// **'Province / State'**
+  String get vehicleRegistrationJurisdiction;
+
+  /// No description provided for @vehicleRegistrationIssued.
+  ///
+  /// In en, this message translates to:
+  /// **'Issued'**
+  String get vehicleRegistrationIssued;
+
+  /// No description provided for @vehicleValueNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get vehicleValueNotSet;
 }
 
 class _AppLocalizationsDelegate

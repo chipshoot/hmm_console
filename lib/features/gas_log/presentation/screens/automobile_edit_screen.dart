@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
@@ -73,6 +74,9 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   // Per-card pending state
   final _meterReadingCtrl = TextEditingController();
   DateTime? _registrationExpiryDate;
+  final _registrationNumberCtrl = TextEditingController();
+  final _registrationJurisdictionCtrl = TextEditingController();
+  DateTime? _registrationIssuedDate;
   final _notesCtrl = TextEditingController();
 
   // Photo banner — instant-commit picker (no draft state). Tapping
@@ -124,6 +128,9 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
   void _resetRegistration() {
     _registrationExpiryDate = _original!.registrationExpiryDate;
+    _registrationNumberCtrl.text = _original!.registrationNumber ?? '';
+    _registrationJurisdictionCtrl.text = _original!.registrationJurisdiction ?? '';
+    _registrationIssuedDate = _original!.registrationIssuedDate;
   }
 
   void _resetNotes() {
@@ -141,6 +148,8 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     _colorCtrl.dispose();
     _plateCtrl.dispose();
     _meterReadingCtrl.dispose();
+    _registrationNumberCtrl.dispose();
+    _registrationJurisdictionCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
@@ -176,6 +185,9 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     int? meterReading,
     String? ownershipStatus,
     Object? registrationExpiryDate = _kSentinel,
+    Object? registrationNumber = _kSentinel,
+    Object? registrationJurisdiction = _kSentinel,
+    Object? registrationIssuedDate = _kSentinel,
     Object? notes = _kSentinel,
     Object? primaryImage = _kSentinel,
     List<AutomobileAuditEntry>? auditLog,
@@ -209,6 +221,15 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       registrationExpiryDate: identical(registrationExpiryDate, _kSentinel)
           ? orig.registrationExpiryDate
           : registrationExpiryDate as DateTime?,
+      registrationNumber: identical(registrationNumber, _kSentinel)
+          ? orig.registrationNumber
+          : registrationNumber as String?,
+      registrationJurisdiction: identical(registrationJurisdiction, _kSentinel)
+          ? orig.registrationJurisdiction
+          : registrationJurisdiction as String?,
+      registrationIssuedDate: identical(registrationIssuedDate, _kSentinel)
+          ? orig.registrationIssuedDate
+          : registrationIssuedDate as DateTime?,
       insuranceExpiryDate: orig.insuranceExpiryDate,
       insuranceProvider: orig.insuranceProvider,
       insurancePolicyNumber: orig.insurancePolicyNumber,
@@ -244,7 +265,13 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   }
 
   Future<bool> _saveRegistration() async {
-    return _persist(_cloneWith(registrationExpiryDate: _registrationExpiryDate));
+    String? orNull(String v) => v.trim().isEmpty ? null : v.trim();
+    return _persist(_cloneWith(
+      registrationExpiryDate: _registrationExpiryDate,
+      registrationNumber: orNull(_registrationNumberCtrl.text),
+      registrationJurisdiction: orNull(_registrationJurisdictionCtrl.text),
+      registrationIssuedDate: _registrationIssuedDate,
+    ));
   }
 
   Future<bool> _saveNotes() async {
@@ -475,19 +502,76 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                 EditableInfoCard(
                   icon: Icons.assignment_outlined,
                   title: l.vehicleRegistration,
-                  displayBuilder: (_) => _readOnlyRow(
-                    'Expiry',
-                    orig.registrationExpiryDate != null
-                        ? _formatDate(orig.registrationExpiryDate!)
-                        : 'Not set',
-                  ),
-                  editorBuilder: (_) => _optionalDatePicker(
-                    context,
-                    label: l.vehicleRegistrationExpiry,
-                    date: _registrationExpiryDate,
-                    onChanged: (d) =>
-                        setState(() => _registrationExpiryDate = d),
-                  ),
+                  displayBuilder: (_) {
+                    // The three detail rows are absent in cloudApi for the same
+                    // reason the editors are: the API DTO does not carry them.
+                    final apiBacked =
+                        ref.watch(dataModeProvider) != DataMode.cloudApi;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (apiBacked) ...[
+                          _readOnlyRow(
+                            l.vehicleRegistrationNumber,
+                            orig.registrationNumber ?? l.vehicleValueNotSet,
+                          ),
+                          _readOnlyRow(
+                            l.vehicleRegistrationJurisdiction,
+                            orig.registrationJurisdiction ?? l.vehicleValueNotSet,
+                          ),
+                          _readOnlyRow(
+                            l.vehicleRegistrationIssued,
+                            orig.registrationIssuedDate != null
+                                ? _formatDate(orig.registrationIssuedDate!)
+                                : l.vehicleValueNotSet,
+                          ),
+                        ],
+                        _readOnlyRow(
+                          l.vehicleRegistrationExpiry,
+                          orig.registrationExpiryDate != null
+                              ? _formatDate(orig.registrationExpiryDate!)
+                              : l.vehicleValueNotSet,
+                        ),
+                      ],
+                    );
+                  },
+                  editorBuilder: (_) {
+                    final apiBacked =
+                        ref.watch(dataModeProvider) != DataMode.cloudApi;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (apiBacked) ...[
+                          AppTextFormField(
+                            key: const Key('registrationNumberField'),
+                            fieldController: _registrationNumberCtrl,
+                            fieldValidator: (_) => null,
+                            label: l.vehicleRegistrationNumber,
+                          ),
+                          AppTextFormField(
+                            key: const Key('registrationJurisdictionField'),
+                            fieldController: _registrationJurisdictionCtrl,
+                            fieldValidator: (_) => null,
+                            label: l.vehicleRegistrationJurisdiction,
+                          ),
+                          _optionalDatePicker(
+                            context,
+                            label: l.vehicleRegistrationIssued,
+                            date: _registrationIssuedDate,
+                            onChanged: (d) =>
+                                setState(() => _registrationIssuedDate = d),
+                          ),
+                        ],
+                        _optionalDatePicker(
+                          context,
+                          label: l.vehicleRegistrationExpiry,
+                          date: _registrationExpiryDate,
+                          onChanged: (d) =>
+                              setState(() => _registrationExpiryDate = d),
+                        ),
+                      ],
+                    );
+                  },
                   onSave: _saveRegistration,
                   onCancel: () => setState(_resetRegistration),
                 ),

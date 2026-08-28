@@ -505,5 +505,10 @@
   "contactRoleEmergency": "紧急联系",
   "contactRoleFriend": "朋友",
   "contactRoleFamily": "家人",
-  "contactRoleOther": "其他"
+  "contactRoleOther": "其他",
+  "vehicleRegistrationSection": "行驶证",
+  "vehicleRegistrationNumber": "登记号",
+  "vehicleRegistrationJurisdiction": "省 / 州",
+  "vehicleRegistrationIssued": "发证日期",
+  "vehicleValueNotSet": "未设置"
 }

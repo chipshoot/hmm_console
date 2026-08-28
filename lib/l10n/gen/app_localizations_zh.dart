@@ -1705,4 +1705,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get contactRoleOther => '其他';
+
+  @override
+  String get vehicleRegistrationSection => '行驶证';
+
+  @override
+  String get vehicleRegistrationNumber => '登记号';
+
+  @override
+  String get vehicleRegistrationJurisdiction => '省 / 州';
+
+  @override
+  String get vehicleRegistrationIssued => '发证日期';
+
+  @override
+  String get vehicleValueNotSet => '未设置';
 }

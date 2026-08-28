@@ -1049,5 +1049,10 @@
   "contactRoleEmergency": "Emergency",
   "contactRoleFriend": "Friend",
   "contactRoleFamily": "Family",
-  "contactRoleOther": "Other"
+  "contactRoleOther": "Other",
+  "vehicleRegistrationSection": "Registration",
+  "vehicleRegistrationNumber": "Registration number",
+  "vehicleRegistrationJurisdiction": "Province / State",
+  "vehicleRegistrationIssued": "Issued",
+  "vehicleValueNotSet": "Not set"
 }

@@ -1745,4 +1745,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contactRoleOther => 'Other';
+
+  @override
+  String get vehicleRegistrationSection => 'Registration';
+
+  @override
+  String get vehicleRegistrationNumber => 'Registration number';
+
+  @override
+  String get vehicleRegistrationJurisdiction => 'Province / State';
+
+  @override
+  String get vehicleRegistrationIssued => 'Issued';
+
+  @override
+  String get vehicleValueNotSet => 'Not set';
 }
