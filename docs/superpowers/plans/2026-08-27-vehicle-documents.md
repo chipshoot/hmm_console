@@ -34,7 +34,7 @@
 **Interfaces:**
 - Produces: `Automobile.registrationNumber`, `.registrationJurisdiction`, `.registrationIssuedDate` (all nullable), alongside the existing `.registrationExpiryDate`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Write `test/core/data/local/local_automobile_registration_test.dart`. Model the database harness on `test/core/data/local/local_gas_log_repository_station_rename_test.dart` — real `HmmDatabase(NativeDatabase.memory())`, a seeded author, real `LocalHmmNoteRepository` + `LocalNoteCatalogRepository`:
 
@@ -85,12 +85,12 @@ Write `test/core/data/local/local_automobile_registration_test.dart`. Model the 
 
 `_seedAuto()` copies the fixture from the gas-log test. Add whatever small `copyWithRegistration` / `copyWithPlate` test helpers you need at the bottom of the test file — `Automobile` has no general `copyWith`, and adding one is out of scope. **Check `getAutomobiles`'s real signature** before using `includeInactive`; if it differs, read deactivated vehicles however the repository actually exposes them.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/core/data/local/local_automobile_registration_test.dart`
 Expected: FAIL — `registrationNumber` is not defined.
 
-- [ ] **Step 3: Add the fields to the entity**
+- [x] **Step 3: Add the fields to the entity**
 
 In `lib/features/gas_log/domain/entities/automobile.dart`, add three constructor parameters and three fields beside `registrationExpiryDate`:
 
@@ -108,7 +108,7 @@ In `lib/features/gas_log/domain/entities/automobile.dart`, add three constructor
 
 Include them in `==` and `hashCode` if the class defines them.
 
-- [ ] **Step 4: Thread them through ALL FOUR rebuild sites**
+- [x] **Step 4: Thread them through ALL FOUR rebuild sites**
 
 In `lib/core/data/local/local_automobile_repository.dart`:
 
@@ -136,18 +136,18 @@ In `lib/core/data/local/local_automobile_repository.dart`:
 
 Also check `lib/features/gas_log/data/repositories/automobile_repository.dart` (~line 73) and `lib/core/data/local/local_gas_log_repository.dart` (~155), which both rebuild an `Automobile` too.
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `flutter test test/core/data/local/local_automobile_registration_test.dart`
 Expected: PASS (4 tests)
 
-- [ ] **Step 6: Mutation-check each rebuild site**
+- [x] **Step 6: Mutation-check each rebuild site**
 
 One at a time, delete `registrationNumber:` from `createAutomobile`, then from `updateAutomobile`, then from `deactivateAutomobile`. Each must fail its own test. **Confirm each edit actually applied before trusting the result** — then restore it.
 
 Expected: three separate failures, one per site. If deactivation's mutation survives, the deactivation test is not reaching that path — fix the test, not the assertion.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
@@ -168,7 +168,7 @@ git commit -m "feat(automobile): add registration number, jurisdiction and issue
 **Interfaces:**
 - Consumes: the three fields from Task 1.
 
-- [ ] **Step 1: Add ARB keys**
+- [x] **Step 1: Add ARB keys**
 
 Add to `app_en.arb`:
 
@@ -192,7 +192,7 @@ And to `app_zh.arb`:
 
 Run: `flutter gen-l10n`
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Write `test/features/gas_log/automobile_registration_form_test.dart` asserting:
 
@@ -203,12 +203,12 @@ Write `test/features/gas_log/automobile_registration_form_test.dart` asserting:
 
 Mount inside a `ProviderScope` with `AppLocalizations.localizationsDelegates` and `supportedLocales` supplied on the `MaterialApp`, or the widget throws while building rather than failing an assertion.
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `flutter test test/features/gas_log/automobile_registration_form_test.dart`
 Expected: FAIL — the fields do not exist.
 
-- [ ] **Step 4: Add the fields to the form**
+- [x] **Step 4: Add the fields to the form**
 
 Group the three new fields with the existing expiry picker under a `vehicleRegistrationSection` heading. Follow the file's existing conventions: `AppTextFormField` for text, `_optionalDatePicker` for the issued date.
 
@@ -224,16 +224,16 @@ if (ref.watch(dataModeProvider) != DataMode.cloudApi) ...[
 
 The expiry picker stays outside the guard — the API carries it.
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `flutter test test/features/gas_log/automobile_registration_form_test.dart`
 Expected: PASS
 
-- [ ] **Step 6: Mutation-check the guard**
+- [x] **Step 6: Mutation-check the guard**
 
 Remove the cloudApi guard. Expected: the cloudApi test fails. Restore it.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
@@ -246,6 +246,12 @@ git commit -m "feat(automobile): edit registration details, hidden in cloudApi"
 
 ### Task 2b: Registration scans on the vehicle note
 
+> **RESUME HERE (paused 2026-08-27).** Steps 1-3 are DONE and committed as `ff2e2c1`: `Automobile.files` exists, is persisted through `_attachmentsFor` / `_deserialize`, and is covered by `test/core/data/local/local_automobile_attachments_test.dart` (6 tests, mutation-verified).
+>
+> **What is left is Step 4 only — the picker UI.** `updateAutomobileStateProvider` has no attachment handling at all, so it needs the `_persistPicks` / `_deleteRemoved` shape from `mutate_insurance_policy_state.dart` (two-phase, vault skipped when there is no attachment work, deletes AFTER the write lands), and the edit screen needs an `AttachmentsSection` inside the same `cloudApi` guard as the registration fields, persisting with `sensitive: true`.
+>
+> Corrections found while implementing, already applied above: the vehicle had most of its attachment plumbing already (only `files` was missing), and `deactivateAutomobile` writes content only — passing it `attachments` would WIPE every scan, which is why the test mutates exactly that.
+
 Added after a spec-coverage review: the spec puts registration scans on the vehicle's note, but `Automobile` exposes only `primaryImage` (a single `AttachmentRef?`), not the full set, and the edit screen has no attachments UI. This is the largest piece of Part A. **If you want Part A small, cut this task** — Tasks 1 and 2 deliver the registration *details* on their own, and scans can follow later.
 
 **Files:**
@@ -257,7 +263,7 @@ Added after a spec-coverage review: the spec puts registration scans on the vehi
 **Interfaces:**
 - Produces: `Automobile.attachments` (`NoteAttachments`), alongside the existing `primaryImage`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Against a real in-memory database, assert:
 
@@ -267,12 +273,12 @@ Against a real in-memory database, assert:
 - the car photo stays in `primaryImage` and is NOT adopted as a scan, and a scan is not promoted to the car photo
 - removing a scan deletes its bytes only after the write lands
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/core/data/local/local_automobile_attachments_test.dart`
 Expected: FAIL — `Automobile.attachments` does not exist.
 
-- [ ] **Step 3: Expose the full attachment set**
+- [x] **Step 3: Expose the full attachment set**
 
 Add `final NoteAttachments attachments;` to `Automobile`, defaulting via `NoteAttachments? attachments`) `: attachments = attachments ?? NoteAttachments.empty` — note this makes the constructor non-const, which is why `ServiceRecord` and `AutoInsurancePolicy` are non-const too. Check for `const Automobile(` call sites first; there were none for `AutoInsurancePolicy`.
 
