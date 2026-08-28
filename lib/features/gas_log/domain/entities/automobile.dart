@@ -83,6 +83,11 @@ class Automobile {
   /// column. Empty list means no extras.
   final List<AttachmentRef> images;
 
+  /// Non-image attachments on the owning note - a registration scanned as a
+  /// PDF rather than photographed. Same read-through projection as [images];
+  /// the bytes live on the note, not here.
+  final List<AttachmentRef> files;
+
   const Automobile({
     required this.id,
     this.vin,
@@ -125,6 +130,7 @@ class Automobile {
     this.auditLog = const [],
     this.primaryImage,
     this.images = const [],
+    this.files = const [],
   });
 
   String get displayName {

@@ -188,12 +188,13 @@ class LocalAutomobileRepository implements IAutomobileRepository {
   }
 
   NoteAttachments _attachmentsFor(Automobile auto) {
-    if (auto.primaryImage == null && auto.images.isEmpty) {
+    if (auto.primaryImage == null && auto.images.isEmpty && auto.files.isEmpty) {
       return NoteAttachments.empty;
     }
     return NoteAttachments(
       primaryImage: auto.primaryImage,
       images: auto.images,
+      files: auto.files,
     );
   }
 
@@ -249,6 +250,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
         // note's `attachments` column.
         primaryImage: note.effectiveAttachments.primaryImage,
         images: note.effectiveAttachments.images,
+        files: note.effectiveAttachments.files,
         auditLog: ((d['auditLog'] as List?) ?? const [])
             .map((e) {
               final m = e as Map<String, dynamic>;
