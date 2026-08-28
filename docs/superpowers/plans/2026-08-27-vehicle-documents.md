@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **`LocalAutomobileRepository` rebuilds the entity field by field in FOUR places** — `createAutomobile` (~line 47), `updateAutomobile` (~79), `deactivateAutomobile` (~97) and `_deserialize` (~201). A field missed in **any one** never reaches storage, or is silently wiped by an unrelated edit. This exact class of bug was shipped three times in the insurance work.
+- **`LocalAutomobileRepository` has TWO places a new field must be named** — `deactivateAutomobile` (~97), which rebuilds the entity field by field purely to flip `isActive`, and `_deserialize` (~201). `createAutomobile` and `updateAutomobile` pass the entity straight to `_serialize`, so they need nothing. *(Corrected during Task 1: the first draft of this plan claimed four rebuild sites. Verified — there is one, plus deserialize.)* A field missed in the deactivate rebuild is destroyed by deactivating a vehicle. This class of bug was shipped three times in the insurance work.
 - **Licence image BYTES are referenced from the note's `attachments` column.** `VaultGc` builds its live-path set by reading every note's attachments column and deletes any vault file not in it. Storing refs only in content would make the images invisible to GC, and the next run would delete the user's licence photos. Content records only `frontImagePath` / `backImagePath`.
 - **Both licence images and registration scans are `sensitive: true`**, so they route through `EncryptedVaultStore`. Unlock is once per session via the existing `local_auth` gate — no new security machinery.
 - **`cloudApi` mode hides the three NEW registration fields and the whole licence feature.** Neither reaches the API; offering them would take input, report success, and discard it. The existing `registrationExpiryDate` picker STAYS visible in all modes — the API does carry it.
@@ -263,7 +263,7 @@ Against a real in-memory database, assert:
 
 - a scan attached to a vehicle survives a create, and reads back
 - it survives an unrelated edit (changing the plate) — the four rebuild sites from Task 1 apply here too
-- it survives deactivation
+- it survives deactivation (the rebuild site)
 - the car photo stays in `primaryImage` and is NOT adopted as a scan, and a scan is not promoted to the car photo
 - removing a scan deletes its bytes only after the write lands
 
@@ -278,7 +278,7 @@ Add `final NoteAttachments attachments;` to `Automobile`, defaulting via `NoteAt
 
 `primaryImage` stays as it is: the car photo occupies the `primaryImage` slot, scans occupy `images`/`files`. In the repository, read it back with `note.effectiveAttachments` and write it with the existing `_attachmentsFor` pattern from `LocalServiceRecordRepository`.
 
-Thread `attachments` through **all four rebuild sites** from Task 1.
+Name `attachments` in `deactivateAutomobile`'s rebuild and in `_deserialize` — the two places from Task 1.
 
 - [ ] **Step 4: Add the section to the edit screen**
 

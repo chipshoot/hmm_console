@@ -38,6 +38,16 @@ class Automobile {
 
   // Registration & Insurance
   final DateTime? registrationExpiryDate;
+
+  /// Ownership registration. The expiry date predates this feature; these
+  /// three join it.
+  final String? registrationNumber;
+
+  /// Province / state. Free text: it varies by country, and a fixed list
+  /// would reject a valid registration.
+  final String? registrationJurisdiction;
+
+  final DateTime? registrationIssuedDate;
   final DateTime? insuranceExpiryDate;
   final String? insuranceProvider;
   final String? insurancePolicyNumber;
@@ -99,6 +109,9 @@ class Automobile {
     this.soldMeterReading,
     this.soldPrice,
     this.registrationExpiryDate,
+    this.registrationNumber,
+    this.registrationJurisdiction,
+    this.registrationIssuedDate,
     this.insuranceExpiryDate,
     this.insuranceProvider,
     this.insurancePolicyNumber,
