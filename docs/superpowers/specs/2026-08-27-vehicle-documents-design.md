@@ -16,7 +16,7 @@ A registration belongs to a **vehicle**; a licence belongs to a **person**. Putt
 
 | Area | Decision |
 |---|---|
-| Registration storage | **Fields on the existing `Automobile` entity.** No new record type, no new catalog. `registrationExpiryDate` already exists and is already persisted. |
+| Registration storage | **Fields on the existing `Automobile` entity.** No new record type, no new catalog. `registrationExpiryDate` already exists, is persisted, IS rendered in the vehicle edit form (`automobile_edit_screen.dart`, label `vehicleRegistrationExpiry`), and IS carried in the automobile API DTO. The three new fields join it. |
 | Registration scan | Rides the vehicle's own note `attachments` column - the same mechanism the car photo already uses. Marked `sensitive`. |
 | Licence scope | **Exactly one, the user's own.** Not family members. |
 | Licence storage | A **singleton note**: catalog `Hmm.AutomobileMan.DriverLicence`, fixed subject `DriverLicence:self`. No list, no picker, no id management. |
@@ -41,9 +41,9 @@ Neither document reaches the API.
 
 - **Attachments are local/cloudStorage only** — the API has no attachment support for these records. This already applies to service records and insurance.
 - **The licence has no API at all**; `Hmm.AutomobileMan.DriverLicence` exists only client-side. `driverLicenceRepositoryModeProvider` throws `UnimplementedError` for `cloudApi`, matching how cheatsheets shipped before their backend existed.
-- **The new registration fields are not in the automobile API DTO**, so a `cloudApi` save would drop them.
+- **The automobile API DTO already carries `registrationExpiryDate`**, so the vehicle itself is API-backed. The **three new registration fields are not in it**, so a `cloudApi` save would drop those three specifically. Adding them is small backend work in the `Hmm` repo (three nullable fields on the DTO plus mapping) and is the better long-term answer; it is out of scope here.
 
-**Therefore the UI hides both the new registration fields and the whole licence feature in `cloudApi` mode**, rather than accepting input and discarding it. This is not caution for its own sake: the insurance work shipped without that guard and a `cloudApi` user could type an agent's phone number, see a success message, and lose it. The service-record form already has the guard; follow it.
+**Therefore, until that backend work lands, the UI hides the three new registration fields and the whole licence feature in `cloudApi` mode**, rather than accepting input and discarding it. Note the existing expiry picker stays visible in every mode, because the API does carry it. This is not caution for its own sake: the insurance work shipped without that guard and a `cloudApi` user could type an agent's phone number, see a success message, and lose it. The service-record form already has the guard; follow it.
 
 ## Data model
 
@@ -117,7 +117,7 @@ Both `licenceClass` and `jurisdiction` are **stored literals**, never translated
 
 ## UI
 
-**Vehicle form / detail** — the four registration fields grouped under a "Registration" heading, with the scan attached. This surfaces `registrationExpiryDate` for the first time; it is currently persisted but displayed nowhere.
+**Vehicle form** — the three new fields join the existing expiry picker, grouped under a "Registration" heading, with the scan attached. The expiry picker already exists and is already rendered; it is being grouped, not introduced.
 
 **Licence screen** — details plus front/back thumbnails, an edit affordance, and capture actions for each side. An empty state when nothing has been captured yet.
 
@@ -137,7 +137,7 @@ New user-facing strings get ARB keys in **both** `app_en.arb` and `app_zh.arb`, 
 - **GC safety**: both licence images appear in the note's `attachments` column, so a `VaultGc` run with a correctly-built referenced set does NOT delete them. Worth an explicit test - getting this wrong deletes the user's licence photos silently, and the first draft of this spec got it wrong.
 - **Registration**: the three new fields survive a create and an unrelated edit — `LocalAutomobileRepository` rebuilds the automobile field by field, so a field it forgets never reaches storage. Test against a real database, not the codec alone.
 - **Show mode**: flips sides; renders the correct image in each slot; a licence with one side missing degrades rather than erroring.
-- **Data mode**: in `cloudApi` the licence entry point and the registration fields are absent, so nothing can be typed and lost.
+- **Data mode**: in `cloudApi` the licence entry point and the three NEW registration fields are absent, so nothing can be typed and lost; the existing expiry picker remains, since the API carries it.
 - Every guarantee above should be **mutation-checked** — reverting the fix must fail the test that names it.
 
 ## Non-goals
@@ -146,7 +146,7 @@ New user-facing strings get ARB keys in **both** `app_en.arb` and `app_zh.arb`, 
 - **Family members' licences.** Chosen deliberately; adding one later means a migration from singleton to collection, and probably reviving Contacts (#31).
 - **Brightness and wakelock** in show mode — two new platform plugins.
 - **Cheatsheet wallet rendering these.** Wallet rows resolve to scalars (`NotePieceExtractor.field` returns `String?`), so displaying an image there is its own piece of work. A cheatsheet row *can* already bind the licence number or expiry as text.
-- **Any backend or `cloudApi` support**, for either document.
+- **Backend support**: adding the three registration fields to the automobile API DTO (small, and the right long-term fix), and any API at all for the licence.
 
 ## Future phases
 
