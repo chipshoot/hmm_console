@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 /// A reusable block of contact details, embedded in another record's own
 /// note content rather than stored as a record of its own.
 ///
@@ -25,8 +27,8 @@ class ContactInfo {
     this.email,
     this.address,
     this.notes,
-    this.extraFields = const {},
-  });
+    Map<String, dynamic> extraFields = const {},
+  }) : _extraFields = extraFields;
 
   /// A STORED literal (`agent`, `doctor`, ...), never a translated label.
   /// Free text is accepted so a role this version does not know still round
@@ -44,11 +46,24 @@ class ContactInfo {
 
   final String? notes;
 
+  final Map<String, dynamic> _extraFields;
+
   /// Keys this version does not model, kept verbatim so an older client cannot
   /// destroy a newer one's data.
-  final Map<String, dynamic> extraFields;
+  ///
+  /// Exposed unmodifiable: this map's entire job is preservation, so editing
+  /// it through the getter must not be possible. A view rather than a copy, to
+  /// keep the constructor const - a caller that holds on to the map it passed
+  /// in can still change it, but that takes deliberate effort rather than a
+  /// slip.
+  Map<String, dynamic> get extraFields => UnmodifiableMapView(_extraFields);
 
+  /// Note this is a SAVE-TIME FILTER: ContactInfoCodec.listTo drops empty
+  /// blocks. So a block carrying only fields this version does not understand
+  /// must NOT count as empty, or the save would destroy exactly the data
+  /// extraFields exists to preserve.
   bool get isEmpty =>
+      extraFields.isEmpty &&
       name.trim().isEmpty &&
       (organization ?? '').trim().isEmpty &&
       (phone ?? '').trim().isEmpty &&
@@ -62,28 +77,23 @@ class ContactInfo {
   String get displayName =>
       name.trim().isNotEmpty ? name.trim() : (organization ?? '').trim();
 
-  /// Note this CANNOT clear a field: every parameter falls back to the current
-  /// value, so passing null means "leave it alone". To clear something, build a
-  /// ContactInfo directly - see `ContactInfoEditor._emit`.
-  ContactInfo copyWith({
-    String? role,
-    String? name,
-    String? organization,
-    String? phone,
-    String? email,
-    String? address,
-    String? notes,
-    Map<String, dynamic>? extraFields,
-  }) =>
-      ContactInfo(
+  /// Deliberately limited to the two NON-NULLABLE fields.
+  ///
+  /// A general copyWith would read `phone ?? this.phone`, so passing null
+  /// could not express "clear the phone" - it is indistinguishable from "leave
+  /// it alone", which fails silently with wrong data rather than loudly. Since
+  /// role and name can never be null, that ambiguity cannot arise here. To
+  /// change any nullable field, construct a ContactInfo directly and say
+  /// exactly what every field should be - see `ContactInfoEditor._emit`.
+  ContactInfo copyWith({String? role, String? name}) => ContactInfo(
         role: role ?? this.role,
         name: name ?? this.name,
-        organization: organization ?? this.organization,
-        phone: phone ?? this.phone,
-        email: email ?? this.email,
-        address: address ?? this.address,
-        notes: notes ?? this.notes,
-        extraFields: extraFields ?? this.extraFields,
+        organization: organization,
+        phone: phone,
+        email: email,
+        address: address,
+        notes: notes,
+        extraFields: extraFields,
       );
 
   @override

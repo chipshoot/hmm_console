@@ -200,19 +200,17 @@ class _PolicyTile extends StatelessWidget {
             // The primary contact, so the agent's number is readable from the
             // list rather than only inside the edit form.
             if (policy.contacts.isNotEmpty)
-              Builder(builder: (context) {
-                final c = policy.contacts.first;
-                final parts = [
-                  contactRoleLabel(c.role, l),
-                  if (c.displayName.isNotEmpty) c.displayName,
-                  if ((c.phone ?? '').isNotEmpty) c.phone!,
-                ];
-                return Text(
-                  key: const Key('policyContactSummary'),
-                  parts.join(' · '),
-                  style: Theme.of(context).textTheme.bodySmall,
-                );
-              }),
+              Text(
+                key: const Key('policyContactSummary'),
+                [
+                  contactRoleLabel(policy.contacts.first.role, l),
+                  if (policy.contacts.first.displayName.isNotEmpty)
+                    policy.contacts.first.displayName,
+                  if ((policy.contacts.first.phone ?? '').isNotEmpty)
+                    policy.contacts.first.phone!,
+                ].join(' · '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
           ],
         ),
         isThreeLine: true,

@@ -68,8 +68,10 @@ void main() {
     expect(created.attachments.files, hasLength(1));
     // AttachmentRef is sealed and exposes only `kind`; the detail lives on
     // the VaultRef variant.
-    expect((created.attachments.images.single as VaultRef).contentType, 'image/jpeg');
-    expect((created.attachments.files.single as VaultRef).originalName, 'policy.pdf');
+    // Full equality, not spot checks: a mutation corrupting path or byteSize
+    // would survive assertions that only look at contentType.
+    expect(created.attachments.images.single, _card);
+    expect(created.attachments.files.single, _policyPdf);
   });
 
   test('an attachment survives an edit that has nothing to do with it', () async {

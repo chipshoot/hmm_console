@@ -91,6 +91,79 @@ void main() {
     });
   });
 
+
+  testWidgets('resyncs when the parent supplies a different value', (tester) async {
+    // Removing a block shifts later blocks down an index. The editors are
+    // keyed by index, so Flutter reuses the State for that slot and initState
+    // does NOT run again - without a resync the fields keep showing the
+    // removed block's text while the model underneath is the next one.
+    await tester.pumpWidget(host(ContactInfoEditor(
+      value: const ContactInfo(role: ContactRoles.agent, name: 'Ada', phone: '111'),
+      onChanged: (_) {},
+    )));
+    expect(find.text('Ada'), findsOneWidget);
+
+    await tester.pumpWidget(host(ContactInfoEditor(
+      value: const ContactInfo(role: ContactRoles.doctor, name: 'Grace', phone: '222'),
+      onChanged: (_) {},
+    )));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Grace'), findsOneWidget);
+    expect(find.text('222'), findsOneWidget);
+    expect(find.text('Ada'), findsNothing);
+  });
+
+
+    testWidgets('changing the role keeps text typed just before it', (tester) async {
+      // The role handler used to emit widget.value.copyWith(role:), and the
+      // parent does not setState on text edits, so widget.value was stale and
+      // the just-typed number was silently wiped.
+      ContactInfo? seen;
+      await tester.pumpWidget(host(ContactInfoEditor(
+        value: const ContactInfo(role: ContactRoles.agent),
+        onChanged: (c) => seen = c,
+      )));
+
+      await tester.enterText(find.byKey(const Key('contactPhoneField')), '555-0100');
+      await tester.tap(find.byKey(const Key('contactRoleField')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Doctor').last);
+      await tester.pumpAndSettle();
+
+      expect(seen!.role, ContactRoles.doctor);
+      expect(seen!.phone, '555-0100');
+    });
+
+
+    testWidgets('editing one field leaves the others untouched', (tester) async {
+      // The original version of this test started from an all-empty contact,
+      // so hardcoding the other fields to null would have passed it.
+      ContactInfo? seen;
+      await tester.pumpWidget(host(ContactInfoEditor(
+        value: const ContactInfo(
+          role: ContactRoles.doctor,
+          name: 'Grace',
+          organization: 'General',
+          phone: '111',
+          email: 'g@example.com',
+          address: '1 Main St',
+          notes: 'after hours',
+        ),
+        onChanged: (c) => seen = c,
+      )));
+
+      await tester.enterText(find.byKey(const Key('contactPhoneField')), '222');
+
+      expect(seen!.phone, '222');
+      expect(seen!.name, 'Grace');
+      expect(seen!.organization, 'General');
+      expect(seen!.email, 'g@example.com');
+      expect(seen!.address, '1 Main St');
+      expect(seen!.notes, 'after hours');
+      expect(seen!.role, ContactRoles.doctor);
+    });
+
   group('view', () {
     testWidgets('taps report the value that was tapped', (tester) async {
       String? called;

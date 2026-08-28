@@ -96,4 +96,27 @@ void main() {
     const hospital = ContactInfo(role: 'hospital', organization: 'General');
     expect(hospital.displayName, 'General');
   });
+
+  test('a block carrying ONLY unknown fields is not dropped on save', () {
+    // isEmpty is a save-time filter, so ignoring extraFields would destroy
+    // exactly the data extraFields exists to preserve.
+    final onlyExtras = ContactInfoCodec.fromMap({'futureThing': 'keep me'});
+
+    expect(onlyExtras.isEmpty, isFalse);
+    expect(ContactInfoCodec.listTo([onlyExtras]), hasLength(1));
+    expect(ContactInfoCodec.listTo([onlyExtras]).single['futureThing'], 'keep me');
+  });
+
+  test('extraFields cannot be edited through the getter', () {
+    final c = ContactInfoCodec.fromMap({'role': 'agent', 'fax': '1'});
+    expect(() => c.extraFields['fax'] = '2', throwsUnsupportedError);
+  });
+
+  test('the wire key is literally "contacts"', () {
+    // Pinned because the backend note shape and cheatsheet leaf-path binding
+    // (AutoInsurancePolicy.contacts.0.phone) both depend on this exact string;
+    // every other test round-trips through the constant and would not notice.
+    expect(ContactInfoCodec.contactsKey, 'contacts');
+  });
+
 }

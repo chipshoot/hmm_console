@@ -9,6 +9,7 @@ import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
+import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
@@ -224,6 +225,11 @@ class _InsurancePolicyFormScreenState
                       fieldValidator: (_) => null,
                       label: l.recordsNotes,
                     ),
+                    // Neither contacts nor attachments reach the API yet, so
+                    // in cloudApi mode offering them would take input, report
+                    // success, and discard it. Same guard the service-record
+                    // form uses.
+                    if (ref.watch(dataModeProvider) != DataMode.cloudApi) ...[
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -276,6 +282,7 @@ class _InsurancePolicyFormScreenState
                       onRemove: _removeItem,
                       onTap: _openItem,
                     ),
+                    ],
                     const SizedBox(height: 24),
                     HighlightButton(
                       text: saving
@@ -303,12 +310,15 @@ class _InsurancePolicyFormScreenState
     final pick = await ref
         .read(imageByteSourceProvider)
         .pick(AttachmentPickSource.gallery);
-    if (pick != null) setState(() => _pendingImages.add(pick));
+    // The picker is an OS sheet; the user can leave the form while it is open.
+    if (pick == null || !mounted) return;
+    setState(() => _pendingImages.add(pick));
   }
 
   Future<void> _addPdf() async {
     final pick = await ref.read(fileByteSourceProvider).pickPdf();
-    if (pick != null) setState(() => _pendingFiles.add(pick));
+    if (pick == null || !mounted) return;
+    setState(() => _pendingFiles.add(pick));
   }
 
   void _removeItem(AttachmentItem item) {

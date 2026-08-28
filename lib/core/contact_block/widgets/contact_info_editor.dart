@@ -40,15 +40,57 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
   late final TextEditingController _address;
   late final TextEditingController _notes;
 
+  /// Role and extras are held HERE, not read from widget.value on demand. The
+  /// parent updates its list in place without setState on every keystroke, so
+  /// widget.value goes stale between rebuilds; emitting from it discarded text
+  /// the user had just typed.
+  late String _role;
+  late Map<String, dynamic> _extras;
+
   @override
   void initState() {
     super.initState();
+    _role = widget.value.role;
+    _extras = widget.value.extraFields;
     _name = TextEditingController(text: widget.value.name);
     _organization = TextEditingController(text: widget.value.organization ?? '');
     _phone = TextEditingController(text: widget.value.phone ?? '');
     _email = TextEditingController(text: widget.value.email ?? '');
     _address = TextEditingController(text: widget.value.address ?? '');
     _notes = TextEditingController(text: widget.value.notes ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant ContactInfoEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final v = widget.value;
+
+    // Rows are keyed by position, so removing a block hands this State to the
+    // NEXT block's value without initState running again. Without this the
+    // fields kept showing the removed block's text while the model underneath
+    // had moved on, and the next edit merged the two into a hybrid.
+    //
+    // Guarded on a real difference: resyncing on every parent rebuild would
+    // reset the caret mid-edit.
+    final differs = v.name != _name.text ||
+        (v.organization ?? '') != _organization.text ||
+        (v.phone ?? '') != _phone.text ||
+        (v.email ?? '') != _email.text ||
+        (v.address ?? '') != _address.text ||
+        (v.notes ?? '') != _notes.text ||
+        v.role != _role;
+    if (!differs) return;
+
+    _name.text = v.name;
+    _organization.text = v.organization ?? '';
+    _phone.text = v.phone ?? '';
+    _email.text = v.email ?? '';
+    _address.text = v.address ?? '';
+    _notes.text = v.notes ?? '';
+    setState(() {
+      _role = v.role;
+      _extras = v.extraFields;
+    });
   }
 
   @override
@@ -72,14 +114,14 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
     // user cleared could never actually be cleared. Role and extraFields are
     // carried across by hand because this editor does not own them.
     widget.onChanged(ContactInfo(
-      role: widget.value.role,
+      role: _role,
       name: _name.text,
       organization: _orNull(_organization.text),
       phone: _orNull(_phone.text),
       email: _orNull(_email.text),
       address: _orNull(_address.text),
       notes: _orNull(_notes.text),
-      extraFields: widget.value.extraFields,
+      extraFields: _extras,
     ));
   }
 
@@ -89,9 +131,8 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
 
     // A role the user already has but this version does not offer must stay
     // selectable, or opening the form would silently rewrite it.
-    final roles = widget.roles.contains(widget.value.role)
-        ? widget.roles
-        : [widget.value.role, ...widget.roles];
+    final roles =
+        widget.roles.contains(_role) ? widget.roles : [_role, ...widget.roles];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,7 +142,7 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
             Expanded(
               child: DropdownButtonFormField<String>(
                 key: const Key('contactRoleField'),
-                initialValue: widget.value.role,
+                initialValue: _role,
                 decoration: InputDecoration(labelText: l.contactFieldRole),
                 items: [
                   for (final r in roles)
@@ -113,7 +154,11 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
                     ),
                 ],
                 onChanged: (r) {
-                  if (r != null) widget.onChanged(widget.value.copyWith(role: r));
+                  if (r == null) return;
+                  // Through _emit, so the live controller text travels with
+                  // the role change instead of being replaced by a stale prop.
+                  setState(() => _role = r);
+                  _emit();
                 },
               ),
             ),

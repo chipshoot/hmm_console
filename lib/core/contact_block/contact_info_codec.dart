@@ -24,7 +24,10 @@ class ContactInfoCodec {
   };
 
   static Map<String, dynamic> toMap(ContactInfo c) => {
-        // Preserved keys first so a typed field always wins on conflict.
+        // Preserved keys first, so a typed field overwrites them. Note this
+        // only holds when the typed field is non-null: the optional keys below
+        // are written conditionally, so a preserved value for a known key
+        // survives when its typed field is absent.
         ...c.extraFields,
         'role': c.role,
         'name': c.name,
