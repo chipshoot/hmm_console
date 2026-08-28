@@ -10,6 +10,14 @@ import '../../../../core/widgets/button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/open_attachment.dart';
+import '../../../../core/data/attachments/picker/file_byte_source.dart';
+import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
+import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
+import '../../../../core/data/attachments/widgets/attachments_section.dart';
 import '../../../../core/contact_block/contact_info.dart';
 import '../../../../core/contact_block/widgets/contact_info_editor.dart';
 import '../../domain/entities/auto_insurance_policy.dart';
@@ -43,6 +51,11 @@ class _InsurancePolicyFormScreenState
   /// Embedded contact blocks, edited in place. The form owns the list; each
   /// editor reports changes rather than holding its own copy.
   List<ContactInfo> _contacts = [];
+
+  final List<PickedImageBytes> _pendingImages = [];
+  final List<PickedFileBytes> _pendingFiles = [];
+  final List<VaultRef> _savedRefs = [];
+  final List<VaultRef> _removedRefs = [];
   final _premiumCtrl = TextEditingController();
   final _deductibleCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
@@ -82,6 +95,12 @@ class _InsurancePolicyFormScreenState
       _expiry = policy.expiryDate;
       _isActive = policy.isActive;
       _contacts = List.of(policy.contacts);
+      _savedRefs
+        ..clear()
+        ..addAll([
+          ...policy.attachments.images.whereType<VaultRef>(),
+          ...policy.attachments.files.whereType<VaultRef>(),
+        ]);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -247,6 +266,17 @@ class _InsurancePolicyFormScreenState
                         ),
                       ),
                     const SizedBox(height: 24),
+                    AttachmentsSection(
+                      items: _attachmentItems,
+                      resolver: ref.watch(attachmentResolverProvider).value ??
+                          const _NullResolver(),
+                      editable: true,
+                      onAddImage: _addImage,
+                      onAddPdf: _addPdf,
+                      onRemove: _removeItem,
+                      onTap: _openItem,
+                    ),
+                    const SizedBox(height: 24),
                     HighlightButton(
                       text: saving
                           ? 'Saving...'
@@ -258,6 +288,52 @@ class _InsurancePolicyFormScreenState
               ),
             ),
     );
+  }
+
+  List<AttachmentItem> get _attachmentItems => [
+        for (final p in _pendingImages) PendingImageItem(p),
+        for (final r in _savedRefs)
+          if (r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+        for (final p in _pendingFiles) PendingFileItem(p),
+        for (final r in _savedRefs)
+          if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+      ];
+
+  Future<void> _addImage() async {
+    final pick = await ref
+        .read(imageByteSourceProvider)
+        .pick(AttachmentPickSource.gallery);
+    if (pick != null) setState(() => _pendingImages.add(pick));
+  }
+
+  Future<void> _addPdf() async {
+    final pick = await ref.read(fileByteSourceProvider).pickPdf();
+    if (pick != null) setState(() => _pendingFiles.add(pick));
+  }
+
+  void _removeItem(AttachmentItem item) {
+    setState(() {
+      switch (item) {
+        case PendingImageItem(:final pick):
+          _pendingImages.remove(pick);
+        case PendingFileItem(:final pick):
+          _pendingFiles.remove(pick);
+        case SavedAttachmentItem(:final ref):
+          // Removed from the policy now, deleted from the vault on save -
+          // cancelling the form must not destroy bytes.
+          _savedRefs.remove(ref);
+          _removedRefs.add(ref);
+      }
+    });
+  }
+
+  Future<void> _openItem(AttachmentItem item) async {
+    // A pending pick has no vault path yet; openable once saved.
+    if (item is! SavedAttachmentItem) return;
+    final err = await openAttachment(ref, item.ref);
+    if (err != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    }
   }
 
   String? _validateAmount(String? v) {
@@ -305,13 +381,37 @@ class _InsurancePolicyFormScreenState
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       isActive: _isActive,
       contacts: _contacts,
+      // Retained refs only; newly picked bytes have no vault path until the
+      // state writes them against the saved note id.
+      attachments: NoteAttachments(
+        images: _savedRefs.where((r) => r.contentType.startsWith('image/')).toList(),
+        files: _savedRefs.where((r) => !r.contentType.startsWith('image/')).toList(),
+      ),
     );
 
     final notifier = ref.read(mutateInsurancePolicyStateProvider.notifier);
     if (widget.isEdit) {
-      await notifier.edit(widget.automobileId, _existing!.id, policy);
+      await notifier.edit(
+        widget.automobileId,
+        _existing!.id,
+        policy,
+        pendingImages: _pendingImages,
+        pendingFiles: _pendingFiles,
+        removed: _removedRefs,
+      );
     } else {
-      await notifier.create(widget.automobileId, policy);
+      await notifier.create(
+        widget.automobileId,
+        policy,
+        pendingImages: _pendingImages,
+        pendingFiles: _pendingFiles,
+      );
     }
   }
+}
+
+class _NullResolver implements IAttachmentResolver {
+  const _NullResolver();
+  @override
+  Future<Uint8List?> resolve(AttachmentRef ref) async => null;
 }

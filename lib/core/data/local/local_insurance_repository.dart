@@ -1,3 +1,4 @@
+import '../attachments/attachment_ref.dart';
 import '../../contact_block/contact_info_codec.dart';
 import 'dart:convert';
 
@@ -85,6 +86,7 @@ class LocalInsuranceRepository implements IInsuranceRepository {
       notes: policy.notes,
       isActive: policy.isActive,
       contacts: policy.contacts,
+      attachments: policy.attachments,
       createdDate: DateTime.now(),
       lastModifiedDate: DateTime.now(),
     );
@@ -93,6 +95,7 @@ class LocalInsuranceRepository implements IInsuranceRepository {
       content: _serialize(stamped),
       catalogId: catalog.id,
       parentNoteId: autoId,
+      attachments: _attachmentsFor(stamped),
     ));
     return _deserialize(note)!;
   }
@@ -114,6 +117,7 @@ class LocalInsuranceRepository implements IInsuranceRepository {
       notes: policy.notes,
       isActive: policy.isActive,
       contacts: policy.contacts,
+      attachments: policy.attachments,
       createdDate: policy.createdDate,
       lastModifiedDate: DateTime.now(),
     );
@@ -122,6 +126,10 @@ class LocalInsuranceRepository implements IInsuranceRepository {
       HmmNoteUpdate(
         subject: _subjectFor(updated),
         content: _serialize(updated),
+        // Pass the full attachment state every time: an empty set clears the
+        // column, and omitting it would leave a stale set behind, so an edit
+        // never silently wipes or resurrects attachments.
+        attachments: _attachmentsFor(updated),
       ),
     );
   }
@@ -136,6 +144,9 @@ class LocalInsuranceRepository implements IInsuranceRepository {
         '${p.expiryDate.year}-${p.expiryDate.month.toString().padLeft(2, '0')}';
     return '${p.provider} • ${p.policyNumber} • exp $exp';
   }
+
+  NoteAttachments _attachmentsFor(AutoInsurancePolicy p) =>
+      p.attachments.isEmpty ? NoteAttachments.empty : p.attachments;
 
   String _serialize(AutoInsurancePolicy p) {
     final data = <String, dynamic>{
@@ -190,6 +201,9 @@ class LocalInsuranceRepository implements IInsuranceRepository {
             body['automobileId'] as int? ?? note.parentNoteId ?? 0,
         provider: body['provider'] as String? ?? '',
         contacts: ContactInfoCodec.listFrom(body[ContactInfoCodec.contactsKey]),
+        // Read-through projection: attachments live on the owning note's
+        // column, not in the policy JSON.
+        attachments: note.effectiveAttachments,
         policyNumber: body['policyNumber'] as String? ?? '',
         effectiveDate: DateTime.parse(body['effectiveDate'] as String),
         expiryDate: DateTime.parse(body['expiryDate'] as String),
