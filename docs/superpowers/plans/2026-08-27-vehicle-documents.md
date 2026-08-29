@@ -328,7 +328,7 @@ git commit -m "feat(automobile): attach registration scans to a vehicle"
 **Interfaces:**
 - Produces: `DriverLicence` with `number`, `licenceClass`, `jurisdiction`, `issuedDate`, `expiryDate`, `frontImage`, `backImage` (both `VaultRef?`), `extraFields`, and `hasImages`; `DriverLicenceCodec.toMap` / `.fromMap(Map, NoteAttachments)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Write `test/features/driver_licence/driver_licence_codec_test.dart`:
 
@@ -435,12 +435,12 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/features/driver_licence/driver_licence_codec_test.dart`
 Expected: FAIL — the files do not exist.
 
-- [ ] **Step 3: Write the entity**
+- [x] **Step 3: Write the entity**
 
 Write `lib/features/driver_licence/domain/driver_licence.dart` with the fields listed in **Interfaces** above. Follow `lib/core/contact_block/contact_info.dart` for shape: const constructor, `final` fields, value `==`/`hashCode`, `extraFields` held privately and exposed as an `UnmodifiableMapView` (a plain field lets a caller edit the preservation map out from under the value object).
 
@@ -448,7 +448,7 @@ Write `lib/features/driver_licence/domain/driver_licence.dart` with the fields l
 
 Document that `frontImage`/`backImage` bytes live in the note's attachments column.
 
-- [ ] **Step 4: Write the codec**
+- [x] **Step 4: Write the codec**
 
 Write `lib/features/driver_licence/data/driver_licence_codec.dart`:
 
@@ -456,25 +456,33 @@ Write `lib/features/driver_licence/data/driver_licence_codec.dart`:
 - `fromMap(Map<String, dynamic>, NoteAttachments)` — reads scalars defensively (only consume a key when it holds the expected JSON type; anything else falls through to `extraFields`, exactly as `ContactInfoCodec` does), then resolves `frontImagePath` / `backImagePath` against `[...attachments.images, ...attachments.files]` by `path`, yielding null when there is no match.
 - `_knownKeys` must include the two path keys so they do not leak into `extraFields`.
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `flutter test test/features/driver_licence/driver_licence_codec_test.dart`
 Expected: PASS (10 tests)
 
-- [ ] **Step 6: Mutation-check the GC-safety guarantee**
+- [x] **Step 6: Mutation-check the GC-safety guarantee**
 
 Change `toMap` to write `'frontImage': ...` (a serialized ref) instead of `'frontImagePath'`.
 Expected: `content records PATHS, not the refs themselves` fails. Restore.
 
 This is the mutation that matters most in the whole plan: it is the difference between the licence photos surviving garbage collection and being deleted.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
 git add lib/features/driver_licence test/features/driver_licence
 git commit -m "feat(licence): add DriverLicence entity and GC-safe codec"
 ```
+
+**Task 3 is DONE — 12 tests, not the 10 the plan predicted.** Step 6's mutation
+(writing the ref instead of the path) was killed as designed, but a THIRD
+mutation survived: removing the two path keys from `_knownKeys` broke nothing,
+because `==` does not compare `extraFields` and the round-trip still matched.
+The consequence is real — a path whose bytes are gone would be preserved in
+`extraFields` and rewritten on save, resurrecting a reference that cannot open.
+Two tests were added to close it.
 
 ---
 
