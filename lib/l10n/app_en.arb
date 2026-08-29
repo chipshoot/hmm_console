@@ -1055,6 +1055,7 @@
   "vehicleRegistrationJurisdiction": "Province / State",
   "vehicleRegistrationIssued": "Issued",
   "vehicleValueNotSet": "Not set",
+  "launcherDestLicence": "Driver's licence",
   "licenceTitle": "Driver's licence",
   "licenceEmpty": "No licence saved yet",
   "licenceAdd": "Add licence",

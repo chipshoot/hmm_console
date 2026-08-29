@@ -1722,6 +1722,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get vehicleValueNotSet => '未设置';
 
   @override
+  String get launcherDestLicence => '驾驶证';
+
+  @override
   String get licenceTitle => '驾驶证';
 
   @override

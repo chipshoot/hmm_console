@@ -33,6 +33,7 @@ import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_
 import 'package:hmm_console/features/launcher/presentation/launcher_search_screen.dart';
 import 'package:hmm_console/features/launcher/presentation/launcher_manage_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
+import 'driver_licence_routes.dart';
 
 /// Shared with `HomeSyncOverlay`/`SyncPill` (mounted above the router in
 /// `main.dart`'s `MaterialApp.router(builder: ...)`) so they can show
@@ -269,6 +270,7 @@ final routerConfig = Provider<GoRouter>(
         ],
       ),
       ...cheatsheetRoutes,
+      ...driverLicenceRoutes,
       GoRoute(
         path: '/notes',
         name: RouterNames.notesList.name,

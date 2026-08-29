@@ -3164,6 +3164,12 @@ abstract class AppLocalizations {
   /// **'Not set'**
   String get vehicleValueNotSet;
 
+  /// No description provided for @launcherDestLicence.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver\'s licence'**
+  String get launcherDestLicence;
+
   /// No description provided for @licenceTitle.
   ///
   /// In en, this message translates to:

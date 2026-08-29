@@ -142,6 +142,28 @@ List<LauncherDestination> launcherDestinations(AppLocalizations l) => [
         routeName: 'cheatsheets',
       ),
       LauncherDestination(
+        // Literal id and routeName: favorites persist by id, so a
+        // locale-dependent one would orphan every favorite the moment the UI
+        // language changed. Only the title is localized, and the English
+        // terms stay in synonyms so a bilingual user on a Chinese UI can
+        // still type "licence".
+        id: 'driverLicence',
+        title: l.launcherDestLicence,
+        synonyms: const [
+          'Licence',
+          'licence',
+          'license',
+          "driver's licence",
+          'drivers license',
+          'driving licence',
+          'dl',
+          'id',
+          '驾驶证', '驾照', '驾驶执照',
+        ],
+        icon: Icons.badge_outlined,
+        routeName: 'driverLicence',
+      ),
+      LauncherDestination(
         id: 'settings',
         title: l.launcherDestSettings,
         synonyms: const [

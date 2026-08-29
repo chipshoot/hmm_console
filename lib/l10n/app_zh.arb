@@ -511,6 +511,7 @@
   "vehicleRegistrationJurisdiction": "省 / 州",
   "vehicleRegistrationIssued": "发证日期",
   "vehicleValueNotSet": "未设置",
+  "launcherDestLicence": "驾驶证",
   "licenceTitle": "驾驶证",
   "licenceEmpty": "尚未保存驾驶证",
   "licenceAdd": "添加驾驶证",

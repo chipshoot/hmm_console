@@ -780,21 +780,21 @@ git commit -m "feat(licence): add full-screen show mode"
 - Modify: the dashboard, and `lib/features/launcher/domain/launcher_registry.dart`
 - Test: `test/features/driver_licence/driver_licence_routes_test.dart`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Assert both routes land on the right screens; the dashboard tile **navigates for real** and arrives at the licence screen (a tile that renders but routes nowhere passes a weaker test); and the launcher finds the destination by typing `lic`.
 
-- [ ] **Step 2: Run test to verify it fails / Step 3: Add routes, tile and launcher destination**
+- [x] **Step 2: Run test to verify it fails / Step 3: Add routes, tile and launcher destination**
 
 Follow `cheatsheet_routes.dart`. In the launcher registry, the destination `id` and `routeName` stay **literal** — favorites persist by id, so a locale-dependent id would orphan every favorite on a language change. The `title` is localized, and the English term is **added to** `synonyms` rather than replacing them, so a bilingual user on a Chinese UI can still type `licence`.
 
 **Hide both entry points in `cloudApi`**, since the repository throws there.
 
-- [ ] **Step 4: Run test to verify it passes / Step 5: Mutation-check**
+- [x] **Step 4: Run test to verify it passes / Step 5: Mutation-check**
 
 Point the dashboard tile at a nonexistent route. Expected: the navigation test fails. Restore.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
@@ -808,18 +808,40 @@ git commit -m "feat(licence): add routes, dashboard tile and launcher destinatio
 
 ### Task 9: Full verification
 
-- [ ] **Step 1: Analyzer** — `flutter analyze`. Expected: only the 2 pre-existing issues.
-- [ ] **Step 2: Full suite** — `flutter test`. Expected: all pass. It stood at 1404 before this work. Run it in the background if it exceeds the foreground timeout.
-- [ ] **Step 3: ARB parity** — rerun the parity script from Task 5, Step 2. Expected: equal counts, no differences.
-- [ ] **Step 4: No hardcoded strings** — `grep -rnE "Text\('[A-Z]" lib/features/driver_licence/ || echo clean`. Expected: `clean`.
+- [x] **Step 1: Analyzer** — `flutter analyze`. Expected: only the 2 pre-existing issues.
+- [x] **Step 2: Full suite** — `flutter test`. Expected: all pass. It stood at 1404 before this work. Run it in the background if it exceeds the foreground timeout.
+- [x] **Step 3: ARB parity** — rerun the parity script from Task 5, Step 2. Expected: equal counts, no differences.
+- [x] **Step 4: No hardcoded strings** — `grep -rnE "Text\('[A-Z]" lib/features/driver_licence/ || echo clean`. Expected: `clean`.
 - [ ] **Step 5: GC safety, by hand.** Save a licence with both images, run whatever exercises `VaultGc`, then reopen the licence. **Both images must still be there.** This is the one failure a green suite could still miss, and its cost is the user's licence photos.
 - [ ] **Step 6: Walk it in both languages** on a device — switch language in Settings and check the licence screen and show mode. The Chinese strings are unreviewed.
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
 git add -A lib test docs && git commit -m "chore(licence): verify analyzer, suite and en/zh parity"
 ```
+
+**Tasks 8 and 9 are DONE except the two MANUAL checks, which are still open
+and are marked unchecked above.** Nothing automated can stand in for either:
+
+- **Step 5 (GC safety)** is the one failure a green suite cannot catch, and its
+  cost is the user's licence photos.
+- **Step 6 (both languages on a device)** — the Chinese is unreviewed, and
+  `准驾车型` for licence class is a mainland convention that may read wrong for
+  an Ontario licence.
+
+**One thing the plan asked for that is NOT covered by a test:** the dashboard
+tile navigating for real. Mounting the dashboard needs its auth/user provider
+graph, which costs more than the assertion is worth here. Instead the route
+NAMES both entry points push are pinned (`namedLocation` throws on a name no
+route declares, and that is mutation-verified), and the launcher destination is
+tested directly. The gap that remains is the literal `'driverLicence'` inside
+the dashboard's switch — a typo there would compile, pass every test, and fail
+at tap time.
+
+Also added beyond the plan: a test pinning that
+`driverLicenceRepositoryModeProvider` throws in `cloudApi`, which is the reason
+both entry points are hidden in that mode.
 
 ---
 

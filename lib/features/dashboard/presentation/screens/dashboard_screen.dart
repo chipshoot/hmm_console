@@ -13,6 +13,7 @@ import '../../../auth/providers/current_user_provider.dart';
 import '../../../auth/usecases/signout_usecase.dart';
 import '../../providers/intro_card_provider.dart';
 import '../widgets/defaults_intro_card.dart';
+import '../../../../core/data/data_mode.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -76,6 +77,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       title: "Cheatsheets",
       description: "Quick-reference cards",
       route: "cheatsheets",
+    ),
+    AppFunction(
+      icon: "\uD83E\uDEAA",
+      title: "Licence",
+      description: "Driver's licence",
+      route: "driverLicence",
     ),
     AppFunction(
       icon: "\uD83C\uDF24\uFE0F",
@@ -241,7 +248,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       runSpacing: 20,
       alignment: WrapAlignment.center,
       children:
-          _allFunctions.map((f) => _buildShortcutItem(f, colorScheme)).toList(),
+          _visibleFunctions(ref)
+              .map((f) => _buildShortcutItem(f, colorScheme))
+              .toList(),
     );
   }
 
@@ -371,6 +380,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return parts.first[0].toUpperCase();
   }
 
+  /// The licence has no API repository — `driverLicenceRepositoryModeProvider`
+  /// throws in cloudApi — so its tile is hidden there rather than offering a
+  /// route that crashes.
+  static List<AppFunction> _visibleFunctions(WidgetRef ref) {
+    final apiOnly = ref.watch(dataModeProvider) == DataMode.cloudApi;
+    return [
+      for (final f in _allFunctions)
+        if (!(apiOnly && f.route == 'driverLicence')) f,
+    ];
+  }
+
   void _navigateToFunction(AppFunction function) {
     final l = AppLocalizations.of(context);
     switch (function.route) {
@@ -380,6 +400,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         context.push('/notes');
       case 'cheatsheets':
         context.pushNamed(RouterNames.cheatsheets.name);
+      case 'driverLicence':
+        context.pushNamed(RouterNames.driverLicence.name);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

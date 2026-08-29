@@ -1762,6 +1762,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vehicleValueNotSet => 'Not set';
 
   @override
+  String get launcherDestLicence => 'Driver\'s licence';
+
+  @override
   String get licenceTitle => 'Driver\'s licence';
 
   @override
