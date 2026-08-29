@@ -1714,10 +1714,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactFieldPhone => 'Phone';
 
   @override
+  String get contactFieldMobile => 'Cell';
+
+  @override
+  String get contactFieldFax => 'Fax';
+
+  @override
   String get contactFieldEmail => 'Email';
 
   @override
   String get contactFieldAddress => 'Address';
+
+  @override
+  String get contactFieldStreet => 'Street address';
+
+  @override
+  String get contactFieldCity => 'City';
+
+  @override
+  String get contactFieldRegion => 'Province / State';
+
+  @override
+  String get contactFieldPostalCode => 'Postal code';
+
+  @override
+  String get contactFieldCountry => 'Country';
 
   @override
   String get contactFieldNotes => 'Notes';

@@ -8,8 +8,16 @@ void main() {
     name: 'Ada Lovelace',
     organization: 'Intact',
     phone: '555-0100',
+    mobile: '555-0111',
+    fax: '555-0122',
     email: 'ada@example.com',
-    address: '1 Analytical Way',
+    address: ContactAddress(
+      street: '1 Analytical Way',
+      city: 'Ottawa',
+      region: 'ON',
+      postalCode: 'K1A 0B1',
+      country: 'Canada',
+    ),
     notes: 'policy 123',
   );
 
@@ -41,13 +49,13 @@ void main() {
       final decoded = ContactInfoCodec.fromMap({
         'role': 'doctor',
         'name': 'Dr Grace',
-        'fax': '555-0199',
+        'pager': '555-0199',
         'future': {'a': 1},
       });
 
       final resaved =
           ContactInfoCodec.toMap(decoded.copyWith(name: 'Dr Hopper'));
-      expect(resaved['fax'], '555-0199');
+      expect(resaved['pager'], '555-0199');
       expect(resaved['future'], {'a': 1});
       expect(resaved['name'], 'Dr Hopper');
     });
@@ -108,8 +116,8 @@ void main() {
   });
 
   test('extraFields cannot be edited through the getter', () {
-    final c = ContactInfoCodec.fromMap({'role': 'agent', 'fax': '1'});
-    expect(() => c.extraFields['fax'] = '2', throwsUnsupportedError);
+    final c = ContactInfoCodec.fromMap({'role': 'agent', 'pager': '1'});
+    expect(() => c.extraFields['pager'] = '2', throwsUnsupportedError);
   });
 
   test('the wire key is literally "contacts"', () {
@@ -117,6 +125,107 @@ void main() {
     // (AutoInsurancePolicy.contacts.0.phone) both depend on this exact string;
     // every other test round-trips through the constant and would not notice.
     expect(ContactInfoCodec.contactsKey, 'contacts');
+  });
+
+  group('address', () {
+    test('a legacy plain-string address is read as the street', () {
+      // Every contact saved before the address became structured holds a
+      // String here. Dropping it would silently erase real user data.
+      final decoded = ContactInfoCodec.fromMap({
+        'role': 'agent',
+        'address': '1 Analytical Way',
+      });
+
+      expect(decoded.address!.street, '1 Analytical Way');
+      expect(decoded.address!.city, isNull);
+    });
+
+    test('a structured address round-trips field by field', () {
+      const a = ContactAddress(
+        street: '1 Main St',
+        city: 'Ottawa',
+        region: 'ON',
+        postalCode: 'K1A 0B1',
+        country: 'Canada',
+      );
+      final decoded =
+          ContactInfoCodec.fromMap(ContactInfoCodec.toMap(const ContactInfo(address: a)));
+
+      expect(decoded.address, a);
+    });
+
+    test('unknown keys INSIDE the address survive an edit', () {
+      // The block's own losslessness contract has to hold one level down too,
+      // or nesting the address opens a hole exactly where it did not exist.
+      final decoded = ContactInfoCodec.fromMap({
+        'role': 'agent',
+        'address': {'city': 'Ottawa', 'unit': '4B'},
+      });
+
+      final resaved = ContactInfoCodec.toMap(decoded);
+      expect((resaved['address'] as Map)['unit'], '4B');
+      expect((resaved['address'] as Map)['city'], 'Ottawa');
+    });
+
+    test('an empty address is not written at all', () {
+      const c = ContactInfo(phone: '911', address: ContactAddress());
+      expect(ContactInfoCodec.toMap(c).containsKey('address'), isFalse);
+    });
+
+    test('a garbage address does not take the block down', () {
+      final decoded =
+          ContactInfoCodec.fromMap({'role': 'agent', 'address': 42});
+      expect(decoded.address, isNull);
+      expect(decoded.role, 'agent');
+    });
+
+    test('singleLine composes what a maps app can search for', () {
+      const a = ContactAddress(
+        street: '1 Main St',
+        city: 'Ottawa',
+        region: 'ON',
+        postalCode: 'K1A 0B1',
+        country: 'Canada',
+      );
+      expect(a.singleLine, '1 Main St, Ottawa, ON K1A 0B1, Canada');
+    });
+
+    test('singleLine skips the parts that are absent', () {
+      const a = ContactAddress(city: 'Ottawa', country: 'Canada');
+      expect(a.singleLine, 'Ottawa, Canada');
+    });
+  });
+
+  group('cell and fax', () {
+    test('both round-trip as typed', () {
+      const c = ContactInfo(phone: '555-0100', mobile: '555-0111', fax: '555-0122');
+      final decoded = ContactInfoCodec.fromMap(ContactInfoCodec.toMap(c));
+
+      expect(decoded.mobile, '555-0111');
+      expect(decoded.fax, '555-0122');
+    });
+
+    test('a fax already stored as an unknown key becomes the typed field', () {
+      // Real notes may carry `fax` from before this version modelled it.
+      final decoded = ContactInfoCodec.fromMap({'role': 'agent', 'fax': '555-0122'});
+
+      expect(decoded.fax, '555-0122');
+      expect(decoded.extraFields, isEmpty);
+    });
+
+    test('a block holding ONLY a fax is persisted, not dropped as empty', () {
+      const onlyFax = ContactInfo(fax: '555-0122');
+
+      expect(onlyFax.isEmpty, isFalse);
+      expect(ContactInfoCodec.listTo([onlyFax]), hasLength(1));
+    });
+
+    test('a block holding ONLY an address is persisted, not dropped as empty', () {
+      const onlyAddress = ContactInfo(address: ContactAddress(city: 'Ottawa'));
+
+      expect(onlyAddress.isEmpty, isFalse);
+      expect(ContactInfoCodec.listTo([onlyAddress]), hasLength(1));
+    });
   });
 
 }

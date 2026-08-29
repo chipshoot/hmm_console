@@ -3068,6 +3068,18 @@ abstract class AppLocalizations {
   /// **'Phone'**
   String get contactFieldPhone;
 
+  /// No description provided for @contactFieldMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Cell'**
+  String get contactFieldMobile;
+
+  /// No description provided for @contactFieldFax.
+  ///
+  /// In en, this message translates to:
+  /// **'Fax'**
+  String get contactFieldFax;
+
   /// No description provided for @contactFieldEmail.
   ///
   /// In en, this message translates to:
@@ -3079,6 +3091,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Address'**
   String get contactFieldAddress;
+
+  /// No description provided for @contactFieldStreet.
+  ///
+  /// In en, this message translates to:
+  /// **'Street address'**
+  String get contactFieldStreet;
+
+  /// No description provided for @contactFieldCity.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get contactFieldCity;
+
+  /// No description provided for @contactFieldRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Province / State'**
+  String get contactFieldRegion;
+
+  /// No description provided for @contactFieldPostalCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Postal code'**
+  String get contactFieldPostalCode;
+
+  /// No description provided for @contactFieldCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get contactFieldCountry;
 
   /// No description provided for @contactFieldNotes.
   ///

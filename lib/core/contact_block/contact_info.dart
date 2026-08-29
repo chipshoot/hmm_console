@@ -24,6 +24,8 @@ class ContactInfo {
     this.name = '',
     this.organization,
     this.phone,
+    this.mobile,
+    this.fax,
     this.email,
     this.address,
     this.notes,
@@ -37,12 +39,25 @@ class ContactInfo {
 
   final String name;
   final String? organization;
+
+  /// Three separate numbers rather than one, because an agent's landline,
+  /// cell and fax are genuinely different things to reach them on and a
+  /// single field forces the user to pick one.
+  ///
+  /// All three are stored EXACTLY as typed, punctuation included. Normalizing
+  /// to digits would make what is stored differ from what was entered, and
+  /// re-rendering an international number correctly needs a real phone
+  /// library. A `tel:` launcher can strip non-digits at the point of use.
   final String? phone;
+  final String? mobile;
+  final String? fax;
+
   final String? email;
 
-  /// A single free-text postal address; tap-for-Maps needs only a string, and
-  /// the app already has a `geocoding` feature for lookup.
-  final String? address;
+  /// Structured rather than one free-text line, so a postal code and a city
+  /// are separately enterable, autofillable and bindable. Reading tolerates
+  /// the legacy plain string - see `ContactInfoCodec`.
+  final ContactAddress? address;
 
   final String? notes;
 
@@ -67,8 +82,10 @@ class ContactInfo {
       name.trim().isEmpty &&
       (organization ?? '').trim().isEmpty &&
       (phone ?? '').trim().isEmpty &&
+      (mobile ?? '').trim().isEmpty &&
+      (fax ?? '').trim().isEmpty &&
       (email ?? '').trim().isEmpty &&
-      (address ?? '').trim().isEmpty &&
+      (address?.isEmpty ?? true) &&
       (notes ?? '').trim().isEmpty;
 
   /// The block's heading: a person's name when there is one, otherwise the
@@ -90,6 +107,8 @@ class ContactInfo {
         name: name ?? this.name,
         organization: organization,
         phone: phone,
+        mobile: mobile,
+        fax: fax,
         email: email,
         address: address,
         notes: notes,
@@ -104,13 +123,104 @@ class ContactInfo {
           other.name == name &&
           other.organization == organization &&
           other.phone == phone &&
+          other.mobile == mobile &&
+          other.fax == fax &&
           other.email == email &&
           other.address == address &&
           other.notes == notes;
 
   @override
-  int get hashCode =>
-      Object.hash(role, name, organization, phone, email, address, notes);
+  int get hashCode => Object.hash(
+      role, name, organization, phone, mobile, fax, email, address, notes);
+}
+
+/// The postal parts of a contact's address.
+///
+/// A value object inside a value object: no id, no lifecycle, meaningless
+/// apart from the [ContactInfo] that holds it. Split into fields so the OS can
+/// autofill a saved address, so a postal code is enterable without hunting
+/// through one long line, and so a cheatsheet row can bind `address.city`.
+class ContactAddress {
+  const ContactAddress({
+    this.street,
+    this.city,
+    this.region,
+    this.postalCode,
+    this.country,
+    Map<String, dynamic> extraFields = const {},
+  }) : _extraFields = extraFields;
+
+  final String? street;
+  final String? city;
+
+  /// Province, state, prefecture - whatever the country calls the tier
+  /// between city and country. Deliberately neutral: naming it `province`
+  /// would read wrong for most of the world.
+  final String? region;
+
+  final String? postalCode;
+  final String? country;
+
+  final Map<String, dynamic> _extraFields;
+
+  /// Unknown keys found INSIDE the address object, kept verbatim. The block's
+  /// losslessness contract has to hold one level down too, or nesting the
+  /// address would open a hole exactly where none existed.
+  Map<String, dynamic> get extraFields => UnmodifiableMapView(_extraFields);
+
+  bool get isEmpty =>
+      extraFields.isEmpty &&
+      (street ?? '').trim().isEmpty &&
+      (city ?? '').trim().isEmpty &&
+      (region ?? '').trim().isEmpty &&
+      (postalCode ?? '').trim().isEmpty &&
+      (country ?? '').trim().isEmpty;
+
+  /// The address as one searchable line, for handing to a maps app.
+  ///
+  /// Region and postal code join with a space rather than a comma because
+  /// that is how a printed address reads: `Ottawa, ON K1A 0B1`.
+  String get singleLine {
+    final regionAndPostal =
+        [region, postalCode].map(_clean).whereType<String>().join(' ');
+    return [
+      _clean(street),
+      _clean(city),
+      regionAndPostal.isEmpty ? null : regionAndPostal,
+      _clean(country),
+    ].whereType<String>().join(', ');
+  }
+
+  /// The lines a human reads, top to bottom, with the empty ones left out.
+  List<String> get displayLines {
+    final regionAndPostal =
+        [region, postalCode].map(_clean).whereType<String>().join(' ');
+    return [
+      _clean(street),
+      [_clean(city), regionAndPostal.isEmpty ? null : regionAndPostal]
+          .whereType<String>()
+          .join(', '),
+      _clean(country),
+    ].whereType<String>().where((l) => l.isNotEmpty).toList();
+  }
+
+  static String? _clean(String? v) {
+    final t = (v ?? '').trim();
+    return t.isEmpty ? null : t;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ContactAddress &&
+          other.street == street &&
+          other.city == city &&
+          other.region == region &&
+          other.postalCode == postalCode &&
+          other.country == country;
+
+  @override
+  int get hashCode => Object.hash(street, city, region, postalCode, country);
 }
 
 /// The roles offered in the picker. These are the values written to JSON, so

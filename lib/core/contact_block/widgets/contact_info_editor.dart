@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../l10n/gen/app_localizations.dart';
+import '../../widgets/gaps.dart';
 import '../../widgets/text_field.dart';
 import '../contact_info.dart';
 import '../contact_info_labels.dart';
@@ -32,12 +34,32 @@ class ContactInfoEditor extends StatefulWidget {
   State<ContactInfoEditor> createState() => _ContactInfoEditorState();
 }
 
+/// Digits plus the punctuation people actually write numbers with.
+///
+/// The reported bug was that a dash could not be typed. Two separate things
+/// caused that and both are fixed here: this formatter (which decides what the
+/// field ACCEPTS, and so also governs paste and hardware keyboards) and the
+/// keyboard type below (which decides what keys iOS OFFERS).
+final _phoneInput =
+    FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-() .#*]'));
+
+/// `numberWithOptions(signed: true)` asks iOS for the numbers-and-punctuation
+/// keyboard, which HAS a dash key. Plain `TextInputType.phone` is the phone
+/// pad — digits and `+*#` only — which is why the dash could not be typed.
+const _phoneKeyboard = TextInputType.numberWithOptions(signed: true);
+
 class _ContactInfoEditorState extends State<ContactInfoEditor> {
   late final TextEditingController _name;
   late final TextEditingController _organization;
   late final TextEditingController _phone;
+  late final TextEditingController _mobile;
+  late final TextEditingController _fax;
   late final TextEditingController _email;
-  late final TextEditingController _address;
+  late final TextEditingController _street;
+  late final TextEditingController _city;
+  late final TextEditingController _region;
+  late final TextEditingController _postalCode;
+  late final TextEditingController _country;
   late final TextEditingController _notes;
 
   /// Role and extras are held HERE, not read from widget.value on demand. The
@@ -47,23 +69,37 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
   late String _role;
   late Map<String, dynamic> _extras;
 
+  /// The address's own preserved keys, carried across edits for the same
+  /// reason: this editor models five address fields and must not drop a sixth
+  /// one written by a newer client.
+  late Map<String, dynamic> _addressExtras;
+
   @override
   void initState() {
     super.initState();
-    _role = widget.value.role;
-    _extras = widget.value.extraFields;
-    _name = TextEditingController(text: widget.value.name);
-    _organization = TextEditingController(text: widget.value.organization ?? '');
-    _phone = TextEditingController(text: widget.value.phone ?? '');
-    _email = TextEditingController(text: widget.value.email ?? '');
-    _address = TextEditingController(text: widget.value.address ?? '');
-    _notes = TextEditingController(text: widget.value.notes ?? '');
+    final v = widget.value;
+    _role = v.role;
+    _extras = v.extraFields;
+    _addressExtras = v.address?.extraFields ?? const {};
+    _name = TextEditingController(text: v.name);
+    _organization = TextEditingController(text: v.organization ?? '');
+    _phone = TextEditingController(text: v.phone ?? '');
+    _mobile = TextEditingController(text: v.mobile ?? '');
+    _fax = TextEditingController(text: v.fax ?? '');
+    _email = TextEditingController(text: v.email ?? '');
+    _street = TextEditingController(text: v.address?.street ?? '');
+    _city = TextEditingController(text: v.address?.city ?? '');
+    _region = TextEditingController(text: v.address?.region ?? '');
+    _postalCode = TextEditingController(text: v.address?.postalCode ?? '');
+    _country = TextEditingController(text: v.address?.country ?? '');
+    _notes = TextEditingController(text: v.notes ?? '');
   }
 
   @override
   void didUpdateWidget(covariant ContactInfoEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     final v = widget.value;
+    final a = v.address;
 
     // Rows are keyed by position, so removing a block hands this State to the
     // NEXT block's value without initState running again. Without this the
@@ -75,8 +111,14 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
     final differs = v.name != _name.text ||
         (v.organization ?? '') != _organization.text ||
         (v.phone ?? '') != _phone.text ||
+        (v.mobile ?? '') != _mobile.text ||
+        (v.fax ?? '') != _fax.text ||
         (v.email ?? '') != _email.text ||
-        (v.address ?? '') != _address.text ||
+        (a?.street ?? '') != _street.text ||
+        (a?.city ?? '') != _city.text ||
+        (a?.region ?? '') != _region.text ||
+        (a?.postalCode ?? '') != _postalCode.text ||
+        (a?.country ?? '') != _country.text ||
         (v.notes ?? '') != _notes.text ||
         v.role != _role;
     if (!differs) return;
@@ -84,12 +126,19 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
     _name.text = v.name;
     _organization.text = v.organization ?? '';
     _phone.text = v.phone ?? '';
+    _mobile.text = v.mobile ?? '';
+    _fax.text = v.fax ?? '';
     _email.text = v.email ?? '';
-    _address.text = v.address ?? '';
+    _street.text = a?.street ?? '';
+    _city.text = a?.city ?? '';
+    _region.text = a?.region ?? '';
+    _postalCode.text = a?.postalCode ?? '';
+    _country.text = a?.country ?? '';
     _notes.text = v.notes ?? '';
     setState(() {
       _role = v.role;
       _extras = v.extraFields;
+      _addressExtras = a?.extraFields ?? const {};
     });
   }
 
@@ -98,8 +147,14 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
     _name.dispose();
     _organization.dispose();
     _phone.dispose();
+    _mobile.dispose();
+    _fax.dispose();
     _email.dispose();
-    _address.dispose();
+    _street.dispose();
+    _city.dispose();
+    _region.dispose();
+    _postalCode.dispose();
+    _country.dispose();
     _notes.dispose();
     super.dispose();
   }
@@ -109,6 +164,15 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
   String? _orNull(String s) => s.trim().isEmpty ? null : s;
 
   void _emit() {
+    final address = ContactAddress(
+      street: _orNull(_street.text),
+      city: _orNull(_city.text),
+      region: _orNull(_region.text),
+      postalCode: _orNull(_postalCode.text),
+      country: _orNull(_country.text),
+      extraFields: _addressExtras,
+    );
+
     // Constructed directly, NOT via copyWith: copyWith reads `phone ?? this
     // .phone`, so passing null means "keep what was there" and a field the
     // user cleared could never actually be cleared. Role and extraFields are
@@ -118,104 +182,195 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
       name: _name.text,
       organization: _orNull(_organization.text),
       phone: _orNull(_phone.text),
+      mobile: _orNull(_mobile.text),
+      fax: _orNull(_fax.text),
       email: _orNull(_email.text),
-      address: _orNull(_address.text),
+      // An address the user emptied becomes absent rather than an empty
+      // object, matching how every scalar field here clears.
+      address: address.isEmpty ? null : address,
       notes: _orNull(_notes.text),
       extraFields: _extras,
     ));
   }
 
+  Widget _phoneField(String key, TextEditingController c, String label,
+          List<String> hints) =>
+      AppTextFormField(
+        key: Key(key),
+        fieldController: c,
+        fieldValidator: (_) => null,
+        label: label,
+        keyboardType: _phoneKeyboard,
+        inputFormatters: [_phoneInput],
+        autofillHints: hints,
+        onChanged: (_) => _emit(),
+      );
+
+  Widget _textField(
+    String key,
+    TextEditingController c,
+    String label, {
+    List<String>? hints,
+    TextInputType? keyboard,
+    TextCapitalization capitalization = TextCapitalization.none,
+  }) =>
+      AppTextFormField(
+        key: Key(key),
+        fieldController: c,
+        fieldValidator: (_) => null,
+        label: label,
+        keyboardType: keyboard,
+        autofillHints: hints,
+        textCapitalization: capitalization,
+        onChanged: (_) => _emit(),
+      );
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
 
     // A role the user already has but this version does not offer must stay
     // selectable, or opening the form would silently rewrite it.
     final roles =
         widget.roles.contains(_role) ? widget.roles : [_role, ...widget.roles];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                key: const Key('contactRoleField'),
-                initialValue: _role,
-                decoration: InputDecoration(labelText: l.contactFieldRole),
-                items: [
-                  for (final r in roles)
-                    DropdownMenuItem(
-                      value: r,
-                      // The stored literal is the value; the label is only what
-                      // the user reads.
-                      child: Text(contactRoleLabel(r, l)),
+    // Bordered so each block reads as one contact. Unboxed, several blocks of
+    // outlined fields run together into a single undifferentiated stack.
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+        // Grouped so the OS can offer a whole saved contact or address at
+        // once rather than one field at a time.
+        child: AutofillGroup(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      key: const Key('contactRoleField'),
+                      initialValue: _role,
+                      decoration: InputDecoration(
+                        labelText: l.contactFieldRole,
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: [
+                        for (final r in roles)
+                          DropdownMenuItem(
+                            value: r,
+                            // The stored literal is the value; the label is
+                            // only what the user reads.
+                            child: Text(contactRoleLabel(r, l)),
+                          ),
+                      ],
+                      onChanged: (r) {
+                        if (r == null) return;
+                        // Through _emit, so the live controller text travels
+                        // with the role change instead of being replaced by a
+                        // stale prop.
+                        setState(() => _role = r);
+                        _emit();
+                      },
                     ),
+                  ),
+                  if (widget.onRemove != null) ...[
+                    GapWidgets.w4,
+                    IconButton(
+                      key: const Key('contactRemoveButton'),
+                      tooltip: l.contactBlockRemove,
+                      icon: const Icon(Icons.close),
+                      onPressed: widget.onRemove,
+                    ),
+                  ],
                 ],
-                onChanged: (r) {
-                  if (r == null) return;
-                  // Through _emit, so the live controller text travels with
-                  // the role change instead of being replaced by a stale prop.
-                  setState(() => _role = r);
-                  _emit();
-                },
               ),
-            ),
-            if (widget.onRemove != null)
-              IconButton(
-                key: const Key('contactRemoveButton'),
-                tooltip: l.contactBlockRemove,
-                icon: const Icon(Icons.close),
-                onPressed: widget.onRemove,
+              GapWidgets.h16,
+              _textField('contactNameField', _name, l.contactFieldName,
+                  hints: const [AutofillHints.name]),
+              GapWidgets.h16,
+              _textField('contactOrganizationField', _organization,
+                  l.contactFieldOrganization,
+                  hints: const [AutofillHints.organizationName]),
+              GapWidgets.h16,
+              _phoneField('contactPhoneField', _phone, l.contactFieldPhone,
+                  const [AutofillHints.telephoneNumber]),
+              GapWidgets.h16,
+              _phoneField('contactMobileField', _mobile, l.contactFieldMobile,
+                  const [AutofillHints.telephoneNumberDevice]),
+              GapWidgets.h16,
+              // No autofill hint: the platform has no notion of a fax number,
+              // and offering the mobile hint here would suggest the wrong one.
+              _phoneField('contactFaxField', _fax, l.contactFieldFax, const []),
+              GapWidgets.h16,
+              _textField('contactEmailField', _email, l.contactFieldEmail,
+                  hints: const [AutofillHints.email],
+                  keyboard: TextInputType.emailAddress),
+              GapWidgets.h24,
+              Text(
+                l.contactFieldAddress,
+                style: theme.textTheme.labelLarge
+                    ?.copyWith(color: theme.colorScheme.primary),
               ),
-          ],
+              GapWidgets.h8,
+              _textField('contactStreetField', _street, l.contactFieldStreet,
+                  hints: const [AutofillHints.streetAddressLine1]),
+              GapWidgets.h16,
+              // Paired because a city and its province are one thought, and
+              // splitting the row keeps the postal code off a line of its own
+              // where it is easy to miss.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _textField(
+                        'contactCityField', _city, l.contactFieldCity,
+                        hints: const [AutofillHints.addressCity]),
+                  ),
+                  GapWidgets.w12,
+                  Expanded(
+                    flex: 2,
+                    child: _textField(
+                        'contactRegionField', _region, l.contactFieldRegion,
+                        hints: const [AutofillHints.addressState]),
+                  ),
+                ],
+              ),
+              GapWidgets.h16,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _textField('contactPostalCodeField', _postalCode,
+                        l.contactFieldPostalCode,
+                        hints: const [AutofillHints.postalCode],
+                        // Postal codes are conventionally uppercase and
+                        // shift-typing one on a phone is a chore.
+                        capitalization: TextCapitalization.characters),
+                  ),
+                  GapWidgets.w12,
+                  Expanded(
+                    child: _textField(
+                        'contactCountryField', _country, l.contactFieldCountry,
+                        hints: const [AutofillHints.countryName]),
+                  ),
+                ],
+              ),
+              GapWidgets.h24,
+              _textField('contactNotesField', _notes, l.contactFieldNotes),
+            ],
+          ),
         ),
-        AppTextFormField(
-          key: const Key('contactNameField'),
-          fieldController: _name,
-          fieldValidator: (_) => null,
-          label: l.contactFieldName,
-          onChanged: (_) => _emit(),
-        ),
-        AppTextFormField(
-          key: const Key('contactOrganizationField'),
-          fieldController: _organization,
-          fieldValidator: (_) => null,
-          label: l.contactFieldOrganization,
-          onChanged: (_) => _emit(),
-        ),
-        AppTextFormField(
-          key: const Key('contactPhoneField'),
-          fieldController: _phone,
-          fieldValidator: (_) => null,
-          label: l.contactFieldPhone,
-          keyboardType: TextInputType.phone,
-          onChanged: (_) => _emit(),
-        ),
-        AppTextFormField(
-          key: const Key('contactEmailField'),
-          fieldController: _email,
-          fieldValidator: (_) => null,
-          label: l.contactFieldEmail,
-          keyboardType: TextInputType.emailAddress,
-          onChanged: (_) => _emit(),
-        ),
-        AppTextFormField(
-          key: const Key('contactAddressField'),
-          fieldController: _address,
-          fieldValidator: (_) => null,
-          label: l.contactFieldAddress,
-          onChanged: (_) => _emit(),
-        ),
-        AppTextFormField(
-          key: const Key('contactNotesField'),
-          fieldController: _notes,
-          fieldValidator: (_) => null,
-          label: l.contactFieldNotes,
-          onChanged: (_) => _emit(),
-        ),
-      ],
+      ),
     );
   }
 }

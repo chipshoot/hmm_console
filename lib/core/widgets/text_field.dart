@@ -25,6 +25,10 @@ class AppTextFormField extends StatelessWidget {
   /// Fires on every edit — used e.g. to drive a live markdown preview.
   final ValueChanged<String>? onChanged;
 
+  /// Mainly for postal codes, which are conventionally uppercase and are
+  /// tedious to shift-type on a phone.
+  final TextCapitalization textCapitalization;
+
   const AppTextFormField({
     super.key,
     required this.fieldController,
@@ -37,6 +41,7 @@ class AppTextFormField extends StatelessWidget {
     this.inputFormatters,
     this.helperText,
     this.onChanged,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   @override
@@ -50,6 +55,7 @@ class AppTextFormField extends StatelessWidget {
       textInputAction: textInputAction,
       inputFormatters: inputFormatters,
       onChanged: onChanged,
+      textCapitalization: textCapitalization,
       decoration: InputDecoration(
         labelText: label,
         helperText: helperText,

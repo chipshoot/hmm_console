@@ -1674,10 +1674,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactFieldPhone => '电话';
 
   @override
+  String get contactFieldMobile => '手机';
+
+  @override
+  String get contactFieldFax => '传真';
+
+  @override
   String get contactFieldEmail => '电子邮箱';
 
   @override
   String get contactFieldAddress => '地址';
+
+  @override
+  String get contactFieldStreet => '街道地址';
+
+  @override
+  String get contactFieldCity => '城市';
+
+  @override
+  String get contactFieldRegion => '省 / 州';
+
+  @override
+  String get contactFieldPostalCode => '邮政编码';
+
+  @override
+  String get contactFieldCountry => '国家';
 
   @override
   String get contactFieldNotes => '备注';

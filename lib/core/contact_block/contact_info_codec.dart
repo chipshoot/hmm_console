@@ -18,9 +18,21 @@ class ContactInfoCodec {
     'name',
     'organization',
     'phone',
+    'mobile',
+    'fax',
     'email',
     'address',
     'notes',
+  };
+
+  /// Keys modelled INSIDE the address object; anything else found there is
+  /// preserved in the address's own extraFields.
+  static const _knownAddressKeys = <String>{
+    'street',
+    'city',
+    'region',
+    'postalCode',
+    'country',
   };
 
   static Map<String, dynamic> toMap(ContactInfo c) => {
@@ -33,8 +45,13 @@ class ContactInfoCodec {
         'name': c.name,
         if (c.organization != null) 'organization': c.organization,
         if (c.phone != null) 'phone': c.phone,
+        if (c.mobile != null) 'mobile': c.mobile,
+        if (c.fax != null) 'fax': c.fax,
         if (c.email != null) 'email': c.email,
-        if (c.address != null) 'address': c.address,
+        // An empty address is omitted entirely rather than written as an empty
+        // object, so a block the user never filled in stays byte-identical.
+        if (c.address != null && !c.address!.isEmpty)
+          'address': _addressToMap(c.address!),
         if (c.notes != null) 'notes': c.notes,
       };
 
@@ -43,8 +60,10 @@ class ContactInfoCodec {
         name: _str(m['name']) ?? '',
         organization: _str(m['organization']),
         phone: _str(m['phone']),
+        mobile: _str(m['mobile']),
+        fax: _str(m['fax']),
         email: _str(m['email']),
-        address: _str(m['address']),
+        address: _addressFrom(m['address']),
         notes: _str(m['notes']),
         extraFields: {
           for (final e in m.entries)
@@ -70,6 +89,41 @@ class ContactInfoCodec {
   /// does not persist as a blank contact.
   static List<Map<String, dynamic>> listTo(List<ContactInfo> contacts) =>
       contacts.where((c) => !c.isEmpty).map(toMap).toList();
+
+  static Map<String, dynamic> _addressToMap(ContactAddress a) => {
+        // Preserved keys first, so a typed field overwrites them - the same
+        // ordering rule the block itself uses.
+        ...a.extraFields,
+        if (a.street != null) 'street': a.street,
+        if (a.city != null) 'city': a.city,
+        if (a.region != null) 'region': a.region,
+        if (a.postalCode != null) 'postalCode': a.postalCode,
+        if (a.country != null) 'country': a.country,
+      };
+
+  /// Reads either shape.
+  ///
+  /// Contacts saved before the address was structured hold a plain String
+  /// here. That is not a malformed value to discard - it is a real address the
+  /// user typed - so it is read as the street line.
+  static ContactAddress? _addressFrom(Object? raw) {
+    if (raw is String) {
+      return raw.trim().isEmpty ? null : ContactAddress(street: raw);
+    }
+    if (raw is! Map) return null;
+    final m = raw.cast<String, dynamic>();
+    return ContactAddress(
+      street: _str(m['street']),
+      city: _str(m['city']),
+      region: _str(m['region']),
+      postalCode: _str(m['postalCode']),
+      country: _str(m['country']),
+      extraFields: {
+        for (final e in m.entries)
+          if (!_knownAddressKeys.contains(e.key)) e.key: e.value,
+      },
+    );
+  }
 
   static String? _str(Object? v) => v is String ? v : null;
 }

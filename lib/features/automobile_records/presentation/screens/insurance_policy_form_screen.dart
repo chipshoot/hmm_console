@@ -251,12 +251,13 @@ class _InsurancePolicyFormScreenState
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
                     for (var i = 0; i < _contacts.length; i++)
                       Padding(
                         // Keyed by index so removing one does not carry the
                         // next block's controllers into the removed slot.
                         key: ValueKey('contactBlock_$i'),
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: 16),
                         child: ContactInfoEditor(
                           value: _contacts[i],
                           onChanged: (c) {
