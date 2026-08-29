@@ -17,7 +17,7 @@ void main() {
     testWidgets('reports edits without owning the value', (tester) async {
       ContactInfo? seen;
       await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: ContactRoles.agent),
+        value: const ContactInfo(),
         onChanged: (c) => seen = c,
       )));
 
@@ -39,25 +39,7 @@ void main() {
       expect(seen!.phone, isNull);
     });
 
-    testWidgets('renders role labels, never the stored literal', (tester) async {
-      await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: ContactRoles.doctor),
-        onChanged: (_) {},
-      )));
 
-      expect(find.text('Doctor'), findsOneWidget);
-      expect(find.text('doctor'), findsNothing);
-    });
-
-    testWidgets('a role this version does not offer stays selectable', (tester) async {
-      // Otherwise merely opening the form would rewrite the stored value.
-      await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: 'veterinarian'),
-        onChanged: (_) {},
-      )));
-
-      expect(find.text('veterinarian'), findsOneWidget);
-    });
 
     testWidgets('remove is offered only when the owner allows it', (tester) async {
       await tester.pumpWidget(host(ContactInfoEditor(
@@ -76,19 +58,6 @@ void main() {
       expect(removed, isTrue);
     });
 
-    testWidgets('labels translate but the stored role does not', (tester) async {
-      await tester.pumpWidget(host(
-        ContactInfoEditor(
-          value: const ContactInfo(role: ContactRoles.doctor),
-          onChanged: (_) {},
-        ),
-        locale: const Locale('zh'),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('医生'), findsOneWidget);
-      expect(find.text('Doctor'), findsNothing);
-    });
   });
 
 
@@ -98,13 +67,13 @@ void main() {
     // does NOT run again - without a resync the fields keep showing the
     // removed block's text while the model underneath is the next one.
     await tester.pumpWidget(host(ContactInfoEditor(
-      value: const ContactInfo(role: ContactRoles.agent, name: 'Ada', phone: '111'),
+      value: const ContactInfo(name: 'Ada', phone: '111'),
       onChanged: (_) {},
     )));
     expect(find.text('Ada'), findsOneWidget);
 
     await tester.pumpWidget(host(ContactInfoEditor(
-      value: const ContactInfo(role: ContactRoles.doctor, name: 'Grace', phone: '222'),
+      value: const ContactInfo(name: 'Grace', phone: '222'),
       onChanged: (_) {},
     )));
     await tester.pumpAndSettle();
@@ -115,25 +84,6 @@ void main() {
   });
 
 
-    testWidgets('changing the role keeps text typed just before it', (tester) async {
-      // The role handler used to emit widget.value.copyWith(role:), and the
-      // parent does not setState on text edits, so widget.value was stale and
-      // the just-typed number was silently wiped.
-      ContactInfo? seen;
-      await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: ContactRoles.agent),
-        onChanged: (c) => seen = c,
-      )));
-
-      await tester.enterText(find.byKey(const Key('contactPhoneField')), '555-0100');
-      await tester.tap(find.byKey(const Key('contactRoleField')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Doctor').last);
-      await tester.pumpAndSettle();
-
-      expect(seen!.role, ContactRoles.doctor);
-      expect(seen!.phone, '555-0100');
-    });
 
 
     testWidgets('editing one field leaves the others untouched', (tester) async {
@@ -142,8 +92,7 @@ void main() {
       ContactInfo? seen;
       await tester.pumpWidget(host(ContactInfoEditor(
         value: const ContactInfo(
-          role: ContactRoles.doctor,
-          name: 'Grace',
+                    name: 'Grace',
           organization: 'General',
           phone: '111',
           mobile: '333',
@@ -166,7 +115,6 @@ void main() {
       expect(seen!.address!.street, '1 Main St');
       expect(seen!.address!.city, 'Ottawa');
       expect(seen!.notes, 'after hours');
-      expect(seen!.role, ContactRoles.doctor);
     });
 
   group('view', () {
@@ -175,8 +123,7 @@ void main() {
       String? mapped;
       await tester.pumpWidget(host(ContactInfoView(
         value: const ContactInfo(
-          role: ContactRoles.agent,
-          name: 'Ada',
+                    name: 'Ada',
           phone: '555-0100',
           address: ContactAddress(street: '1 Analytical Way', city: 'Ottawa'),
         ),
@@ -193,7 +140,7 @@ void main() {
 
     testWidgets('absent fields render nothing at all', (tester) async {
       await tester.pumpWidget(host(const ContactInfoView(
-        value: ContactInfo(role: ContactRoles.emergency, phone: '911'),
+        value: ContactInfo(phone: '911'),
       )));
 
       expect(find.byKey(const Key('contactCallRow')), findsOneWidget);
@@ -203,7 +150,7 @@ void main() {
 
     testWidgets('an unnamed organization is not printed twice', (tester) async {
       await tester.pumpWidget(host(const ContactInfoView(
-        value: ContactInfo(role: 'hospital', organization: 'General'),
+        value: ContactInfo(organization: 'General'),
       )));
 
       expect(find.text('General'), findsOneWidget);
@@ -216,7 +163,7 @@ void main() {
       // which keyboard produced it — typing, pasting or a hardware keyboard.
       ContactInfo? seen;
       await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: ContactRoles.agent),
+        value: const ContactInfo(),
         onChanged: (c) => seen = c,
       )));
 
@@ -236,7 +183,7 @@ void main() {
     testWidgets('letters are still kept out of a number field', (tester) async {
       ContactInfo? seen;
       await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: ContactRoles.agent),
+        value: const ContactInfo(),
         onChanged: (c) => seen = c,
       )));
 
@@ -252,7 +199,7 @@ void main() {
       // dash key. That is what made the character untypable on device, and a
       // formatter alone cannot fix it.
       await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: ContactRoles.agent),
+        value: const ContactInfo(),
         onChanged: (_) {},
       )));
 
@@ -275,7 +222,7 @@ void main() {
     testWidgets('each part is edited on its own and reaches the value', (tester) async {
       ContactInfo? seen;
       await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: ContactRoles.agent),
+        value: const ContactInfo(),
         onChanged: (c) => seen = c,
       )));
 
@@ -295,7 +242,7 @@ void main() {
     testWidgets('an untouched address stays absent rather than empty', (tester) async {
       ContactInfo? seen;
       await tester.pumpWidget(host(ContactInfoEditor(
-        value: const ContactInfo(role: ContactRoles.agent),
+        value: const ContactInfo(),
         onChanged: (c) => seen = c,
       )));
 
@@ -309,8 +256,7 @@ void main() {
       ContactInfo? seen;
       await tester.pumpWidget(host(ContactInfoEditor(
         value: const ContactInfo(
-          role: ContactRoles.agent,
-          address: ContactAddress(
+                    address: ContactAddress(
             city: 'Ottawa',
             extraFields: {'unit': '4B'},
           ),
@@ -327,8 +273,7 @@ void main() {
     testWidgets('the view prints the address on separate lines', (tester) async {
       await tester.pumpWidget(host(const ContactInfoView(
         value: ContactInfo(
-          role: ContactRoles.agent,
-          address: ContactAddress(
+                    address: ContactAddress(
             street: '1 Main St',
             city: 'Ottawa',
             region: 'ON',
@@ -348,8 +293,7 @@ void main() {
     testWidgets('each number gets its own row', (tester) async {
       await tester.pumpWidget(host(const ContactInfoView(
         value: ContactInfo(
-          role: ContactRoles.agent,
-          phone: '555-0100',
+                    phone: '555-0100',
           mobile: '555-0111',
           fax: '555-0122',
         ),
@@ -362,7 +306,7 @@ void main() {
 
     testWidgets('a contact with no cell shows no cell row', (tester) async {
       await tester.pumpWidget(host(const ContactInfoView(
-        value: ContactInfo(role: ContactRoles.agent, phone: '555-0100'),
+        value: ContactInfo(phone: '555-0100'),
       )));
 
       expect(find.byKey(const Key('contactMobileRow')), findsNothing);
@@ -373,8 +317,7 @@ void main() {
       String? called;
       await tester.pumpWidget(host(ContactInfoView(
         value: const ContactInfo(
-          role: ContactRoles.agent,
-          phone: '555-0100',
+                    phone: '555-0100',
           mobile: '555-0111',
         ),
         onCall: (v) => called = v,

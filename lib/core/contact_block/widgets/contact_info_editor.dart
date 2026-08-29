@@ -5,7 +5,6 @@ import '../../../l10n/gen/app_localizations.dart';
 import '../../widgets/gaps.dart';
 import '../../widgets/text_field.dart';
 import '../contact_info.dart';
-import '../contact_info_labels.dart';
 
 /// The reusable editor for one embedded contact block.
 ///
@@ -18,7 +17,6 @@ class ContactInfoEditor extends StatefulWidget {
     required this.value,
     required this.onChanged,
     this.onRemove,
-    this.roles = ContactRoles.known,
   });
 
   final ContactInfo value;
@@ -27,8 +25,6 @@ class ContactInfoEditor extends StatefulWidget {
   /// Omitted when the owner shows exactly one block and removing it makes no
   /// sense.
   final VoidCallback? onRemove;
-
-  final List<String> roles;
 
   @override
   State<ContactInfoEditor> createState() => _ContactInfoEditorState();
@@ -62,11 +58,10 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
   late final TextEditingController _country;
   late final TextEditingController _notes;
 
-  /// Role and extras are held HERE, not read from widget.value on demand. The
-  /// parent updates its list in place without setState on every keystroke, so
+  /// Extras are held HERE, not read from widget.value on demand. The parent
+  /// updates its list in place without setState on every keystroke, so
   /// widget.value goes stale between rebuilds; emitting from it discarded text
   /// the user had just typed.
-  late String _role;
   late Map<String, dynamic> _extras;
 
   /// The address's own preserved keys, carried across edits for the same
@@ -78,7 +73,6 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
   void initState() {
     super.initState();
     final v = widget.value;
-    _role = v.role;
     _extras = v.extraFields;
     _addressExtras = v.address?.extraFields ?? const {};
     _name = TextEditingController(text: v.name);
@@ -119,8 +113,7 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
         (a?.region ?? '') != _region.text ||
         (a?.postalCode ?? '') != _postalCode.text ||
         (a?.country ?? '') != _country.text ||
-        (v.notes ?? '') != _notes.text ||
-        v.role != _role;
+        (v.notes ?? '') != _notes.text;
     if (!differs) return;
 
     _name.text = v.name;
@@ -136,7 +129,6 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
     _country.text = a?.country ?? '';
     _notes.text = v.notes ?? '';
     setState(() {
-      _role = v.role;
       _extras = v.extraFields;
       _addressExtras = a?.extraFields ?? const {};
     });
@@ -175,10 +167,9 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
 
     // Constructed directly, NOT via copyWith: copyWith reads `phone ?? this
     // .phone`, so passing null means "keep what was there" and a field the
-    // user cleared could never actually be cleared. Role and extraFields are
-    // carried across by hand because this editor does not own them.
+    // user cleared could never actually be cleared. extraFields is carried
+    // across by hand because this editor does not own it.
     widget.onChanged(ContactInfo(
-      role: _role,
       name: _name.text,
       organization: _orNull(_organization.text),
       phone: _orNull(_phone.text),
@@ -230,11 +221,6 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    // A role the user already has but this version does not offer must stay
-    // selectable, or opening the form would silently rewrite it.
-    final roles =
-        widget.roles.contains(_role) ? widget.roles : [_role, ...widget.roles];
-
     // Bordered so each block reads as one contact. Unboxed, several blocks of
     // outlined fields run together into a single undifferentiated stack.
     return Card(
@@ -254,48 +240,29 @@ class _ContactInfoEditorState extends State<ContactInfoEditor> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      key: const Key('contactRoleField'),
-                      initialValue: _role,
-                      decoration: InputDecoration(
-                        labelText: l.contactFieldRole,
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: [
-                        for (final r in roles)
-                          DropdownMenuItem(
-                            value: r,
-                            // The stored literal is the value; the label is
-                            // only what the user reads.
-                            child: Text(contactRoleLabel(r, l)),
-                          ),
-                      ],
-                      onChanged: (r) {
-                        if (r == null) return;
-                        // Through _emit, so the live controller text travels
-                        // with the role change instead of being replaced by a
-                        // stale prop.
-                        setState(() => _role = r);
-                        _emit();
-                      },
-                    ),
+                    child: _textField(
+                        'contactNameField', _name, l.contactFieldName,
+                        hints: const [AutofillHints.name]),
                   ),
                   if (widget.onRemove != null) ...[
                     GapWidgets.w4,
-                    IconButton(
-                      key: const Key('contactRemoveButton'),
-                      tooltip: l.contactBlockRemove,
-                      icon: const Icon(Icons.close),
-                      onPressed: widget.onRemove,
+                    // Nudged down to sit on the field's centre line rather
+                    // than its label.
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: IconButton(
+                        key: const Key('contactRemoveButton'),
+                        tooltip: l.contactBlockRemove,
+                        icon: const Icon(Icons.close),
+                        onPressed: widget.onRemove,
+                      ),
                     ),
                   ],
                 ],
               ),
-              GapWidgets.h16,
-              _textField('contactNameField', _name, l.contactFieldName,
-                  hints: const [AutofillHints.name]),
               GapWidgets.h16,
               _textField('contactOrganizationField', _organization,
                   l.contactFieldOrganization,

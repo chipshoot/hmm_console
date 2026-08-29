@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/contact_block/contact_info.dart';
 import '../../../../core/network/dio_error_message.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../gas_log/states/automobiles_state.dart';
-import '../../../../core/contact_block/contact_info_labels.dart';
 import '../../domain/entities/auto_insurance_policy.dart';
 import '../../states/_records_automobile_id_provider.dart';
 import '../../states/insurance_policies_state.dart';
@@ -197,18 +197,14 @@ class _PolicyTile extends StatelessWidget {
                 '${df.format(policy.effectiveDate)} – ${df.format(policy.expiryDate)}'),
             Text(
                 '${policy.currency} ${policy.premium.toStringAsFixed(2)} premium'),
-            // The primary contact, so the agent's number is readable from the
-            // list rather than only inside the edit form.
-            if (policy.contacts.isNotEmpty)
+            // Guarded on non-empty: without the role there is no longer a
+            // guaranteed first part, so a contact carrying only an address
+            // would otherwise render a blank line.
+            if (policy.contacts.isNotEmpty &&
+                _contactSummary(policy.contacts.first).isNotEmpty)
               Text(
                 key: const Key('policyContactSummary'),
-                [
-                  contactRoleLabel(policy.contacts.first.role, l),
-                  if (policy.contacts.first.displayName.isNotEmpty)
-                    policy.contacts.first.displayName,
-                  if ((policy.contacts.first.phone ?? '').isNotEmpty)
-                    policy.contacts.first.phone!,
-                ].join(' · '),
+                _contactSummary(policy.contacts.first),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
           ],
@@ -276,3 +272,10 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+
+/// The primary contact as one line, so the agent's number is readable from
+/// the list rather than only inside the edit form.
+String _contactSummary(ContactInfo c) => [
+      if (c.displayName.isNotEmpty) c.displayName,
+      if ((c.phone ?? '').isNotEmpty) c.phone!,
+    ].join(' · ');

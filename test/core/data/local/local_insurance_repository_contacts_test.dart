@@ -20,7 +20,6 @@ void main() {
   late LocalInsuranceRepository repo;
 
   const agent = ContactInfo(
-    role: ContactRoles.agent,
     name: 'Ada Lovelace',
     phone: '555-0100',
     email: 'ada@example.com',
@@ -60,7 +59,6 @@ void main() {
     expect(created.contacts, hasLength(1));
     expect(created.contacts.single.name, 'Ada Lovelace');
     expect(created.contacts.single.phone, '555-0100');
-    expect(created.contacts.single.role, ContactRoles.agent);
   });
 
   test('an agent survives an edit that has nothing to do with it', () async {
@@ -91,12 +89,12 @@ void main() {
       1,
       policy(contacts: [
         agent,
-        const ContactInfo(role: 'emergency', name: 'Claims line', phone: '555-9999'),
+        const ContactInfo(name: 'Claims line', phone: '555-9999'),
       ]),
     );
 
     expect(created.contacts, hasLength(2));
-    expect(created.contacts.last.role, 'emergency');
+    expect(created.contacts.last.name, 'Claims line');
   });
 
   test('a policy with no contacts reads back empty, not null', () async {
@@ -104,11 +102,15 @@ void main() {
     expect(created.contacts, isEmpty);
   });
 
-  test('an unknown role round-trips untouched', () async {
+  test('an unknown key survives the round-trip through storage', () async {
+    // `role` is exactly this case: a field earlier versions wrote and this one
+    // no longer models. It has to come back out of the database untouched.
     final created = await repo.createPolicy(
       1,
-      policy(contacts: [const ContactInfo(role: 'veterinarian', phone: '1')]),
+      policy(contacts: [
+        const ContactInfo(phone: '1', extraFields: {'role': 'veterinarian'}),
+      ]),
     );
-    expect(created.contacts.single.role, 'veterinarian');
+    expect(created.contacts.single.extraFields['role'], 'veterinarian');
   });
 }

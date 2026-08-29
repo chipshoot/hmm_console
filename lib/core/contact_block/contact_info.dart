@@ -18,9 +18,14 @@ import 'dart:collection';
 /// Because `NotePieceExtractor` walks note content into dotted leaf paths, an
 /// embedded block is cheatsheet-bindable for free: a row can bind
 /// `AutoInsurancePolicy.contacts.0.phone` with no extra plumbing.
+///
+/// There is deliberately NO role/type field. One existed - an eight-value enum
+/// with its own localized labels - and its only consumer was a caption above
+/// the name. `notes` says the same thing in the user's own words ("claims
+/// line", "after hours") without a fixed vocabulary to maintain. A block with
+/// no name and no organization simply renders without a heading.
 class ContactInfo {
   const ContactInfo({
-    this.role = ContactRoles.other,
     this.name = '',
     this.organization,
     this.phone,
@@ -31,11 +36,6 @@ class ContactInfo {
     this.notes,
     Map<String, dynamic> extraFields = const {},
   }) : _extraFields = extraFields;
-
-  /// A STORED literal (`agent`, `doctor`, ...), never a translated label.
-  /// Free text is accepted so a role this version does not know still round
-  /// trips. Display copy lives in `contact_info_labels.dart`.
-  final String role;
 
   final String name;
   final String? organization;
@@ -94,16 +94,15 @@ class ContactInfo {
   String get displayName =>
       name.trim().isNotEmpty ? name.trim() : (organization ?? '').trim();
 
-  /// Deliberately limited to the two NON-NULLABLE fields.
+  /// Deliberately limited to the one NON-NULLABLE field.
   ///
   /// A general copyWith would read `phone ?? this.phone`, so passing null
   /// could not express "clear the phone" - it is indistinguishable from "leave
   /// it alone", which fails silently with wrong data rather than loudly. Since
-  /// role and name can never be null, that ambiguity cannot arise here. To
-  /// change any nullable field, construct a ContactInfo directly and say
-  /// exactly what every field should be - see `ContactInfoEditor._emit`.
-  ContactInfo copyWith({String? role, String? name}) => ContactInfo(
-        role: role ?? this.role,
+  /// name can never be null, that ambiguity cannot arise here. To change any
+  /// nullable field, construct a ContactInfo directly and say exactly what
+  /// every field should be - see `ContactInfoEditor._emit`.
+  ContactInfo copyWith({String? name}) => ContactInfo(
         name: name ?? this.name,
         organization: organization,
         phone: phone,
@@ -119,7 +118,6 @@ class ContactInfo {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ContactInfo &&
-          other.role == role &&
           other.name == name &&
           other.organization == organization &&
           other.phone == phone &&
@@ -131,7 +129,7 @@ class ContactInfo {
 
   @override
   int get hashCode => Object.hash(
-      role, name, organization, phone, mobile, fax, email, address, notes);
+      name, organization, phone, mobile, fax, email, address, notes);
 }
 
 /// The postal parts of a contact's address.
@@ -221,31 +219,4 @@ class ContactAddress {
 
   @override
   int get hashCode => Object.hash(street, city, region, postalCode, country);
-}
-
-/// The roles offered in the picker. These are the values written to JSON, so
-/// they stay literal and stable; anything else the user types is kept as typed.
-/// See `contactRoleLabel` for what a person reads.
-class ContactRoles {
-  const ContactRoles._();
-
-  static const agent = 'agent';
-  static const doctor = 'doctor';
-  static const hospital = 'hospital';
-  static const pharmacy = 'pharmacy';
-  static const emergency = 'emergency';
-  static const friend = 'friend';
-  static const family = 'family';
-  static const other = 'other';
-
-  static const known = <String>[
-    agent,
-    doctor,
-    hospital,
-    pharmacy,
-    emergency,
-    friend,
-    family,
-    other,
-  ];
 }

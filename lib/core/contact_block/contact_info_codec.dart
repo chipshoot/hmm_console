@@ -14,7 +14,6 @@ class ContactInfoCodec {
   static const contactsKey = 'contacts';
 
   static const _knownKeys = <String>{
-    'role',
     'name',
     'organization',
     'phone',
@@ -41,7 +40,6 @@ class ContactInfoCodec {
         // are written conditionally, so a preserved value for a known key
         // survives when its typed field is absent.
         ...c.extraFields,
-        'role': c.role,
         'name': c.name,
         if (c.organization != null) 'organization': c.organization,
         if (c.phone != null) 'phone': c.phone,
@@ -55,8 +53,11 @@ class ContactInfoCodec {
         if (c.notes != null) 'notes': c.notes,
       };
 
+  /// Note `role` is no longer modelled. Contacts saved by earlier versions
+  /// carry one, so it falls through to [ContactInfo.extraFields] and is
+  /// written back verbatim: invisible, but never destroyed, and a cheatsheet
+  /// row bound to `contacts.0.role` still resolves.
   static ContactInfo fromMap(Map<String, dynamic> m) => ContactInfo(
-        role: _str(m['role']) ?? ContactRoles.other,
         name: _str(m['name']) ?? '',
         organization: _str(m['organization']),
         phone: _str(m['phone']),

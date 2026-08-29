@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../widgets/gaps.dart';
 import '../contact_info.dart';
-import '../contact_info_labels.dart';
 
 /// Read-only rendering of one embedded contact block.
 ///
@@ -44,12 +43,8 @@ class ContactInfoView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              contactRoleLabel(value.role, l),
-              style: theme.textTheme.labelMedium
-                  ?.copyWith(color: theme.colorScheme.primary),
-            ),
-            GapWidgets.h4,
+            // No heading at all when there is neither a name nor an
+            // organization: the rows speak for themselves.
             if (value.displayName.isNotEmpty) ...[
               Text(value.displayName, style: theme.textTheme.titleMedium),
               GapWidgets.h4,

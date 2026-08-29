@@ -1702,9 +1702,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactBlockRemove => 'Remove contact';
 
   @override
-  String get contactFieldRole => 'Role';
-
-  @override
   String get contactFieldName => 'Name';
 
   @override
@@ -1742,30 +1739,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contactFieldNotes => 'Notes';
-
-  @override
-  String get contactRoleAgent => 'Agent';
-
-  @override
-  String get contactRoleDoctor => 'Doctor';
-
-  @override
-  String get contactRoleHospital => 'Hospital';
-
-  @override
-  String get contactRolePharmacy => 'Pharmacy';
-
-  @override
-  String get contactRoleEmergency => 'Emergency';
-
-  @override
-  String get contactRoleFriend => 'Friend';
-
-  @override
-  String get contactRoleFamily => 'Family';
-
-  @override
-  String get contactRoleOther => 'Other';
 
   @override
   String get vehicleRegistrationSection => 'Registration';

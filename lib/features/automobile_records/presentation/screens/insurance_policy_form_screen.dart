@@ -245,7 +245,7 @@ class _InsurancePolicyFormScreenState
                           onPressed: () => setState(
                             () => _contacts = [
                               ..._contacts,
-                              const ContactInfo(role: ContactRoles.agent),
+                              const ContactInfo(),
                             ],
                           ),
                         ),

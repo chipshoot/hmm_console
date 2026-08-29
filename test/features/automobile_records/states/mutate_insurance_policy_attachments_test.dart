@@ -199,7 +199,7 @@ void main() {
         .create(
           1,
           policy(contacts: [
-            const ContactInfo(role: ContactRoles.agent, name: 'Ada', phone: '555')
+            const ContactInfo(name: 'Ada', phone: '555')
           ]),
           pendingImages: [card()],
         );

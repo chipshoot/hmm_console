@@ -4,7 +4,6 @@ import 'package:hmm_console/core/contact_block/contact_info_codec.dart';
 
 void main() {
   const agent = ContactInfo(
-    role: ContactRoles.agent,
     name: 'Ada Lovelace',
     organization: 'Intact',
     phone: '555-0100',
@@ -26,29 +25,14 @@ void main() {
   });
 
   test('round-trips a block holding only a phone', () {
-    const minimal = ContactInfo(role: ContactRoles.emergency, phone: '911');
+    const minimal = ContactInfo(phone: '911');
     expect(ContactInfoCodec.fromMap(ContactInfoCodec.toMap(minimal)), minimal);
-  });
-
-  test('stores the role as a literal, not as display copy', () {
-    expect(ContactInfoCodec.toMap(agent)['role'], 'agent');
-  });
-
-  test('a role this version does not know survives untouched', () {
-    final decoded = ContactInfoCodec.fromMap({'role': 'veterinarian'});
-    expect(decoded.role, 'veterinarian');
-    expect(ContactInfoCodec.toMap(decoded)['role'], 'veterinarian');
-  });
-
-  test('a missing role falls back rather than throwing', () {
-    expect(ContactInfoCodec.fromMap({'name': 'x'}).role, ContactRoles.other);
   });
 
   group('losslessness', () {
     test('unknown fields survive an edit', () {
       final decoded = ContactInfoCodec.fromMap({
-        'role': 'doctor',
-        'name': 'Dr Grace',
+                'name': 'Dr Grace',
         'pager': '555-0199',
         'future': {'a': 1},
       });
@@ -61,7 +45,7 @@ void main() {
     });
 
     test('a known key never leaks into extraFields', () {
-      final decoded = ContactInfoCodec.fromMap({'role': 'doctor', 'phone': '1'});
+      final decoded = ContactInfoCodec.fromMap({'phone': '1'});
       expect(decoded.extraFields, isEmpty);
     });
   });
@@ -69,12 +53,12 @@ void main() {
   group('list handling', () {
     test('reads several blocks, so one note can hold main and emergency', () {
       final list = ContactInfoCodec.listFrom([
-        {'role': 'hospital', 'name': 'General', 'phone': '555-1000'},
-        {'role': 'emergency', 'phone': '911'},
+        {'name': 'General', 'phone': '555-1000'},
+        {'phone': '911'},
       ]);
 
       expect(list, hasLength(2));
-      expect(list.first.role, 'hospital');
+      expect(list.first.name, 'General');
       expect(list.last.phone, '911');
     });
 
@@ -84,7 +68,7 @@ void main() {
 
     test('a malformed entry is skipped, not fatal', () {
       final list = ContactInfoCodec.listFrom([
-        {'role': 'doctor', 'name': 'Grace'},
+        {'name': 'Grace'},
         'garbage',
       ]);
       expect(list, hasLength(1));
@@ -101,7 +85,7 @@ void main() {
   });
 
   test('displayName falls back to the organization when unnamed', () {
-    const hospital = ContactInfo(role: 'hospital', organization: 'General');
+    const hospital = ContactInfo(organization: 'General');
     expect(hospital.displayName, 'General');
   });
 
@@ -116,7 +100,7 @@ void main() {
   });
 
   test('extraFields cannot be edited through the getter', () {
-    final c = ContactInfoCodec.fromMap({'role': 'agent', 'pager': '1'});
+    final c = ContactInfoCodec.fromMap({'pager': '1'});
     expect(() => c.extraFields['pager'] = '2', throwsUnsupportedError);
   });
 
@@ -132,8 +116,7 @@ void main() {
       // Every contact saved before the address became structured holds a
       // String here. Dropping it would silently erase real user data.
       final decoded = ContactInfoCodec.fromMap({
-        'role': 'agent',
-        'address': '1 Analytical Way',
+                'address': '1 Analytical Way',
       });
 
       expect(decoded.address!.street, '1 Analytical Way');
@@ -158,8 +141,7 @@ void main() {
       // The block's own losslessness contract has to hold one level down too,
       // or nesting the address opens a hole exactly where it did not exist.
       final decoded = ContactInfoCodec.fromMap({
-        'role': 'agent',
-        'address': {'city': 'Ottawa', 'unit': '4B'},
+                'address': {'city': 'Ottawa', 'unit': '4B'},
       });
 
       final resaved = ContactInfoCodec.toMap(decoded);
@@ -174,9 +156,9 @@ void main() {
 
     test('a garbage address does not take the block down', () {
       final decoded =
-          ContactInfoCodec.fromMap({'role': 'agent', 'address': 42});
+          ContactInfoCodec.fromMap({'name': 'Ada', 'address': 42});
       expect(decoded.address, isNull);
-      expect(decoded.role, 'agent');
+      expect(decoded.name, 'Ada');
     });
 
     test('singleLine composes what a maps app can search for', () {
@@ -207,7 +189,7 @@ void main() {
 
     test('a fax already stored as an unknown key becomes the typed field', () {
       // Real notes may carry `fax` from before this version modelled it.
-      final decoded = ContactInfoCodec.fromMap({'role': 'agent', 'fax': '555-0122'});
+      final decoded = ContactInfoCodec.fromMap({'fax': '555-0122'});
 
       expect(decoded.fax, '555-0122');
       expect(decoded.extraFields, isEmpty);
@@ -228,4 +210,14 @@ void main() {
     });
   });
 
+  test('a role written by an earlier version is preserved, not destroyed', () {
+    // `role` used to be a modelled field. It is gone, so it falls through to
+    // extraFields and is written back verbatim: invisible in the UI, still in
+    // the data, and a cheatsheet row bound to contacts.0.role still resolves.
+    final decoded =
+        ContactInfoCodec.fromMap({'role': 'agent', 'name': 'Ada'});
+
+    expect(decoded.extraFields['role'], 'agent');
+    expect(ContactInfoCodec.toMap(decoded)['role'], 'agent');
+  });
 }
