@@ -1005,6 +1005,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get vehicleNoneFoundHint => '先添加一辆车即可开始。';
 
   @override
+  String get vehicleAdd => '添加车辆';
+
+  @override
   String get vehicleStatusUpdated => '车辆状态已更新';
 
   @override
@@ -1166,6 +1169,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get stationNameRequired => '加油站名称 *';
+
+  @override
+  String get stationAdd => '添加加油站';
 
   @override
   String get stationAddress => '地址';

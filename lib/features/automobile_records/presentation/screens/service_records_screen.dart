@@ -39,6 +39,7 @@ class _ServiceRecordsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final recordsAsync = ref.watch(serviceRecordsStateProvider);
     final autosAsync = ref.watch(automobilesStateProvider);
     final auto = autosAsync.value
@@ -59,9 +60,24 @@ class _ServiceRecordsScreenState
       }
     });
 
+    // The project's platform rules put a primary action in the navigation bar
+    // on iOS and on a FAB on Android, so the add appears in exactly one place
+    // per platform rather than both.
+    final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
+        Theme.of(context).platform == TargetPlatform.macOS;
+
     return CommonScreenScaffold(
       title: title,
       withPadding: false,
+      actions: [
+        if (isApple)
+          IconButton(
+            key: const Key('addRecordAction'),
+            icon: const Icon(Icons.add),
+            tooltip: l.recordsAddRecord,
+            onPressed: _addRecord,
+          ),
+      ],
       child: Stack(
         children: [
           recordsAsync.when(
@@ -93,15 +109,16 @@ class _ServiceRecordsScreenState
               );
             },
           ),
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: _addRecord,
-              tooltip: 'Add service record',
-              child: const Icon(Icons.add),
+          if (!isApple)
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: _addRecord,
+                tooltip: l.recordsAddRecord,
+                child: const Icon(Icons.add),
+              ),
             ),
-          ),
         ],
       ),
     );

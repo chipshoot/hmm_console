@@ -1868,6 +1868,12 @@ abstract class AppLocalizations {
   /// **'Add a vehicle to get started.'**
   String get vehicleNoneFoundHint;
 
+  /// No description provided for @vehicleAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add vehicle'**
+  String get vehicleAdd;
+
   /// No description provided for @vehicleStatusUpdated.
   ///
   /// In en, this message translates to:
@@ -2149,6 +2155,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Station Name *'**
   String get stationNameRequired;
+
+  /// No description provided for @stationAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add station'**
+  String get stationAdd;
 
   /// No description provided for @stationAddress.
   ///

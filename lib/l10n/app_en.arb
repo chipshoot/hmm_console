@@ -611,6 +611,7 @@
   "vehicleEmptyHint": "Tap + to add your first vehicle.",
   "vehicleNoneFound": "No vehicles found",
   "vehicleNoneFoundHint": "Add a vehicle to get started.",
+  "vehicleAdd": "Add vehicle",
   "vehicleStatusUpdated": "Vehicle status updated",
   "vehicleActiveCount": "Active ({count})",
   "@vehicleActiveCount": {
@@ -737,6 +738,7 @@
   "stationHintCreate": "Type to create new station",
   "stationHintSelect": "Select or type new station",
   "stationNameRequired": "Station Name *",
+  "stationAdd": "Add station",
   "stationAddress": "Address",
   "stationCityRequired": "City *",
   "stationStateProvince": "State/Province",

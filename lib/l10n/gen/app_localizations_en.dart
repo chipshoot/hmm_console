@@ -1036,6 +1036,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vehicleNoneFoundHint => 'Add a vehicle to get started.';
 
   @override
+  String get vehicleAdd => 'Add vehicle';
+
+  @override
   String get vehicleStatusUpdated => 'Vehicle status updated';
 
   @override
@@ -1197,6 +1200,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stationNameRequired => 'Station Name *';
+
+  @override
+  String get stationAdd => 'Add station';
 
   @override
   String get stationAddress => 'Address';
