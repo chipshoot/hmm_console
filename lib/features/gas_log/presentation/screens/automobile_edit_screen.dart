@@ -6,7 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/open_attachment.dart';
+import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
+import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/attachments/widgets/attachments_section.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/widgets/editable_info_card.dart';
@@ -77,6 +81,15 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   final _registrationNumberCtrl = TextEditingController();
   final _registrationJurisdictionCtrl = TextEditingController();
   DateTime? _registrationIssuedDate;
+
+  /// Registration scans. Picks are held here until the card is saved, so
+  /// cancelling an edit costs nothing and writes nothing to the vault.
+  final List<PickedImageBytes> _pendingImages = [];
+  final List<PickedFileBytes> _pendingFiles = [];
+  /// VaultRef specifically: only a vault-backed ref has a content type and a
+  /// path to delete, and only those can be shown or removed here.
+  List<VaultRef> _savedScans = const [];
+  final List<VaultRef> _removedScans = [];
   final _notesCtrl = TextEditingController();
 
   // Photo banner — instant-commit picker (no draft state). Tapping
@@ -131,6 +144,15 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     _registrationNumberCtrl.text = _original!.registrationNumber ?? '';
     _registrationJurisdictionCtrl.text = _original!.registrationJurisdiction ?? '';
     _registrationIssuedDate = _original!.registrationIssuedDate;
+    // The car photo lives in primaryImage, so everything in images/files here
+    // is a scan. Discarding the pending picks is what makes Cancel free.
+    _savedScans = [
+      ..._original!.images.whereType<VaultRef>(),
+      ..._original!.files.whereType<VaultRef>(),
+    ];
+    _pendingImages.clear();
+    _pendingFiles.clear();
+    _removedScans.clear();
   }
 
   void _resetNotes() {
@@ -160,15 +182,95 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   /// updates [_original] so subsequent card edits start from fresh data.
   /// Errors surface via the snackbar listener; returns false to keep the
   /// caller's editor open.
-  Future<bool> _persist(Automobile updated) async {
-    await ref
-        .read(updateAutomobileStateProvider.notifier)
-        .updateAutomobile(widget.automobileId, updated);
+  Future<bool> _persist(
+    Automobile updated, {
+    List<PickedImageBytes> pendingImages = const [],
+    List<PickedFileBytes> pendingFiles = const [],
+    List<VaultRef> removed = const [],
+  }) async {
+    await ref.read(updateAutomobileStateProvider.notifier).updateAutomobile(
+          widget.automobileId,
+          updated,
+          pendingImages: pendingImages,
+          pendingFiles: pendingFiles,
+          removed: removed,
+        );
     if (!mounted) return false;
     final s = ref.read(updateAutomobileStateProvider);
     if (s.hasError) return false;
     setState(() => _original = updated);
     return true;
+  }
+
+  // -------------------- Registration scans --------------------
+
+  List<AttachmentItem> get _scanItems => [
+        for (final p in _pendingImages) PendingImageItem(p),
+        for (final r in _savedScans)
+          if (r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+        for (final p in _pendingFiles) PendingFileItem(p),
+        for (final r in _savedScans)
+          if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+      ];
+
+  Future<void> _addScanImage() async {
+    final pick = await ref
+        .read(imageByteSourceProvider)
+        .pick(AttachmentPickSource.gallery);
+    // The picker is an OS sheet; the user can leave the screen while it is up.
+    if (pick == null || !mounted) return;
+    setState(() => _pendingImages.add(pick));
+  }
+
+  Future<void> _addScanPdf() async {
+    final pick = await ref.read(fileByteSourceProvider).pickPdf();
+    if (pick == null || !mounted) return;
+    setState(() => _pendingFiles.add(pick));
+  }
+
+  void _removeScan(AttachmentItem item) {
+    setState(() {
+      switch (item) {
+        case PendingImageItem(:final pick):
+          _pendingImages.remove(pick);
+        case PendingFileItem(:final pick):
+          _pendingFiles.remove(pick);
+        case SavedAttachmentItem(:final ref):
+          // Off the vehicle now, out of the vault on save — cancelling the
+          // card must not destroy bytes.
+          _savedScans = [..._savedScans]..remove(ref);
+          _removedScans.add(ref);
+      }
+    });
+  }
+
+  /// The scans list, in display or edit mode.
+  ///
+  /// The resolver arrives asynchronously (the vault may need unlocking), and
+  /// until it does there is nothing that can render a thumbnail — so the
+  /// section waits rather than showing a broken one.
+  Widget _scansSection({required bool editable}) {
+    final resolverAsync = ref.watch(attachmentResolverProvider);
+    final resolver = resolverAsync.value;
+    if (resolver == null) return const SizedBox.shrink();
+    return AttachmentsSection(
+      items: _scanItems,
+      resolver: resolver,
+      editable: editable,
+      onAddImage: _addScanImage,
+      onAddPdf: _addScanPdf,
+      onRemove: _removeScan,
+      onTap: _openScan,
+    );
+  }
+
+  Future<void> _openScan(AttachmentItem item) async {
+    // A pending pick has no vault path yet; openable once saved.
+    if (item is! SavedAttachmentItem) return;
+    final err = await openAttachment(ref, item.ref);
+    if (err != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    }
   }
 
   Automobile _cloneWith({
@@ -190,6 +292,8 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
     Object? registrationIssuedDate = _kSentinel,
     Object? notes = _kSentinel,
     Object? primaryImage = _kSentinel,
+    List<AttachmentRef>? images,
+    List<AttachmentRef>? files,
     List<AutomobileAuditEntry>? auditLog,
   }) {
     final orig = _original!;
@@ -243,12 +347,12 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       primaryImage: identical(primaryImage, _kSentinel)
           ? orig.primaryImage
           : primaryImage as AttachmentRef?,
-      images: orig.images,
       // Named explicitly: anything omitted here falls back to the entity's
       // empty default, and the repository writes _attachmentsFor(automobile)
       // verbatim — so a forgotten field does not just fail to update, it
       // erases what was stored.
-      files: orig.files,
+      images: images ?? orig.images,
+      files: files ?? orig.files,
       auditLog: auditLog ?? orig.auditLog,
     );
   }
@@ -271,12 +375,32 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
 
   Future<bool> _saveRegistration() async {
     String? orNull(String v) => v.trim().isEmpty ? null : v.trim();
-    return _persist(_cloneWith(
-      registrationExpiryDate: _registrationExpiryDate,
-      registrationNumber: orNull(_registrationNumberCtrl.text),
-      registrationJurisdiction: orNull(_registrationJurisdictionCtrl.text),
-      registrationIssuedDate: _registrationIssuedDate,
-    ));
+    // The retained scans are passed through _cloneWith: a scan the user
+    // removed must leave the entity, or the write would put it straight back.
+    final images = _savedScans
+        .where((r) => r.contentType.startsWith('image/'))
+        .toList();
+    final files = _savedScans
+        .where((r) => !r.contentType.startsWith('image/'))
+        .toList();
+    final ok = await _persist(
+      _cloneWith(
+        registrationExpiryDate: _registrationExpiryDate,
+        registrationNumber: orNull(_registrationNumberCtrl.text),
+        registrationJurisdiction: orNull(_registrationJurisdictionCtrl.text),
+        registrationIssuedDate: _registrationIssuedDate,
+        images: images,
+        files: files,
+      ),
+      // Copies, not the live lists: _resetRegistration clears these the
+      // moment the save succeeds, and handing over the same instances let
+      // that clear reach inside the notifier's own arguments.
+      pendingImages: List.of(_pendingImages),
+      pendingFiles: List.of(_pendingFiles),
+      removed: List.of(_removedScans),
+    );
+    if (ok && mounted) setState(_resetRegistration);
+    return ok;
   }
 
   Future<bool> _saveNotes() async {
@@ -505,6 +629,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
               // in 2022, so this card is just noise there).
               if (settings.showRegistration) ...[
                 EditableInfoCard(
+                  key: const Key('registrationCard'),
                   icon: Icons.assignment_outlined,
                   title: l.vehicleRegistration,
                   displayBuilder: (_) {
@@ -537,6 +662,12 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                               ? _formatDate(orig.registrationExpiryDate!)
                               : l.vehicleValueNotSet,
                         ),
+                        // Scans do not reach the API, so they are offered in
+                        // the same modes as the detail fields above.
+                        if (apiBacked && _scanItems.isNotEmpty) ...[
+                          GapWidgets.h16,
+                          _scansSection(editable: false),
+                        ],
                       ],
                     );
                   },
@@ -574,6 +705,10 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
                           onChanged: (d) =>
                               setState(() => _registrationExpiryDate = d),
                         ),
+                        if (apiBacked) ...[
+                          GapWidgets.h16,
+                          _scansSection(editable: true),
+                        ],
                       ],
                     );
                   },

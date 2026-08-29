@@ -286,22 +286,22 @@ Add `final NoteAttachments attachments;` to `Automobile`, defaulting via `NoteAt
 
 Name `attachments` in `deactivateAutomobile`'s rebuild and in `_deserialize` — the two places from Task 1.
 
-- [ ] **Step 4: Add the section to the edit screen**
+- [x] **Step 4: Add the section to the edit screen**
 
 An `AttachmentsSection` under the Registration heading, following `service_record_form_screen.dart` — which is the reference for the pending/saved/removed item machinery, the `mounted` guards after each picker await, and passing picks to the save path. Persist picks with `sensitive: true`.
 
 Put it inside the same `cloudApi` guard as the three new fields: attachments do not reach the API.
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `flutter test test/core/data/local/local_automobile_attachments_test.dart`
 Expected: PASS
 
-- [ ] **Step 6: Mutation-check**
+- [x] **Step 6: Mutation-check**
 
 Drop `attachments:` from `deactivateAutomobile`. Expected: the deactivation test fails. Restore.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
@@ -309,6 +309,12 @@ flutter analyze
 git add lib/features/gas_log lib/core/data/local test/core/data/local
 git commit -m "feat(automobile): attach registration scans to a vehicle"
 ```
+
+**Task 2b is DONE.** Three things were found while finishing Step 4 that the plan had not anticipated:
+
+1. `persistFileToVault` had no `sensitive` parameter at all, so the plan's "persist with `sensitive: true`" was only achievable for images. A PDF scan would have been stored unencrypted beside an encrypted photo of the same document. The parameter was added to the interface, its implementation and seven test fakes. **Task 3 depends on this** — a licence PDF needs it too.
+2. Two hand-rolled entity rebuilds were silently erasing attachments (fixed in `fece585`, before this task).
+3. The screen handed its live pending/removed lists straight to the notifier while `_resetRegistration` cleared them on success, so the notifier's own arguments were emptied underneath it. They are copied at the boundary now.
 
 ---
 

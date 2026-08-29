@@ -76,6 +76,7 @@ abstract interface class IImageAttachmentPicker {
     required Uint8List bytes,
     required String originalName,
     required String contentType,
+    bool sensitive = false,
   });
 }
 
@@ -190,6 +191,7 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
     required Uint8List bytes,
     required String originalName,
     required String contentType,
+    bool sensitive = false,
   }) async {
     if (bytes.lengthInBytes == 0) {
       throw const AttachmentPickerException('empty file');
@@ -208,11 +210,13 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
 
     // Files are stored RAW — no downsizing/transcoding.
     final ext = _extFor(contentType);
-    final path = vaultRelativePathJoin([
-      'attachments',
-      'note-$noteId',
-      '${generateUuid()}.$ext',
-    ]);
+    final path = sensitive
+        ? buildSensitiveAttachmentPath(noteId: noteId, ext: ext)
+        : vaultRelativePathJoin([
+            'attachments',
+            'note-$noteId',
+            '${generateUuid()}.$ext',
+          ]);
     await vaultStore.putBytes(path, bytes, contentType: contentType);
 
     return VaultRef(
@@ -220,6 +224,7 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
       originalName: originalName.isEmpty ? null : originalName,
       contentType: contentType,
       byteSize: bytes.lengthInBytes,
+      sensitive: sensitive,
     );
   }
 

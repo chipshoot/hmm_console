@@ -100,7 +100,12 @@ class Automobile {
   /// hand to flip `isActive`, and the field list drifted out of date: the car
   /// photo, the scans and the registration details were all silently dropped
   /// on reactivation.
-  Automobile copyWith({bool? isActive}) => Automobile(
+  Automobile copyWith({
+    bool? isActive,
+    List<AttachmentRef>? images,
+    List<AttachmentRef>? files,
+  }) =>
+      Automobile(
         id: id,
         vin: vin,
         maker: maker,
@@ -140,8 +145,8 @@ class Automobile {
         createdDate: createdDate,
         lastModifiedDate: lastModifiedDate,
         primaryImage: primaryImage,
-        images: images,
-        files: files,
+        images: images ?? this.images,
+        files: files ?? this.files,
         auditLog: auditLog,
       );
 

@@ -153,4 +153,37 @@ void main() {
     expect(ref.path, isNot(contains('/sensitive/')));
     expect(ref.sensitive, isFalse);
   });
+
+  test('persistFileToVault(sensitive: true) writes a sensitive/-segment path '
+      'and returns VaultRef.sensitive == true', () async {
+    // A registration or licence scanned as a PDF carries the plate, the VIN
+    // and the holder's address. Encrypting the photo but not the PDF of the
+    // same document would be a hole, not a nuance.
+    final payload = _bytes(12);
+    final ref = await picker.persistFileToVault(
+      noteId: 7,
+      bytes: payload,
+      originalName: 'registration.pdf',
+      contentType: 'application/pdf',
+      sensitive: true,
+    );
+
+    expect(ref.path, startsWith('attachments/note-7/sensitive/'));
+    expect(ref.path, endsWith('.pdf'));
+    expect(ref.sensitive, isTrue);
+    expect(await store.exists(ref.path), isTrue);
+    expect(await store.getBytes(ref.path), equals(payload));
+  });
+
+  test('persistFileToVault defaults to a non-sensitive path', () async {
+    final ref = await picker.persistFileToVault(
+      noteId: 7,
+      bytes: _bytes(8),
+      originalName: 'manual.pdf',
+      contentType: 'application/pdf',
+    );
+
+    expect(ref.path, isNot(contains('/sensitive/')));
+    expect(ref.sensitive, isFalse);
+  });
 }

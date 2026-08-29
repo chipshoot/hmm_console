@@ -26,6 +26,7 @@ class _FakePicker implements IImageAttachmentPicker {
     required Uint8List bytes,
     required String originalName,
     required String contentType,
+    bool sensitive = false,
   }) async {
     gotBytes = bytes;
     gotContentType = contentType;
