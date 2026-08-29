@@ -497,7 +497,7 @@ Two tests were added to close it.
 **Interfaces:**
 - Produces: `IDriverLicenceRepository` with `Future<DriverLicence?> getLicence()` and `Future<DriverLicence> saveLicence(DriverLicence, {List<PickedImageBytes> newFront, List<PickedImageBytes> newBack, List<VaultRef> removed})`; `driverLicenceCatalogName`; `kDriverLicenceSubject`; `localDriverLicenceRepositoryProvider`; `driverLicenceRepositoryModeProvider`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Write `test/core/data/local/local_driver_licence_repository_test.dart` against a real in-memory database, modelled on `test/core/data/local/local_insurance_repository_contacts_test.dart`. Assert:
 
@@ -509,12 +509,12 @@ Write `test/core/data/local/local_driver_licence_repository_test.dart` against a
 - **both images appear in the note's `attachments` column**, so `VaultGc` will see them
 - removed bytes are deleted only AFTER the write lands (drive it with a repository or note-layer stub that throws on the write, and assert the bytes survive — the same bug was found in both attachment notifiers)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/core/data/local/local_driver_licence_repository_test.dart`
 Expected: FAIL — the repository does not exist.
 
-- [ ] **Step 3: Write the interface and repository**
+- [x] **Step 3: Write the interface and repository**
 
 ```dart
 /// Three segments so `CatalogPalette.domainKeyFor` reads `AutomobileMan` as the
@@ -532,7 +532,7 @@ Serialize like `LocalCheatsheetRepository` does — `{'note': {'content': {'Driv
 
 **Delete removed bytes only after the write succeeds.** Deleting first means a failed save leaves the bytes gone while the note still lists their paths. Both existing attachment notifiers had this bug; do not reintroduce it.
 
-- [ ] **Step 4: Wire the mode provider**
+- [x] **Step 4: Wire the mode provider**
 
 In `lib/core/data/repository_providers.dart`, beside the others:
 
@@ -546,17 +546,17 @@ final driverLicenceRepositoryModeProvider = Provider<IDriverLicenceRepository>((
 });
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `flutter test test/core/data/local/local_driver_licence_repository_test.dart`
 Expected: PASS
 
-- [ ] **Step 6: Mutation-check the singleton and the delete ordering**
+- [x] **Step 6: Mutation-check the singleton and the delete ordering**
 
 1. Change the subject to include a generated id. Expected: the "saving twice updates one note" test fails. Restore.
 2. Move the delete back to before the write. Expected: the failed-write test fails. Restore.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
@@ -564,6 +564,27 @@ flutter analyze
 git add lib/features/driver_licence lib/core/data test/core/data/local
 git commit -m "feat(licence): add singleton local repository"
 ```
+
+**Task 4 is DONE, with one deliberate deviation from the plan above.**
+
+The plan gave `saveLicence` the pick/removed parameters, so the repository
+would drive the vault. No local repository in this codebase does that — the
+picker is behind a `FutureProvider`, and injecting it would force
+`localDriverLicenceRepositoryProvider` (and therefore
+`driverLicenceRepositoryModeProvider`) to become async, unlike every other
+repository provider. So the repository stays pure persistence and the vault
+work goes in the licence notifier, exactly as insurance and service records do.
+
+The consequence for testing: the plan's "removed bytes are deleted only AFTER
+the write lands" case cannot live in this file. It belongs to the notifier and
+is covered in Task 6. Everything else the plan asked for is here, plus two
+cases it did not list — a replaced image must drop the stale ref from the
+column, and clearing both images must clear the column rather than only the
+content.
+
+Mutation-verified: a subject carrying an id (so every save creates another
+note), and omitting `attachments:` from either the create or the update path,
+each fail.
 
 ---
 

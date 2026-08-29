@@ -21,6 +21,8 @@ import 'local/local_hmm_note_repository.dart';
 import 'local/local_scheduled_service_repository.dart';
 import 'local/local_service_record_repository.dart';
 import 'local/local_tag_repository.dart';
+import '../../features/driver_licence/data/i_driver_licence_repository.dart';
+import 'local/local_driver_licence_repository.dart';
 
 // Local SQLite is the source of truth for both `local` and `cloudStorage`
 // modes. CloudStorage layers a sync engine on top of the same local store; only
@@ -100,4 +102,14 @@ final cheatsheetRepositoryModeProvider = Provider<ICheatsheetRepository>((ref) {
   final mode = ref.watch(dataModeProvider);
   if (_useLocal(mode)) return ref.watch(localCheatsheetRepositoryProvider);
   return ref.watch(cheatsheetApiRepositoryProvider);
+});
+
+/// The licence has no API repository. The UI hides the feature outside the
+/// local-backed modes, so reaching the throw is a wiring bug rather than a
+/// user-facing state.
+final driverLicenceRepositoryModeProvider =
+    Provider<IDriverLicenceRepository>((ref) {
+  final mode = ref.watch(dataModeProvider);
+  if (_useLocal(mode)) return ref.watch(localDriverLicenceRepositoryProvider);
+  throw UnimplementedError('driver licence has no cloudApi repository');
 });
