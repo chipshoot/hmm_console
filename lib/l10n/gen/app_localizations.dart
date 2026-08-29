@@ -3163,6 +3163,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not set'**
   String get vehicleValueNotSet;
+
+  /// No description provided for @licenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver\'s licence'**
+  String get licenceTitle;
+
+  /// No description provided for @licenceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No licence saved yet'**
+  String get licenceEmpty;
+
+  /// No description provided for @licenceAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add licence'**
+  String get licenceAdd;
+
+  /// No description provided for @licenceEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit licence'**
+  String get licenceEdit;
+
+  /// No description provided for @licenceNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Licence number'**
+  String get licenceNumber;
+
+  /// No description provided for @licenceClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Class'**
+  String get licenceClass;
+
+  /// No description provided for @licenceJurisdiction.
+  ///
+  /// In en, this message translates to:
+  /// **'Province / State'**
+  String get licenceJurisdiction;
+
+  /// No description provided for @licenceIssued.
+  ///
+  /// In en, this message translates to:
+  /// **'Issued'**
+  String get licenceIssued;
+
+  /// No description provided for @licenceExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires'**
+  String get licenceExpires;
+
+  /// No description provided for @licenceFront.
+  ///
+  /// In en, this message translates to:
+  /// **'Front'**
+  String get licenceFront;
+
+  /// No description provided for @licenceBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get licenceBack;
+
+  /// No description provided for @licenceCaptureFront.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture front'**
+  String get licenceCaptureFront;
+
+  /// No description provided for @licenceCaptureBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture back'**
+  String get licenceCaptureBack;
+
+  /// No description provided for @licenceShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show licence'**
+  String get licenceShow;
+
+  /// No description provided for @licenceNoImages.
+  ///
+  /// In en, this message translates to:
+  /// **'No photo captured yet'**
+  String get licenceNoImages;
 }
 
 class _AppLocalizationsDelegate

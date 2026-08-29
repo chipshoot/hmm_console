@@ -510,5 +510,20 @@
   "vehicleRegistrationNumber": "登记号",
   "vehicleRegistrationJurisdiction": "省 / 州",
   "vehicleRegistrationIssued": "发证日期",
-  "vehicleValueNotSet": "未设置"
+  "vehicleValueNotSet": "未设置",
+  "licenceTitle": "驾驶证",
+  "licenceEmpty": "尚未保存驾驶证",
+  "licenceAdd": "添加驾驶证",
+  "licenceEdit": "编辑驾驶证",
+  "licenceNumber": "证件号码",
+  "licenceClass": "准驾车型",
+  "licenceJurisdiction": "省 / 州",
+  "licenceIssued": "发证日期",
+  "licenceExpires": "有效期至",
+  "licenceFront": "正面",
+  "licenceBack": "反面",
+  "licenceCaptureFront": "拍摄正面",
+  "licenceCaptureBack": "拍摄反面",
+  "licenceShow": "出示驾驶证",
+  "licenceNoImages": "尚未拍摄照片"
 }

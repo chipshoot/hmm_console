@@ -1760,4 +1760,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vehicleValueNotSet => 'Not set';
+
+  @override
+  String get licenceTitle => 'Driver\'s licence';
+
+  @override
+  String get licenceEmpty => 'No licence saved yet';
+
+  @override
+  String get licenceAdd => 'Add licence';
+
+  @override
+  String get licenceEdit => 'Edit licence';
+
+  @override
+  String get licenceNumber => 'Licence number';
+
+  @override
+  String get licenceClass => 'Class';
+
+  @override
+  String get licenceJurisdiction => 'Province / State';
+
+  @override
+  String get licenceIssued => 'Issued';
+
+  @override
+  String get licenceExpires => 'Expires';
+
+  @override
+  String get licenceFront => 'Front';
+
+  @override
+  String get licenceBack => 'Back';
+
+  @override
+  String get licenceCaptureFront => 'Capture front';
+
+  @override
+  String get licenceCaptureBack => 'Capture back';
+
+  @override
+  String get licenceShow => 'Show licence';
+
+  @override
+  String get licenceNoImages => 'No photo captured yet';
 }

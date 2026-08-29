@@ -1720,4 +1720,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get vehicleValueNotSet => '未设置';
+
+  @override
+  String get licenceTitle => '驾驶证';
+
+  @override
+  String get licenceEmpty => '尚未保存驾驶证';
+
+  @override
+  String get licenceAdd => '添加驾驶证';
+
+  @override
+  String get licenceEdit => '编辑驾驶证';
+
+  @override
+  String get licenceNumber => '证件号码';
+
+  @override
+  String get licenceClass => '准驾车型';
+
+  @override
+  String get licenceJurisdiction => '省 / 州';
+
+  @override
+  String get licenceIssued => '发证日期';
+
+  @override
+  String get licenceExpires => '有效期至';
+
+  @override
+  String get licenceFront => '正面';
+
+  @override
+  String get licenceBack => '反面';
+
+  @override
+  String get licenceCaptureFront => '拍摄正面';
+
+  @override
+  String get licenceCaptureBack => '拍摄反面';
+
+  @override
+  String get licenceShow => '出示驾驶证';
+
+  @override
+  String get licenceNoImages => '尚未拍摄照片';
 }

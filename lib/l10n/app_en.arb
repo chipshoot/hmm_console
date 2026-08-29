@@ -1054,5 +1054,20 @@
   "vehicleRegistrationNumber": "Registration number",
   "vehicleRegistrationJurisdiction": "Province / State",
   "vehicleRegistrationIssued": "Issued",
-  "vehicleValueNotSet": "Not set"
+  "vehicleValueNotSet": "Not set",
+  "licenceTitle": "Driver's licence",
+  "licenceEmpty": "No licence saved yet",
+  "licenceAdd": "Add licence",
+  "licenceEdit": "Edit licence",
+  "licenceNumber": "Licence number",
+  "licenceClass": "Class",
+  "licenceJurisdiction": "Province / State",
+  "licenceIssued": "Issued",
+  "licenceExpires": "Expires",
+  "licenceFront": "Front",
+  "licenceBack": "Back",
+  "licenceCaptureFront": "Capture front",
+  "licenceCaptureBack": "Capture back",
+  "licenceShow": "Show licence",
+  "licenceNoImages": "No photo captured yet"
 }

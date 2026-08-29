@@ -593,7 +593,7 @@ each fail.
 **Files:**
 - Modify: `lib/l10n/app_en.arb`, `lib/l10n/app_zh.arb`
 
-- [ ] **Step 1: Add the keys**
+- [x] **Step 1: Add the keys**
 
 `app_en.arb`:
 
@@ -637,7 +637,7 @@ each fail.
 
 > Unreviewed by a native speaker. `准驾车型` for licence class is a mainland convention; confirm it reads right for your context.
 
-- [ ] **Step 2: Regenerate and verify parity**
+- [x] **Step 2: Regenerate and verify parity**
 
 ```bash
 cd ~/Projects/hmm_console
@@ -652,7 +652,7 @@ print('en', len(ek), 'zh', len(zk)); print('missing from zh:', sorted(ek-zk)); p
 
 Expected: equal counts, both lists empty.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/l10n && git commit -m "feat(licence): add en/zh strings"
