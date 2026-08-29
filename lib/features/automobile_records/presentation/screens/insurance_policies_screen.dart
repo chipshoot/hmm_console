@@ -38,6 +38,7 @@ class _InsurancePoliciesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final policiesAsync = ref.watch(insurancePoliciesStateProvider);
     final autosAsync = ref.watch(automobilesStateProvider);
     final auto = autosAsync.value
@@ -56,9 +57,24 @@ class _InsurancePoliciesScreenState
       }
     });
 
+    // The project's platform rules put a primary action in the navigation bar
+    // on iOS and on a FAB on Android, so the add appears in exactly one place
+    // per platform rather than both.
+    final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
+        Theme.of(context).platform == TargetPlatform.macOS;
+
     return CommonScreenScaffold(
       title: title,
       withPadding: false,
+      actions: [
+        if (isApple)
+          IconButton(
+            key: const Key('addPolicyAction'),
+            icon: const Icon(Icons.add),
+            tooltip: l.recordsAddPolicy,
+            onPressed: _addPolicy,
+          ),
+      ],
       child: Stack(
         children: [
           policiesAsync.when(
@@ -91,15 +107,16 @@ class _InsurancePoliciesScreenState
               );
             },
           ),
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: _addPolicy,
-              tooltip: 'Add policy',
-              child: const Icon(Icons.add),
+          if (!isApple)
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: _addPolicy,
+                tooltip: l.recordsAddPolicy,
+                child: const Icon(Icons.add),
+              ),
             ),
-          ),
         ],
       ),
     );
