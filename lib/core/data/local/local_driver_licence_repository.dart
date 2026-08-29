@@ -99,6 +99,9 @@ class LocalDriverLicenceRepository implements IDriverLicenceRepository {
   Future<DriverLicence?> getLicence() async => _deserialize(await _note());
 
   @override
+  Future<int?> noteId() async => (await _note())?.id;
+
+  @override
   Future<DriverLicence> saveLicence(DriverLicence licence) async {
     final existing = await _note();
     // `attachments` is passed on BOTH paths: omitting it on update leaves the

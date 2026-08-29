@@ -16,4 +16,12 @@ abstract interface class IDriverLicenceRepository {
   /// Creates the licence note or updates the existing one. Never creates a
   /// second: the subject is fixed.
   Future<DriverLicence> saveLicence(DriverLicence licence);
+
+  /// The id of the note backing the licence, or null when none exists yet.
+  ///
+  /// Exposed because vault paths are keyed by note id, so the caller cannot
+  /// persist an image until the note exists. That forces a two-phase first
+  /// save — details, then images — the same shape the insurance create path
+  /// uses for the same reason.
+  Future<int?> noteId();
 }

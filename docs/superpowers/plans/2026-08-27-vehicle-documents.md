@@ -671,11 +671,11 @@ git add lib/l10n && git commit -m "feat(licence): add en/zh strings"
 - Consumes: `driverLicenceRepositoryModeProvider` (Task 4).
 - Produces: `DriverLicenceState extends AsyncNotifier<DriverLicence?>` with `save(DriverLicence, {List<PickedImageBytes> newFront, List<PickedImageBytes> newBack, List<VaultRef> removed})` - the same parameter names the repository takes, so nothing is renamed in transit; `driverLicenceStateProvider`; `DriverLicenceScreen`.
 
-- [ ] **Step 1: Write the state**
+- [x] **Step 1: Write the state**
 
 Mirror `lib/features/cheatsheet/states/cheatsheets_state.dart`: read through the repository, write through it, then `ref.invalidateSelf()` rather than patching in memory.
 
-- [ ] **Step 2: Write the failing widget test**
+- [x] **Step 2: Write the failing widget test**
 
 Assert:
 
@@ -688,20 +688,20 @@ Assert:
 
 Supply the localization delegates on the `MaterialApp`, or the widget throws while building.
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `flutter test test/features/driver_licence/driver_licence_screen_test.dart`
 Expected: FAIL — the screen does not exist.
 
-- [ ] **Step 4: Write the screen**
+- [x] **Step 4: Write the screen**
 
 Details as editable fields (`AppTextFormField`, `_optionalDatePicker`-style pickers), two labelled image slots each with capture/replace, and a prominent action opening the show-mode (Task 7). Guard `save()` with an in-flight flag so a second tap is ignored — a double-tapped save has created duplicate records in this codebase before.
 
-- [ ] **Step 5: Run test to verify it passes / Step 6: Mutation-check the re-entrancy guard**
+- [x] **Step 5: Run test to verify it passes / Step 6: Mutation-check the re-entrancy guard**
 
 Remove the in-flight flag. Expected: the double-tap test fails. Restore.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
@@ -721,7 +721,7 @@ git commit -m "feat(licence): add licence screen"
 **Interfaces:**
 - Consumes: `DriverLicence` (Task 3); `lib/core/data/attachments/widgets/fullscreen_image.dart`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Assert:
 
@@ -732,21 +732,42 @@ Assert:
 - a licence with only a front image does not offer a flip, and does not error
 - a licence with no images at all shows `licenceNoImages` rather than a blank screen
 
-- [ ] **Step 2: Run test to verify it fails / Step 3: Write the screen**
+- [x] **Step 2: Run test to verify it fails / Step 3: Write the screen**
 
 Full-screen, reusing `fullscreen_image.dart`. **No brightness or wakelock control** — those need `screen_brightness` and `wakelock_plus`, two new platform plugins, deliberately deferred. If you find yourself adding a dependency here, stop: that is a scope change, not an implementation detail.
 
-- [ ] **Step 4: Run test to verify it passes / Step 5: Mutation-check the side mapping**
+- [x] **Step 4: Run test to verify it passes / Step 5: Mutation-check the side mapping**
 
 Swap `frontImage` and `backImage` at the render site. Expected: the correct-image-per-side test fails. Restore.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/Projects/hmm_console
 git add lib/features/driver_licence test/features/driver_licence
 git commit -m "feat(licence): add full-screen show mode"
 ```
+
+**Tasks 6 and 7 are DONE.** Deviations and findings:
+
+- `save()` takes a single nullable `PickedImageBytes` per side, not a list. A
+  licence has one front and one back; list-typed parameters were copied from
+  the multi-attachment pattern and would have allowed a state that cannot exist.
+- The repository gained `noteId()`. Vault paths are keyed by note id, so a
+  first save WITH images has to write the details, read the new note's id, then
+  persist the bytes — the same two-phase shape the insurance create path uses.
+- **Both screens conflated "no photo" with "photo not loaded yet."** The
+  editor showed "Capture front" over an existing photo whenever the resolver
+  had not resolved, inviting the user to overwrite it; show mode announced
+  "No photo captured yet" while the image was still decrypting. Separated in
+  both.
+- The plan's "double-tapped save" test does not work as written: `tester.tap`
+  drains microtasks, so the first save finishes before the second tap and the
+  test passes with no guard at all. It only means something against a save that
+  is genuinely still in flight.
+- A real tap never reaches the show screen's GestureDetector under test — the
+  hit test resolves to the route's own layers. The flip is driven through its
+  callback instead, which is what the side-mapping assertions actually need.
 
 ---
 
