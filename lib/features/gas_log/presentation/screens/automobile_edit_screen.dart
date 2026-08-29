@@ -244,6 +244,11 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
           ? orig.primaryImage
           : primaryImage as AttachmentRef?,
       images: orig.images,
+      // Named explicitly: anything omitted here falls back to the entity's
+      // empty default, and the repository writes _attachmentsFor(automobile)
+      // verbatim — so a forgotten field does not just fail to update, it
+      // erases what was stored.
+      files: orig.files,
       auditLog: auditLog ?? orig.auditLog,
     );
   }

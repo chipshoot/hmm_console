@@ -183,41 +183,7 @@ class AutomobileManagementScreen extends ConsumerWidget {
             .read(deactivateAutomobileStateProvider.notifier)
             .deactivate(auto.id);
       } else {
-        final reactivated = Automobile(
-          id: auto.id,
-          vin: auto.vin,
-          maker: auto.maker,
-          brand: auto.brand,
-          model: auto.model,
-          trim: auto.trim,
-          year: auto.year,
-          color: auto.color,
-          plate: auto.plate,
-          engineType: auto.engineType,
-          fuelType: auto.fuelType,
-          fuelTankCapacity: auto.fuelTankCapacity,
-          cityMPG: auto.cityMPG,
-          highwayMPG: auto.highwayMPG,
-          combinedMPG: auto.combinedMPG,
-          meterReading: auto.meterReading,
-          purchaseMeterReading: auto.purchaseMeterReading,
-          purchaseDate: auto.purchaseDate,
-          purchasePrice: auto.purchasePrice,
-          ownershipStatus: auto.ownershipStatus,
-          isActive: true,
-          soldDate: auto.soldDate,
-          soldMeterReading: auto.soldMeterReading,
-          soldPrice: auto.soldPrice,
-          registrationExpiryDate: auto.registrationExpiryDate,
-          insuranceExpiryDate: auto.insuranceExpiryDate,
-          insuranceProvider: auto.insuranceProvider,
-          insurancePolicyNumber: auto.insurancePolicyNumber,
-          lastServiceDate: auto.lastServiceDate,
-          lastServiceMeterReading: auto.lastServiceMeterReading,
-          nextServiceDueDate: auto.nextServiceDueDate,
-          nextServiceDueMeterReading: auto.nextServiceDueMeterReading,
-          notes: auto.notes,
-        );
+        final reactivated = auto.copyWith(isActive: true);
         ref
             .read(updateAutomobileStateProvider.notifier)
             .updateAutomobile(auto.id, reactivated);

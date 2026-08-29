@@ -88,6 +88,63 @@ class Automobile {
   /// the bytes live on the note, not here.
   final List<AttachmentRef> files;
 
+  /// Deliberately limited to the NON-NULLABLE fields.
+  ///
+  /// A general copyWith would read `notes ?? this.notes`, so passing null
+  /// could not express "clear it" — indistinguishable from "leave it alone".
+  /// Since these can never be null, that ambiguity cannot arise. Anything
+  /// wider should construct an Automobile directly and say what every field
+  /// should be.
+  ///
+  /// This exists because the management screen rebuilt the whole entity by
+  /// hand to flip `isActive`, and the field list drifted out of date: the car
+  /// photo, the scans and the registration details were all silently dropped
+  /// on reactivation.
+  Automobile copyWith({bool? isActive}) => Automobile(
+        id: id,
+        vin: vin,
+        maker: maker,
+        brand: brand,
+        model: model,
+        trim: trim,
+        year: year,
+        color: color,
+        plate: plate,
+        engineType: engineType,
+        fuelType: fuelType,
+        fuelTankCapacity: fuelTankCapacity,
+        cityMPG: cityMPG,
+        highwayMPG: highwayMPG,
+        combinedMPG: combinedMPG,
+        meterReading: meterReading,
+        purchaseMeterReading: purchaseMeterReading,
+        purchaseDate: purchaseDate,
+        purchasePrice: purchasePrice,
+        ownershipStatus: ownershipStatus,
+        isActive: isActive ?? this.isActive,
+        soldDate: soldDate,
+        soldMeterReading: soldMeterReading,
+        soldPrice: soldPrice,
+        registrationExpiryDate: registrationExpiryDate,
+        registrationNumber: registrationNumber,
+        registrationJurisdiction: registrationJurisdiction,
+        registrationIssuedDate: registrationIssuedDate,
+        insuranceExpiryDate: insuranceExpiryDate,
+        insuranceProvider: insuranceProvider,
+        insurancePolicyNumber: insurancePolicyNumber,
+        lastServiceDate: lastServiceDate,
+        lastServiceMeterReading: lastServiceMeterReading,
+        nextServiceDueDate: nextServiceDueDate,
+        nextServiceDueMeterReading: nextServiceDueMeterReading,
+        notes: notes,
+        createdDate: createdDate,
+        lastModifiedDate: lastModifiedDate,
+        primaryImage: primaryImage,
+        images: images,
+        files: files,
+        auditLog: auditLog,
+      );
+
   const Automobile({
     required this.id,
     this.vin,

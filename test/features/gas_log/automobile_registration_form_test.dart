@@ -6,10 +6,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/automobile.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/automobile_edit_screen.dart';
 import 'package:hmm_console/features/gas_log/states/automobiles_state.dart';
+import 'package:hmm_console/features/gas_log/states/update_automobile_state.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 class _StubMode extends DataModeNotifier {
@@ -17,6 +19,18 @@ class _StubMode extends DataModeNotifier {
   final DataMode _m;
   @override
   DataMode build() => _m;
+}
+
+/// Records what the screen actually hands to the repository, which is the
+/// only place a dropped field shows up.
+class _CapturingUpdate extends UpdateAutomobileState {
+  static Automobile? captured;
+
+  @override
+  Future<void> updateAutomobile(int id, Automobile automobile) async {
+    captured = automobile;
+    state = const AsyncValue.data(null);
+  }
 }
 
 class _StubAutomobiles extends AutomobilesState {
@@ -93,5 +107,69 @@ void main() {
 
     final l = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text(l.vehicleRegistrationExpiry), findsWidgets);
+  });
+
+  testWidgets('saving a card keeps the vehicle\'s scans', (tester) async {
+    // _cloneWith rebuilds the whole Automobile from _original. It listed
+    // `images` but not `files`, so `files` fell back to its empty default and
+    // every card save wrote an empty set — the repository writes
+    // _attachmentsFor(automobile) verbatim, so the refs left the note and the
+    // vault would collect the bytes on its next pass.
+    // The screen is taller than the default 600px test viewport, so the card
+    // being driven here sits off-screen and cannot be tapped.
+    tester.view.physicalSize = const Size(1200, 4000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    _CapturingUpdate.captured = null;
+    const scan = VaultRef(
+      path: 'v/1/registration.pdf',
+      originalName: 'registration.pdf',
+      contentType: 'application/pdf',
+      byteSize: 10,
+    );
+    final auto = Automobile(
+      id: 1,
+      year: 2020,
+      maker: 'Honda',
+      model: 'Civic',
+      plate: 'REG-1',
+      meterReading: 100,
+      isActive: true,
+      registrationNumber: 'REG-NUMBER-1',
+      files: const [scan],
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
+        automobilesStateProvider.overrideWith(() => _StubAutomobiles([auto])),
+        updateAutomobileStateProvider.overrideWith(_CapturingUpdate.new),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Consumer(builder: (context, ref, _) {
+          final autos = ref.watch(automobilesStateProvider);
+          return autos.hasValue
+              ? const AutomobileEditScreen(automobileId: 1)
+              : const SizedBox.shrink();
+        }),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.edit_outlined).first);
+    await tester.pump();
+    await tester.tap(find.text('Save changes').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(_CapturingUpdate.captured, isNotNull,
+        reason: 'the save never reached the notifier');
+    expect(_CapturingUpdate.captured!.files, [scan]);
   });
 }
