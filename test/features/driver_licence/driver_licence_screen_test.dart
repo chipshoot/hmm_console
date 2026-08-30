@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
+import 'package:hmm_console/core/data/vault/vault_session.dart';
 import 'package:hmm_console/features/driver_licence/data/i_driver_licence_repository.dart';
 import 'package:hmm_console/features/driver_licence/domain/driver_licence.dart';
 import 'package:hmm_console/features/driver_licence/presentation/screens/driver_licence_screen.dart';
@@ -22,6 +23,13 @@ const back = VaultRef(
   byteSize: 100,
   sensitive: true,
 );
+
+class _StubVault extends VaultSessionController {
+  _StubVault(this._status);
+  final VaultStatus _status;
+  @override
+  VaultStatus build() => _status;
+}
 
 class _ThrowingRepo implements IDriverLicenceRepository {
   @override
@@ -73,7 +81,8 @@ class _FakeRepo implements IDriverLicenceRepository {
 }
 
 void main() {
-  Future<void> pump(WidgetTester tester, _FakeRepo repo) async {
+  Future<void> pump(WidgetTester tester, _FakeRepo repo,
+      {VaultStatus vault = VaultStatus.unlocked}) async {
     // The form is taller than the default 600px test viewport, so the save
     // button sits off-screen and cannot be tapped.
     tester.view.physicalSize = const Size(1000, 2000);
@@ -84,6 +93,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         driverLicenceRepositoryModeProvider.overrideWithValue(repo),
+        vaultSessionProvider.overrideWith(() => _StubVault(vault)),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -246,5 +256,21 @@ void main() {
 
     expect(find.byKey(const Key('licenceLoading')), findsOneWidget);
     expect(find.byKey(const Key('licenceEmptyLabel')), findsNothing);
+  });
+
+  testWidgets('a locked vault explains itself once, above the slots',
+      (tester) async {
+    // Not twice, once per slot: the same sentence side by side is noise, and
+    // the full notice overflows a 120px image slot outright.
+    await pump(
+      tester,
+      _FakeRepo(const DriverLicence(frontImage: front, backImage: back)),
+      vault: VaultStatus.locked,
+    );
+
+    expect(find.byKey(const Key('licenceVaultLockedNotice')), findsOneWidget);
+    expect(find.byKey(const Key('licenceVaultLockedSlot')), findsNWidgets(2));
+    // And the slots must NOT invite a re-capture over photos that exist.
+    expect(find.text('Capture front'), findsNothing);
   });
 }

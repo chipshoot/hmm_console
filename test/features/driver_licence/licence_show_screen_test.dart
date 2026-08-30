@@ -11,6 +11,7 @@ import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
+import 'package:hmm_console/core/data/vault/vault_session.dart';
 import 'package:hmm_console/features/driver_licence/domain/driver_licence.dart';
 import 'package:hmm_console/features/driver_licence/presentation/screens/licence_show_screen.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -31,16 +32,25 @@ const back = VaultRef(
 /// Returns null for everything, which AttachmentImage treats as "show the
 /// placeholder" rather than an error. Enough for the widget to build, which is
 /// what the side-mapping assertions read.
+class _StubVault extends VaultSessionController {
+  _StubVault(this._status);
+  final VaultStatus _status;
+  @override
+  VaultStatus build() => _status;
+}
+
 class _NullResolver implements IAttachmentResolver {
   @override
   Future<Uint8List?> resolve(AttachmentRef ref) async => null;
 }
 
 void main() {
-  Future<void> pump(WidgetTester tester, DriverLicence licence) async {
+  Future<void> pump(WidgetTester tester, DriverLicence licence,
+      {VaultStatus vault = VaultStatus.unlocked}) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         attachmentResolverProvider.overrideWith((_) async => _NullResolver()),
+        vaultSessionProvider.overrideWith(() => _StubVault(vault)),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -136,5 +146,35 @@ void main() {
     await pump(tester, const DriverLicence(number: 'X'));
 
     expect(find.byKey(const Key('licenceNoImagesLabel')), findsOneWidget);
+  });
+
+  testWidgets('a locked vault says so instead of drawing black on black',
+      (tester) async {
+    // Both sides are stored sensitive, so a locked vault means the bytes
+    // genuinely cannot be decrypted. The old placeholders were black on a
+    // black background — identical to having no photo, with nothing to act on.
+    await pump(
+      tester,
+      const DriverLicence(number: 'D1', frontImage: front, backImage: back),
+      vault: VaultStatus.locked,
+    );
+
+    expect(find.byKey(const Key('licenceVaultLockedNotice')), findsOneWidget);
+    expect(find.byKey(const Key('licenceUnlockButton')), findsOneWidget);
+    // Not the "you have no photo" message: there IS one.
+    expect(find.byKey(const Key('licenceNoImagesLabel')), findsNothing);
+  });
+
+  testWidgets('a vault that was never set up points at setup, not unlock',
+      (tester) async {
+    await pump(
+      tester,
+      const DriverLicence(number: 'D1', frontImage: front),
+      vault: VaultStatus.absent,
+    );
+
+    expect(find.byKey(const Key('licenceVaultLockedNotice')), findsOneWidget);
+    // Nothing to unlock yet — offering it would dead-end.
+    expect(find.byKey(const Key('licenceUnlockButton')), findsNothing);
   });
 }

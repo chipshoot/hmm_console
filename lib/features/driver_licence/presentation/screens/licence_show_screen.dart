@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
+import '../../../../core/data/vault/vault_session.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/driver_licence.dart';
+import '../widgets/vault_locked_notice.dart';
 
 /// Full-screen licence, for showing to someone who asked to see it.
 ///
@@ -43,6 +45,10 @@ class _LicenceShowScreenState extends ConsumerState<LicenceShowScreen> {
     final l = widget.licence;
     final resolver = ref.watch(attachmentResolverProvider).value;
     final current = _current;
+    // Both sides are sensitive, so a locked vault means the bytes cannot be
+    // decrypted at all. Saying so beats a black rectangle on black.
+    final vault = ref.watch(vaultSessionProvider);
+    final locked = vault != VaultStatus.unlocked;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -67,26 +73,39 @@ class _LicenceShowScreenState extends ConsumerState<LicenceShowScreen> {
                         style: const TextStyle(color: Colors.white70),
                       ),
                     )
-                  : GestureDetector(
-                      key: const Key('licenceImageArea'),
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _canFlip
-                          ? () => setState(() => _showingFront = !_showingFront)
-                          : null,
-                      child: resolver == null
-                          ? const ColoredBox(
-                              key: Key('licenceImageLoading'),
-                              color: Colors.black)
-                          : AttachmentImage(
-                              key: ValueKey(current.path),
-                              ref: current,
-                              resolver: resolver,
-                              loadingPlaceholder:
-                                  const ColoredBox(color: Colors.black),
-                              errorPlaceholder:
-                                  const ColoredBox(color: Colors.black),
-                            ),
-                    ),
+                  : locked
+                      ? Center(
+                          child: VaultLockedNotice(
+                              status: vault, onDark: true))
+                      : GestureDetector(
+                          key: const Key('licenceImageArea'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _canFlip
+                              ? () =>
+                                  setState(() => _showingFront = !_showingFront)
+                              : null,
+                          child: resolver == null
+                              ? const Center(
+                                  key: Key('licenceImageLoading'),
+                                  child: CircularProgressIndicator.adaptive())
+                              : AttachmentImage(
+                                  key: ValueKey(current.path),
+                                  ref: current,
+                                  resolver: resolver,
+                                  loadingPlaceholder: const Center(
+                                      child:
+                                          CircularProgressIndicator.adaptive()),
+                                  // Was black-on-black: a failed decrypt drew
+                                  // an invisible rectangle, so "cannot show
+                                  // it" and "there is nothing here" looked
+                                  // identical.
+                                  errorPlaceholder: const Center(
+                                    key: Key('licenceImageFailed'),
+                                    child: Icon(Icons.broken_image_outlined,
+                                        color: Colors.white54, size: 48),
+                                  ),
+                                ),
+                        ),
             ),
             // The number and expiry in text as well as on the photo: someone
             // checking often wants to read or copy the number rather than

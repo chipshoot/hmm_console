@@ -6,12 +6,14 @@ import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
+import '../../../../core/data/vault/vault_session.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/driver_licence.dart';
 import '../../states/driver_licence_state.dart';
+import '../widgets/vault_locked_notice.dart';
 import 'licence_show_screen.dart';
 
 /// Edit the licence details and capture a photo of each side.
@@ -104,6 +106,8 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
     final l = AppLocalizations.of(context);
     final async = ref.watch(driverLicenceStateProvider);
     final licence = async.value;
+    final vaultStatus = ref.watch(vaultSessionProvider);
+    final vaultLocked = vaultStatus != VaultStatus.unlocked;
     _seed(licence);
 
     // A failed save used to look EXACTLY like a successful one: the error left
@@ -198,6 +202,9 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
           _dateRow(l.licenceExpires, _expiry, const Key('licenceExpiryField'),
               (d) => setState(() => _expiry = d)),
           GapWidgets.h24,
+          // One explanation above the pair, not two crammed inside them.
+          if (vaultLocked && (licence?.hasImages ?? false))
+            VaultLockedNotice(status: vaultStatus),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -273,17 +280,24 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
   }) {
     final cs = Theme.of(context).colorScheme;
     final resolver = ref.watch(attachmentResolverProvider).value;
+    final vaultStatus = ref.watch(vaultSessionProvider);
+    final vaultLocked = vaultStatus != VaultStatus.unlocked;
 
     Widget body;
     if (pending != null) {
       // Shown straight from memory: the bytes are not in the vault until save.
       body = Image.memory(pending.bytes, fit: BoxFit.cover);
+    } else if (saved != null && vaultLocked) {
+      // The photo exists but is encrypted and the vault is not open, so there
+      // is nothing that can be rendered. Say that, rather than showing a blank
+      // box the user reads as "my photo is gone".
+      body = Center(
+          child: VaultLockedNotice(status: vaultStatus, compact: true));
     } else if (saved != null) {
-      // The resolver arrives asynchronously (the vault may need unlocking).
-      // Until it does this stays a neutral placeholder and NOT the capture
-      // prompt — prompting to capture over a photo that already exists reads
-      // as "there is nothing here", and the obvious response is to overwrite
-      // it.
+      // The resolver arrives asynchronously. Until it does this stays a
+      // neutral placeholder and NOT the capture prompt — prompting to capture
+      // over a photo that already exists reads as "there is nothing here", and
+      // the obvious response is to overwrite it.
       body = resolver == null
           ? Container(
               key: const Key('licenceImageLoading'),
@@ -292,7 +306,11 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
               ref: saved,
               resolver: resolver,
               loadingPlaceholder: Container(color: cs.surfaceContainerHighest),
-              errorPlaceholder: Container(color: cs.surfaceContainerHighest),
+              errorPlaceholder: Center(
+                key: const Key('licenceImageFailed'),
+                child: Icon(Icons.broken_image_outlined,
+                    color: cs.onSurfaceVariant),
+              ),
             );
     } else {
       body = Center(
