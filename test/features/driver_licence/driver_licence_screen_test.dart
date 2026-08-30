@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +22,30 @@ const back = VaultRef(
   byteSize: 100,
   sensitive: true,
 );
+
+class _ThrowingRepo implements IDriverLicenceRepository {
+  @override
+  Future<DriverLicence?> getLicence() async =>
+      throw UnimplementedError('driver licence has no cloudApi repository');
+  @override
+  Future<int?> noteId() async => null;
+  @override
+  Future<DriverLicence> saveLicence(DriverLicence l) async =>
+      throw UnimplementedError('driver licence has no cloudApi repository');
+}
+
+/// Never completes its read, standing in for the slow path: in cloudStorage
+/// the read goes through the author future and the sync-aware note repository.
+class _SlowRepo implements IDriverLicenceRepository {
+  final _never = Completer<DriverLicence?>();
+
+  @override
+  Future<DriverLicence?> getLicence() => _never.future;
+  @override
+  Future<int?> noteId() async => 1;
+  @override
+  Future<DriverLicence> saveLicence(DriverLicence l) async => l;
+}
 
 class _FakeRepo implements IDriverLicenceRepository {
   _FakeRepo([this._stored]);
@@ -167,5 +193,58 @@ void main() {
 
     await pump(tester, _FakeRepo(const DriverLicence(frontImage: front)));
     expect(find.byKey(const Key('showLicenceAction')), findsOneWidget);
+  });
+
+  testWidgets('a failed read says so, instead of claiming nothing is saved',
+      (tester) async {
+    // The bug this exists for: the error left `value` null, so the screen
+    // showed "No licence saved yet" — indistinguishable from an empty one, and
+    // it sent the user off to re-enter details that were never rejected aloud.
+    tester.view.physicalSize = const Size(1000, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        driverLicenceRepositoryModeProvider.overrideWithValue(_ThrowingRepo()),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const DriverLicenceScreen(),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('licenceErrorLabel')), findsOneWidget);
+    expect(find.byKey(const Key('licenceEmptyLabel')), findsNothing);
+  });
+
+  testWidgets('a read still in flight does NOT claim there is no licence',
+      (tester) async {
+    // The reported bug: opening the screen announced "No licence saved yet"
+    // before the read returned, over a licence that was there all along.
+    tester.view.physicalSize = const Size(1000, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        driverLicenceRepositoryModeProvider.overrideWithValue(_SlowRepo()),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const DriverLicenceScreen(),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('licenceLoading')), findsOneWidget);
+    expect(find.byKey(const Key('licenceEmptyLabel')), findsNothing);
   });
 }

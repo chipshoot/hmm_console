@@ -87,10 +87,11 @@ void main() {
 
   group('launcher', () {
     late List<LauncherDestination> destinations;
+    late AppLocalizations localizations;
 
     setUpAll(() async {
-      destinations = launcherDestinations(
-          await AppLocalizations.delegate.load(const Locale('en')));
+      localizations = await AppLocalizations.delegate.load(const Locale('en'));
+      destinations = launcherDestinations(localizations);
     });
 
     test('typing "lic" finds the destination', () {
@@ -101,6 +102,19 @@ void main() {
           .map((d) => d.id);
 
       expect(hits, contains('driverLicence'));
+    });
+
+    test('the destination is hidden in cloudApi, where the repository throws',
+        () {
+      // Offering it there is not cosmetic: the provider throws, so the screen
+      // opens, reports nothing saved, and discards whatever is entered.
+      final ids = launcherDestinations(localizations, mode: DataMode.cloudApi)
+          .map((d) => d.id);
+      expect(ids, isNot(contains('driverLicence')));
+
+      final localIds = launcherDestinations(localizations, mode: DataMode.local)
+          .map((d) => d.id);
+      expect(localIds, contains('driverLicence'));
     });
 
     test('the id and routeName stay literal, never localized', () {

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/launcher_destination.dart';
 import '../domain/launcher_registry.dart';
 import '../providers/launcher_prefs_provider.dart';
+import '../../../core/data/data_mode.dart';
 
 /// Settings-reached screen to pin/unpin favorites, reorder pinned
 /// favorites, and manage alias -> destination rows.
@@ -77,7 +78,8 @@ class _LauncherManageScreenState extends ConsumerState<LauncherManageScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final destinations = launcherDestinations(l);
+    final destinations =
+        launcherDestinations(l, mode: ref.watch(dataModeProvider));
     final byId = launcherDestinationsById(l);
     final prefs = ref.watch(launcherPrefsProvider);
 

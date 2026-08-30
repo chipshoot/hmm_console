@@ -106,6 +106,22 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
     final licence = async.value;
     _seed(licence);
 
+    // A failed save used to look EXACTLY like a successful one: the error left
+    // `value` null, so the screen reported "No licence saved yet" — which is a
+    // lie, and sends the user off to re-enter data that was never rejected out
+    // loud. Surface it instead.
+    ref.listen<AsyncValue<DriverLicence?>>(driverLicenceStateProvider,
+        (_, next) {
+      if (!next.hasError) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(next.error.toString()),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    });
+
     return CommonScreenScaffold(
       title: l.licenceTitle,
       actions: [
@@ -123,7 +139,33 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
       ],
       child: ListView(
         children: [
-          if (licence == null)
+          // Three different states, and only ONE of them means "you have no
+          // licence". Collapsing them is how a licence that exists reports
+          // itself missing: on the first frame the read has not returned, so
+          // `value` is null, and the screen used to announce "No licence saved
+          // yet" over a licence that was there all along.
+          if (async.isLoading && !async.hasValue)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Center(
+                child: SizedBox(
+                  key: Key('licenceLoading'),
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (async.hasError)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                async.error.toString(),
+                key: const Key('licenceErrorLabel'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            )
+          else if (licence == null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(l.licenceEmpty,

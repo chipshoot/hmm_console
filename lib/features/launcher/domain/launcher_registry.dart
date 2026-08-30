@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/gen/app_localizations.dart';
 import 'launcher_destination.dart';
+import '../../../core/data/data_mode.dart';
 
 /// Single source of truth for launcher destinations. Seeded from the
 /// existing GoRouter named routes.
@@ -25,7 +26,27 @@ import 'launcher_destination.dart';
 /// The English title is repeated inside `synonyms` for the same reason: once
 /// `title` is localized it is the *Chinese* word that lands in the haystack, so
 /// without this the English name would stop matching in a Chinese UI.
-List<LauncherDestination> launcherDestinations(AppLocalizations l) => [
+/// Destinations whose repository only exists in the local-backed modes.
+///
+/// Offering one in cloudApi is not a cosmetic problem: the provider throws, so
+/// the screen opens, reports nothing saved, and silently discards whatever the
+/// user enters.
+const _localOnlyDestinationIds = <String>{'driverLicence'};
+
+/// [mode] filters out destinations that cannot work in it. Defaults to showing
+/// everything so existing callers and tests are unaffected.
+List<LauncherDestination> launcherDestinations(
+  AppLocalizations l, {
+  DataMode? mode,
+}) =>
+    [
+      for (final d in _allLauncherDestinations(l))
+        if (!(mode == DataMode.cloudApi &&
+            _localOnlyDestinationIds.contains(d.id)))
+          d,
+    ];
+
+List<LauncherDestination> _allLauncherDestinations(AppLocalizations l) => [
       LauncherDestination(
         id: 'vehicles',
         title: l.launcherDestVehicles,

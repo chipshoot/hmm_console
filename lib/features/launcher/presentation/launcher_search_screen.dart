@@ -10,6 +10,7 @@ import '../domain/launcher_registry.dart';
 import '../providers/launcher_prefs_provider.dart';
 import '../providers/launcher_recents_provider.dart';
 import 'launcher_navigation.dart';
+import '../../../core/data/data_mode.dart';
 
 /// Full-screen function-search route. A leading '/' enters command
 /// mode (fuzzy-match destinations); plain text is the assistant stub;
@@ -54,7 +55,8 @@ class _LauncherSearchScreenState extends ConsumerState<LauncherSearchScreen> {
         if (q.isEmpty) {
           body = _landing(prefs.favorites);
         } else {
-          final results = match(q, registry: launcherDestinations(l), aliases: prefs.aliases);
+          final results = match(q, registry: launcherDestinations(l, mode: ref.watch(dataModeProvider)),
+              aliases: prefs.aliases);
           body = results.isEmpty
               ? _empty(l.launcherNoMatches)
               : ListView(children: [for (final d in results) _tile(d)]);
