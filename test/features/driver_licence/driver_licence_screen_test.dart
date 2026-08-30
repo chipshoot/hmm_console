@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
+import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker.dart';
+import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
 import 'package:hmm_console/core/data/vault/vault_session.dart';
 import 'package:hmm_console/features/driver_licence/data/i_driver_licence_repository.dart';
 import 'package:hmm_console/features/driver_licence/domain/driver_licence.dart';
@@ -30,6 +32,48 @@ class _StubVault extends VaultSessionController {
   final VaultStatus _status;
   @override
   VaultStatus build() => _status;
+}
+
+/// Locked until the unlock FLOW runs — refresh alone does not open it. That
+/// is what separates "resolve the status" from "actually unlock", and only the
+/// second lets a capture proceed.
+class _UnlockableVault extends VaultSessionController {
+  @override
+  VaultStatus build() => VaultStatus.locked;
+
+  @override
+  Future<void> refresh() async {}
+
+  @override
+  Future<bool> unlockWithBiometric() async {
+    state = VaultStatus.unlocked;
+    return true;
+  }
+}
+
+class _RecordingByteSource implements ImageByteSource {
+  int picks = 0;
+
+  @override
+  Future<PickedImageBytes?> pick(AttachmentPickSource source) async {
+    picks++;
+    return null;
+  }
+}
+
+/// Mirrors the real controller: build() cannot await, so it starts `locked`
+/// and only refresh() reveals that the vault is actually open.
+class _NeedsRefreshVault extends VaultSessionController {
+  static int refreshes = 0;
+
+  @override
+  VaultStatus build() => VaultStatus.locked;
+
+  @override
+  Future<void> refresh() async {
+    refreshes++;
+    state = VaultStatus.unlocked;
+  }
 }
 
 class _ThrowingRepo implements IDriverLicenceRepository {
@@ -334,5 +378,64 @@ void main() {
     // Nothing to open (it cannot be decrypted) and no replace affordance
     // over a photo the user cannot even see.
     expect(find.byKey(const Key('licenceFrontSlot-replace')), findsNothing);
+  });
+
+  testWidgets('the screen resolves the real vault state on entry',
+      (tester) async {
+    // The reported bug: the vault was unlocked in Settings, but the licence
+    // screen still refused to capture. VaultSessionController.build() cannot
+    // await, so it reports `locked` until a caller refreshes — and this screen
+    // never did, so it was locked forever no matter what the vault was doing.
+    _NeedsRefreshVault.refreshes = 0;
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        driverLicenceRepositoryModeProvider
+            .overrideWithValue(_FakeRepo(const DriverLicence(frontImage: front))),
+        vaultSessionProvider.overrideWith(_NeedsRefreshVault.new),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const DriverLicenceScreen(),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(_NeedsRefreshVault.refreshes, greaterThan(0),
+        reason: 'without refresh() the status is a stale default');
+    // And having resolved, it stops claiming the photo is locked away.
+    expect(find.byKey(const Key('licenceVaultLockedNotice')), findsNothing);
+  });
+
+  testWidgets('capture unlocks the vault rather than just refusing',
+      (tester) async {
+    // Reading the status and bailing is not enough: the vault can be opened,
+    // and the user tapping "capture" has said they want to. Merely reporting
+    // "locked" is the dead end that was reported.
+    final source = _RecordingByteSource();
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        driverLicenceRepositoryModeProvider.overrideWithValue(_FakeRepo()),
+        vaultSessionProvider.overrideWith(_UnlockableVault.new),
+        imageByteSourceProvider.overrideWithValue(source),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const DriverLicenceScreen(),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('licenceFrontSlot')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(source.picks, 1,
+        reason: 'the camera should open once the vault has been unlocked');
   });
 }

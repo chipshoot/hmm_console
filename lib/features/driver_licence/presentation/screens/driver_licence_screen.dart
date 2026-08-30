@@ -6,6 +6,7 @@ import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
+import '../../../../core/data/vault/ensure_vault_unlocked.dart';
 import '../../../../core/data/vault/vault_session.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
@@ -44,6 +45,18 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
   bool _seeded = false;
 
   @override
+  void initState() {
+    super.initState();
+    // VaultSessionController.build() cannot await, so it starts at `locked`
+    // and stays there until someone resolves the real state. Without this the
+    // screen shows the locked notice over photos it could perfectly well
+    // decrypt.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(vaultSessionProvider.notifier).refresh();
+    });
+  }
+
+  @override
   void dispose() {
     _number.dispose();
     _licenceClass.dispose();
@@ -73,13 +86,10 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
   Future<void> _pick({required bool front}) async {
     // Licence photos are stored sensitive, so without an open vault the write
     // throws AFTER the camera round-trip — the user takes the photo, then it
-    // vanishes. Refuse up front and say why.
-    if (ref.read(vaultSessionProvider) != VaultStatus.unlocked) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).vaultLockedSubtitle)),
-      );
-      return;
-    }
+    // vanishes. Resolve the vault first, offering biometric or passphrase;
+    // merely READING the status here reported "locked" even when it wasn't.
+    if (!await ensureVaultUnlocked(context, ref)) return;
+    if (!mounted) return;
     final pick = await ref
         .read(imageByteSourceProvider)
         .pick(AttachmentPickSource.camera);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/vault/ensure_vault_unlocked.dart';
 import '../../../../core/data/vault/vault_session.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 
@@ -77,8 +78,10 @@ class VaultLockedNotice extends ConsumerWidget {
             const SizedBox(height: 12),
             FilledButton.tonal(
               key: const Key('licenceUnlockButton'),
-              onPressed: () =>
-                  ref.read(vaultSessionProvider.notifier).unlockWithBiometric(),
+              // The full flow: biometric, then passphrase. Biometric alone
+              // left anyone without it stuck looking at a button that did
+              // nothing.
+              onPressed: () => ensureVaultUnlocked(context, ref),
               child: Text(l.vaultUnlock),
             ),
           ],

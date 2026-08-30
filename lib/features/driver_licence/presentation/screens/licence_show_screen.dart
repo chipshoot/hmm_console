@@ -38,6 +38,16 @@ class _LicenceShowScreenState extends ConsumerState<LicenceShowScreen> {
 
   /// The sides actually available. A licence photographed on one side only is
   /// still worth showing, so the flip is offered only when there are two.
+  @override
+  void initState() {
+    super.initState();
+    // Resolve the real vault state; without this the screen shows the locked
+    // notice over an image it could decrypt.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(vaultSessionProvider.notifier).refresh();
+    });
+  }
+
   bool get _canFlip =>
       widget.licence.frontImage != null && widget.licence.backImage != null;
 
