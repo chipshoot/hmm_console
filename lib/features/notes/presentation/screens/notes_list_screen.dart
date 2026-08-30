@@ -126,13 +126,9 @@ class NotesListScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: TextField(
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: l.notesSearchHint,
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+              child: _SearchField(
+                query: data.query,
+                hintText: l.notesSearchHint,
                 onChanged: notifier.setQuery,
               ),
             ),
@@ -364,6 +360,69 @@ class _FilterDrawer extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The search box, showing the query that is actually being applied.
+///
+/// The query lives on the notifier so it survives reactive data emissions —
+/// and therefore also survives leaving the screen. With an uncontrolled
+/// TextField that meant coming back to an empty-looking box silently filtering
+/// the list, which reads as "all my notes are gone".
+class _SearchField extends StatefulWidget {
+  const _SearchField({
+    required this.query,
+    required this.hintText,
+    required this.onChanged,
+  });
+
+  final String query;
+  final String hintText;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.query);
+
+  @override
+  void didUpdateWidget(covariant _SearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Guarded on a real difference: assigning on every rebuild would move the
+    // caret to the end mid-typing, since every keystroke round-trips through
+    // the notifier and comes back as a new widget.query.
+    if (widget.query != _controller.text) _controller.text = widget.query;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search),
+        hintText: widget.hintText,
+        isDense: true,
+        border: const OutlineInputBorder(),
+        // A way out that does not require selecting invisible text.
+        suffixIcon: widget.query.isEmpty
+            ? null
+            : IconButton(
+                key: const Key('notesSearchClear'),
+                icon: const Icon(Icons.clear),
+                onPressed: () => widget.onChanged(''),
+              ),
+      ),
+      onChanged: widget.onChanged,
     );
   }
 }
