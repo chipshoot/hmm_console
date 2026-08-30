@@ -9,6 +9,7 @@ import 'package:hmm_console/core/data/vault/vault_session.dart';
 import 'package:hmm_console/features/driver_licence/data/i_driver_licence_repository.dart';
 import 'package:hmm_console/features/driver_licence/domain/driver_licence.dart';
 import 'package:hmm_console/features/driver_licence/presentation/screens/driver_licence_screen.dart';
+import 'package:hmm_console/features/driver_licence/presentation/screens/licence_show_screen.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 const front = VaultRef(
@@ -272,5 +273,66 @@ void main() {
     expect(find.byKey(const Key('licenceVaultLockedSlot')), findsNWidgets(2));
     // And the slots must NOT invite a re-capture over photos that exist.
     expect(find.text('Capture front'), findsNothing);
+  });
+
+  testWidgets('the primary button says Save, not Edit', (tester) async {
+    // Reported as "edit licence button no action": it SAVES, but calling it
+    // "Edit licence" described the screen you were already on, so tapping it
+    // looked like nothing happened.
+    await pump(tester, _FakeRepo(const DriverLicence(number: 'X')));
+
+    expect(find.text('Save'), findsOneWidget);
+    expect(find.text('Edit licence'), findsNothing);
+  });
+
+  testWidgets('with no licence yet the button invites adding one',
+      (tester) async {
+    await pump(tester, _FakeRepo());
+
+    expect(find.text('Add licence'), findsOneWidget);
+  });
+
+  testWidgets('saving confirms it happened', (tester) async {
+    await pump(tester, _FakeRepo(const DriverLicence(number: 'X')));
+
+    await tester.tap(find.byKey(const Key('licenceSaveButton')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Licence saved'), findsOneWidget);
+  });
+
+  testWidgets('tapping a stored photo opens it instead of re-capturing',
+      (tester) async {
+    // The whole tile used to be a capture target, so an existing photo could
+    // never be opened and the obvious gesture overwrote it.
+    await pump(tester, _FakeRepo(const DriverLicence(frontImage: front)));
+
+    await tester.tap(find.byKey(const Key('licenceFrontSlot')));
+    // Bounded pumps, not pumpAndSettle: with no resolver stubbed the show
+    // screen spins forever and settling would never return.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(LicenceShowScreen), findsOneWidget);
+  });
+
+  testWidgets('replacing a photo stays available as its own target',
+      (tester) async {
+    await pump(tester, _FakeRepo(const DriverLicence(frontImage: front)));
+
+    expect(find.byKey(const Key('licenceFrontSlot-replace')), findsOneWidget);
+    // An empty slot has no replace button — the tile itself captures.
+    expect(find.byKey(const Key('licenceBackSlot-replace')), findsNothing);
+  });
+
+  testWidgets('a locked vault makes the slot neither viewable nor a capture',
+      (tester) async {
+    await pump(tester, _FakeRepo(const DriverLicence(frontImage: front)),
+        vault: VaultStatus.locked);
+
+    // Nothing to open (it cannot be decrypted) and no replace affordance
+    // over a photo the user cannot even see.
+    expect(find.byKey(const Key('licenceFrontSlot-replace')), findsNothing);
   });
 }

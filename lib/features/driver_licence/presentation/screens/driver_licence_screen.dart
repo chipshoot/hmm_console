@@ -63,7 +63,23 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
 
   String? _orNull(String v) => v.trim().isEmpty ? null : v.trim();
 
+  void _openShow(DriverLicence? licence, {required bool front}) {
+    if (licence == null) return;
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => LicenceShowScreen(licence: licence, showBackFirst: !front),
+    ));
+  }
+
   Future<void> _pick({required bool front}) async {
+    // Licence photos are stored sensitive, so without an open vault the write
+    // throws AFTER the camera round-trip — the user takes the photo, then it
+    // vanishes. Refuse up front and say why.
+    if (ref.read(vaultSessionProvider) != VaultStatus.unlocked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).vaultLockedSubtitle)),
+      );
+      return;
+    }
     final pick = await ref
         .read(imageByteSourceProvider)
         .pick(AttachmentPickSource.camera);
@@ -99,6 +115,16 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
       _newFront = null;
       _newBack = null;
     });
+    // A save that changes nothing on screen is indistinguishable from a dead
+    // button, which is exactly how this was reported.
+    if (!ref.read(driverLicenceStateProvider).hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).licenceSaved),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -216,6 +242,7 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
                   pending: _newFront,
                   slotKey: 'licenceFrontSlot',
                   onCapture: () => _pick(front: true),
+                  onView: () => _openShow(licence, front: true),
                 ),
               ),
               GapWidgets.w12,
@@ -227,6 +254,7 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
                   pending: _newBack,
                   slotKey: 'licenceBackSlot',
                   onCapture: () => _pick(front: false),
+                  onView: () => _openShow(licence, front: false),
                 ),
               ),
             ],
@@ -235,7 +263,9 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
           FilledButton(
             key: const Key('licenceSaveButton'),
             onPressed: async.isLoading ? null : () => _save(licence),
-            child: Text(licence == null ? l.licenceAdd : l.licenceEdit),
+            // It SAVES. Labelling it "Edit licence" described the screen you
+            // were already on, so tapping it appeared to do nothing at all.
+            child: Text(licence == null ? l.licenceAdd : l.commonSave),
           ),
         ],
       ),
@@ -277,11 +307,15 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
     required PickedImageBytes? pending,
     required String slotKey,
     required VoidCallback onCapture,
+    required VoidCallback onView,
   }) {
     final cs = Theme.of(context).colorScheme;
     final resolver = ref.watch(attachmentResolverProvider).value;
     final vaultStatus = ref.watch(vaultSessionProvider);
     final vaultLocked = vaultStatus != VaultStatus.unlocked;
+    // Only a saved, decryptable photo is viewable; a pending pick has no
+    // vault path yet and a locked vault cannot render one.
+    final canView = saved != null && !vaultLocked && pending == null;
 
     Widget body;
     if (pending != null) {
@@ -325,18 +359,45 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
       children: [
         Text(label, style: Theme.of(context).textTheme.labelLarge),
         GapWidgets.h4,
-        InkWell(
-          key: Key(slotKey),
-          onTap: onCapture,
-          child: Container(
-            height: 120,
-            decoration: BoxDecoration(
-              border: Border.all(color: cs.outlineVariant),
-              borderRadius: BorderRadius.circular(8),
+        Stack(
+          children: [
+            InkWell(
+              key: Key(slotKey),
+              // With a photo already there, tapping VIEWS it. Tapping to
+              // re-capture was the only thing a tap could do, so an existing
+              // photo could never be opened — and the obvious gesture
+              // overwrote it instead.
+              onTap: canView ? onView : onCapture,
+              child: Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  border: Border.all(color: cs.outlineVariant),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: body,
+              ),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: body,
-          ),
+            // Replacing stays available, but as a deliberate target rather
+            // than the whole tile.
+            if (canView)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Material(
+                  color: cs.surface.withValues(alpha: 0.85),
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    key: Key('$slotKey-replace'),
+                    iconSize: 18,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: capture,
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    onPressed: onCapture,
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );

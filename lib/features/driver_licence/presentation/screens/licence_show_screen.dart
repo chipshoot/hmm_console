@@ -15,18 +15,26 @@ import '../widgets/vault_locked_notice.dart';
 /// platform plugins (`screen_brightness`, `wakelock_plus`). Adding one here
 /// would be a scope change, not an implementation detail.
 class LicenceShowScreen extends ConsumerStatefulWidget {
-  const LicenceShowScreen({super.key, required this.licence});
+  const LicenceShowScreen({
+    super.key,
+    required this.licence,
+    this.showBackFirst = false,
+  });
 
   final DriverLicence licence;
+
+  /// Opening from the BACK slot should land on the back — otherwise tapping a
+  /// specific side shows the other one, which reads as a bug.
+  final bool showBackFirst;
 
   @override
   ConsumerState<LicenceShowScreen> createState() => _LicenceShowScreenState();
 }
 
 class _LicenceShowScreenState extends ConsumerState<LicenceShowScreen> {
-  /// Opens on the front — that is the side with the photo and the number, and
-  /// the side anyone asking will expect first.
-  bool _showingFront = true;
+  /// Opens on the front by default — that is the side with the photo and the
+  /// number, and the side anyone asking will expect first.
+  late bool _showingFront = !widget.showBackFirst;
 
   /// The sides actually available. A licence photographed on one side only is
   /// still worth showing, so the flip is offered only when there are two.

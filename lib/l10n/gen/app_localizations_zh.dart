@@ -1767,5 +1767,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get licenceShow => '出示驾驶证';
 
   @override
+  String get licenceSaved => '驾驶证已保存';
+
+  @override
   String get licenceNoImages => '尚未拍摄照片';
 }

@@ -1807,5 +1807,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenceShow => 'Show licence';
 
   @override
+  String get licenceSaved => 'Licence saved';
+
+  @override
   String get licenceNoImages => 'No photo captured yet';
 }

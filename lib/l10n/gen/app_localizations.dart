@@ -3254,6 +3254,12 @@ abstract class AppLocalizations {
   /// **'Show licence'**
   String get licenceShow;
 
+  /// No description provided for @licenceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Licence saved'**
+  String get licenceSaved;
+
   /// No description provided for @licenceNoImages.
   ///
   /// In en, this message translates to:
