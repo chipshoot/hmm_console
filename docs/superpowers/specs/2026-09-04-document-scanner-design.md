@@ -110,8 +110,12 @@ A "Scan licence" action opens one session for both sides.
 - The per-slot camera stays, for replacing one side.
 - `ensureVaultUnlocked()` runs BEFORE the scanner opens. Scanning and then
   losing the result is exactly the bug fixed in `457cbf7`.
-- When `isAvailable()` is false, fall back to the existing camera picker
-  silently. Android and the simulator keep working with no regression.
+- When `isAvailable()` is false the "Scan licence" action is HIDDEN, and the
+  per-slot camera is the only capture route. It is not silently reinterpreted
+  as a single-photo camera: a control labelled "scan both sides" that quietly
+  captures one plain photo of one side is the same class of lie as the
+  empty-state bugs this feature already produced. Android and the simulator
+  therefore keep exactly today's behaviour, with nothing new offered.
 
 ## Testing
 
