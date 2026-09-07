@@ -133,7 +133,7 @@ This is where every rule that could be wrong lives, precisely because the Swift 
 **Interfaces:**
 - Produces: `LicenceScanPages` with `front`, `back`, `ignoredPageCount`; `LicenceScanPages.fromScan(List<PickedImageBytes>)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```dart
 import 'dart:typed_data';
@@ -181,14 +181,17 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `flutter test test/features/driver_licence/licence_scan_mapping_test.dart`
 Expected: FAIL — `licence_scan_mapping.dart` does not exist.
 
-Note `PickedImageBytes` must compare by value for these assertions. If it does not, compare `front!.originalName` instead and say so in a comment — do NOT add `==` to a shared type just to satisfy a test.
+RESOLVED: `PickedImageBytes` has `copyWith` but NO `==`, so value comparison
+fails on identity. The tests use `same()` instead — a stronger claim than
+matching a filename, since the mapping should hand back the very instances it
+was given, and it needs no change to a shared type.
 
-- [ ] **Step 3: Write the mapping**
+- [x] **Step 3: Write the mapping**
 
 ```dart
 import '../../../core/data/attachments/picker/image_byte_source.dart';
@@ -217,17 +220,17 @@ class LicenceScanPages {
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `flutter test test/features/driver_licence/licence_scan_mapping_test.dart`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Mutation-check**
+- [x] **Step 5: Mutation-check**
 
 Swap `pages[0]` and `pages[1]`. Expected: the two-page test fails. Restore.
 Change `ignoredPageCount` to always `0`. Expected: the extra-pages test fails. Restore.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add lib/features/driver_licence/domain test/features/driver_licence
