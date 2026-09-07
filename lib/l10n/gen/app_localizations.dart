@@ -3254,6 +3254,18 @@ abstract class AppLocalizations {
   /// **'Show licence'**
   String get licenceShow;
 
+  /// No description provided for @licenceScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan licence'**
+  String get licenceScan;
+
+  /// No description provided for @licenceScanExtraPagesIgnored.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the first two pages were used.'**
+  String get licenceScanExtraPagesIgnored;
+
   /// No description provided for @licenceSaved.
   ///
   /// In en, this message translates to:

@@ -526,6 +526,8 @@
   "licenceCaptureFront": "拍摄正面",
   "licenceCaptureBack": "拍摄反面",
   "licenceShow": "出示驾驶证",
+  "licenceScan": "扫描驾驶证",
+  "licenceScanExtraPagesIgnored": "仅使用了前两页。",
   "licenceSaved": "驾驶证已保存",
   "licenceNoImages": "尚未拍摄照片"
 }

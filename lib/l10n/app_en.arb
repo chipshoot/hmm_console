@@ -1070,6 +1070,8 @@
   "licenceCaptureFront": "Capture front",
   "licenceCaptureBack": "Capture back",
   "licenceShow": "Show licence",
+  "licenceScan": "Scan licence",
+  "licenceScanExtraPagesIgnored": "Only the first two pages were used.",
   "licenceSaved": "Licence saved",
   "licenceNoImages": "No photo captured yet"
 }

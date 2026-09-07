@@ -5,6 +5,7 @@ import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/attachments/scanner/document_scanner.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/vault/ensure_vault_unlocked.dart';
 import '../../../../core/data/vault/vault_session.dart';
@@ -13,6 +14,7 @@ import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/driver_licence.dart';
+import '../../domain/licence_scan_mapping.dart';
 import '../../states/driver_licence_state.dart';
 import '../widgets/vault_locked_notice.dart';
 import 'licence_show_screen.dart';
@@ -81,6 +83,32 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => LicenceShowScreen(licence: licence, showBackFirst: !front),
     ));
+  }
+
+  Future<void> _scan() async {
+    // Before the scanner opens, not after: scanning and then losing the
+    // result is the bug fixed in 457cbf7.
+    if (!await ensureVaultUnlocked(context, ref)) return;
+    if (!mounted) return;
+
+    final pages = LicenceScanPages.fromScan(
+        await ref.read(documentScannerProvider).scan());
+    if (!mounted) return;
+
+    // Cancelled: nothing changed, and no message — the user chose this.
+    if (pages.front == null && pages.back == null) return;
+
+    setState(() {
+      if (pages.front != null) _newFront = pages.front;
+      if (pages.back != null) _newBack = pages.back;
+    });
+
+    if (pages.ignoredPageCount > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)
+            .licenceScanExtraPagesIgnored)),
+      );
+    }
   }
 
   Future<void> _pick({required bool front}) async {
@@ -269,6 +297,15 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
               ),
             ],
           ),
+          if (ref.watch(documentScannerAvailableProvider).value ?? false) ...[
+            GapWidgets.h16,
+            OutlinedButton.icon(
+              key: const Key('licenceScanButton'),
+              icon: const Icon(Icons.document_scanner_outlined),
+              label: Text(l.licenceScan),
+              onPressed: _scan,
+            ),
+          ],
           GapWidgets.h24,
           FilledButton(
             key: const Key('licenceSaveButton'),
@@ -330,7 +367,9 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
     Widget body;
     if (pending != null) {
       // Shown straight from memory: the bytes are not in the vault until save.
-      body = Image.memory(pending.bytes, fit: BoxFit.cover);
+      body = Image.memory(pending.bytes,
+          key: Key('licencePending${slotKey.contains('Front') ? 'Front' : 'Back'}'),
+          fit: BoxFit.cover);
     } else if (saved != null && vaultLocked) {
       // The photo exists but is encrypted and the vault is not open, so there
       // is nothing that can be rendered. Say that, rather than showing a blank
@@ -413,3 +452,11 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
     );
   }
 }
+
+/// Whether this platform can scan, resolved once per screen.
+///
+/// Defaults to false while it resolves: an action that appears a beat late is
+/// better than one that appears and cannot work.
+final documentScannerAvailableProvider = FutureProvider<bool>(
+  (ref) => ref.watch(documentScannerProvider).isAvailable(),
+);

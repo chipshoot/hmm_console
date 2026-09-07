@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
+import 'package:hmm_console/core/data/attachments/scanner/document_scanner.dart';
 import 'package:hmm_console/core/data/vault/vault_session.dart';
 import 'package:hmm_console/features/driver_licence/data/i_driver_licence_repository.dart';
 import 'package:hmm_console/features/driver_licence/domain/driver_licence.dart';
@@ -32,6 +34,12 @@ class _StubVault extends VaultSessionController {
   final VaultStatus _status;
   @override
   VaultStatus build() => _status;
+
+  /// Without this, ensureVaultUnlocked() calls the REAL refresh(), which
+  /// reaches for the vault key service and never returns a usable status in a
+  /// test — so any flow gated on the vault died before doing its work.
+  @override
+  Future<void> refresh() async => state = _status;
 }
 
 /// Locked until the unlock FLOW runs — refresh alone does not open it. That
@@ -50,6 +58,34 @@ class _UnlockableVault extends VaultSessionController {
     return true;
   }
 }
+
+class _FakeScanner implements DocumentScanner {
+  _FakeScanner({this.available = true, this.pages = const []});
+  final bool available;
+  final List<PickedImageBytes> pages;
+  int scans = 0;
+
+  @override
+  Future<bool> isAvailable() async => available;
+
+  @override
+  Future<List<PickedImageBytes>> scan() async {
+    scans++;
+    return pages;
+  }
+}
+
+/// A real 1x1 PNG. Fake bytes make Image.memory throw "Invalid image data",
+/// which the test framework reports as a failure — so the pending-pick render
+/// path could not be exercised with a placeholder.
+final _onePixelPng = base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+PickedImageBytes scanPage(String name) => PickedImageBytes(
+      bytes: _onePixelPng,
+      originalName: name,
+      contentType: 'image/png',
+    );
 
 class _RecordingByteSource implements ImageByteSource {
   int picks = 0;
@@ -437,5 +473,120 @@ void main() {
 
     expect(source.picks, 1,
         reason: 'the camera should open once the vault has been unlocked');
+  });
+
+  group('scanning', () {
+    Future<_FakeScanner> pumpWithScanner(
+      WidgetTester tester, {
+      required _FakeScanner scanner,
+      DriverLicence? stored,
+      VaultStatus vault = VaultStatus.unlocked,
+    }) async {
+      tester.view.physicalSize = const Size(1000, 2000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          driverLicenceRepositoryModeProvider
+              .overrideWithValue(_FakeRepo(stored)),
+          vaultSessionProvider.overrideWith(() => _StubVault(vault)),
+          documentScannerProvider.overrideWithValue(scanner),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const DriverLicenceScreen(),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      return scanner;
+    }
+
+    testWidgets('the scan action appears when the platform can scan',
+        (tester) async {
+      await pumpWithScanner(tester, scanner: _FakeScanner());
+      expect(find.byKey(const Key('licenceScanButton')), findsOneWidget);
+    });
+
+    testWidgets('it is ABSENT when the platform cannot scan', (tester) async {
+      // Not silently reinterpreted as a plain camera: a control labelled
+      // "scan both sides" that quietly captures one ordinary photo is the
+      // same class of lie as this feature's empty-state bugs.
+      await pumpWithScanner(tester, scanner: _FakeScanner(available: false));
+      expect(find.byKey(const Key('licenceScanButton')), findsNothing);
+    });
+
+    testWidgets('two pages fill both sides, front from page one',
+        (tester) async {
+      final front = scanPage('front.jpg');
+      final back = scanPage('back.jpg');
+      await pumpWithScanner(tester,
+          scanner: _FakeScanner(pages: [front, back]));
+
+      await tester.tap(find.byKey(const Key('licenceScanButton')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const Key('licencePendingFront')), findsOneWidget);
+      expect(find.byKey(const Key('licencePendingBack')), findsOneWidget);
+    });
+
+    testWidgets('one page fills only the front', (tester) async {
+      await pumpWithScanner(tester,
+          scanner: _FakeScanner(pages: [scanPage('only.jpg')]));
+
+      await tester.tap(find.byKey(const Key('licenceScanButton')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const Key('licencePendingFront')), findsOneWidget);
+      expect(find.byKey(const Key('licencePendingBack')), findsNothing);
+    });
+
+    testWidgets('extra pages are reported, not silently dropped',
+        (tester) async {
+      await pumpWithScanner(tester,
+          scanner: _FakeScanner(pages: [
+            scanPage('1.jpg'),
+            scanPage('2.jpg'),
+            scanPage('3.jpg'),
+            scanPage('4.jpg'),
+          ]));
+
+      await tester.tap(find.byKey(const Key('licenceScanButton')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Only the first two pages were used.'), findsOneWidget);
+    });
+
+    testWidgets('cancelling changes nothing and says nothing', (tester) async {
+      await pumpWithScanner(tester, scanner: _FakeScanner(pages: const []));
+
+      await tester.tap(find.byKey(const Key('licenceScanButton')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const Key('licencePendingFront')), findsNothing);
+      expect(find.text('Only the first two pages were used.'), findsNothing);
+    });
+
+    testWidgets('a locked vault is resolved BEFORE the scanner opens',
+        (tester) async {
+      // Scanning and then losing the result is the bug fixed in 457cbf7.
+      final scanner = _FakeScanner(pages: [scanPage('front.jpg')]);
+      await pumpWithScanner(tester,
+          scanner: scanner, vault: VaultStatus.absent);
+
+      await tester.tap(find.byKey(const Key('licenceScanButton')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(scanner.scans, 0,
+          reason: 'the scanner must not open over a vault that cannot store');
+    });
   });
 }

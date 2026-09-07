@@ -1807,6 +1807,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenceShow => 'Show licence';
 
   @override
+  String get licenceScan => 'Scan licence';
+
+  @override
+  String get licenceScanExtraPagesIgnored =>
+      'Only the first two pages were used.';
+
+  @override
   String get licenceSaved => 'Licence saved';
 
   @override

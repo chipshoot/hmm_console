@@ -1767,6 +1767,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get licenceShow => '出示驾驶证';
 
   @override
+  String get licenceScan => '扫描驾驶证';
+
+  @override
+  String get licenceScanExtraPagesIgnored => '仅使用了前两页。';
+
+  @override
   String get licenceSaved => '驾驶证已保存';
 
   @override

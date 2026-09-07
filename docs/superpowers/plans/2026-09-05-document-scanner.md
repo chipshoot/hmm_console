@@ -577,7 +577,7 @@ git commit -m "feat(scanner): add the VisionKit plugin"
 **Interfaces:**
 - Consumes: `documentScannerProvider` (Task 3), `LicenceScanPages` (Task 2), `ensureVaultUnlocked` (existing).
 
-- [ ] **Step 1: Add the strings**
+- [x] **Step 1: Add the strings**
 
 `app_en.arb`:
 ```json
@@ -595,7 +595,7 @@ Unreviewed Chinese, like the rest of that file.
 
 Run: `flutter gen-l10n`
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```dart
 class _FakeScanner implements DocumentScanner {
@@ -625,12 +625,12 @@ Assert, mounting the screen with that fake injected through `documentScannerProv
 - a cancelled scan (empty list) changes nothing and shows no message
 - **with the vault locked, the scanner is never opened** — assert `fake.scans == 0` and that the unlock path ran
 
-- [ ] **Step 3: Run them and watch them fail**
+- [x] **Step 3: Run them and watch them fail**
 
 Run: `flutter test test/features/driver_licence/driver_licence_screen_test.dart`
 Expected: FAIL — no scan action exists.
 
-- [ ] **Step 4: Wire it up**
+- [x] **Step 4: Wire it up**
 
 In `build`, beside the existing capture slots:
 
@@ -672,24 +672,35 @@ Future<void> _scan() async {
 
 Note the pages become PENDING picks. Nothing reaches the vault until Save, exactly as the camera path already behaves.
 
-- [ ] **Step 5: Run them and watch them pass**
+- [x] **Step 5: Run them and watch them pass**
 
 Run: `flutter test test/features/driver_licence/`
 Expected: PASS
 
-- [ ] **Step 6: Mutation-check**
+- [x] **Step 6: Mutation-check**
 
 Render the scan button unconditionally. Expected: the unavailable test fails. Restore.
 Move `ensureVaultUnlocked` to after the `scan()` call. Expected: the locked-vault test fails. Restore.
 Assign `pages.back` to `_newFront`. Expected: the two-page test fails. Restore.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 flutter analyze
 git add lib test
 git commit -m "feat(licence): scan both sides in one session"
 ```
+
+**Two test-harness gaps Task 5 exposed, fixed here:**
+
+1. `_StubVault` overrode only `build()`, so `ensureVaultUnlocked()` called the
+   REAL `refresh()`, which reaches for the vault key service and never returns a
+   usable status under test. Any flow gated on the vault died before doing its
+   work. It now stubs `refresh()` too — worth knowing for every future test that
+   touches a vault-gated path.
+2. Fake image bytes make `Image.memory` throw "Invalid image data", which the
+   framework reports as a test failure, so a pending pick could not be rendered
+   with a placeholder. The fixture uses a real 1x1 PNG.
 
 ---
 
