@@ -252,7 +252,7 @@ Platform channels ARE testable in Dart via a mock handler — so the client's er
 - Consumes: `DocumentScanner` (Task 1).
 - Produces: `NativeDocumentScanner`; channel `hmm/document_scanner`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```dart
 import 'dart:typed_data';
@@ -321,12 +321,12 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `flutter test test/core/data/attachments/scanner/native_document_scanner_test.dart`
 Expected: FAIL — `native_document_scanner.dart` does not exist.
 
-- [ ] **Step 3: Write the client**
+- [x] **Step 3: Write the client**
 
 ```dart
 import 'dart:typed_data';
@@ -384,7 +384,7 @@ class NativeDocumentScanner implements DocumentScanner {
 }
 ```
 
-- [ ] **Step 4: Point the provider at it on iOS**
+- [x] **Step 4: Point the provider at it on iOS**
 
 In `document_scanner.dart`:
 
@@ -399,17 +399,17 @@ final documentScannerProvider = Provider<DocumentScanner>((ref) {
 });
 ```
 
-- [ ] **Step 5: Run it and watch it pass**
+- [x] **Step 5: Run it and watch it pass**
 
 Run: `flutter test test/core/data/attachments/scanner/`
 Expected: PASS (6 tests)
 
-- [ ] **Step 6: Mutation-check**
+- [x] **Step 6: Mutation-check**
 
 Change the `unavailable` branch in `scan()` to `rethrow`. Expected: the unavailable test fails. Restore.
 Reverse the page loop. Expected: the ordering test fails. Restore.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/core/data/attachments/scanner test/core/data/attachments/scanner

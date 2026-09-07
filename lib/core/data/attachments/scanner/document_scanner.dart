@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../picker/image_byte_source.dart';
+import 'native_document_scanner.dart';
 
 /// The OS document scanner: edge detection, perspective correction and shadow
 /// removal, done by the platform rather than by us.
@@ -31,8 +33,13 @@ class UnavailableDocumentScanner implements DocumentScanner {
   Future<List<PickedImageBytes>> scan() async => const [];
 }
 
-final documentScannerProvider = Provider<DocumentScanner>(
-  // Task 3 makes this platform-aware; until the MethodChannel client exists,
-  // every caller correctly sees "cannot scan here".
-  (ref) => const UnavailableDocumentScanner(),
-);
+final documentScannerProvider = Provider<DocumentScanner>((ref) {
+  // Android keeps the plain camera until its ML Kit half is written; this
+  // interface is what makes that a one-line change later. The native client
+  // also answers false on the simulator and on hosts where the channel was
+  // never registered, so this check is a shortcut, not the only guard.
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    return const NativeDocumentScanner();
+  }
+  return const UnavailableDocumentScanner();
+});
