@@ -426,7 +426,7 @@ Nothing here is testable. Keep it correspondingly boring.
 - Create: `ios/Runner/DocumentScannerPlugin.swift`
 - Modify: `ios/Runner/AppDelegate.swift`
 
-- [ ] **Step 1: Write the plugin**
+- [x] **Step 1: Write the plugin**
 
 ```swift
 import Flutter
@@ -518,7 +518,7 @@ extension DocumentScannerPlugin: VNDocumentCameraViewControllerDelegate {
 }
 ```
 
-- [ ] **Step 2: Register it**
+- [x] **Step 2: Register it**
 
 In `ios/Runner/AppDelegate.swift`, inside `application(_:didFinishLaunchingWithOptions:)`, before `GeneratedPluginRegistrant.register(with: self)` returns:
 
@@ -528,17 +528,42 @@ if let controller = window?.rootViewController as? FlutterViewController {
 }
 ```
 
-- [ ] **Step 3: Build it**
+- [x] **Step 3: Build it**
 
 Run: `flutter build ios --release --dart-define=API_ENV=production --dart-define=ONEDRIVE_CLIENT_ID=3056e225-6965-4c36-8542-db02f614e084`
 Expected: build succeeds. A Swift compile error here is the only feedback this file gets.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add ios/Runner
 git commit -m "feat(scanner): add the VisionKit plugin"
 ```
+
+**Two things this plan got wrong, corrected while doing Task 4:**
+
+1. **The registration snippet assumed the wrong AppDelegate.** This project uses
+   `FlutterImplicitEngineDelegate`, where the root view controller is not
+   reliably in place when plugins register. Registration goes through
+   `engineBridge.pluginRegistry.registrar(forPlugin:)`, and the presenting
+   controller is resolved AT SCAN TIME — better regardless, since by then
+   something may be presented over the root and a captured reference would be
+   stale.
+2. **The plan never mentioned `project.pbxproj`.** A `.swift` dropped into
+   `ios/Runner/` is NOT compiled. It needs a PBXFileReference, a PBXBuildFile, a
+   group entry and a Sources build-phase entry. Without them the build SUCCEEDS
+   and the plugin silently never registers, surfacing as MissingPluginException
+   — which the Dart client correctly reads as "no scanner here", making a wiring
+   mistake look like a device limitation.
+
+   **So Step 3's green build proves nothing on its own.** Verify by checking the
+   built binary instead:
+
+   ```bash
+   strings build/ios/iphoneos/Runner.app/Runner | grep -c "hmm/document_scanner"
+   nm build/ios/iphoneos/Runner.app/Runner | grep -c DocumentScannerPlugin
+   ```
+   Expected: both non-zero.
 
 ---
 
