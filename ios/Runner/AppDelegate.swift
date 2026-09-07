@@ -12,5 +12,12 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // Hand-registered: this is the app's own plugin, not a pub package, so
+    // GeneratedPluginRegistrant does not know about it.
+    if let registrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "DocumentScannerPlugin") {
+      DocumentScannerPlugin.register(with: registrar)
+    }
   }
 }
