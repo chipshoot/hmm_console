@@ -42,7 +42,7 @@
 **Interfaces:**
 - Produces: `DocumentScanner` (`Future<bool> isAvailable()`, `Future<List<PickedImageBytes>> scan()`); `documentScannerProvider`; `UnavailableDocumentScanner`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -62,12 +62,12 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `flutter test test/core/data/attachments/scanner/document_scanner_test.dart`
 Expected: FAIL — `document_scanner.dart` does not exist.
 
-- [ ] **Step 3: Write the interface**
+- [x] **Step 3: Write the interface**
 
 ```dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -108,12 +108,12 @@ final documentScannerProvider = Provider<DocumentScanner>(
 );
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `flutter test test/core/data/attachments/scanner/document_scanner_test.dart`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/core/data/attachments/scanner test/core/data/attachments/scanner
