@@ -706,9 +706,9 @@ git commit -m "feat(licence): scan both sides in one session"
 
 ### Task 6: Verification
 
-- [ ] **Step 1: Analyzer** — `flutter analyze`. Expected: only the 2 pre-existing issues (`onboarding_screen.dart`, `main.dart`).
-- [ ] **Step 2: Full suite** — `flutter test`. Expected: all pass. It stood at 1506 before this work.
-- [ ] **Step 3: ARB parity**
+- [x] **Step 1: Analyzer** — `flutter analyze`. Expected: only the 2 pre-existing issues (`onboarding_screen.dart`, `main.dart`).
+- [x] **Step 2: Full suite** — `flutter test`. Expected: all pass. It stood at 1506 before this work.
+- [x] **Step 3: ARB parity**
 
 ```bash
 python3 -c "
@@ -720,7 +720,10 @@ print('en', len(ek), 'zh', len(zk)); print(sorted(ek-zk), sorted(zk-ek))
 ```
 Expected: equal counts, both lists empty.
 
-- [ ] **Step 4: ON DEVICE — the only real proof.** Deploy with `scripts/deploy-prod-ios-device.sh`, then:
+- [ ] **Step 4: ON DEVICE — the only real proof.** STILL OPEN. Installed on the
+  iPhone 2026-09-07; the user has not yet reported the result. Do NOT tick this
+  on anyone's say-so — VisionKit does not run on the simulator, so nothing
+  automated can stand in for it. Deploy with `scripts/deploy-prod-ios-device.sh`, then:
   - Tap **Scan licence**. VisionKit opens with live edge detection.
   - Shoot the front, then the back, then Save.
   - **Both slots fill, front is the front**, each cropped to the card, upright and legible — not the portrait phone photo this feature exists to replace.
