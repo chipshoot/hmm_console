@@ -14,6 +14,7 @@ import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/driver_licence.dart';
+import '../../dev/id_probe_screen.dart';
 import '../../domain/licence_scan_mapping.dart';
 import '../../states/driver_licence_state.dart';
 import '../widgets/vault_locked_notice.dart';
@@ -311,6 +312,17 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
               onPressed: _scan,
             ),
           ],
+          // THROWAWAY entry point for the ID-extraction spike. Delete this,
+          // dev/id_probe_screen.dart and the barcode dependency together once
+          // the question is answered.
+          GapWidgets.h16,
+          TextButton(
+            key: const Key('idProbeEntry'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const IdProbeScreen()),
+            ),
+            child: const Text('DEV - probe this card'),
+          ),
           GapWidgets.h24,
           FilledButton(
             key: const Key('licenceSaveButton'),
