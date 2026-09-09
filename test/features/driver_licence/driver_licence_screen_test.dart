@@ -589,4 +589,46 @@ void main() {
           reason: 'the scanner must not open over a vault that cannot store');
     });
   });
+
+  testWidgets('a locked slot unlocks and SHOWS, it does not open the camera',
+      (tester) async {
+    // Reported: reopening the licence showed the slot locked; unlocking it
+    // launched the camera to retake, and only quitting that revealed the photo
+    // that was there all along. canView required an unlocked vault, so a
+    // stored image behind a locked one routed the tap to capture.
+    tester.view.physicalSize = const Size(1000, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final source = _RecordingByteSource();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        driverLicenceRepositoryModeProvider
+            .overrideWithValue(_FakeRepo(const DriverLicence(frontImage: front))),
+        vaultSessionProvider.overrideWith(_UnlockableVault.new),
+        imageByteSourceProvider.overrideWithValue(source),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const DriverLicenceScreen(),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('licenceFrontSlot')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(source.picks, 0,
+        reason: 'tapping a stored photo must never launch a retake');
+    expect(find.byType(LicenceShowScreen), findsOneWidget,
+        reason: 'it should unlock and then show the photo');
+    // Navigating alone is not enough: without the unlock the show screen just
+    // reports the vault locked again, and the user is no better off.
+    expect(find.byKey(const Key('licenceVaultLockedNotice')), findsNothing,
+        reason: 'the tap must actually unlock, not merely navigate');
+  });
 }

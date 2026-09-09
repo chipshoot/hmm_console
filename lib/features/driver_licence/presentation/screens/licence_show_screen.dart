@@ -92,38 +92,52 @@ class _LicenceShowScreenState extends ConsumerState<LicenceShowScreen> {
                       ),
                     )
                   : locked
-                      ? Center(
-                          child: VaultLockedNotice(
-                              status: vault, onDark: true))
-                      : GestureDetector(
-                          key: const Key('licenceImageArea'),
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _canFlip
-                              ? () =>
-                                  setState(() => _showingFront = !_showingFront)
-                              : null,
-                          child: resolver == null
-                              ? const Center(
-                                  key: Key('licenceImageLoading'),
-                                  child: CircularProgressIndicator.adaptive())
-                              : AttachmentImage(
-                                  key: ValueKey(current.path),
-                                  ref: current,
-                                  resolver: resolver,
-                                  loadingPlaceholder: const Center(
-                                      child:
-                                          CircularProgressIndicator.adaptive()),
-                                  // Was black-on-black: a failed decrypt drew
-                                  // an invisible rectangle, so "cannot show
-                                  // it" and "there is nothing here" looked
-                                  // identical.
-                                  errorPlaceholder: const Center(
-                                    key: Key('licenceImageFailed'),
-                                    child: Icon(Icons.broken_image_outlined,
-                                        color: Colors.white54, size: 48),
+                  ? Center(
+                      child: VaultLockedNotice(status: vault, onDark: true),
+                    )
+                  : GestureDetector(
+                      key: const Key('licenceImageArea'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _canFlip
+                          ? () => setState(() => _showingFront = !_showingFront)
+                          : null,
+                      child: resolver == null
+                          ? const Center(
+                              key: Key('licenceImageLoading'),
+                              child: CircularProgressIndicator.adaptive(),
+                            )
+                          // contain, not the default cover: a landscape
+                          // card inside a portrait screen was cropped to
+                          // its middle, which is where a licence keeps
+                          // nothing useful. InteractiveViewer because the
+                          // small print is the whole reason anyone
+                          // enlarges an ID.
+                          : InteractiveViewer(
+                              minScale: 1,
+                              maxScale: 5,
+                              child: AttachmentImage(
+                                key: ValueKey(current.path),
+                                ref: current,
+                                resolver: resolver,
+                                fit: BoxFit.contain,
+                                loadingPlaceholder: const Center(
+                                  child: CircularProgressIndicator.adaptive(),
+                                ),
+                                // Was black-on-black: a failed decrypt drew
+                                // an invisible rectangle, so "cannot show
+                                // it" and "there is nothing here" looked
+                                // identical.
+                                errorPlaceholder: const Center(
+                                  key: Key('licenceImageFailed'),
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color: Colors.white54,
+                                    size: 48,
                                   ),
                                 ),
-                        ),
+                              ),
+                            ),
+                    ),
             ),
             // The number and expiry in text as well as on the photo: someone
             // checking often wants to read or copy the number rather than
@@ -143,9 +157,10 @@ class _LicenceShowScreenState extends ConsumerState<LicenceShowScreen> {
                       l.number!,
                       key: const Key('licenceNumberText'),
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   if (l.expiryDate != null)
                     Text(

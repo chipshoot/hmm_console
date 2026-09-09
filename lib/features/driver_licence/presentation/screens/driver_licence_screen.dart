@@ -78,8 +78,13 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
 
   String? _orNull(String v) => v.trim().isEmpty ? null : v.trim();
 
-  void _openShow(DriverLicence? licence, {required bool front}) {
+  Future<void> _openShow(DriverLicence? licence, {required bool front}) async {
     if (licence == null) return;
+    // The photo is encrypted, so opening it needs the vault — but unlocking
+    // is all it needs. This used to fall through to the capture path, which
+    // unlocked AND opened the camera.
+    if (!await ensureVaultUnlocked(context, ref)) return;
+    if (!mounted) return;
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => LicenceShowScreen(licence: licence, showBackFirst: !front),
     ));
@@ -360,9 +365,15 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
     final resolver = ref.watch(attachmentResolverProvider).value;
     final vaultStatus = ref.watch(vaultSessionProvider);
     final vaultLocked = vaultStatus != VaultStatus.unlocked;
-    // Only a saved, decryptable photo is viewable; a pending pick has no
-    // vault path yet and a locked vault cannot render one.
-    final canView = saved != null && !vaultLocked && pending == null;
+    // A stored photo is ALWAYS the thing a tap should open, locked or not.
+    // Requiring an unlocked vault here sent the tap to capture instead, so
+    // unlocking a slot launched the camera to retake a photo that already
+    // existed — and only quitting that revealed it.
+    final canView = saved != null && pending == null;
+
+    // Replacing is a different question from viewing: you should not be
+    // offered a retake of a photo you cannot currently see.
+    final canReplace = canView && !vaultLocked;
 
     Widget body;
     if (pending != null) {
@@ -429,7 +440,7 @@ class _DriverLicenceScreenState extends ConsumerState<DriverLicenceScreen> {
             ),
             // Replacing stays available, but as a deliberate target rather
             // than the whole tile.
-            if (canView)
+            if (canReplace)
               Positioned(
                 right: 0,
                 bottom: 0,
