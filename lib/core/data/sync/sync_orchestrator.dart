@@ -57,6 +57,19 @@ class SyncOrchestrator {
 
   final HmmDatabase _db;
   final SyncMetaRepository _meta;
+  /// The store UNDERNEATH any encryption: bytes exactly as they sit on disk.
+  ///
+  /// Sync moves attachments between this device and the cloud, and for a
+  /// sensitive path the bytes on disk are ciphertext. That is the whole point
+  /// of the encrypted vault, and it must hold on OneDrive too — so transfer
+  /// goes through the raw store, never a decrypting one. Reading through the
+  /// decrypting store did two wrong things at once: it threw
+  /// VaultLockedException whenever sync ran with the vault locked, which is
+  /// almost always, and had it succeeded it would have uploaded the plaintext.
+  ///
+  /// Deliberately the ONLY store this class holds. Sync never has a
+  /// legitimate reason to decrypt anything, so there is no decrypting store
+  /// here to reach for by mistake.
   final Future<IVaultStore> Function() _vaultStore;
   final SyncableSettingsRepository _settingsRepo;
 
@@ -779,6 +792,9 @@ class SyncOrchestrator {
   Future<(int, int)> _reconcileVault(
       CloudSyncProvider p, List<SyncError> errors) async {
     if (!p.supportsAttachments) return (0, 0);
+    // Raw, not decrypting: see _vaultStore. This also means pulling a
+    // sensitive attachment writes the ciphertext straight back to disk rather
+    // than re-encrypting bytes that are already encrypted.
     final vault = await _vaultStore();
     final referenced = await collectReferencedVaultPaths(_db);
     final remote = await p.listAttachmentPaths();
@@ -881,7 +897,9 @@ final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
     provider: provider,
     db: db,
     meta: meta,
-    vaultStore: () => ref.read(vaultStoreProvider.future),
+    // baseVaultStoreProvider, NOT vaultStoreProvider: the base store is the
+    // one underneath encryption. See _vaultStore for why.
+    vaultStore: () => ref.read(baseVaultStoreProvider.future),
     settingsRepo: ref.watch(syncableSettingsRepositoryProvider),
     // Pulled notes must land on the signed-in user's author, the same one
     // LocalHmmNoteRepository filters every read by. Resolved lazily: sync
