@@ -266,6 +266,11 @@
   "syncCellularTitle": "Sync over cellular?",
   "syncCellularBody": "Your network policy is set to \"WiFi only\", but you tapped Sync now. Proceeding will use cellular data.",
   "syncAnyway": "Sync anyway",
+  "syncSheetSignedInAs": "Signed in as {email}",
+  "@syncSheetSignedInAs": { "placeholders": { "email": { "type": "String" } } },
+  "syncSheetSignInAgain": "Sign in again",
+  "syncSheetSyncNow": "Sync now",
+  "syncSheetAuthExpired": "Your Hmm sign-in has expired. Sign in again to resume syncing.",
   "@_notes": {
     "description": "Notes feature. Vault strings (vaultUnlock, vaultPassphrase, …) are reused from the settings pass."
   },

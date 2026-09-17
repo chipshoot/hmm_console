@@ -758,6 +758,30 @@ abstract class AppLocalizations {
   /// **'Sync anyway'**
   String get syncAnyway;
 
+  /// No description provided for @syncSheetSignedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {email}'**
+  String syncSheetSignedInAs(String email);
+
+  /// No description provided for @syncSheetSignInAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again'**
+  String get syncSheetSignInAgain;
+
+  /// No description provided for @syncSheetSyncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncSheetSyncNow;
+
+  /// No description provided for @syncSheetAuthExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Hmm sign-in has expired. Sign in again to resume syncing.'**
+  String get syncSheetAuthExpired;
+
   /// No description provided for @catalogGeneral.
   ///
   /// In en, this message translates to:

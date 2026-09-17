@@ -430,7 +430,7 @@ git commit -m "feat(sync): add the status dot widget"
 **Files:**
 - Modify: `lib/l10n/app_en.arb`, `lib/l10n/app_zh.arb`
 
-- [ ] **Step 1: Add the keys**
+- [x] **Step 1: Add the keys**
 
 `app_en.arb`, after the existing `syncAnyway` key:
 ```json
@@ -451,7 +451,7 @@ git commit -m "feat(sync): add the status dot widget"
 
 The existing `syncStatusSynced`, `syncStatusSyncing`, `syncStatusWaitingWifi`, `syncStatusLastFailed`, `syncStatusFailing`, and `syncStatusNever` keys are reused for the status line — do not duplicate them.
 
-- [ ] **Step 2: Regenerate and check parity**
+- [x] **Step 2: Regenerate and check parity**
 
 ```bash
 flutter gen-l10n
@@ -463,7 +463,7 @@ print('en',len(ek),'zh',len(zk)); print(sorted(ek-zk), sorted(zk-ek))"
 ```
 Expected: equal counts (530 + 4 = 534 each), both lists empty.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/l10n && git commit -m "feat(sync): add sheet strings, en/zh"

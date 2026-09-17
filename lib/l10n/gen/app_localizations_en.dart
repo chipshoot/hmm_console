@@ -428,6 +428,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncAnyway => 'Sync anyway';
 
   @override
+  String syncSheetSignedInAs(String email) {
+    return 'Signed in as $email';
+  }
+
+  @override
+  String get syncSheetSignInAgain => 'Sign in again';
+
+  @override
+  String get syncSheetSyncNow => 'Sync now';
+
+  @override
+  String get syncSheetAuthExpired =>
+      'Your Hmm sign-in has expired. Sign in again to resume syncing.';
+
+  @override
   String get catalogGeneral => 'General';
 
   @override

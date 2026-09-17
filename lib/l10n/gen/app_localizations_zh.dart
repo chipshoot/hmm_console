@@ -408,6 +408,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncAnyway => '仍要同步';
 
   @override
+  String syncSheetSignedInAs(String email) {
+    return '已登录：$email';
+  }
+
+  @override
+  String get syncSheetSignInAgain => '重新登录';
+
+  @override
+  String get syncSheetSyncNow => '立即同步';
+
+  @override
+  String get syncSheetAuthExpired => 'Hmm 登录已过期。请重新登录以恢复同步。';
+
+  @override
   String get catalogGeneral => '常规';
 
   @override
