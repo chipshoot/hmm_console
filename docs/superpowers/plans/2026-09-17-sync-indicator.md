@@ -221,7 +221,7 @@ git commit -m "feat(sync): map sync status onto five indicator states"
 - Produces: `SyncStatusDot({required SyncIndicatorState state, double size = 13})`. Renders `SizedBox.shrink()` for `none`.
 - Consumes: `SyncIndicatorState` (Task 1).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```dart
 import 'package:flutter/material.dart';
@@ -290,12 +290,12 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `flutter test test/core/data/sync/widgets/sync_status_dot_test.dart`
 Expected: FAIL — `sync_status_dot.dart` does not exist.
 
-- [ ] **Step 3: Write the widget**
+- [x] **Step 3: Write the widget**
 
 ```dart
 import 'package:flutter/material.dart';
@@ -406,17 +406,17 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
 }
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `flutter test test/core/data/sync/widgets/sync_status_dot_test.dart`
 Expected: PASS (8 tests). If the pulse test hangs, it is because `pump()` above uses a single `pump` — a repeating animation never settles, so never use `pumpAndSettle` in this file.
 
-- [ ] **Step 5: Mutation-check**
+- [x] **Step 5: Mutation-check**
 
 Make `waiting` and `failed` the same colour. Expected: the distinct-colours test fails. Restore.
 Drop the `disableAnimations` check. Expected: the reduced-motion test fails. Restore.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add lib/core/data/sync/widgets test/core/data/sync/widgets
