@@ -43,8 +43,10 @@ class _Body extends ConsumerWidget {
     final theme = Theme.of(context);
     final l = AppLocalizations.of(context);
 
+    // The wording comes from syncStatusHeadline, shared with the dashboard
+    // sheet; this block only chooses the icon and colour to go with it.
+    final headline = syncStatusHeadline(status, l);
     Widget leading;
-    String headline;
     Color? headlineColor;
 
     if (status.isSyncing) {
@@ -52,29 +54,23 @@ class _Body extends ConsumerWidget {
         dimension: 18,
         child: CircularProgressIndicator(strokeWidth: 2),
       );
-      headline = l.syncStatusSyncing;
     } else if (status.consecutiveFailures >= 3) {
       // Persistent badge after 3 failures in a row (decision B2 in
       // task_plan.md). At this point the user should notice — a
       // transient snackbar isn't enough.
       leading = Icon(Icons.error, color: theme.colorScheme.error);
-      headline = l.syncStatusFailing(status.consecutiveFailures);
       headlineColor = theme.colorScheme.error;
     } else if (status.lastAutoTriggerSkippedForNetwork) {
       // WiFi-only policy blocked the most recent auto-trigger. Stays
       // visible until the next real sync runs (manual or auto when
       // WiFi comes back).
       leading = Icon(Icons.wifi_off, color: theme.colorScheme.tertiary);
-      headline = l.syncStatusWaitingWifi;
     } else if (status.lastResult != null && !status.lastResult!.success) {
       leading = Icon(Icons.warning_amber, color: theme.colorScheme.tertiary);
-      headline = l.syncStatusLastFailed;
     } else if (status.lastSyncAt != null) {
       leading = Icon(Icons.cloud_done, color: theme.colorScheme.primary);
-      headline = l.syncStatusSynced(_relativeTime(status.lastSyncAt!, l));
     } else {
       leading = const Icon(Icons.cloud_off);
-      headline = l.syncStatusNever;
     }
 
     return Card(
@@ -129,13 +125,6 @@ class _Body extends ConsumerWidget {
   /// Plural forms come from the ARB rather than a `s`-appending ternary:
   /// Chinese has no plural inflection, so the old approach had no correct
   /// translation at all.
-  String _relativeTime(DateTime past, AppLocalizations l) {
-    final delta = DateTime.now().toUtc().difference(past);
-    if (delta.inSeconds < 60) return l.syncRelativeJustNow;
-    if (delta.inMinutes < 60) return l.syncRelativeMinutes(delta.inMinutes);
-    if (delta.inHours < 24) return l.syncRelativeHours(delta.inHours);
-    return l.syncRelativeDays(delta.inDays);
-  }
 }
 
 /// Shared confirm-dialog flow for any "manual sync" entry point. Returns
@@ -180,4 +169,31 @@ Future<bool> confirmManualSyncIfOnCellular(
     ),
   );
   return confirmed ?? false;
+}
+
+/// One line describing [status], in the same priority order the card uses.
+///
+/// Shared with the dashboard's avatar sheet so the two never disagree about
+/// what the sync state is called.
+String syncStatusHeadline(SyncStatus status, AppLocalizations l) {
+  if (status.isSyncing) return l.syncStatusSyncing;
+  if (status.consecutiveFailures >= 3) {
+    return l.syncStatusFailing(status.consecutiveFailures);
+  }
+  if (status.lastAutoTriggerSkippedForNetwork) return l.syncStatusWaitingWifi;
+  if (status.lastResult != null && !status.lastResult!.success) {
+    return l.syncStatusLastFailed;
+  }
+  if (status.lastSyncAt != null) {
+    return l.syncStatusSynced(syncRelativeTime(status.lastSyncAt!, l));
+  }
+  return l.syncStatusNever;
+}
+
+String syncRelativeTime(DateTime past, AppLocalizations l) {
+  final delta = DateTime.now().toUtc().difference(past);
+  if (delta.inSeconds < 60) return l.syncRelativeJustNow;
+  if (delta.inMinutes < 60) return l.syncRelativeMinutes(delta.inMinutes);
+  if (delta.inHours < 24) return l.syncRelativeHours(delta.inHours);
+  return l.syncRelativeDays(delta.inDays);
 }

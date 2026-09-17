@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
@@ -30,6 +31,13 @@ class _IntroSeen extends IntroCardSeenNotifier {
   bool build() => true;
 }
 
+/// The dashboard now watches the sync controller for its avatar dot, and
+/// the real one reaches for the database. An idle fake keeps this test
+/// about the tile, which is all it is for.
+class _IdleSync extends SyncController {
+  _IdleSync() : super(syncAction: () async => throw UnimplementedError());
+}
+
 class _EmptyCheatsheets extends CheatsheetsState {
   @override
   Future<List<CheatsheetCard>> build() async => const [];
@@ -51,6 +59,7 @@ void main() {
           currentUserProvider.overrideWith(_SignedIn.new),
           introCardSeenProvider.overrideWith(_IntroSeen.new),
           cheatsheetsStateProvider.overrideWith(_EmptyCheatsheets.new),
+          syncControllerProvider.overrideWithValue(_IdleSync()),
         ],
         child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,

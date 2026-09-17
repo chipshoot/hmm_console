@@ -14,6 +14,10 @@ import '../../../auth/usecases/signout_usecase.dart';
 import '../../providers/intro_card_provider.dart';
 import '../widgets/defaults_intro_card.dart';
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/data/sync/sync_controller.dart';
+import '../../../../core/data/sync/sync_indicator_state.dart';
+import '../../../../core/data/sync/widgets/sync_status_dot.dart';
+import '../../../settings/presentation/widgets/sync_status_card.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -157,7 +161,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const Spacer(),
           GestureDetector(
             onTap: _showUserMenu,
-            child: _buildAvatar(user, colorScheme),
+            child: ListenableBuilder(
+              // The identical subscription SyncStatusCard uses: the
+              // controller is a ChangeNotifier and fires on every status
+              // transition. No new stream — and without THIS the dot would
+              // be a photograph of startup.
+              listenable: ref.watch(syncControllerProvider),
+              builder: (context, _) {
+                final state = syncIndicatorStateFor(
+                  ref.read(syncControllerProvider).status,
+                  ref.watch(dataModeProvider),
+                );
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _buildAvatar(user, colorScheme),
+                    Positioned(
+                      right: -1,
+                      bottom: -1,
+                      child: SyncStatusDot(state: state),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -289,11 +316,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
         Theme.of(context).platform == TargetPlatform.macOS;
 
+    final controller = ref.read(syncControllerProvider);
+    final status = controller.status;
+    final state = syncIndicatorStateFor(status, ref.read(dataModeProvider));
+    final auth = isAuthFailure(status);
+    final email = ref.read(currentUserProvider)?.email ?? '';
+    // No cloud, no sync line and no sync action — the sheet is just Settings
+    // and Sign out, as before.
+    final hasCloud = state != SyncIndicatorState.none;
+    final statusLine = [
+      syncStatusHeadline(status, l),
+      if (auth) l.syncSheetAuthExpired,
+    ].join('\n');
+
+    // The first action is the FIX for the specific failure, never a generic
+    // retry: an expired sign-in gets "Sign in again", because a retry would
+    // fail exactly the same way.
+    final Future<void> Function() firstAction = auth
+        ? () async => ref.read(signOutUseCaseProvider).signOut()
+        : () async {
+            final proceed = await confirmManualSyncIfOnCellular(context, ref);
+            if (!proceed) return;
+            await controller.triggerManualSync();
+          };
+    final firstLabel = auth ? l.syncSheetSignInAgain : l.syncSheetSyncNow;
+
     if (isApple) {
       showCupertinoModalPopup(
         context: context,
         builder: (ctx) => CupertinoActionSheet(
+          title: Text(l.syncSheetSignedInAs(email)),
+          message: hasCloud ? Text(statusLine) : null,
           actions: [
+            if (hasCloud)
+              CupertinoActionSheetAction(
+                key: const Key('syncSheetFirstAction'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  firstAction();
+                },
+                child: Text(firstLabel),
+              ),
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.pop(ctx);
@@ -334,6 +397,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         position: position,
         items: [
           PopupMenuItem(
+            enabled: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l.syncSheetSignedInAs(email),
+                    style: Theme.of(context).textTheme.labelLarge),
+                if (hasCloud)
+                  Text(statusLine,
+                      style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+          if (hasCloud)
+            PopupMenuItem(
+              key: const Key('syncSheetFirstAction'),
+              value: 'sync_first',
+              child: Row(
+                children: [
+                  Icon(auth ? Icons.login : Icons.sync, size: 20),
+                  const SizedBox(width: 12),
+                  Text(firstLabel),
+                ],
+              ),
+            ),
+          PopupMenuItem(
             value: 'settings',
             child: Row(
               children: [
@@ -356,7 +445,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       );
       if (!mounted) return;
-      if (value == 'settings') {
+      if (value == 'sync_first') {
+        await firstAction();
+      } else if (value == 'settings') {
         context.push('/settings');
       } else if (value == 'sign_out') {
         ref.read(signOutUseCaseProvider).signOut();

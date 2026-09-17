@@ -481,7 +481,7 @@ git add lib/l10n && git commit -m "feat(sync): add sheet strings, en/zh"
 - Consumes: `syncControllerProvider`, `dataModeProvider`, `currentUserProvider`, `signOutUseCaseProvider`, `syncIndicatorStateFor`, `isAuthFailure`, `SyncStatusDot`.
 - The avatar is `GestureDetector(onTap: _showUserMenu, child: _buildAvatar(user, colorScheme))` at `dashboard_screen.dart` ~line 158. The sheet is `_showUserMenu()` at ~line 287, with a Cupertino branch and a Material branch.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 **Copy the harness from `test/features/dashboard/dashboard_cheatsheet_tile_test.dart`** — it already solves the two hard parts: `_SignedIn extends CurrentUserNotifier` short-circuits `_restoreUserIfNeeded` so no token fake is needed, and `_IntroSeen extends IntroCardSeenNotifier` keeps `SettingsController` out. Reuse both verbatim.
 
@@ -510,12 +510,12 @@ Override `syncControllerProvider.overrideWithValue(fake)`, `dataModeProvider`, `
 
 The dashboard fires real HTTP for some cards in `cloudApi`; run these tests in `cloudStorage` and `local`, and use bounded `pump`s rather than `pumpAndSettle` — the licence tests learned this the hard way.
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `flutter test test/features/dashboard/sync_indicator_test.dart`
 Expected: FAIL — no `syncStatusDot` exists.
 
-- [ ] **Step 3: Overlay the dot on the avatar**
+- [x] **Step 3: Overlay the dot on the avatar**
 
 Replace the `GestureDetector` child at ~line 158:
 
@@ -543,7 +543,7 @@ GestureDetector(
 ),
 ```
 
-- [ ] **Step 4: Add the sheet header and the first action**
+- [x] **Step 4: Add the sheet header and the first action**
 
 At the top of `_showUserMenu()`:
 
@@ -568,24 +568,43 @@ Check whether `currentUserProvider` exposes a value directly or through `AsyncVa
 
 Then the existing Settings and Sign out rows, unchanged.
 
-- [ ] **Step 5: Run them and watch them pass**
+- [x] **Step 5: Run them and watch them pass**
 
 Run: `flutter test test/features/dashboard/sync_indicator_test.dart`
 Expected: PASS
 
-- [ ] **Step 6: Mutation-check**
+- [x] **Step 6: Mutation-check**
 
 Replace `ListenableBuilder` with a direct read of `status` in `build`. Expected: the "set() changes the dot" test fails. This is the mutation that matters — without it the dot is a photograph of startup. Restore.
 Make the `auth` branch offer `syncSheetSyncNow`. Expected: the auth-sheet test fails. Restore.
 Render the dot regardless of `state`. Expected: the Local test fails. Restore.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 flutter analyze
 git add lib/features/dashboard test/features/dashboard
 git commit -m "feat(dashboard): sync status dot on the avatar, with a sheet that says why"
 ```
+
+**Three things found while doing Task 4:**
+
+1. The plan named a `controller.syncNow(reason:)` that does not exist. The
+   real call is `controller.triggerManualSync()` behind
+   `confirmManualSyncIfOnCellular(context, ref)` — copied from the Settings
+   card exactly as the plan's fallback instruction said to.
+2. `currentUserProvider` yields `CurrentUserDataModel?` directly, not an
+   `AsyncValue` — read with `?.email`, no `.value`.
+3. The headline wording was NOT copied into the dashboard. It was extracted
+   from `SyncStatusCard` into a shared `syncStatusHeadline()` (and
+   `syncRelativeTime()`), and the card now uses it too. Two copies of the
+   priority order would have drifted; one cannot.
+
+Also: watching `syncControllerProvider` from the dashboard broke the
+pre-existing `dashboard_cheatsheet_tile_test.dart`, which never overrode it
+and so built the real controller, which reaches for the database. It now
+overrides it with an idle fake. **Any future dashboard test needs the same
+override.**
 
 ---
 
