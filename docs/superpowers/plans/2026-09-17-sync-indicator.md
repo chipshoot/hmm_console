@@ -43,7 +43,7 @@ Every rule that could be wrong lives here, in a pure function, where a test can 
 - Produces: `enum SyncIndicatorState { synced, syncing, waiting, failed, none }`; `SyncIndicatorState syncIndicatorStateFor(SyncStatus status, DataMode mode)`; `bool isAuthFailure(SyncStatus status)`.
 - Consumes: `SyncStatus` (`sync_controller.dart` lines 41–80: `isSyncing`, `lastSyncAt`, `lastResult`, `consecutiveFailures`, `lastAutoTriggerSkippedForNetwork`); `DataMode`; `SyncError.recordType`, where `'auth'` marks an auth failure (`sync_orchestrator.dart` line 98).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -138,12 +138,12 @@ void main() {
 
 `SyncStatus` has a private `_copyWith`; construct it with named parameters as above. If a field name here does not compile, the test is wrong and `sync_controller.dart` lines 41–80 are right — fix the test, not the model. Check whether `SyncResult.success` is a getter derived from `errors` or a stored field; if stored, pass it explicitly in `_result`.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `flutter test test/core/data/sync/sync_indicator_state_test.dart`
 Expected: FAIL — `sync_indicator_state.dart` does not exist.
 
-- [ ] **Step 3: Write the mapping**
+- [x] **Step 3: Write the mapping**
 
 ```dart
 import '../data_mode.dart';
@@ -191,18 +191,18 @@ bool isAuthFailure(SyncStatus status) =>
     status.lastResult?.errors.any((e) => e.recordType == 'auth') ?? false;
 ```
 
-- [ ] **Step 4: Run it and watch it pass**
+- [x] **Step 4: Run it and watch it pass**
 
 Run: `flutter test test/core/data/sync/sync_indicator_state_test.dart`
 Expected: PASS (10 tests)
 
-- [ ] **Step 5: Mutation-check**
+- [x] **Step 5: Mutation-check**
 
-Move the `lastAutoTriggerSkippedForNetwork` check below the `lastResult` check, so a Wi-Fi hold with a stale failure reads failed. Expected: the held-for-Wi-Fi test still passes (it has no lastResult) — so ALSO add a stale failed `lastResult` to that test's status first. Then expected: it fails. Restore both.
+Move the `lastAutoTriggerSkippedForNetwork` check below the `lastResult` check, so a Wi-Fi hold with a stale failure reads failed. Expected: the held-for-Wi-Fi test fails. (RESOLVED during execution: the test was written with the stale failed `lastResult` included from the start, so this mutation kills without amending anything.)
 Return `synced` from the final line. Expected: the never-synced test fails. Restore.
 Remove the `DataMode.local` guard. Expected: the Local test fails. Restore.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add lib/core/data/sync/sync_indicator_state.dart test/core/data/sync/sync_indicator_state_test.dart
