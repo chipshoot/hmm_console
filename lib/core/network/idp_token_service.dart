@@ -177,7 +177,17 @@ class IdpTokenService {
         ),
       );
 
-      await _storeTokens(response.data);
+      // A rejected refresh (revoked token, 400 invalid_grant) can arrive as a
+      // non-throwing response carrying an error body. _storeTokens would
+      // then crash on the missing access_token with a bare TypeError, which
+      // is not something callers can catch as an auth failure.
+      final data = response.data;
+      if (response.statusCode != 200 ||
+          data is! Map ||
+          data['access_token'] is! String) {
+        throw AuthTokenException.refreshFailed();
+      }
+      await _storeTokens(Map<String, dynamic>.from(data));
     } on DioException {
       throw AuthTokenException.refreshFailed();
     }
@@ -200,12 +210,25 @@ class IdpTokenService {
     throw AuthTokenException.missingToken();
   }
 
-  /// Decode claims from the stored access token, if valid.
+  /// Decode claims from the stored access token, refreshing it first if it
+  /// has expired.
+  ///
+  /// Returns null only when the user is genuinely signed out: no tokens at
+  /// all, or a refresh token the IdP rejects. It used to return null the
+  /// moment the ACCESS token was past its lifetime, without ever trying the
+  /// refresh token beside it — so an app restart with a stale token told
+  /// OneDrive sync "no authenticated Hmm user" about a user who was signed
+  /// in. getValidAccessToken() already knew how to refresh; this path just
+  /// never used it.
   Future<Map<String, dynamic>?> getStoredClaims() async {
-    if (!await _tokenStorage.hasValidToken()) return null;
-    final token = await _tokenStorage.getAccessToken();
-    if (token == null) return null;
-    return decodeJwtPayload(token);
+    try {
+      return decodeJwtPayload(await getValidAccessToken());
+    } on AuthTokenException {
+      // Missing token, or refresh refused: signed out. Null is the honest
+      // answer and callers already treat it as "no user" — this must not
+      // become a throw on the sync path.
+      return null;
+    }
   }
 
   /// Clear all stored tokens (on sign-out).
