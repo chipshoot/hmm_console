@@ -52,11 +52,50 @@ class SyncStatusDot extends StatelessWidget {
               // the avatar rather than cut into it.
               border: Border.all(color: scheme.surface, width: 2.5),
             ),
-            child: SizedBox(width: size, height: size),
+            child: SizedBox(
+              width: size,
+              height: size,
+              // Colour alone cannot carry these states: green and orange
+              // have a luminance contrast of 1.08 — they differ by hue only,
+              // which red-green colour-blind users cannot see. So the two
+              // non-green states also get a SHAPE: a dash for waiting, a
+              // bar for failed. Synced stays a plain dot.
+              child: _glyphFor(state),
+            ),
           ),
         ],
       ),
     );
+  }
+}
+
+/// The glyph inside the dot, so state survives the loss of colour.
+Widget? _glyphFor(SyncIndicatorState state) {
+  switch (state) {
+    case SyncIndicatorState.waiting:
+      // A short horizontal dash: "paused".
+      return const Center(
+        child: SizedBox(
+          key: Key('syncStatusGlyphWaiting'),
+          width: 5,
+          height: 1.5,
+          child: ColoredBox(color: Colors.white),
+        ),
+      );
+    case SyncIndicatorState.failed:
+      // A short vertical bar: the "!" stem, at this size.
+      return const Center(
+        child: SizedBox(
+          key: Key('syncStatusGlyphFailed'),
+          width: 1.5,
+          height: 5,
+          child: ColoredBox(color: Colors.white),
+        ),
+      );
+    case SyncIndicatorState.synced:
+    case SyncIndicatorState.syncing:
+    case SyncIndicatorState.none:
+      return null;
   }
 }
 

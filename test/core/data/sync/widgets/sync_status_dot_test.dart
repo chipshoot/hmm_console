@@ -61,4 +61,21 @@ void main() {
     await pump(tester, SyncIndicatorState.synced);
     expect(find.byKey(const Key('syncStatusPulse')), findsNothing);
   });
+
+  testWidgets('the non-green states carry a shape, not just a colour',
+      (tester) async {
+    // Green and orange differ by hue alone (luminance contrast 1.08), which
+    // red-green colour-blind users cannot see. A "waiting" that reads as
+    // "synced" is the quiet lie this feature exists to prevent, so those
+    // states carry a glyph too.
+    await pump(tester, SyncIndicatorState.waiting);
+    expect(find.byKey(const Key('syncStatusGlyphWaiting')), findsOneWidget);
+
+    await pump(tester, SyncIndicatorState.failed);
+    expect(find.byKey(const Key('syncStatusGlyphFailed')), findsOneWidget);
+
+    await pump(tester, SyncIndicatorState.synced);
+    expect(find.byKey(const Key('syncStatusGlyphWaiting')), findsNothing);
+    expect(find.byKey(const Key('syncStatusGlyphFailed')), findsNothing);
+  });
 }
