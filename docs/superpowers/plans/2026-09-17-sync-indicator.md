@@ -614,12 +614,12 @@ override.**
 - [x] **Step 2: Full suite** — `flutter test`. Expected: all pass. It stood at 1535 before this work.
 - [x] **Step 3: ARB parity** — the script from Task 3 Step 2. Expected: equal, empty.
 - [x] **Step 4: Both themes.** Done by CALCULATION rather than simulator: the dot colours are fixed hex and the avatar ground is a known theme token, so WCAG contrast is computable, and the simulator would have shown only my eyes what the numbers show exactly. Result: every dot clears its ground on both themes (red is the weakest at 2.63 on the dark avatar, still clearly visible at 13px). BUT green vs orange came out at **1.08** — they differ by hue only, invisible to red-green colour-blind users. So waiting and failed now carry a GLYPH (a dash, a bar) as well as a colour. Recorded in the widget and pinned by a test. Light and dark. The dot's ring must read against both the light and dark avatar, and green/orange/red must all be distinguishable on both grounds. The colours are fixed hex, not theme tokens, precisely so this holds — confirm it does.
-- [ ] **Step 5: On device.** STILL OPEN — only the user can run this. Deploy with `scripts/deploy-prod-ios-device.sh`. Then:
+- [x] **Step 5: On device.** Confirmed by the user on the iPhone, 2026-09-17: "sync indicator works". Deploy with `scripts/deploy-prod-ios-device.sh`. Then:
   - Turn on airplane mode, tap the avatar, tap "Sync now". The dot goes red; reopen the sheet and it names the failure.
   - Turn airplane mode off, "Sync now" again. The dot pulses, then goes green.
   - Switch data mode to Local in Settings. The dot disappears entirely.
   - Switch back to Cloud Storage. It returns.
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A lib test docs && git commit -m "chore(sync): verify the indicator across themes and states"
