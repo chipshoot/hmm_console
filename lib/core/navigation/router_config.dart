@@ -64,9 +64,17 @@ final routerConfig = Provider<GoRouter>(
       // asynchronously from SharedPreferences, and deciding before it
       // arrives treated every returning user as new — setup on every
       // launch. See onboardingRedirect's doc comment.
+      //
+      // Watch only the loaded flag, never the settings value. These
+      // ref.watch calls register dependencies on the router PROVIDER, and
+      // main.dart hands MaterialApp.router whatever it emits — so a
+      // dependency on the whole blob turned every settings write (e.g. the
+      // notes filter recording its usage) into a brand-new GoRouter, which
+      // starts at initialLocation and threw the user back to the dashboard.
       return onboardingRedirect(
         isAuthenticated: isAuthenticated,
-        settingsLoaded: ref.watch(settingsProvider).hasValue,
+        settingsLoaded:
+            ref.watch(settingsProvider.select((s) => s.hasValue)),
         onboardingCompleted: ref.watch(onboardingCompletedProvider),
         isOnboardingPath: state.fullPath == '/onboarding',
       );
