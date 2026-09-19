@@ -53,7 +53,8 @@ Body, top to bottom:
 1. **Licence card** — reads `driverLicenceStateProvider`.
    - Saved licence: title *Driver's licence*, subtitle
      `{class} · {jurisdiction} · expires {date}` (each part omitted when
-     null); tap → `/licence/show`.
+     null); tap → `/licence` (the details screen the old tile opened;
+     `/licence/show` is the photo-only hand-over view, not a landing).
    - No licence: title *Add your driver's licence*, subtitle *Scan the card
      or type it in*; tap → `/licence`.
    - Loading: the card renders with the title only. Error: same as "no
@@ -149,7 +150,7 @@ Widget tests with a bare `GoRouter` (the pattern `driver_licence_routes`
 tests use), providers overridden:
 
 - `automobile_hub_screen_test.dart`
-  - licence card: saved → subtitle and `/licence/show`; none → *Add your
+  - licence card: saved → subtitle and `/licence`; none → *Add your
     driver's licence* and `/licence`; cloudApi → absent.
   - vehicles: active rows only; row tap → `/automobiles/manage/{id}/edit`;
     fuel button → `selectedAutomobileIdProvider` holds the id and location

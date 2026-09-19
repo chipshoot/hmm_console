@@ -114,7 +114,10 @@ class _LicenceCard extends ConsumerWidget {
             ? _summary(licence, l, Localizations.localeOf(context).toString())
             : l.automobileHubLicenceAddHint),
         trailing: Icon(saved ? Icons.chevron_right : Icons.add),
-        onTap: () => context.push(saved ? '/licence/show' : '/licence'),
+        // Always the details screen, saved or not: that is what the old
+        // dashboard tile opened. /licence/show is the hand-your-phone-over
+        // photo view and is not the place to land from the hub.
+        onTap: () => context.push('/licence'),
       ),
     );
   }

@@ -150,7 +150,7 @@ Future<ProviderContainer> _pump(
 
 void main() {
   group('licence card', () {
-    testWidgets('saved licence: shows class/jurisdiction/expiry, opens show',
+    testWidgets('saved licence: shows class/jurisdiction/expiry, opens the details',
         (tester) async {
       await _pump(tester,
           licence: DriverLicence(
@@ -163,7 +163,7 @@ void main() {
 
       await tester.tap(find.text("Driver's licence"));
       await tester.pumpAndSettle();
-      expect(find.text('licence show'), findsOneWidget);
+      expect(find.text('licence editor'), findsOneWidget);
     });
 
     testWidgets('no licence: invites adding one, opens the editor',
