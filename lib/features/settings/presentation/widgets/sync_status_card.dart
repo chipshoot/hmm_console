@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/sync/sync_controller.dart';
+import '../../../../core/data/sync/sync_models.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/sync_settings.dart';
 import '../../providers/sync_settings_provider.dart';
@@ -98,6 +99,16 @@ class _Body extends ConsumerWidget {
                       style: theme.textTheme.bodySmall,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
+                    ),
+                  // Where the last run's time went. "Sync is slow" is only
+                  // answerable if the phase that was slow is named; the
+                  // total alone would just confirm the complaint.
+                  if (status.lastResult?.timing != null && !status.isSyncing)
+                    Text(
+                      key: const Key('syncTimingLine'),
+                      _timingLine(status.lastResult!.timing!),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                 ],
               ),
@@ -196,4 +207,14 @@ String syncRelativeTime(DateTime past, AppLocalizations l) {
   if (delta.inMinutes < 60) return l.syncRelativeMinutes(delta.inMinutes);
   if (delta.inHours < 24) return l.syncRelativeHours(delta.inHours);
   return l.syncRelativeDays(delta.inDays);
+}
+
+/// e.g. `3.2s · slowest: attachments 1.9s`. Sub-second phases are shown in
+/// milliseconds so a fast sync still reads as a number, not `0.0s`.
+String _timingLine(SyncTiming t) {
+  String fmt(Duration d) => d.inMilliseconds < 1000
+      ? '${d.inMilliseconds}ms'
+      : '${(d.inMilliseconds / 1000).toStringAsFixed(1)}s';
+  final slow = t.slowest;
+  return '${fmt(t.total)} · slowest: ${slow.name} ${fmt(t.phases[slow]!)}';
 }

@@ -78,6 +78,38 @@ class SyncError {
   String toString() => '[$recordType:$recordId] $message';
 }
 
+/// The phases of one sync run, in the order they execute. Timed
+/// individually so "sync is slow" can be answered with a phase name rather
+/// than a guess.
+enum SyncPhase {
+  adoptOrphans,
+  migrateLegacy,
+  settings,
+  tags,
+  collectLocal,
+  pullManifest,
+  pullNotes,
+  pushNotes,
+  pushManifest,
+  attachments,
+}
+
+/// Where a sync's time went.
+class SyncTiming {
+  const SyncTiming({required this.phases, required this.total});
+
+  /// Wall-clock duration of each phase. Every [SyncPhase] is present, so a
+  /// reader never has to wonder whether a missing phase ran at all.
+  final Map<SyncPhase, Duration> phases;
+
+  /// End to end, including anything between phases.
+  final Duration total;
+
+  /// The phase that took longest — the first thing to look at.
+  SyncPhase get slowest =>
+      phases.entries.reduce((a, b) => b.value > a.value ? b : a).key;
+}
+
 class SyncResult {
   const SyncResult({
     required this.pulledNotes,
@@ -86,11 +118,13 @@ class SyncResult {
     required this.pushedAttachments,
     required this.completedAt,
     this.errors = const [],
+    this.timing,
   });
 
   factory SyncResult.failed({
     required DateTime at,
     required SyncError error,
+    SyncTiming? timing,
   }) =>
       SyncResult(
         pulledNotes: 0,
@@ -99,6 +133,7 @@ class SyncResult {
         pushedAttachments: 0,
         completedAt: at,
         errors: [error],
+        timing: timing,
       );
 
   final int pulledNotes;
@@ -107,6 +142,10 @@ class SyncResult {
   final int pushedAttachments;
   final DateTime completedAt;
   final List<SyncError> errors;
+
+  /// Null only for results built where no run happened (e.g. the
+  /// no-provider case). Every real run reports its timing, failed or not.
+  final SyncTiming? timing;
 
   bool get success => errors.isEmpty;
 }

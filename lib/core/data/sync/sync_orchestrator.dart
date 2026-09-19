@@ -106,6 +106,7 @@ class SyncOrchestrator {
     final errors = <SyncError>[];
     int pulledNotes = 0;
     int pushedNotes = 0;
+    final timer = _PhaseTimer();
 
     // -------- 0. Adopt notes stranded on another author --------
     // Repair for rows written before the pull attached notes to the
@@ -118,7 +119,7 @@ class SyncOrchestrator {
     // author: notes owned by any other row are permanently invisible, so
     // moving them to the current author can only make data reachable,
     // never hide it.
-    await _adoptOrphanedNotes(errors);
+    await timer.run(SyncPhase.adoptOrphans, () => _adoptOrphanedNotes(errors));
 
     // -------- 0a. Migrate legacy OneDrive layout if needed --------
     // OneDrive used to write notes at `approot/notes/{id}.json` (single
@@ -132,7 +133,7 @@ class SyncOrchestrator {
     // doesn't belong on the abstract CloudSyncProvider interface.
     if (p is OneDriveSyncProvider) {
       try {
-        await p.migrateLegacyIfNeeded();
+        await timer.run(SyncPhase.migrateLegacy, p.migrateLegacyIfNeeded);
       } catch (e) {
         // Migration failure shouldn't block a regular sync — log it as
         // an error in the result but continue. Worst case: the user has
@@ -152,7 +153,7 @@ class SyncOrchestrator {
     // settings change can land even if the note legs throw later in
     // the algorithm.
     try {
-      await _syncSettings(p, errors);
+      await timer.run(SyncPhase.settings, () => _syncSettings(p, errors));
     } catch (e) {
       errors.add(SyncError(
         recordType: 'manifest',
@@ -164,7 +165,7 @@ class SyncOrchestrator {
     // Tag definitions sync (independent of notes; non-fatal). Membership
     // rides with the note sync below.
     try {
-      await _syncTags(p, errors);
+      await timer.run(SyncPhase.tags, () => _syncTags(p, errors));
     } catch (e) {
       errors.add(SyncError(
         recordType: 'tags',
@@ -175,15 +176,21 @@ class SyncOrchestrator {
 
     // -------- 0c. Snapshot local deltas BEFORE pull --------
     // Avoids re-uploading rows that the pull is about to overwrite.
+    timer.start(SyncPhase.collectLocal);
     final cursor = await _meta.getLastPushedAt(p.providerId) ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     final localNoteBlobs = await _collectChangedNotes(cursor);
+    timer.stop(SyncPhase.collectLocal);
 
     // -------- 1. PULL: manifest --------
     SyncManifest? remote;
+    timer.start(SyncPhase.pullManifest);
     try {
       remote = await p.pullManifest();
     } catch (e) {
+      timer.stop(SyncPhase.pullManifest);
+      // A slow FAILURE is the case where the timings matter most, so they
+      // ride along on the failed result too.
       return SyncResult.failed(
         at: startedAt,
         error: SyncError(
@@ -191,8 +198,10 @@ class SyncOrchestrator {
           recordId: '-',
           message: 'Failed to pull manifest: $e',
         ),
+        timing: timer.finish(),
       );
     }
+    timer.stop(SyncPhase.pullManifest);
 
     // -------- 1b. Backfill push queue with notes missing from remote --------
     // Self-healing patch for cursor drift: any local note whose UUID is
@@ -218,6 +227,7 @@ class SyncOrchestrator {
     final pendingParents = <({int childId, String parentUuid})>[];
 
     // -------- 2. PULL: notes --------
+    timer.start(SyncPhase.pullNotes);
     if (remote != null) {
       for (final entry in remote.notes) {
         try {
@@ -258,8 +268,10 @@ class SyncOrchestrator {
       // out-of-band via the OS-level cloud sync client when the vault
       // root sits inside the user's OneDrive / iCloud Drive folder.)
     }
+    timer.stop(SyncPhase.pullNotes);
 
     // -------- 3. PUSH: local note changes --------
+    timer.start(SyncPhase.pushNotes);
     for (final blob in localNoteBlobs) {
       try {
         await p.pushNoteBody(blob.id, blob.body);
@@ -273,7 +285,10 @@ class SyncOrchestrator {
       }
     }
 
+    timer.stop(SyncPhase.pushNotes);
+
     // -------- 4. PUSH: rewritten manifest --------
+    timer.start(SyncPhase.pushManifest);
     try {
       final freshManifest = await _buildManifest();
       await p.pushManifest(freshManifest);
@@ -284,13 +299,16 @@ class SyncOrchestrator {
         message: 'Failed to push manifest: $e',
       ));
     }
+    timer.stop(SyncPhase.pushManifest);
 
     // -------- 4b. Reconcile attachment bytes (cloudStorage) --------
-    final (pushedAtt, pulledAtt) = await _reconcileVault(p, errors);
+    final (pushedAtt, pulledAtt) = await timer.run(
+        SyncPhase.attachments, () => _reconcileVault(p, errors));
 
     // -------- 5. Advance cursor on a clean run --------
     final completedAt = DateTime.now().toUtc();
     final result = SyncResult(
+      timing: timer.finish(),
       pulledNotes: pulledNotes,
       pulledAttachments: pulledAtt,
       pushedNotes: pushedNotes,
@@ -912,3 +930,45 @@ final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
     onSettingsApplied: () => ref.read(settingsBusProvider.notifier).bump(),
   );
 });
+
+/// Accumulates wall-clock time per [SyncPhase] for one run.
+///
+/// Phases are started and stopped explicitly (for code that spans a try/
+/// catch) or wrapped with [run]. A phase that never ran still reports
+/// [Duration.zero], so the map is always complete and a reader never has to
+/// wonder whether a missing phase executed.
+class _PhaseTimer {
+  final _total = Stopwatch()..start();
+  final _current = <SyncPhase, Stopwatch>{};
+  final _done = <SyncPhase, Duration>{
+    for (final p in SyncPhase.values) p: Duration.zero,
+  };
+
+  void start(SyncPhase phase) => _current[phase] = Stopwatch()..start();
+
+  void stop(SyncPhase phase) {
+    final sw = _current.remove(phase);
+    if (sw == null) return;
+    sw.stop();
+    _done[phase] = _done[phase]! + sw.elapsed;
+  }
+
+  Future<T> run<T>(SyncPhase phase, Future<T> Function() body) async {
+    start(phase);
+    try {
+      return await body();
+    } finally {
+      stop(phase);
+    }
+  }
+
+  SyncTiming finish() {
+    // Anything still running (a phase interrupted by an early return) is
+    // closed out so its time is not lost.
+    for (final phase in _current.keys.toList()) {
+      stop(phase);
+    }
+    _total.stop();
+    return SyncTiming(phases: Map.unmodifiable(_done), total: _total.elapsed);
+  }
+}
