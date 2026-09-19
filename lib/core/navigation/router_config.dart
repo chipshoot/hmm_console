@@ -20,7 +20,7 @@ import 'package:hmm_console/features/automobile_records/presentation/screens/ser
 import 'package:hmm_console/features/gas_log/presentation/screens/automobile_create_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/automobile_edit_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/automobile_management_screen.dart';
-import 'package:hmm_console/features/gas_log/presentation/screens/automobile_selector_screen.dart';
+import 'package:hmm_console/features/automobile_records/presentation/screens/automobile_hub_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_log_form_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_log_list_screen.dart';
 import 'package:hmm_console/features/gas_log/presentation/screens/gas_station_management_screen.dart';
@@ -111,7 +111,7 @@ final routerConfig = Provider<GoRouter>(
       GoRoute(
         path: '/automobiles',
         name: RouterNames.automobileSelector.name,
-        builder: (context, state) => const AutomobileSelectorScreen(),
+        builder: (context, state) => const AutomobileHubScreen(),
         routes: [
           GoRoute(
             path: 'manage',
