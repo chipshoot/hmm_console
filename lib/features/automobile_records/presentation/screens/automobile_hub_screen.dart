@@ -110,7 +110,7 @@ class _LicenceCard extends ConsumerWidget {
         leading: const Icon(Icons.badge_outlined),
         title: Text(saved ? l.automobileHubLicenceTitle : l.automobileHubLicenceAdd),
         subtitle: Text(saved
-            ? _summary(licence, l)
+            ? _summary(licence, l, Localizations.localeOf(context).toString())
             : l.automobileHubLicenceAddHint),
         trailing: Icon(saved ? Icons.chevron_right : Icons.add),
         onTap: () => context.push(saved ? '/licence/show' : '/licence'),
@@ -119,7 +119,7 @@ class _LicenceCard extends ConsumerWidget {
   }
 
   /// "G · Ontario · expires Mar 14, 2028", each part only when present.
-  static String _summary(DriverLicence licence, AppLocalizations l) {
+  static String _summary(DriverLicence licence, AppLocalizations l, String locale) {
     final parts = <String>[];
     final c = licence.licenceClass;
     if (c != null && c.isNotEmpty) parts.add(c);
@@ -127,7 +127,8 @@ class _LicenceCard extends ConsumerWidget {
     if (j != null && j.isNotEmpty) parts.add(j);
     final d = licence.expiryDate;
     if (d != null) {
-      parts.add(l.automobileHubLicenceExpires(DateFormat.yMMMd().format(d)));
+      parts.add(
+          l.automobileHubLicenceExpires(DateFormat.yMMMd(locale).format(d)));
     }
     return parts.join(' · ');
   }
