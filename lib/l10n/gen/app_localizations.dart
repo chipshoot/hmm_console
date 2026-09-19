@@ -2648,6 +2648,12 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get recordsNotes;
 
+  /// No description provided for @recordsGasLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas log'**
+  String get recordsGasLog;
+
   /// No description provided for @recordsDatesRequired.
   ///
   /// In en, this message translates to:

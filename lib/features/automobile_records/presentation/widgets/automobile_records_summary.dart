@@ -9,8 +9,9 @@ import '../../states/_records_automobile_id_provider.dart';
 import '../../states/insurance_policies_state.dart';
 import '../../states/scheduled_services_state.dart';
 import '../../states/service_records_state.dart';
+import 'gas_log_summary_tile.dart';
 
-/// Three at-a-glance cards for an automobile's insurance, last service,
+/// At-a-glance cards for an automobile's gas log, insurance, last service,
 /// and soonest scheduled-service. Each card renders a one-line summary
 /// of the source-of-truth data fetched from the backend (not the
 /// snapshot inline fields) and a "Manage" button that deep-links to
@@ -47,6 +48,8 @@ class _AutomobileRecordsSummaryState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        GasLogSummaryTile(automobileId: widget.automobileId),
+        const SizedBox(height: 8),
         _InsuranceSummaryCard(automobileId: widget.automobileId),
         const SizedBox(height: 8),
         _ServiceSummaryCard(automobileId: widget.automobileId),

@@ -1471,6 +1471,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordsNotes => 'Notes';
 
   @override
+  String get recordsGasLog => 'Gas log';
+
+  @override
   String get recordsDatesRequired => 'Effective and expiry dates are required';
 
   @override

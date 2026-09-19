@@ -426,6 +426,7 @@
   "recordsDeductible": "免赔额（选填）",
   "recordsActive": "生效中",
   "recordsNotes": "备注",
+  "recordsGasLog": "加油记录",
   "recordsDatesRequired": "必须填写生效日期和到期日期",
   "recordsDateOrderInvalid": "生效日期必须早于到期日期",
   "recordsAddSchedule": "添加保养计划",

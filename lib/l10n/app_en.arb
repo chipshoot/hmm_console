@@ -908,6 +908,7 @@
   "recordsDeductible": "Deductible (optional)",
   "recordsActive": "Active",
   "recordsNotes": "Notes",
+  "recordsGasLog": "Gas log",
   "recordsDatesRequired": "Effective and expiry dates are required",
   "recordsDateOrderInvalid": "Effective date must be before expiry date",
   "recordsAddSchedule": "Add schedule",

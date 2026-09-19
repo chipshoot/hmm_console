@@ -1437,6 +1437,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recordsNotes => '备注';
 
   @override
+  String get recordsGasLog => '加油记录';
+
+  @override
   String get recordsDatesRequired => '必须填写生效日期和到期日期';
 
   @override
