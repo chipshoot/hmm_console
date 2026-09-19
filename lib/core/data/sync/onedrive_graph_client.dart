@@ -262,12 +262,25 @@ class OneDriveGraphClient {
     return out;
   }
 
+  /// Walks one folder and every folder beneath it.
+  ///
+  /// Sibling folders are listed CONCURRENTLY. The vault is laid out as
+  /// `attachments/note-<id>/...`, one folder per note with an attachment, so
+  /// a sequential walk cost one full Graph round-trip per such note, in
+  /// series — measured at 2.1s of a 2.8s sync on device, and growing with
+  /// every scan added. Siblings have no dependency on each other, so their
+  /// requests all go out together; a level of 20 note folders now costs one
+  /// round-trip's worth of wall-clock, not twenty.
+  ///
+  /// Pagination within ONE folder stays sequential: each page's URL comes
+  /// from the previous page's `@odata.nextLink`.
   Future<void> _listInto(
       Set<String> out, String graphRel, String vaultRel) async {
     var url = await _userPath(graphRel, action: 'children');
+    final subfolders = <Future<void>>[];
     while (true) {
       final resp = await _dio.get<Map<String, dynamic>>(url);
-      if (resp.statusCode == 404) return; // folder absent → nothing here
+      if (resp.statusCode == 404) break; // folder absent → nothing here
       _throwIfBad(resp);
       final value = (resp.data?['value'] as List?) ?? const [];
       for (final raw in value) {
@@ -275,7 +288,8 @@ class OneDriveGraphClient {
         final name = item['name'] as String;
         final childVaultRel = vaultRel.isEmpty ? name : '$vaultRel/$name';
         if (item['folder'] != null) {
-          await _listInto(out, '$graphRel/$name', childVaultRel);
+          // Started now, awaited together below.
+          subfolders.add(_listInto(out, '$graphRel/$name', childVaultRel));
         } else {
           out.add(childVaultRel);
         }
@@ -284,6 +298,11 @@ class OneDriveGraphClient {
       if (next == null) break;
       url = next; // absolute follow-up URL from Graph
     }
+    // eagerError: one bad subfolder fails the whole listing, exactly as the
+    // sequential walk did — the orchestrator treats a listing failure as
+    // "do not reconcile this run", which is safer than a partial set that
+    // would make missing files look deleted.
+    await Future.wait(subfolders, eagerError: true);
   }
 
   Future<void> deleteAttachment(String relativePath) async {
