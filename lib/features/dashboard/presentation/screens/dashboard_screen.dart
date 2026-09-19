@@ -53,10 +53,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   static final _allFunctions = [
     AppFunction(
-      icon: "\u26FD",
-      title: "Gas Log",
-      description: "Track fuel consumption",
-      route: "gas-log",
+      icon: "\uD83D\uDE97",
+      title: "Automobile",
+      description: "Licence, vehicles, gas log",
+      route: "automobile",
     ),
     AppFunction(
       icon: "\uD83C\uDF45",
@@ -81,12 +81,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       title: "Cheatsheets",
       description: "Quick-reference cards",
       route: "cheatsheets",
-    ),
-    AppFunction(
-      icon: "\uD83E\uDEAA",
-      title: "Licence",
-      description: "Driver's licence",
-      route: "driverLicence",
     ),
     AppFunction(
       icon: "\uD83C\uDF24\uFE0F",
@@ -471,28 +465,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return parts.first[0].toUpperCase();
   }
 
-  /// The licence has no API repository — `driverLicenceRepositoryModeProvider`
-  /// throws in cloudApi — so its tile is hidden there rather than offering a
-  /// route that crashes.
-  static List<AppFunction> _visibleFunctions(WidgetRef ref) {
-    final apiOnly = ref.watch(dataModeProvider) == DataMode.cloudApi;
-    return [
-      for (final f in _allFunctions)
-        if (!(apiOnly && f.route == 'driverLicence')) f,
-    ];
-  }
+  static List<AppFunction> _visibleFunctions(WidgetRef ref) => _allFunctions;
 
   void _navigateToFunction(AppFunction function) {
     final l = AppLocalizations.of(context);
     switch (function.route) {
-      case 'gas-log':
+      case 'automobile':
         context.push('/automobiles');
       case 'notes':
         context.push('/notes');
       case 'cheatsheets':
         context.pushNamed(RouterNames.cheatsheets.name);
-      case 'driverLicence':
-        context.pushNamed(RouterNames.driverLicence.name);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
