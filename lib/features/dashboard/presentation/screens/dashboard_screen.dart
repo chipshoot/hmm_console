@@ -269,7 +269,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       runSpacing: 20,
       alignment: WrapAlignment.center,
       children:
-          _visibleFunctions(ref)
+          _allFunctions
               .map((f) => _buildShortcutItem(f, colorScheme))
               .toList(),
     );
@@ -464,8 +464,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
     return parts.first[0].toUpperCase();
   }
-
-  static List<AppFunction> _visibleFunctions(WidgetRef ref) => _allFunctions;
 
   void _navigateToFunction(AppFunction function) {
     final l = AppLocalizations.of(context);

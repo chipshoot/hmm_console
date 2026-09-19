@@ -45,7 +45,8 @@ class AutomobileHubScreen extends ConsumerWidget {
         onRefresh: () =>
             ref.read(automobilesStateProvider.notifier).refresh(),
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: EdgeInsets.only(
+              bottom: 24 + MediaQuery.paddingOf(context).bottom),
           children: [
             if (showLicence) const _LicenceCard(),
             Padding(

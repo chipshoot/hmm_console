@@ -54,6 +54,35 @@ class _FailingAutomobiles extends AutomobilesState {
   Future<List<Automobile>> build() async => throw StateError('boom');
 }
 
+class _FailOnceAutomobiles extends AutomobilesState {
+  static int calls = 0;
+  @override
+  Future<List<Automobile>> build() async {
+    calls++;
+    if (calls == 1) throw StateError('boom');
+    return [_auto(1, 'Civic')];
+  }
+
+  // The base class's refresh() re-fetches via a separate use-case provider
+  // rather than calling build() again, so this stub routes refresh() back
+  // through build() to exercise the same retry counter.
+  @override
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(build);
+  }
+}
+
+class _ThrowingLicenceRepo implements IDriverLicenceRepository {
+  @override
+  Future<DriverLicence?> getLicence() async => throw StateError('licence boom');
+  @override
+  Future<int?> noteId() async => throw UnimplementedError();
+  @override
+  Future<DriverLicence> saveLicence(DriverLicence l) async =>
+      throw UnimplementedError();
+}
+
 Automobile _auto(int id, String model, {bool active = true}) => Automobile(
       id: id,
       year: 2020,
@@ -67,13 +96,14 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   DataMode mode = DataMode.local,
   DriverLicence? licence,
+  IDriverLicenceRepository? licenceRepo,
   AutomobilesState Function()? automobiles,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final container = ProviderContainer(overrides: [
     dataModeProvider.overrideWith(() => _StubMode(mode)),
     driverLicenceRepositoryModeProvider
-        .overrideWithValue(_FakeLicenceRepo(licence)),
+        .overrideWithValue(licenceRepo ?? _FakeLicenceRepo(licence)),
     automobilesStateProvider.overrideWith(
         automobiles ?? () => _StubAutomobiles([_auto(1, 'Civic')])),
     attachmentResolverProvider.overrideWith((_) async => _StubResolver()),
@@ -223,6 +253,32 @@ void main() {
 
       expect(find.text('Failed to load vehicles'), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
+    });
+
+    testWidgets('Retry re-fetches and shows the vehicles on success',
+        (tester) async {
+      _FailOnceAutomobiles.calls = 0;
+      await _pump(tester, automobiles: _FailOnceAutomobiles.new);
+
+      expect(find.text('Failed to load vehicles'), findsOneWidget);
+
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2020 Honda Civic'), findsOneWidget);
+      expect(find.text('Failed to load vehicles'), findsNothing);
+    });
+  });
+
+  group('licence error', () {
+    testWidgets('a licence load failure reads as "none saved"',
+        (tester) async {
+      await _pump(tester, licenceRepo: _ThrowingLicenceRepo());
+
+      expect(find.text("Add your driver's licence"), findsOneWidget);
+      expect(find.text("Driver's licence"), findsNothing);
+      // A licence failure must not blank the rest of the hub.
+      expect(find.text('2020 Honda Civic'), findsOneWidget);
     });
   });
 }

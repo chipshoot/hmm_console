@@ -66,8 +66,8 @@ Body, top to bottom:
 3. **Vehicle rows** — `automobilesStateProvider`, filtered to `isActive`
    (exactly as the picker does). Each row is the existing
    `AutomobileListTile` (`onTap` → `/automobiles/manage/{id}/edit`) with a
-   trailing **fuel button** (44 px target, semantics label
-   *Gas log for {name}*) that does what the picker's row does today:
+   trailing **fuel button** (44 px target, tooltip (VoiceOver's accessible
+   name) *Gas log for {name}*) that does what the picker's row does today:
    `selectedAutomobileIdProvider.notifier.select(id)` then push `/gas-logs`.
    `AutomobileListTile` gains an optional `trailing` widget for this; nothing
    else about it changes.
