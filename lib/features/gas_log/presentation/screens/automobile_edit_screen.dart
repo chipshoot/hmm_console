@@ -578,6 +578,16 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
       }
     });
 
+    // A cold arrival (deep link, relaunch onto this route) mounts the screen
+    // while the vehicle list is still loading, so initState found nothing.
+    // Populate as soon as the list lands; after that the listener is inert.
+    ref.listen<AsyncValue<List<Automobile>>>(automobilesStateProvider,
+        (_, next) {
+      if (_original == null && next.hasValue) {
+        setState(_populateFromOriginal);
+      }
+    });
+
     if (_original == null) {
       return CommonScreenScaffold(
         title: l.vehicleInformation,
