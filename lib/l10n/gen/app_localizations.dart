@@ -1898,6 +1898,60 @@ abstract class AppLocalizations {
   /// **'Add vehicle'**
   String get vehicleAdd;
 
+  /// No description provided for @automobileHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automobile'**
+  String get automobileHubTitle;
+
+  /// No description provided for @automobileHubVehicles.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicles'**
+  String get automobileHubVehicles;
+
+  /// No description provided for @automobileHubLicenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver\'s licence'**
+  String get automobileHubLicenceTitle;
+
+  /// No description provided for @automobileHubLicenceAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your driver\'s licence'**
+  String get automobileHubLicenceAdd;
+
+  /// No description provided for @automobileHubLicenceAddHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the card or type it in'**
+  String get automobileHubLicenceAddHint;
+
+  /// No description provided for @automobileHubLicenceExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'expires {date}'**
+  String automobileHubLicenceExpires(String date);
+
+  /// No description provided for @automobileHubNoVehicles.
+  ///
+  /// In en, this message translates to:
+  /// **'No vehicles yet'**
+  String get automobileHubNoVehicles;
+
+  /// No description provided for @automobileHubNoVehiclesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a vehicle to keep its gas log, insurance and service records together.'**
+  String get automobileHubNoVehiclesHint;
+
+  /// No description provided for @automobileHubGasLogFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas log for {name}'**
+  String automobileHubGasLogFor(String name);
+
   /// No description provided for @vehicleStatusUpdated.
   ///
   /// In en, this message translates to:

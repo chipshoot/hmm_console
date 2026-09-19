@@ -1022,6 +1022,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get vehicleAdd => '添加车辆';
 
   @override
+  String get automobileHubTitle => '汽车';
+
+  @override
+  String get automobileHubVehicles => '车辆';
+
+  @override
+  String get automobileHubLicenceTitle => '驾驶执照';
+
+  @override
+  String get automobileHubLicenceAdd => '添加您的驾驶执照';
+
+  @override
+  String get automobileHubLicenceAddHint => '扫描证件或手动输入';
+
+  @override
+  String automobileHubLicenceExpires(String date) {
+    return '$date到期';
+  }
+
+  @override
+  String get automobileHubNoVehicles => '还没有车辆';
+
+  @override
+  String get automobileHubNoVehiclesHint => '添加车辆，把加油记录、保险和保养记录放在一起。';
+
+  @override
+  String automobileHubGasLogFor(String name) {
+    return '$name的加油记录';
+  }
+
+  @override
   String get vehicleStatusUpdated => '车辆状态已更新';
 
   @override

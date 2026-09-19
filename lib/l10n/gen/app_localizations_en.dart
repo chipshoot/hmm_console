@@ -1054,6 +1054,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vehicleAdd => 'Add vehicle';
 
   @override
+  String get automobileHubTitle => 'Automobile';
+
+  @override
+  String get automobileHubVehicles => 'Vehicles';
+
+  @override
+  String get automobileHubLicenceTitle => 'Driver\'s licence';
+
+  @override
+  String get automobileHubLicenceAdd => 'Add your driver\'s licence';
+
+  @override
+  String get automobileHubLicenceAddHint => 'Scan the card or type it in';
+
+  @override
+  String automobileHubLicenceExpires(String date) {
+    return 'expires $date';
+  }
+
+  @override
+  String get automobileHubNoVehicles => 'No vehicles yet';
+
+  @override
+  String get automobileHubNoVehiclesHint =>
+      'Add a vehicle to keep its gas log, insurance and service records together.';
+
+  @override
+  String automobileHubGasLogFor(String name) {
+    return 'Gas log for $name';
+  }
+
+  @override
   String get vehicleStatusUpdated => 'Vehicle status updated';
 
   @override

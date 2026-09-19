@@ -617,6 +617,21 @@
   "vehicleNoneFound": "No vehicles found",
   "vehicleNoneFoundHint": "Add a vehicle to get started.",
   "vehicleAdd": "Add vehicle",
+  "automobileHubTitle": "Automobile",
+  "automobileHubVehicles": "Vehicles",
+  "automobileHubLicenceTitle": "Driver's licence",
+  "automobileHubLicenceAdd": "Add your driver's licence",
+  "automobileHubLicenceAddHint": "Scan the card or type it in",
+  "automobileHubLicenceExpires": "expires {date}",
+  "@automobileHubLicenceExpires": {
+    "placeholders": {"date": {"type": "String"}}
+  },
+  "automobileHubNoVehicles": "No vehicles yet",
+  "automobileHubNoVehiclesHint": "Add a vehicle to keep its gas log, insurance and service records together.",
+  "automobileHubGasLogFor": "Gas log for {name}",
+  "@automobileHubGasLogFor": {
+    "placeholders": {"name": {"type": "String"}}
+  },
   "vehicleStatusUpdated": "Vehicle status updated",
   "vehicleActiveCount": "Active ({count})",
   "@vehicleActiveCount": {

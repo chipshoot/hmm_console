@@ -10,11 +10,16 @@ class AutomobileListTile extends ConsumerWidget {
   final String distanceLabel;
   final VoidCallback? onTap;
 
+  /// Replaces the chevron. The hub puts a fuel button here; the chevron is
+  /// implied by the row being tappable.
+  final Widget? trailing;
+
   const AutomobileListTile({
     super.key,
     required this.automobile,
     this.distanceLabel = 'mi',
     this.onTap,
+    this.trailing,
   });
 
   @override
@@ -63,8 +68,9 @@ class AutomobileListTile extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right,
-                      color: colorScheme.onSurfaceVariant),
+                  trailing ??
+                      Icon(Icons.chevron_right,
+                          color: colorScheme.onSurfaceVariant),
                 ],
               ),
             ),
