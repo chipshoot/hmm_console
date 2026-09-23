@@ -1,6 +1,6 @@
 # Car Notes from the Hub — Design
 
-**Date:** 2026-09-19
+**Date:** 2026-09-19 (revised 2026-09-22: derived domains replace a per-domain catalog)
 **Status:** approved (layout reviewed on the mockup canvas, frames 4–5)
 **Mockup:** https://claude.ai/artifact/96in5gAvn7SUbJHMQcL8TC
 **Builds on:** `2026-09-19-automobile-hub-design.md`
@@ -9,165 +9,221 @@
 
 A car's notes are three taps deep (hub → car → scroll to Notes → list) and,
 once written, file under **General** in the notes list rather than under
-**Automobile**. Both follow from how car notes are stored today: a plain
-General-catalog note whose `parentNoteId` is the car's note id. The parent
-link is right — it is what ties a note to *this* car — but the catalog is
-wrong, and the entry point is buried.
+**Automobile**.
 
-The notes list already treats "attached to the Automobile *subsystem anchor*"
-as Automobile-domain (`notes_list_state.dart`, `anchorDomainById`). That rule
-covers the anchor only, not individual cars, so car notes fall through to
-their catalog's domain: General.
+The storage is not the problem. A car note is a General note whose
+`parentNoteId` is the car's note id, and that link is exactly right: the car
+*is* a note, so the relation is already modelled and needs no "automobile id"
+field. What is too narrow is how the list *derives* a note's domain
+(`notes_list_state.dart`, `NotesListData.visible`):
+
+```dart
+final attachedDomain = p == null ? null : anchorDomainById[p];
+```
+
+A note takes its parent's domain only when that parent is a **subsystem
+anchor**. A car is not an anchor, so a car note falls through to its own
+catalog's domain: General.
+
+The first draft of this spec fixed that with a new
+`Hmm.AutomobileMan.Note` catalog. That does not scale: health, book, cooking
+and insurance notes would each need their own catalog, and each new catalog
+costs a palette entry, a label case, l10n keys in two ARB files, and a
+server-side catalog before cloudApi users see it. Rejected.
 
 ## Goals
 
 - One tap from the hub to a car's notes, with "New note" the obvious action.
-- A note created for a car is an **automobile** note tied to **that car**,
-  with nothing for the user to pick.
-- No new "automobile id" field: the car *is* a note and `parentNoteId`
-  already carries the relation.
+- A note attached to a car reads and filters as an **Automobile** note,
+  derived — no new catalog, no new column, no migration.
+- The same rule serves every future domain (health, books, insurance,
+  cooking) the moment that domain has any catalog of its own.
 
 ## Non-goals
 
-- Reclassifying notes already attached to cars. They stay General-with-parent
-  (user decision 2026-09-19); they still appear under the car and still file
-  under General in the notes list.
-- Any change to the subsystem-anchor domain rule in the notes list.
-- A cloudApi migration: the local DB creates catalogs on demand (the
-  `ensureGeneralCatalog` pattern); the Hmm API would need the catalog
-  server-side before cloudApi users see it. Out of scope here.
+- Any change to note storage. No schema change, no data migration, no
+  re-cataloguing of existing notes: they were never stored wrong.
+- Changing which notes the notes list loads, or introducing paging.
+- The `Hmm.AutomobileMan.Note` catalog from the first draft. Dropped.
 
 ## Design
 
-### 1. Catalog `Hmm.AutomobileMan.Note`
+### 1. Effective domain: a note takes its parent's domain
 
-New file `lib/features/automobile_records/data/automobile_note_catalog.dart`
-with `const automobileNoteCatalogName = 'Hmm.AutomobileMan.Note'` and
-`Future<NoteCatalog> ensureAutomobileNoteCatalog(Ref ref)` — the same
-get-or-create shape as `ensureGeneralCatalog`, markdown schema, markdown
-format type. Plus `automobileNoteCatalogProvider` (a `FutureProvider`).
-
-Presentation registrations, following the existing entries for
-`Hmm.AutomobileMan.GasLog`:
-- `CatalogPalette` (`lib/core/notes/catalog_palette.dart`): a
-  `CatalogStyle('Car Note', <colour>)` entry. Its domain key is derived from
-  the middle segment, so it is already `AutomobileMan`.
-- `catalogLabel` (`lib/features/notes/presentation/catalog_labels.dart`): a
-  case returning a new l10n key `catalogAutomobileNote` — en "Car note", zh
-  "车辆笔记".
-
-### 2. Creation picks the catalog from the parent
-
-`MutateNote` (`lib/features/notes/states/mutate_note_state.dart`) gains
+One expression widens, in `NotesListData`:
 
 ```dart
-/// The catalog a new note attached to [parentNoteId] belongs in: a note
-/// under a car is an automobile note; anything else is General.
-Future<NoteCatalog> catalogForParent(int? parentNoteId)
+/// Note id -> the domain key its own catalog implies, for every note the
+/// list loaded. A note attached to one of these — a car, a policy, a book —
+/// takes that note's domain, because the parent IS what the note is about.
+final Map<int, String> noteDomainById;
 ```
 
-which loads the parent note (when non-null) and returns
-`ensureAutomobileNoteCatalog` when the parent's catalog name is
-`Hmm.AutomobileMan.AutomobileInfo`, else `ensureGeneralCatalog`.
-`createGeneral` calls it instead of `ensureGeneralCatalog` directly. Nothing
-in the editor changes: `/notes/new?parent=<carId>` already presets the parent,
-and the rule runs at save. `updateGeneral` never touches the catalog.
+built in `NotesListState.build()` beside the existing maps:
 
-**Attach existing:** `attachExisting(noteId, parentNoteId)` sets the parent
-and then, when `catalogForParent` yields a different catalog than the note
-has, moves the note into it. The picker (`getUnattachedNotes(general.id)`)
-is unchanged — it offers standalone General notes, which is what "attach
-one I wrote earlier" means. `detachNote` / `setParent` (the editor's
-subsystem strip, which offers anchors, never cars) are unchanged.
+```dart
+final noteDomainById = {
+  for (final n in visibleNotes)
+    if (n.catalogId != null && catalogDomainById[n.catalogId] != null)
+      n.id: catalogDomainById[n.catalogId]!,
+};
+```
 
-### 3. Listing a car's notes
+(Anchor notes are excluded from `visibleNotes`, which is why
+`anchorDomainById` stays a separate map rather than being folded in.)
 
-`attachedNotesProvider(parentId)` (`attached_notes_state.dart`) queries
-`getNotes(parentNoteId:, catalogId: general.id)` today. It becomes the union
-of that and the same query for the automobile-note catalog, sorted newest
-first by `effectiveNoteDate`. So old General car notes and new automobile
-notes appear together under the car; gas logs and records (other catalogs,
-same parent) stay excluded as they are now.
+`NotesListData` gains the resolver both the filter and the row use:
 
-The notes list needs no change: an `Hmm.AutomobileMan.Note` note has
-`catalogDomainById == 'AutomobileMan'` and the filter sheet lists the new
-catalog under Automobile once it exists.
+```dart
+/// The domain a note belongs to: the domain of the thing it is attached to
+/// — a subsystem anchor, or any typed record such as a car — falling back
+/// to its own catalog's domain when it is attached to nothing.
+String? effectiveDomain(HmmNote n) {
+  final p = n.parentNoteId;
+  if (p != null) {
+    final d = anchorDomainById[p] ?? noteDomainById[p];
+    if (d != null) return d;
+  }
+  final c = n.catalogId;
+  return c == null ? null : catalogDomainById[c];
+}
+```
 
-### 4. Hub row: notes button + badge
+and `visible`'s per-note predicate becomes:
+
+```dart
+items = items.where((n) {
+  // Its own catalog selected: always a match. Checked first so selecting a
+  // single catalog (Insurance, Gas Log) never loses its own notes.
+  if (n.catalogId != null && f.contains(n.catalogId)) return true;
+  // Otherwise it belongs to whatever it is attached to.
+  final p = n.parentNoteId;
+  final parentDomain =
+      p == null ? null : (anchorDomainById[p] ?? noteDomainById[p]);
+  return parentDomain != null && selectedDomains.contains(parentDomain);
+});
+```
+
+**Consequences, accepted:**
+- Selecting one catalog inside a domain (e.g. only *Insurance*) also shows
+  General notes attached to that domain's records. This is exactly today's
+  behaviour for anchor-attached notes, now applied to cars; the drawer's
+  domain groups are the primary filter and select a whole domain anyway.
+- Nothing that matches today stops matching: the catalog check runs first,
+  so the change is strictly additive.
+- Existing car notes are fixed retroactively — they were always attached to
+  the car; only the derivation was too narrow. This supersedes the earlier
+  "leave existing notes" decision, which assumed a migration that no longer
+  exists.
+- One hop is enough. A note under a service record resolves through that
+  record's own catalog (`Hmm.AutomobileMan.ServiceRecord`); no recursion.
+
+### 2. The row says what the note is about
+
+`note_list_tile.dart:39` labels a row by its catalog, so a car note would
+read "General · 12 Sep" while filtering under Automobile. The row shows the
+effective context instead:
+
+`NoteListTile` gains two optional parameters — `String? contextLabel` and
+`Color? contextColor` — used when non-null:
+- secondary line: `'${contextLabel ?? catalogLabel(catalog?.name, l)} · $date'`
+- leading dot: `contextColor ?? CatalogPalette.styleFor(catalog?.name).color`
+
+The call site (`notes_list_screen.dart:160-165`) supplies them from
+`NotesListData`, via two new helpers there:
+- `contextLabelFor(note)` — the parent note's subject when the parent is in
+  `noteDomainById` (e.g. *2019 Honda Civic*); for an anchor parent, the
+  anchor's domain label (`domainLabel(key, l)`, e.g. *Automobile*); `null`
+  when unattached. The subject comes from the already-loaded `all` list, so
+  no extra query.
+- `contextColorFor(note)` — `CatalogPalette.domainStyle(domain).color` for
+  that same domain, `null` when unattached.
+
+So a car note reads **"2019 Honda Civic · 12 Sep"** with the Automobile dot,
+and an unattached note is unchanged.
+
+### 3. Hub row: notes button + badge
 
 In `AutomobileHubScreen._VehicleRow`, `trailing` becomes a `Row` of two
-44-px buttons: **notes** (`Icons.sticky_note_2_outlined`, tooltip
+44-px buttons — **notes** (`Icons.sticky_note_2_outlined`, tooltip
 `automobileHubNotesFor(name)` → "Notes for {name}") then the existing
-**fuel** button, followed by the chevron (three controls per row, user
-decision). The notes button pushes `/automobiles/manage/{id}/notes`.
+**fuel** button — followed by the chevron: three controls per row, per the
+2026-09-19 decision. The notes button pushes
+`/automobiles/manage/{id}/notes`.
 
-Badge: the button watches `attachedNotesProvider(automobile.id)`; when the
-value is a non-empty list it wraps the icon in `Badge(label: Text('$n'))`;
+Badge: the button watches `attachedNotesProvider(automobile.id)` and wraps
+its icon in `Badge(label: Text('$n'))` when the value is a non-empty list;
 loading, error and empty show no badge. `AutomobileListTile` needs no
-further change (it already takes `trailing`); its chevron is suppressed when
-`trailing` is given, so the row supplies its own chevron after the buttons.
+change — it already takes `trailing` and suppresses its own chevron when one
+is given, so the row supplies the chevron after the buttons.
 
-### 5. Vehicle notes screen: New note first
+### 4. Vehicle notes screen: New note first
 
 `VehicleNotesScreen` (`vehicle_notes_screen.dart`):
-- AppBar title: the car's `displayName` (from `automobilesStateProvider`;
-  falls back to `recordsVehicleNotes` while loading or if not found).
-- Under the title, a caption line `Automobile · {displayName}` in the domain
-  colour — the mockup's chip — via a small `Text` with the existing
-  `CatalogPalette.domainStyle('AutomobileMan').color`.
-- A full-width `FilledButton.icon` **New note** (`Icons.add`,
-  `notesNewNote` if such a key exists, else new key `vehicleNotesNew` = "New
-  note") that pushes `/notes/new?parent=$automobileId` and invalidates
+- AppBar title: the car's `displayName` from `automobilesStateProvider`,
+  falling back to `recordsVehicleNotes` while loading or if not found.
+- Under it, a caption `Automobile · {displayName}`
+  (`vehicleNotesDomainCaption`) in `CatalogPalette.domainStyle('AutomobileMan').color`
+  — the mockup's chip — so it is clear where a new note lands.
+- A full-width `FilledButton.icon` **New note** that pushes
+  `/notes/new?parent=$automobileId` and invalidates
   `attachedNotesProvider(automobileId)` on return.
 - Below it, `AttachedNotesSection(parentId:, title:, showAdd: false)` — a new
-  optional flag (default `true`) that hides the section's own `+` icon so the
-  screen has one add control. The attach (📎) icon stays in the section.
+  optional flag (default `true`) hiding the section's own `+` so the screen
+  has one add control. The attach (📎) action stays.
 
-### 6. l10n
+`attachedNotesProvider` is unchanged: car notes remain General-catalogue
+notes with the car as parent, which is exactly what it already queries.
+`MutateNote` is unchanged — no `catalogForParent`, no re-cataloguing on
+attach.
 
-New keys in `app_en.arb` and `app_zh.arb`: `catalogAutomobileNote`,
-`automobileHubNotesFor` (placeholder `name`), `vehicleNotesNew`,
-`vehicleNotesDomainCaption` (placeholder `name`, en "Automobile · {name}",
-zh "汽车 · {name}"). Regenerate `lib/l10n/gen/`.
+### 5. l10n
+
+New keys in `app_en.arb` and `app_zh.arb`, then regenerate `lib/l10n/gen/`:
+- `automobileHubNotesFor` — placeholder `name`; en "Notes for {name}"
+- `vehicleNotesNew` — en "New note", zh "新建笔记"
+- `vehicleNotesDomainCaption` — placeholder `name`; en "Automobile · {name}",
+  zh "汽车 · {name}"
 
 ## Data flow
 
 Creation: hub 📝 → `/automobiles/manage/{id}/notes` → **New note** →
-`/notes/new?parent={id}` → editor save → `MutateNote.createGeneral` →
-`catalogForParent(id)` → parent is `AutomobileInfo` → automobile-note
-catalog → `createNote(catalogId:, parentNoteId: id)`.
-
-No schema change: `Notes.catalogId` and `Notes.parentNoteId` already exist;
-the catalog row is created on first use like General.
+`/notes/new?parent={id}` → the editor saves a General note with
+`parentNoteId = carId` (unchanged code). The notes list then derives
+Automobile from the parent. Nothing about the note's storage encodes a
+domain, so no future domain needs a storage change either.
 
 ## Error handling
 
-- `catalogForParent` with a parent id that no longer resolves falls back to
-  General (a dangling parent is not a reason to refuse the note).
-- The badge treats a failed count as "no badge"; the notes screen shows its
-  own error.
+- `effectiveDomain` with a parent id that resolves to nothing falls back to
+  the note's own catalog domain — a dangling parent must not hide a note.
+- The hub badge treats loading and error alike as "no badge"; the notes
+  screen shows its own error.
 
 ## Testing
 
-- `mutate_note_catalog_test.dart` (new, unit with a fake note repo):
-  `catalogForParent(null)` → General; parent in `AutomobileInfo` → automobile
-  note; parent in General → General; `createGeneral(parentNoteId: car)`
-  creates with the automobile-note catalog; `attachExisting` onto a car
-  re-catalogues a General note.
-- `attached_notes_state_test.dart` (new or extend): a car with one General
-  and one automobile-note child returns both; a gas-log child is excluded.
-- `automobile_hub_screen_test.dart` (extend): notes button navigates to
-  `/automobiles/manage/1/notes`; badge shows `2` when two notes are attached
-  and is absent when none.
+- `notes_list_domain_test.dart` (new, unit on `NotesListData`):
+  a General note under a car → Automobile, and it survives the Automobile
+  domain filter; a General note under a General note → General; an
+  unattached General note → General; a note under a dangling parent id →
+  its own catalog domain; selecting only the Insurance catalog still shows
+  insurance notes (the catalog-first branch).
+- `note_list_tile_test.dart` (new or extend): with `contextLabel` the
+  secondary line reads "2019 Honda Civic · <date>"; without it, the catalog
+  label as before.
+- `automobile_hub_screen_test.dart` (extend): the notes button navigates to
+  `/automobiles/manage/1/notes`; the badge shows `2` for two attached notes
+  and is absent for none.
 - `vehicle_notes_screen_test.dart` (new): title is the car name; New note
   pushes `/notes/new?parent=1`; the section's own `+` is absent.
-- Catalog label test if one exists for `catalogLabel`: the new name maps to
-  "Car note".
 
 ## Files
 
-New: `automobile_note_catalog.dart`, the four tests above.
-Changed: `mutate_note_state.dart`, `attached_notes_state.dart`,
-`attached_notes_section.dart` (flag), `automobile_hub_screen.dart`,
-`vehicle_notes_screen.dart`, `catalog_palette.dart`, `catalog_labels.dart`,
+New: the four tests above.
+Changed: `notes_list_state.dart` (map, resolver, predicate, context
+helpers), `note_list_tile.dart` (two optional params),
+`notes_list_screen.dart` (call site), `automobile_hub_screen.dart`,
+`vehicle_notes_screen.dart`, `attached_notes_section.dart` (`showAdd`),
 `app_en.arb`, `app_zh.arb`, `lib/l10n/gen/*`.
+
+No new catalog, no new provider, no schema change.
