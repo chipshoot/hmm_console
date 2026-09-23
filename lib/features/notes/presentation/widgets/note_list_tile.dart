@@ -13,10 +13,31 @@ import '../util/note_preview.dart';
 /// A single note row. Fills [AppListRow]: catalog dot leading, subject title,
 /// first content line as the bold primary line, and `catalog · date` secondary.
 class NoteListTile extends StatelessWidget {
-  const NoteListTile({super.key, required this.note, this.catalog, this.onTap});
+  const NoteListTile({
+    super.key,
+    required this.note,
+    this.catalog,
+    this.titleContext,
+    this.contextLabel,
+    this.contextColor,
+    this.onTap,
+  });
 
   final HmmNote note;
   final NoteCatalog? catalog;
+
+  /// What the note hangs off — a car, a policy — shown after the subject.
+  /// Composed here and never stored: writing it into the subject would
+  /// duplicate on the next render and reach sync and the editor.
+  final String? titleContext;
+
+  /// Replaces the catalog label on the secondary line with the domain the
+  /// note actually filters under.
+  final String? contextLabel;
+
+  /// Replaces the catalog dot's colour with that domain's colour.
+  final Color? contextColor;
+
   final VoidCallback? onTap;
 
   @override
@@ -32,11 +53,27 @@ class NoteListTile extends StatelessWidget {
         width: 11,
         height: 11,
         margin: const EdgeInsetsDirectional.only(top: 4),
-        decoration: BoxDecoration(color: style.color, shape: BoxShape.circle),
+        decoration: BoxDecoration(
+            color: contextColor ?? style.color, shape: BoxShape.circle),
       ),
-      title: Text(note.subject),
+      title: titleContext == null
+          ? Text(note.subject)
+          : Row(
+              children: [
+                Flexible(
+                  child: Text(note.subject, overflow: TextOverflow.ellipsis),
+                ),
+                Text(
+                  ' ($titleContext)',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
       primary: preview.isEmpty ? null : Text(preview),
-      secondary: Text('${catalogLabel(catalog?.name, l)} · $date'),
+      secondary:
+          Text('${contextLabel ?? catalogLabel(catalog?.name, l)} · $date'),
     );
   }
 }

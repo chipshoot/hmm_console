@@ -16,6 +16,7 @@ import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
 import '../widgets/note_list_tile.dart';
 import '../widgets/sort_sheet.dart';
+import '../../../../core/notes/catalog_palette.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -157,11 +158,31 @@ class NotesListScreen extends ConsumerWidget {
                   if (index.isOdd) return const AppRowSeparator();
                   final i = index ~/ 2;
                   final note = data.visible[i];
+                  final domain = data.effectiveDomain(note);
+                  final attached = data.parentDomainOf(note) != null;
+                  final parentSubject = data.contextSubjectOf(note);
+                  // The parent's own words, capped so a long record name
+                  // cannot swallow the row; an anchor has no subject, so it
+                  // falls back to the domain's name.
+                  final titleContext = parentSubject != null
+                      ? (parentSubject.length > 20
+                          ? '${parentSubject.substring(0, 20)}…'
+                          : parentSubject)
+                      : (attached && domain != null
+                          ? domainLabel(domain, l)
+                          : null);
                   return NoteListTile(
                     note: note,
                     catalog: note.catalogId == null
                         ? null
                         : data.catalogsById[note.catalogId],
+                    titleContext: titleContext,
+                    contextLabel: attached && domain != null
+                        ? domainLabel(domain, l)
+                        : null,
+                    contextColor: attached && domain != null
+                        ? CatalogPalette.domainStyle(domain).color
+                        : null,
                     onTap: () {
                       final isWide = MediaQuery.of(context).size.width >=
                           kNotesWideBreakpoint;
