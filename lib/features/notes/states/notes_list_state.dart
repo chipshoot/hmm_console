@@ -55,11 +55,33 @@ class NotesListData {
   /// own catalog name, so this needs no per-domain knowledge.
   final Map<int, AttachTarget> targetsById;
 
+  /// Per-catalog counts, for the filter sheet's individual catalog rows.
+  /// A note attached to something in another domain no longer tallies under
+  /// its own catalog here (it filters under that domain instead — see
+  /// [visible] — so counting it here would show a catalog whose filter
+  /// returns nothing); use [countsByDomain] for domain-level aggregates.
   Map<int, int> get countsByCatalog {
     final m = <int, int>{};
     for (final n in all) {
       final c = n.catalogId;
-      if (c != null) m[c] = (m[c] ?? 0) + 1;
+      if (c == null) continue;
+      final parent = parentDomainOf(n);
+      if (parent != null && parent != ownDomainOf(n)) continue;
+      m[c] = (m[c] ?? 0) + 1;
+    }
+    return m;
+  }
+
+  /// Per-domain counts, agreeing with what [visible] returns when a whole
+  /// domain is selected: each note counts under [effectiveDomain], not its
+  /// own catalog's domain. Drives the filter sheet's domain subtitle and the
+  /// drawer's sort order, so a domain's displayed count never disagrees with
+  /// what tapping it actually shows.
+  Map<String, int> get countsByDomain {
+    final m = <String, int>{};
+    for (final n in all) {
+      final d = effectiveDomain(n);
+      if (d != null) m[d] = (m[d] ?? 0) + 1;
     }
     return m;
   }
@@ -117,9 +139,11 @@ class NotesListData {
     }
     final q = query.trim().toLowerCase();
     if (q.isNotEmpty) {
-      items = items.where((n) =>
-          n.subject.toLowerCase().contains(q) ||
-          (contextSubjectOf(n)?.toLowerCase().contains(q) ?? false));
+      items = items.where(
+        (n) =>
+            n.subject.toLowerCase().contains(q) ||
+            (contextSubjectOf(n)?.toLowerCase().contains(q) ?? false),
+      );
     }
     final list = items.toList();
     switch (sort) {
@@ -128,11 +152,15 @@ class NotesListData {
       case NoteSort.dateOldest:
         list.sort((a, b) => a.effectiveNoteDate.compareTo(b.effectiveNoteDate));
       case NoteSort.lastModified:
-        list.sort((a, b) => (b.lastModifiedDate ?? b.effectiveNoteDate)
-            .compareTo(a.lastModifiedDate ?? a.effectiveNoteDate));
+        list.sort(
+          (a, b) => (b.lastModifiedDate ?? b.effectiveNoteDate).compareTo(
+            a.lastModifiedDate ?? a.effectiveNoteDate,
+          ),
+        );
       case NoteSort.subjectAZ:
-        list.sort((a, b) =>
-            a.subject.toLowerCase().compareTo(b.subject.toLowerCase()));
+        list.sort(
+          (a, b) => a.subject.toLowerCase().compareTo(b.subject.toLowerCase()),
+        );
     }
     return list;
   }
@@ -171,8 +199,9 @@ final _notesStreamProvider = StreamProvider.autoDispose<List<HmmNote>>((ref) {
 
 /// Reactive feed of catalogs (a domain feature creates its catalog lazily on
 /// first write, so the catalog set can change too).
-final _catalogsStreamProvider =
-    StreamProvider.autoDispose<List<NoteCatalog>>((ref) {
+final _catalogsStreamProvider = StreamProvider.autoDispose<List<NoteCatalog>>((
+  ref,
+) {
   return ref.watch(noteCatalogRepositoryProvider).watchCatalogs();
 });
 
@@ -187,10 +216,12 @@ class NotesListState extends AsyncNotifier<NotesListData> {
   Future<NotesListData> build() async {
     final notes = await ref.watch(_notesStreamProvider.future);
     final catalogs = await ref.watch(_catalogsStreamProvider.future);
-    final anchorMatches =
-        catalogs.where((c) => c.name == kSubsystemAnchorCatalogName);
-    final anchorCatalogId =
-        anchorMatches.isEmpty ? null : anchorMatches.first.id;
+    final anchorMatches = catalogs.where(
+      (c) => c.name == kSubsystemAnchorCatalogName,
+    );
+    final anchorCatalogId = anchorMatches.isEmpty
+        ? null
+        : anchorMatches.first.id;
     // Exclude the internal subsystem-anchor catalog from the catalog map so it
     // never surfaces as a user-facing "System" filter.
     final byId = {
@@ -228,10 +259,7 @@ class NotesListState extends AsyncNotifier<NotesListData> {
     final targetsById = {
       for (final n in visibleNotes)
         if (n.catalogId != null && catalogDomainById[n.catalogId] != null)
-          n.id: (
-            domain: catalogDomainById[n.catalogId]!,
-            subject: n.subject,
-          ),
+          n.id: (domain: catalogDomainById[n.catalogId]!, subject: n.subject),
     };
 
     return NotesListData(
@@ -274,5 +302,5 @@ class NotesListState extends AsyncNotifier<NotesListData> {
 
 final notesListStateProvider =
     AsyncNotifierProvider<NotesListState, NotesListData>(
-  () => NotesListState(),
-);
+      () => NotesListState(),
+    );

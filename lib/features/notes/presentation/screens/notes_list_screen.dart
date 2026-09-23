@@ -45,12 +45,12 @@ class NotesListScreen extends ConsumerWidget {
           icon: const Icon(Icons.swap_vert),
           onPressed: async.hasValue
               ? () => showModalBottomSheet<void>(
-                    context: context,
-                    builder: (_) => SortSheet(
-                      current: async.value!.sort,
-                      onSelected: notifier.setSort,
-                    ),
-                  )
+                  context: context,
+                  builder: (_) => SortSheet(
+                    current: async.value!.sort,
+                    onSelected: notifier.setSort,
+                  ),
+                )
               : null,
         ),
         IconButton(
@@ -59,10 +59,13 @@ class NotesListScreen extends ConsumerWidget {
           onPressed: async.hasValue
               ? () {
                   final data = async.value!;
-                  final usage =
-                      ref.read(filterUsageProvider).value ?? const {};
+                  final usage = ref.read(filterUsageProvider).value ?? const {};
                   final groups = groupByDomain(
-                      data.catalogsById.values, data.countsByCatalog, usage);
+                    data.catalogsById.values,
+                    data.countsByCatalog,
+                    usage,
+                    domainCounts: data.countsByDomain,
+                  );
                   showModalBottomSheet<void>(
                     context: context,
                     builder: (_) => CatalogFilterSheet(
@@ -70,9 +73,8 @@ class NotesListScreen extends ConsumerWidget {
                       counts: data.countsByCatalog,
                       selected: data.catalogFilter,
                       onApply: notifier.setFilter,
-                      onRecordDomain: (key) => ref
-                          .read(filterUsageProvider.notifier)
-                          .record(key),
+                      onRecordDomain: (key) =>
+                          ref.read(filterUsageProvider.notifier).record(key),
                     ),
                   );
                 }
@@ -88,7 +90,9 @@ class NotesListScreen extends ConsumerWidget {
       // surfaces "New Note" while you're on this screen.
       slivers: async.when<List<Widget>>(
         loading: () => const [
-          SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+          SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          ),
         ],
         error: (e, _) => [
           SliverFillRemaining(
@@ -99,8 +103,13 @@ class NotesListScreen extends ConsumerWidget {
           // Resolve the active domain (main filter) and, if it has more than
           // one catalog, the sub-filter selection within it.
           final f = data.catalogFilter;
+          final visible = data.visible;
           final groups = groupByDomain(
-              data.catalogsById.values, data.countsByCatalog, usage);
+            data.catalogsById.values,
+            data.countsByCatalog,
+            usage,
+            domainCounts: data.countsByDomain,
+          );
           DomainGroup? activeDomain;
           if (f != null && f.isNotEmpty) {
             for (final g in groups) {
@@ -110,12 +119,15 @@ class NotesListScreen extends ConsumerWidget {
               }
             }
           }
-          final mainLabel = (activeDomain == null ? null : domainLabel(activeDomain.key, l)) ??
+          final mainLabel =
+              (activeDomain == null
+                  ? null
+                  : domainLabel(activeDomain.key, l)) ??
               ((f == null || f.isEmpty) ? 'All' : 'Filtered');
           final subDomain =
               (activeDomain != null && activeDomain.catalogs.length > 1)
-                  ? activeDomain
-                  : null;
+              ? activeDomain
+              : null;
           int? subSelected;
           if (subDomain != null && f != null) {
             subSelected = setEquals(f, subDomain.catalogIds)
@@ -124,40 +136,40 @@ class NotesListScreen extends ConsumerWidget {
           }
 
           return [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: _SearchField(
-                query: data.query,
-                hintText: l.notesSearchHint,
-                onChanged: notifier.setQuery,
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: _SearchField(
+                  query: data.query,
+                  hintText: l.notesSearchHint,
+                  onChanged: notifier.setQuery,
+                ),
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: _FilterBar(
-              mainLabel: mainLabel,
-              subDomain: subDomain,
-              subSelectedCatalogId: subSelected,
-              onSubSelected: (catId) => notifier.setFilter(
-                  catId == null ? subDomain!.catalogIds : {catId}),
-            ),
-          ),
-          if (data.visible.isEmpty)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: AppEmptyState(
-                icon: Icons.note_outlined,
-                message: 'No notes yet',
+            SliverToBoxAdapter(
+              child: _FilterBar(
+                mainLabel: mainLabel,
+                subDomain: subDomain,
+                subSelectedCatalogId: subSelected,
+                onSubSelected: (catId) => notifier.setFilter(
+                  catId == null ? subDomain!.catalogIds : {catId},
+                ),
               ),
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
+            ),
+            if (visible.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppEmptyState(
+                  icon: Icons.note_outlined,
+                  message: 'No notes yet',
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
                   if (index.isOdd) return const AppRowSeparator();
                   final i = index ~/ 2;
-                  final note = data.visible[i];
+                  final note = visible[i];
                   final domain = data.effectiveDomain(note);
                   final attached = data.parentDomainOf(note) != null;
                   final parentSubject = data.contextSubjectOf(note);
@@ -166,11 +178,11 @@ class NotesListScreen extends ConsumerWidget {
                   // falls back to the domain's name.
                   final titleContext = parentSubject != null
                       ? (parentSubject.length > 20
-                          ? '${parentSubject.substring(0, 20)}…'
-                          : parentSubject)
+                            ? '${parentSubject.substring(0, 20)}…'
+                            : parentSubject)
                       : (attached && domain != null
-                          ? domainLabel(domain, l)
-                          : null);
+                            ? domainLabel(domain, l)
+                            : null);
                   return NoteListTile(
                     note: note,
                     catalog: note.catalogId == null
@@ -184,19 +196,20 @@ class NotesListScreen extends ConsumerWidget {
                         ? CatalogPalette.domainStyle(domain).color
                         : null,
                     onTap: () {
-                      final isWide = MediaQuery.of(context).size.width >=
+                      final isWide =
+                          MediaQuery.of(context).size.width >=
                           kNotesWideBreakpoint;
                       if (isWide) {
-                        ref.read(selectedNoteIdProvider.notifier).select(note.id);
+                        ref
+                            .read(selectedNoteIdProvider.notifier)
+                            .select(note.id);
                       } else {
                         context.push('/notes/${note.id}');
                       }
                     },
                   );
-                },
-                childCount: data.visible.length * 2 - 1,
+                }, childCount: visible.length * 2 - 1),
               ),
-            ),
           ];
         },
       ),
@@ -301,9 +314,13 @@ class _SubFilterButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label,
-                style: DesignTokens.rowSecondary
-                    .copyWith(color: c.label, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: DesignTokens.rowSecondary.copyWith(
+                color: c.label,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(width: 4),
             Icon(Icons.expand_more, size: 18, color: c.secondaryLabel),
           ],
@@ -326,27 +343,32 @@ class _FilterDrawer extends ConsumerWidget {
     final c = context.appColors;
     final notifier = ref.read(notesListStateProvider.notifier);
     final usage = ref.watch(filterUsageProvider).value ?? const {};
-    final groups =
-        groupByDomain(data.catalogsById.values, data.countsByCatalog, usage);
+    final groups = groupByDomain(
+      data.catalogsById.values,
+      data.countsByCatalog,
+      usage,
+      domainCounts: data.countsByDomain,
+    );
     final f = data.catalogFilter;
 
     Widget dot(Color color) => Container(
-        width: 12, height: 12,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle));
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
 
     Widget tile({
       required Widget leading,
       required String title,
       required bool selected,
       required VoidCallback onTap,
-    }) =>
-        ListTile(
-          leading: leading,
-          title: Text(title),
-          selected: selected,
-          trailing: selected ? Icon(Icons.check, color: c.accent) : null,
-          onTap: onTap,
-        );
+    }) => ListTile(
+      leading: leading,
+      title: Text(title),
+      selected: selected,
+      trailing: selected ? Icon(Icons.check, color: c.accent) : null,
+      onTap: onTap,
+    );
 
     return Drawer(
       child: SafeArea(
@@ -354,9 +376,13 @@ class _FilterDrawer extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 8),
-              child: Text(l.notesFilter,
-                  style: DesignTokens.caption
-                      .copyWith(color: c.secondaryLabel, letterSpacing: 0.5)),
+              child: Text(
+                l.notesFilter,
+                style: DesignTokens.caption.copyWith(
+                  color: c.secondaryLabel,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
             tile(
               leading: dot(c.tertiaryLabel),
@@ -407,8 +433,9 @@ class _SearchField extends StatefulWidget {
 }
 
 class _SearchFieldState extends State<_SearchField> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.query);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.query,
+  );
 
   @override
   void didUpdateWidget(covariant _SearchField oldWidget) {

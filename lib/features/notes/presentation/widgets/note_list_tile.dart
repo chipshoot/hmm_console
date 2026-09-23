@@ -54,7 +54,9 @@ class NoteListTile extends StatelessWidget {
         height: 11,
         margin: const EdgeInsetsDirectional.only(top: 4),
         decoration: BoxDecoration(
-            color: contextColor ?? style.color, shape: BoxShape.circle),
+          color: contextColor ?? style.color,
+          shape: BoxShape.circle,
+        ),
       ),
       title: titleContext == null
           ? Text(note.subject)
@@ -63,17 +65,23 @@ class NoteListTile extends StatelessWidget {
                 Flexible(
                   child: Text(note.subject, overflow: TextOverflow.ellipsis),
                 ),
-                Text(
-                  ' ($titleContext)',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Flexible(
+                  child: Text(
+                    ' ($titleContext)',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
             ),
       primary: preview.isEmpty ? null : Text(preview),
-      secondary:
-          Text('${contextLabel ?? catalogLabel(catalog?.name, l)} · $date'),
+      secondary: Text(
+        '${contextLabel ?? catalogLabel(catalog?.name, l)} · $date',
+      ),
     );
   }
 }

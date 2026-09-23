@@ -15,18 +15,25 @@ class DomainGroup {
 }
 
 /// Group [catalogs] by domain, ordered by [usage] (desc), then aggregate note
-/// count (desc), then domain name. [counts] maps catalogId -> note count.
+/// count (desc), then domain name. [counts] maps catalogId -> note count, used
+/// as the fallback for a group's aggregate note count. Pass [domainCounts]
+/// (domain key -> note count) to use domain-level totals instead — needed
+/// once a note's effective domain can differ from its own catalog's domain,
+/// so the aggregate agrees with what selecting that domain actually shows.
 List<DomainGroup> groupByDomain(
   Iterable<NoteCatalog> catalogs,
   Map<int, int> counts,
-  Map<String, int> usage,
-) {
+  Map<String, int> usage, {
+  Map<String, int>? domainCounts,
+}) {
   final byDomain = <String, List<NoteCatalog>>{};
   for (final c in catalogs) {
     byDomain.putIfAbsent(CatalogPalette.domainKeyFor(c.name), () => []).add(c);
   }
   final groups = byDomain.entries.map((e) {
-    final noteCount = e.value.fold<int>(0, (sum, c) => sum + (counts[c.id] ?? 0));
+    final noteCount = domainCounts != null
+        ? (domainCounts[e.key] ?? 0)
+        : e.value.fold<int>(0, (sum, c) => sum + (counts[c.id] ?? 0));
     return DomainGroup(e.key, e.value, noteCount);
   }).toList();
   groups.sort((a, b) {

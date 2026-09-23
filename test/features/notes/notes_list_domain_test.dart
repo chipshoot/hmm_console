@@ -15,7 +15,12 @@ const _autoInfo = 2;
 const _serviceRecord = 3;
 
 NoteCatalog _cat(int id, String name) => NoteCatalog(
-    id: id, name: name, schema: '{}', formatType: 0, isDefault: false);
+  id: id,
+  name: name,
+  schema: '{}',
+  formatType: 0,
+  isDefault: false,
+);
 
 HmmNote _note(int id, {int? catalogId, int? parentNoteId, String? subject}) =>
     HmmNote(
@@ -128,5 +133,49 @@ void main() {
     expect(ids(_data(query: 'honda').visible), contains(1));
     expect(ids(_data(query: 'tyres').visible), contains(1));
     expect(ids(_data(query: 'honda').visible), isNot(contains(2)));
+  });
+
+  group('counts agree with what the filter shows', () {
+    // Only car notes: the car itself plus two General notes attached to it —
+    // no unattached General note anywhere. Built with the same _cat/_note
+    // helpers as _data(), just without the extra General fixtures.
+    NotesListData onlyCarNotes() {
+      final all = [
+        _note(100, catalogId: _autoInfo, subject: '2019 Honda Civic'),
+        _note(
+          1,
+          catalogId: _general,
+          parentNoteId: 100,
+          subject: 'Winter tyres',
+        ),
+        _note(2, catalogId: _general, parentNoteId: 100, subject: 'Oil change'),
+      ];
+      return NotesListData(
+        all: all,
+        catalogsById: {
+          _general: _cat(_general, 'General'),
+          _autoInfo: _cat(_autoInfo, 'Hmm.AutomobileMan.AutomobileInfo'),
+        },
+        catalogDomainById: const {
+          _general: 'General',
+          _autoInfo: 'AutomobileMan',
+        },
+        targetsById: const {
+          100: (domain: 'AutomobileMan', subject: '2019 Honda Civic'),
+        },
+      );
+    }
+
+    test('the General group has no notes to show', () {
+      final d = onlyCarNotes();
+      expect(d.countsByDomain['General'] ?? 0, 0);
+    });
+
+    test('the Automobile group count matches what selecting it shows', () {
+      final d = onlyCarNotes();
+      final autoSelected = onlyCarNotes().copyWith(catalogFilter: {_autoInfo});
+      expect(d.countsByDomain['AutomobileMan'], autoSelected.visible.length);
+      expect(autoSelected.visible.length, 3); // car + both attached notes
+    });
   });
 }
