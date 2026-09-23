@@ -12,6 +12,7 @@ import '../../../gas_log/domain/entities/automobile.dart';
 import '../../../gas_log/presentation/widgets/automobile_list_tile.dart';
 import '../../../gas_log/providers/selected_automobile_provider.dart';
 import '../../../gas_log/states/automobiles_state.dart';
+import '../../../notes/states/attached_notes_state.dart';
 import '../../../settings/providers/gas_log_settings_provider.dart';
 
 /// The automobile domain on one screen: the licence (one, it describes the
@@ -150,17 +151,49 @@ class _VehicleRow extends ConsumerWidget {
       automobile: automobile,
       distanceLabel: distLabel,
       onTap: () => context.push('/automobiles/manage/${automobile.id}/edit'),
-      trailing: IconButton.filledTonal(
-        tooltip: l.automobileHubGasLogFor(automobile.displayName),
-        icon: const Icon(Icons.local_gas_station_outlined),
-        onPressed: () {
-          // The gas-log list reads the SELECTED vehicle, so select first.
-          ref
-              .read(selectedAutomobileIdProvider.notifier)
-              .select(automobile.id);
-          context.push('/gas-logs');
-        },
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _NotesButton(automobile: automobile),
+          IconButton.filledTonal(
+            tooltip: l.automobileHubGasLogFor(automobile.displayName),
+            icon: const Icon(Icons.local_gas_station_outlined),
+            onPressed: () {
+              // The gas-log list reads the SELECTED vehicle, so select first.
+              ref
+                  .read(selectedAutomobileIdProvider.notifier)
+                  .select(automobile.id);
+              context.push('/gas-logs');
+            },
+          ),
+          Icon(Icons.chevron_right,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ],
       ),
+    );
+  }
+}
+
+/// The car's notes, one tap from the hub. The badge is the count, so a car
+/// with nothing written about it carries no decoration at all.
+class _NotesButton extends ConsumerWidget {
+  const _NotesButton({required this.automobile});
+  final Automobile automobile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final count =
+        ref.watch(attachedNotesProvider(automobile.id)).value?.length;
+    const icon = Icon(Icons.sticky_note_2_outlined);
+    return IconButton.filledTonal(
+      tooltip: l.automobileHubNotesFor(automobile.displayName),
+      icon: count == null || count == 0
+          ? icon
+          : Badge(label: Text('$count'), child: icon),
+      onPressed: () =>
+          context.push('/automobiles/manage/${automobile.id}/notes'),
     );
   }
 }

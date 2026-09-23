@@ -632,6 +632,10 @@
   "@automobileHubGasLogFor": {
     "placeholders": {"name": {"type": "String"}}
   },
+  "automobileHubNotesFor": "Notes for {name}",
+  "@automobileHubNotesFor": {
+    "placeholders": {"name": {"type": "String"}}
+  },
   "vehicleStatusUpdated": "Vehicle status updated",
   "vehicleActiveCount": "Active ({count})",
   "@vehicleActiveCount": {

@@ -1053,6 +1053,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String automobileHubNotesFor(String name) {
+    return '$name的备注';
+  }
+
+  @override
   String get vehicleStatusUpdated => '车辆状态已更新';
 
   @override

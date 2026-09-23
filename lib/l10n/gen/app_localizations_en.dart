@@ -1086,6 +1086,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String automobileHubNotesFor(String name) {
+    return 'Notes for $name';
+  }
+
+  @override
   String get vehicleStatusUpdated => 'Vehicle status updated';
 
   @override

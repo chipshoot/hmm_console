@@ -1952,6 +1952,12 @@ abstract class AppLocalizations {
   /// **'Gas log for {name}'**
   String automobileHubGasLogFor(String name);
 
+  /// No description provided for @automobileHubNotesFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes for {name}'**
+  String automobileHubNotesFor(String name);
+
   /// No description provided for @vehicleStatusUpdated.
   ///
   /// In en, this message translates to:

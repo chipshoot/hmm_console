@@ -16,6 +16,8 @@ import 'package:hmm_console/features/driver_licence/domain/driver_licence.dart';
 import 'package:hmm_console/features/gas_log/domain/entities/automobile.dart';
 import 'package:hmm_console/features/gas_log/providers/selected_automobile_provider.dart';
 import 'package:hmm_console/features/gas_log/states/automobiles_state.dart';
+import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
+import 'package:hmm_console/features/notes/states/attached_notes_state.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -98,6 +100,7 @@ Future<ProviderContainer> _pump(
   DriverLicence? licence,
   IDriverLicenceRepository? licenceRepo,
   AutomobilesState Function()? automobiles,
+  List<HmmNote> notes = const [],
 }) async {
   SharedPreferences.setMockInitialValues({});
   final container = ProviderContainer(overrides: [
@@ -107,6 +110,7 @@ Future<ProviderContainer> _pump(
     automobilesStateProvider.overrideWith(
         automobiles ?? () => _StubAutomobiles([_auto(1, 'Civic')])),
     attachmentResolverProvider.overrideWith((_) async => _StubResolver()),
+    attachedNotesProvider(1).overrideWith((ref) async => notes),
   ]);
   addTearDown(container.dispose);
 
@@ -125,6 +129,10 @@ Future<ProviderContainer> _pump(
                     path: ':id/edit',
                     builder: (_, s) =>
                         stub('edit ${s.pathParameters['id']}')),
+                GoRoute(
+                    path: ':id/notes',
+                    builder: (_, s) =>
+                        stub('notes ${s.pathParameters['id']}')),
               ]),
         ]),
     GoRoute(path: '/gas-logs', builder: (_, _) => stub('gas log list')),
@@ -246,6 +254,42 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Add vehicle'));
       await tester.pumpAndSettle();
       expect(find.text('new vehicle'), findsOneWidget);
+    });
+
+    testWidgets("the notes button opens that car's notes", (tester) async {
+      await _pump(tester);
+      // The tile's banner pushes the row below the default test viewport.
+      await tester.scrollUntilVisible(
+          find.byTooltip('Notes for 2020 Honda Civic'), 300);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Notes for 2020 Honda Civic'));
+      await tester.pumpAndSettle();
+      expect(find.text('notes 1'), findsOneWidget);
+    });
+
+    testWidgets('the notes button badges how many notes the car has',
+        (tester) async {
+      await _pump(tester, notes: [
+        HmmNote(
+            id: 7,
+            uuid: 'n7',
+            subject: 'Winter tyres',
+            authorId: 1,
+            createDate: DateTime(2026, 1, 1)),
+        HmmNote(
+            id: 8,
+            uuid: 'n8',
+            subject: 'Rattle',
+            authorId: 1,
+            createDate: DateTime(2026, 1, 2)),
+      ]);
+
+      expect(find.widgetWithText(Badge, '2'), findsOneWidget);
+    });
+
+    testWidgets('no badge when the car has no notes', (tester) async {
+      await _pump(tester);
+      expect(find.byType(Badge), findsNothing);
     });
 
     testWidgets('load failure shows Retry', (tester) async {

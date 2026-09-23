@@ -310,6 +310,7 @@
   "automobileHubNoVehicles": "还没有车辆",
   "automobileHubNoVehiclesHint": "添加车辆，把加油记录、保险和保养记录放在一起。",
   "automobileHubGasLogFor": "{name}的加油记录",
+  "automobileHubNotesFor": "{name}的备注",
   "vehicleStatusUpdated": "车辆状态已更新",
   "vehicleActiveCount": "使用中（{count}）",
   "vehicleInactiveCount": "已停用（{count}）",
