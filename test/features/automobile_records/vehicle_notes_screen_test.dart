@@ -9,6 +9,7 @@ import 'package:hmm_console/features/automobile_records/presentation/screens/veh
 import 'package:hmm_console/features/gas_log/domain/entities/automobile.dart';
 import 'package:hmm_console/features/gas_log/states/automobiles_state.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/attached_notes_section.dart';
 import 'package:hmm_console/features/notes/states/attached_notes_state.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
@@ -71,5 +72,12 @@ void main() {
     // One add control on the screen: the New note button. The section's own
     // "+" is suppressed, so exactly one add icon is present.
     expect(find.byIcon(Icons.add), findsOneWidget);
+  });
+
+  testWidgets('vehicle notes screen hosts AttachedNotesSection for the car',
+      (tester) async {
+    await _pump(tester);
+    expect(find.byType(AttachedNotesSection), findsOneWidget);
+    expect(find.text('No notes yet'), findsOneWidget);
   });
 }
