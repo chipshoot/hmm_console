@@ -19,6 +19,10 @@ String _normalizeDomainKey(String key) =>
             : key)
         .toLowerCase();
 
+/// What a note needs to know about the note it is attached to: the domain
+/// that note belongs to, and what to call it on screen.
+typedef AttachTarget = ({String domain, String subject});
+
 class NotesListData {
   const NotesListData({
     required this.all,
@@ -28,6 +32,7 @@ class NotesListData {
     this.query = '',
     this.catalogDomainById = const {},
     this.anchorDomainById = const {},
+    this.targetsById = const {},
   });
 
   final List<HmmNote> all;
@@ -45,6 +50,11 @@ class NotesListData {
   /// General notes attached to that subsystem via parentNoteId.
   final Map<int, String> anchorDomainById;
 
+  /// Note id -> the domain and subject of a note others can attach to (a
+  /// car, a policy, a book). Every typed record carries its domain in its
+  /// own catalog name, so this needs no per-domain knowledge.
+  final Map<int, AttachTarget> targetsById;
+
   Map<int, int> get countsByCatalog {
     final m = <int, int>{};
     for (final n in all) {
@@ -54,34 +64,62 @@ class NotesListData {
     return m;
   }
 
+  /// The domain of the thing this note is attached to, when that thing
+  /// carries one: a subsystem anchor, or any typed record such as a car.
+  String? parentDomainOf(HmmNote n) {
+    final p = n.parentNoteId;
+    if (p == null) return null;
+    return anchorDomainById[p] ?? targetsById[p]?.domain;
+  }
+
+  String? ownDomainOf(HmmNote n) =>
+      n.catalogId == null ? null : catalogDomainById[n.catalogId];
+
+  /// Where the note lives: what it is attached to, falling back to its own
+  /// catalog. A dangling parent resolves to neither, so the note keeps its
+  /// catalog's domain rather than vanishing from every filter.
+  String? effectiveDomain(HmmNote n) => parentDomainOf(n) ?? ownDomainOf(n);
+
+  /// The parent's subject, for the row and for search. Null when unattached,
+  /// and for an anchor parent (anchors are not in the loaded set).
+  String? contextSubjectOf(HmmNote n) {
+    final p = n.parentNoteId;
+    return p == null ? null : targetsById[p]?.subject;
+  }
+
   List<HmmNote> get visible {
     Iterable<HmmNote> items = all;
     final f = catalogFilter;
     if (f != null && f.isNotEmpty) {
       // Domains represented by the selected catalogs. A note matches if its
-      // catalog is selected OR it's attached to a subsystem anchor whose
-      // domain is among them (so "Automobile" surfaces notes attached to the
+      // catalog is selected OR it's attached to something whose domain is
+      // among them (so "Automobile" surfaces notes attached to the
       // automobile subsystem, not just automobile-catalog notes).
       final selectedDomains = <String>{
         for (final id in f)
           if (catalogDomainById[id] != null) catalogDomainById[id]!,
       };
       items = items.where((n) {
-        // Attaching a note to a subsystem makes that subsystem its effective
-        // domain — it shows under the subsystem (e.g. Automobile), NOT under
-        // its catalog's domain (e.g. General). Unattached notes fall back to
-        // their catalog domain.
-        final p = n.parentNoteId;
-        final attachedDomain = p == null ? null : anchorDomainById[p];
-        if (attachedDomain != null) {
-          return selectedDomains.contains(attachedDomain);
+        final own = ownDomainOf(n);
+        final parent = parentDomainOf(n);
+        // Attached to something in ANOTHER domain — a General note under a
+        // car. It lives there and nowhere else, so General keeps meaning
+        // "attached to nothing in particular". This is what the code already
+        // did for notes attached to a subsystem anchor; cars now count too.
+        if (parent != null && parent != own) {
+          return selectedDomains.contains(parent);
         }
+        // Otherwise the note is a record of its own domain, so it filters by
+        // its exact catalog: picking "Insurance" must not drag in every note
+        // that happens to hang off a car.
         return n.catalogId != null && f.contains(n.catalogId);
       });
     }
     final q = query.trim().toLowerCase();
     if (q.isNotEmpty) {
-      items = items.where((n) => n.subject.toLowerCase().contains(q));
+      items = items.where((n) =>
+          n.subject.toLowerCase().contains(q) ||
+          (contextSubjectOf(n)?.toLowerCase().contains(q) ?? false));
     }
     final list = items.toList();
     switch (sort) {
@@ -107,6 +145,7 @@ class NotesListData {
     String? query,
     Map<int, String>? catalogDomainById,
     Map<int, String>? anchorDomainById,
+    Map<int, AttachTarget>? targetsById,
   }) {
     return NotesListData(
       all: all ?? this.all,
@@ -118,6 +157,7 @@ class NotesListData {
       query: query ?? this.query,
       catalogDomainById: catalogDomainById ?? this.catalogDomainById,
       anchorDomainById: anchorDomainById ?? this.anchorDomainById,
+      targetsById: targetsById ?? this.targetsById,
     );
   }
 }
@@ -183,6 +223,17 @@ class NotesListState extends AsyncNotifier<NotesListData> {
       }
     }
 
+    // Anything with a domain of its own can be attached to, so a note under
+    // it borrows that domain. Built from the notes already loaded: no query.
+    final targetsById = {
+      for (final n in visibleNotes)
+        if (n.catalogId != null && catalogDomainById[n.catalogId] != null)
+          n.id: (
+            domain: catalogDomainById[n.catalogId]!,
+            subject: n.subject,
+          ),
+    };
+
     return NotesListData(
       all: visibleNotes,
       catalogsById: byId,
@@ -191,6 +242,7 @@ class NotesListState extends AsyncNotifier<NotesListData> {
       query: _query,
       catalogDomainById: catalogDomainById,
       anchorDomainById: anchorDomainById,
+      targetsById: targetsById,
     );
   }
 
