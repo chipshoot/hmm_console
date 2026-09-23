@@ -18,10 +18,15 @@ class AttachedNotesSection extends ConsumerWidget {
     super.key,
     required this.parentId,
     this.title = 'Notes',
+    this.showAdd = true,
   });
 
   final int parentId;
   final String title;
+
+  /// The owning screen may offer its own add action, in which case the
+  /// section must not duplicate it.
+  final bool showAdd;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,14 +48,15 @@ class AttachedNotesSection extends ConsumerWidget {
                 icon: const Icon(Icons.attach_file),
                 onPressed: () => _attachExisting(context, ref),
               ),
-              IconButton(
-                tooltip: 'Add note',
-                icon: const Icon(Icons.add),
-                onPressed: () async {
-                  await context.push('/notes/new?parent=$parentId');
-                  ref.invalidate(attachedNotesProvider(parentId));
-                },
-              ),
+              if (showAdd)
+                IconButton(
+                  tooltip: 'Add note',
+                  icon: const Icon(Icons.add),
+                  onPressed: () async {
+                    await context.push('/notes/new?parent=$parentId');
+                    ref.invalidate(attachedNotesProvider(parentId));
+                  },
+                ),
             ],
           ),
         ),

@@ -3026,6 +3026,18 @@ abstract class AppLocalizations {
   /// **'Vehicle Notes'**
   String get recordsVehicleNotes;
 
+  /// No description provided for @vehicleNotesNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New note'**
+  String get vehicleNotesNew;
+
+  /// No description provided for @vehicleNotesDomainCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Automobile · {name}'**
+  String vehicleNotesDomainCaption(String name);
+
   /// No description provided for @serviceTypeOilChange.
   ///
   /// In en, this message translates to:

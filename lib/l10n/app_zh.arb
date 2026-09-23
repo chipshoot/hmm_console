@@ -489,6 +489,8 @@
   "recordsUnitHint": "单价",
   "recordsAmountHint": "0.00",
   "recordsVehicleNotes": "车辆备注",
+  "vehicleNotesNew": "新建笔记",
+  "vehicleNotesDomainCaption": "汽车 · {name}",
   "serviceTypeOilChange": "更换机油",
   "serviceTypeTireRotation": "轮胎换位",
   "serviceTypeBrake": "刹车",

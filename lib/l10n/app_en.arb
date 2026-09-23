@@ -1039,6 +1039,11 @@
   "recordsUnitHint": "Unit",
   "recordsAmountHint": "0.00",
   "recordsVehicleNotes": "Vehicle Notes",
+  "vehicleNotesNew": "New note",
+  "vehicleNotesDomainCaption": "Automobile · {name}",
+  "@vehicleNotesDomainCaption": {
+    "placeholders": {"name": {"type": "String"}}
+  },
   "@_recordEnums": {
     "description": "UI labels for ServiceType / LineItemType. The wire values (ServiceType.wireValue, LineItemType.wireName) and ServiceType.displayName stay English — displayName feeds the persisted note subject in local_service_record_repository."
   },

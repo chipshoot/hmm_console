@@ -1661,6 +1661,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recordsVehicleNotes => '车辆备注';
 
   @override
+  String get vehicleNotesNew => '新建笔记';
+
+  @override
+  String vehicleNotesDomainCaption(String name) {
+    return '汽车 · $name';
+  }
+
+  @override
   String get serviceTypeOilChange => '更换机油';
 
   @override

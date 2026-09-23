@@ -1703,6 +1703,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordsVehicleNotes => 'Vehicle Notes';
 
   @override
+  String get vehicleNotesNew => 'New note';
+
+  @override
+  String vehicleNotesDomainCaption(String name) {
+    return 'Automobile · $name';
+  }
+
+  @override
   String get serviceTypeOilChange => 'Oil change';
 
   @override
