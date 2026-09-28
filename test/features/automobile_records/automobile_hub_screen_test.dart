@@ -292,6 +292,15 @@ void main() {
       expect(find.byType(Badge), findsNothing);
     });
 
+    testWidgets('? opens the Automobile help', (tester) async {
+      await _pump(tester);
+      await tester.tap(find.byTooltip('Help'));
+      await tester.pumpAndSettle();
+      expect(find.text("Your driver's licence and your vehicles in one place."),
+          findsOneWidget);
+      expect(find.text('Gas log'), findsOneWidget);
+    });
+
     testWidgets('load failure shows Retry', (tester) async {
       await _pump(tester, automobiles: _FailingAutomobiles.new);
 

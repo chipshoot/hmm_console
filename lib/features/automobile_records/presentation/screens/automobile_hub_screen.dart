@@ -5,6 +5,9 @@ import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../driver_licence/domain/driver_licence.dart';
 import '../../../driver_licence/states/driver_licence_state.dart';
@@ -41,6 +44,7 @@ class AutomobileHubScreen extends ConsumerWidget {
           icon: const Icon(Icons.settings),
           label: Text(l.vehicleManage),
         ),
+        const HelpButton(helpId: HelpId.automobileHub),
       ],
       child: RefreshIndicator(
         onRefresh: () =>
@@ -155,9 +159,10 @@ class _VehicleRow extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _NotesButton(automobile: automobile),
-          IconButton.filledTonal(
+          HmmIconButton(
+            style: HmmIconButtonStyle.filledTonal,
             tooltip: l.automobileHubGasLogFor(automobile.displayName),
-            icon: const Icon(Icons.local_gas_station_outlined),
+            icon: Icons.local_gas_station_outlined,
             onPressed: () {
               // The gas-log list reads the SELECTED vehicle, so select first.
               ref
@@ -186,12 +191,11 @@ class _NotesButton extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final count =
         ref.watch(attachedNotesProvider(automobile.id)).value?.length;
-    const icon = Icon(Icons.sticky_note_2_outlined);
-    return IconButton.filledTonal(
+    return HmmIconButton(
+      style: HmmIconButtonStyle.filledTonal,
       tooltip: l.automobileHubNotesFor(automobile.displayName),
-      icon: count == null || count == 0
-          ? icon
-          : Badge(label: Text('$count'), child: icon),
+      icon: Icons.sticky_note_2_outlined,
+      badgeCount: count,
       onPressed: () =>
           context.push('/automobiles/manage/${automobile.id}/notes'),
     );

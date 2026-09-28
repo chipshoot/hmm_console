@@ -11,7 +11,6 @@ const _allowed = <String, int>{
   'lib/core/contact_block/widgets/contact_info_editor.dart': 1,
   'lib/core/data/attachments/widgets/attachments_section.dart': 3,
   'lib/core/widgets/editable_info_card.dart': 1,
-  'lib/features/automobile_records/presentation/screens/automobile_hub_screen.dart': 2,
   'lib/features/automobile_records/presentation/screens/insurance_policies_screen.dart': 2,
   'lib/features/automobile_records/presentation/screens/scheduled_services_screen.dart': 2,
   'lib/features/automobile_records/presentation/screens/service_record_form_screen.dart': 1,
