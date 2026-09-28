@@ -83,7 +83,8 @@ All features use Riverpod for DI/state. Data source depends on the active `DataM
 - `services/` — shared services (e.g. date/time providers)
 - `theme/` — Light/dark theme definitions (deep purple / green seed colors)
 - `util/` — shared utilities (e.g. `uuid.dart`)
-- `widgets/` — Reusable UI components (button, text field, gaps, scaffold)
+- `widgets/` — Reusable UI components (button, `HmmIconButton`, text field, gaps, scaffold)
+- `help/` — in-app help: `HelpButton` + help registry/sheet, `showUndoableAction`. Spec/plan: `docs/superpowers/specs/2026-09-27-in-app-help-design.md`, `docs/superpowers/plans/2026-09-27-in-app-help.md`
 - `exceptions/` — App exception hierarchy
 
 ### App initialization sequence (main.dart)
@@ -144,12 +145,15 @@ Project ID: `home-made-message`. Firebase emulators configured in `firebase.json
 
 ### Shared Rules
 - Never use a widget that looks wrong on either platform
-- Always use flutter_platform_widgets for: buttons, switches, dialogs, text fields
+- Always use flutter_platform_widgets for: switches, dialogs, text fields (note: not currently a pubspec dependency — platform branching uses `Theme.of(context).platform`)
+- **Icon buttons:** always `HmmIconButton` (`lib/core/widgets/hmm_icon_button.dart`) with a localized tooltip. `test/core/help/icon_button_guard_test.dart` fails on new raw `IconButton`s; its allow-list only shrinks.
+- **Screen help:** every new screen adds a `HelpId` + case in `lib/core/help/help_registry.dart` and a `HelpButton` in its top bar. ARB keys: `help<Screen>Title`, `help<Screen>Summary`, `help<Screen><Control>Title` / `Body`; the entry's icon is the control's own `Icons.*` constant. Changing a control means updating its help entry.
+- **Actions that move or hide data** use `showUndoableAction` (`lib/core/help/undoable_action.dart`): commits immediately, distinct messages for done / failed / undone / undo-failed, no WidgetRef or BuildContext after an await. Permanent deletes keep their confirmation dialog.
 - Platform check pattern: use `Theme.of(context).platform` or `dart:io Platform`
 
 ## Key Packages
-- `flutter_platform_widgets`: use for ALL buttons, dialogs, switches, text fields, 
-  nav bars — never use raw CupertinoX or MaterialX widgets directly
+- `flutter_platform_widgets`: use for dialogs, switches, text fields, nav bars —
+  icon buttons use `HmmIconButton` instead (see Shared Rules)
   - `flutter_slidable`: swipe actions on list items
 - `image_picker` / `file_picker` / `open_filex`: attachment capture (photos / PDFs) and OS-viewer hand-off; `google_mlkit_text_recognition`: on-device receipt OCR (`receipt_scan/`)
 
