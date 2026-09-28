@@ -1920,4 +1920,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpVehicleNotesOpenBody => '点击备注即可查看或编辑。';
+
+  @override
+  String get undoAction => '撤销';
+
+  @override
+  String get undoNoteDetached => '备注已移至“常规”';
+
+  @override
+  String get undoNoteDetachFailed => '无法取消关联备注';
+
+  @override
+  String get undoNoteRestored => '备注已恢复';
+
+  @override
+  String get undoNoteRestoreFailed => '无法撤销，备注仍在“常规”中';
 }

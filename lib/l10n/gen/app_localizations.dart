@@ -3541,6 +3541,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap a note to read or edit it.'**
   String get helpVehicleNotesOpenBody;
+
+  /// No description provided for @undoAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undoAction;
+
+  /// No description provided for @undoNoteDetached.
+  ///
+  /// In en, this message translates to:
+  /// **'Note moved to General'**
+  String get undoNoteDetached;
+
+  /// No description provided for @undoNoteDetachFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t detach the note'**
+  String get undoNoteDetachFailed;
+
+  /// No description provided for @undoNoteRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Note is back'**
+  String get undoNoteRestored;
+
+  /// No description provided for @undoNoteRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo — the note is in General'**
+  String get undoNoteRestoreFailed;
 }
 
 class _AppLocalizationsDelegate

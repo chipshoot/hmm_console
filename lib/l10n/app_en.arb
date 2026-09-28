@@ -1130,5 +1130,10 @@
   "helpVehicleNotesDetachTitle": "Detach",
   "helpVehicleNotesDetachBody": "Unlinks the note from this car. The note is kept and moves to General; attach it again any time.",
   "helpVehicleNotesOpenTitle": "Open a note",
-  "helpVehicleNotesOpenBody": "Tap a note to read or edit it."
+  "helpVehicleNotesOpenBody": "Tap a note to read or edit it.",
+  "undoAction": "Undo",
+  "undoNoteDetached": "Note moved to General",
+  "undoNoteDetachFailed": "Couldn't detach the note",
+  "undoNoteRestored": "Note is back",
+  "undoNoteRestoreFailed": "Couldn't undo — the note is in General"
 }

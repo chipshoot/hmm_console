@@ -574,5 +574,10 @@
   "helpVehicleNotesDetachTitle": "取消关联",
   "helpVehicleNotesDetachBody": "解除备注与这辆车的关联。备注会保留并移到“常规”，之后可随时重新关联。",
   "helpVehicleNotesOpenTitle": "打开备注",
-  "helpVehicleNotesOpenBody": "点击备注即可查看或编辑。"
+  "helpVehicleNotesOpenBody": "点击备注即可查看或编辑。",
+  "undoAction": "撤销",
+  "undoNoteDetached": "备注已移至“常规”",
+  "undoNoteDetachFailed": "无法取消关联备注",
+  "undoNoteRestored": "备注已恢复",
+  "undoNoteRestoreFailed": "无法撤销，备注仍在“常规”中"
 }

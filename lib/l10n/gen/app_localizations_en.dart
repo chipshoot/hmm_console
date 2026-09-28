@@ -1971,4 +1971,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpVehicleNotesOpenBody => 'Tap a note to read or edit it.';
+
+  @override
+  String get undoAction => 'Undo';
+
+  @override
+  String get undoNoteDetached => 'Note moved to General';
+
+  @override
+  String get undoNoteDetachFailed => 'Couldn\'t detach the note';
+
+  @override
+  String get undoNoteRestored => 'Note is back';
+
+  @override
+  String get undoNoteRestoreFailed => 'Couldn\'t undo — the note is in General';
 }
