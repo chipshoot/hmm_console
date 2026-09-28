@@ -228,6 +228,10 @@
   },
   "syncStatusWaitingWifi": "Waiting for WiFi to sync",
   "syncStatusLastFailed": "Last sync failed",
+  "commonCopy": "Copy",
+  "commonClose": "Close",
+  "syncErrorTitle": "Sync error",
+  "syncErrorCopied": "Copied",
   "syncStatusSynced": "Synced {when}",
   "@syncStatusSynced": {
     "description": "{when} is a relative time such as 'just now' or '5 minutes ago'",

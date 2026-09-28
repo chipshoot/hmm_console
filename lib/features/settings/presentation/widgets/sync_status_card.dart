@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/sync/sync_controller.dart';
@@ -94,11 +95,19 @@ class _Body extends ConsumerWidget {
                       !status.isSyncing &&
                       !status.lastAutoTriggerSkippedForNetwork &&
                       status.lastResult!.errors.isNotEmpty)
-                    Text(
-                      status.lastResult!.errors.first.message,
-                      style: theme.textTheme.bodySmall,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    // Clipped to keep the card compact; a tap shows the
+                    // whole text. The clipped tail is often the part that
+                    // matters (Graph's error body), so it must be reachable.
+                    GestureDetector(
+                      key: const Key('syncErrorLine'),
+                      onTap: () => _showSyncError(
+                          context, status.lastResult!.errors.first.message),
+                      child: Text(
+                        status.lastResult!.errors.first.message,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   // Where the last run's time went. "Sync is slow" is only
                   // answerable if the phase that was slow is named; the
@@ -136,6 +145,40 @@ class _Body extends ConsumerWidget {
   /// Plural forms come from the ARB rather than a `s`-appending ternary:
   /// Chinese has no plural inflection, so the old approach had no correct
   /// translation at all.
+}
+
+/// Full text of a sync error, selectable and copyable, so a report can
+/// carry the exact message instead of whatever fitted on the card.
+Future<void> _showSyncError(BuildContext context, String message) {
+  final l = AppLocalizations.of(context);
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(l.syncErrorTitle),
+      content: SingleChildScrollView(
+        child: SelectableText(
+          message,
+          key: const Key('syncErrorDetail'),
+          style: Theme.of(ctx).textTheme.bodySmall,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: message));
+            if (!ctx.mounted) return;
+            ScaffoldMessenger.maybeOf(ctx)
+                ?.showSnackBar(SnackBar(content: Text(l.syncErrorCopied)));
+          },
+          child: Text(l.commonCopy),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(l.commonClose),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Shared confirm-dialog flow for any "manual sync" entry point. Returns

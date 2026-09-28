@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../network/idp_token_service.dart';
@@ -12,18 +13,27 @@ class OneDriveGraphException implements Exception {
     required this.statusCode,
     required this.message,
     this.responseBody,
+    this.request,
   });
 
   final int statusCode;
   final String message;
   final String? responseBody;
 
+  /// `METHOD url` of the Graph call that failed, or null when the failure
+  /// happened before any request went out (e.g. not signed in). Graph's own
+  /// body can be as vague as `invalidRequest: Invalid request`, which names
+  /// neither the reason nor the request — this says what was sent.
+  final String? request;
+
   bool get isNotFound => statusCode == 404;
   bool get isUnauthorized => statusCode == 401;
 
   @override
   String toString() =>
-      'OneDriveGraphException($statusCode): $message${responseBody == null ? '' : '\n$responseBody'}';
+      'OneDriveGraphException($statusCode): $message'
+      '${request == null ? '' : '\n$request'}'
+      '${responseBody == null ? '' : '\n$responseBody'}';
 }
 
 /// Returns the Hmm IDP `sub` claim of the currently-signed-in user, or
@@ -381,11 +391,26 @@ class OneDriveGraphClient {
   void _throwIfBad(Response resp) {
     final code = resp.statusCode ?? 0;
     if (code >= 200 && code < 300) return;
-    throw OneDriveGraphException(
+    final error = OneDriveGraphException(
       statusCode: code,
       message: resp.statusMessage ?? 'Graph request failed',
       responseBody: resp.data?.toString(),
+      request: _describeRequest(resp),
     );
+    debugPrint('OneDriveGraphClient: $error');
+    throw error;
+  }
+
+  /// `METHOD url`, plus where a redirect landed if it did. A `:/content`
+  /// GET is answered with a redirect to a download host, so a failure there
+  /// may not be Graph's at all. The landing URL's query is dropped: it is a
+  /// pre-authenticated link, and this text is shown to be copied.
+  static String _describeRequest(Response resp) {
+    final options = resp.requestOptions;
+    final sent = '${options.method} ${options.uri}';
+    final landed = resp.realUri;
+    if (landed.host == options.uri.host) return sent;
+    return '$sent\n(redirected to ${landed.origin}${landed.path})';
   }
 
   SyncManifest _decodeManifest(Map<String, dynamic> json) {

@@ -358,6 +358,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncStatusLastFailed => '上次同步失败';
 
   @override
+  String get commonCopy => '复制';
+
+  @override
+  String get commonClose => '关闭';
+
+  @override
+  String get syncErrorTitle => '同步错误';
+
+  @override
+  String get syncErrorCopied => '已复制';
+
+  @override
   String syncStatusSynced(String when) {
     return '已于$when同步';
   }

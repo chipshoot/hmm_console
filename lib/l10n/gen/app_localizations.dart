@@ -704,6 +704,30 @@ abstract class AppLocalizations {
   /// **'Last sync failed'**
   String get syncStatusLastFailed;
 
+  /// No description provided for @commonCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get commonCopy;
+
+  /// No description provided for @commonClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get commonClose;
+
+  /// No description provided for @syncErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync error'**
+  String get syncErrorTitle;
+
+  /// No description provided for @syncErrorCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get syncErrorCopied;
+
   /// {when} is a relative time such as 'just now' or '5 minutes ago'
   ///
   /// In en, this message translates to:

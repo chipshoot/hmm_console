@@ -374,6 +374,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncStatusLastFailed => 'Last sync failed';
 
   @override
+  String get commonCopy => 'Copy';
+
+  @override
+  String get commonClose => 'Close';
+
+  @override
+  String get syncErrorTitle => 'Sync error';
+
+  @override
+  String get syncErrorCopied => 'Copied';
+
+  @override
   String syncStatusSynced(String when) {
     return 'Synced $when';
   }
