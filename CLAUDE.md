@@ -145,15 +145,16 @@ Project ID: `home-made-message`. Firebase emulators configured in `firebase.json
 
 ### Shared Rules
 - Never use a widget that looks wrong on either platform
-- Always use flutter_platform_widgets for: switches, dialogs, text fields (note: not currently a pubspec dependency — platform branching uses `Theme.of(context).platform`)
+- Switches, dialogs, text fields, sheets: branch on `Theme.of(context).platform` for the Cupertino / Material variant (`flutter_platform_widgets` is not a dependency)
 - **Icon buttons:** always `HmmIconButton` (`lib/core/widgets/hmm_icon_button.dart`) with a localized tooltip. `test/core/help/icon_button_guard_test.dart` fails on new raw `IconButton`s; its allow-list only shrinks.
 - **Screen help:** every new screen adds a `HelpId` + case in `lib/core/help/help_registry.dart` and a `HelpButton` in its top bar. ARB keys: `help<Screen>Title`, `help<Screen>Summary`, `help<Screen><Control>Title` / `Body`; the entry's icon is the control's own `Icons.*` constant. Changing a control means updating its help entry.
 - **Actions that move or hide data** use `showUndoableAction` (`lib/core/help/undoable_action.dart`): commits immediately, distinct messages for done / failed / undone / undo-failed, no WidgetRef or BuildContext after an await. Permanent deletes keep their confirmation dialog.
 - Platform check pattern: use `Theme.of(context).platform` or `dart:io Platform`
 
 ## Key Packages
-- `flutter_platform_widgets`: use for dialogs, switches, text fields, nav bars —
-  icon buttons use `HmmIconButton` instead (see Shared Rules)
+- `flutter_platform_widgets`: **not a pubspec dependency** despite older
+  guidance — branch on `Theme.of(context).platform` for platform-specific
+  dialogs, switches and sheets; icon buttons use `HmmIconButton` (see Shared Rules)
   - `flutter_slidable`: swipe actions on list items
 - `image_picker` / `file_picker` / `open_filex`: attachment capture (photos / PDFs) and OS-viewer hand-off; `google_mlkit_text_recognition`: on-device receipt OCR (`receipt_scan/`)
 

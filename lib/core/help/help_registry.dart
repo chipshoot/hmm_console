@@ -19,7 +19,7 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
                 title: l.helpAutomobileHubLicenceTitle,
                 body: l.helpAutomobileHubLicenceBody),
             HelpEntry(
-                icon: Icons.directions_car_outlined,
+                icon: Icons.directions_car,
                 title: l.helpAutomobileHubVehicleTitle,
                 body: l.helpAutomobileHubVehicleBody),
             HelpEntry(

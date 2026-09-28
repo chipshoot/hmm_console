@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/help/undoable_action.dart';
@@ -102,6 +104,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('Restored'), findsOneWidget);
+  });
+
+  testWidgets('a second tap while the first is running is ignored',
+      (tester) async {
+    final gate = Completer<void>();
+    var runs = 0;
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: Builder(
+          builder: (ctx) => TextButton(
+            onPressed: () => showUndoableAction(
+              ctx,
+              busyKey: 'detach 1',
+              run: () {
+                runs++;
+                return gate.future;
+              },
+              undo: () async {},
+              done: 'Moved',
+              failed: 'Move failed',
+              undone: 'Restored',
+              undoFailed: 'Restore failed',
+            ),
+            child: const Text('act'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('act'));
+    await tester.tap(find.text('act'));
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(runs, 1);
+
+    // Once it has finished, the same action can run again.
+    await tester.tap(find.text('act'));
+    await tester.pumpAndSettle();
+    expect(runs, 2);
   });
 
   testWidgets('the Undo snackbar goes away by itself', (tester) async {

@@ -14,7 +14,7 @@ class HmmIconButton extends StatelessWidget {
     required this.onPressed,
     this.badgeCount,
     this.style = HmmIconButtonStyle.standard,
-  }) : assert(tooltip != '', 'HmmIconButton needs a localized tooltip');
+  });
 
   final IconData icon;
   final String tooltip;
@@ -26,6 +26,8 @@ class HmmIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Checked here, not in the const constructor, which cannot call trim().
+    assert(tooltip.trim().isNotEmpty, 'HmmIconButton needs a localized tooltip');
     final n = badgeCount;
     final Widget glyph = n != null && n > 0
         ? Badge(label: Text('$n'), child: Icon(icon))

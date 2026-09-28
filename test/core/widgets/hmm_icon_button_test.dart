@@ -16,6 +16,12 @@ void main() {
     await tester.pump(const Duration(seconds: 3)); // let the tooltip timer end
   });
 
+  testWidgets('a blank tooltip is rejected', (tester) async {
+    await tester.pumpWidget(_host(
+        const HmmIconButton(icon: Icons.add, tooltip: '  ', onPressed: null)));
+    expect(tester.takeException(), isAssertionError);
+  });
+
   testWidgets('tap calls onPressed', (tester) async {
     var taps = 0;
     await tester.pumpWidget(_host(HmmIconButton(

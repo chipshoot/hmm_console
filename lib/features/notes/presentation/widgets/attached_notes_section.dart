@@ -90,6 +90,7 @@ class AttachedNotesSection extends ConsumerWidget {
                                 listen: false);
                             showUndoableAction(
                               context,
+                              busyKey: ('detach', n.id),
                               run: () => mutate.detachNote(n.id),
                               undo: () => mutate.setParent(n.id, parentId),
                               done: l.undoNoteDetached,

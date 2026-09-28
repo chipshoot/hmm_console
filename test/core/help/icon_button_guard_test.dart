@@ -38,8 +38,23 @@ const _allowed = <String, int>{
 };
 
 // `\b` keeps HmmIconButton( out; PlatformIconButton( is matched explicitly.
-final _raw =
-    RegExp(r'\bIconButton(\(|\.filled|\.outlined)|PlatformIconButton\(');
+// `\s*` catches `IconButton (`; `.new` catches tear-offs.
+final _raw = RegExp(
+    r'\bIconButton\s*(\(|\.filled|\.outlined|\.new\b)|PlatformIconButton\s*\(');
+
+/// Raw icon-button constructions in [src], ignoring comments.
+///
+/// Limits (by design — this stops habits, not adversaries): the check is a
+/// per-file count, so replacing one raw IconButton with another in an
+/// allow-listed file goes unnoticed; icon-only buttons built from other
+/// widgets (CupertinoButton, InkWell around an Icon, PopupMenuButton) are
+/// not covered.
+int countRawIconButtons(String src) {
+  final code = src
+      .replaceAll(RegExp(r'/\*[\s\S]*?\*/'), '')
+      .replaceAll(RegExp(r'//[^\n]*'), '');
+  return _raw.allMatches(code).length;
+}
 
 Map<String, int> _scan() {
   final found = <String, int>{};
@@ -50,13 +65,32 @@ Map<String, int> _scan() {
         path.endsWith('core/widgets/hmm_icon_button.dart')) {
       continue;
     }
-    final n = _raw.allMatches(f.readAsStringSync()).length;
+    final n = countRawIconButtons(f.readAsStringSync());
     if (n > 0) found[path] = n;
   }
   return found;
 }
 
 void main() {
+  group('countRawIconButtons', () {
+    test('counts constructors and styled variants', () {
+      expect(
+          countRawIconButtons(
+              'IconButton(onPressed: f); IconButton.filledTonal(onPressed: f);'),
+          2);
+    });
+    test('ignores HmmIconButton', () {
+      expect(countRawIconButtons('HmmIconButton(tooltip: t)'), 0);
+    });
+    test('ignores comments', () {
+      expect(countRawIconButtons('// was IconButton(\n/* IconButton( */'), 0);
+    });
+    test('catches spacing and tear-offs', () {
+      expect(countRawIconButtons('IconButton (onPressed: f); map(IconButton.new)'),
+          2);
+    });
+  });
+
   test('icon buttons go through HmmIconButton', () {
     final found = _scan();
     final offenders = [

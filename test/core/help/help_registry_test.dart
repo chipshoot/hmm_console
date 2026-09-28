@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/help/help_registry.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -19,6 +19,14 @@ void main() {
       }
     });
   }
+
+  test('help shows the icons the hub row actually uses', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final icons = helpFor(HelpId.automobileHub, l).entries.map((e) => e.icon);
+    // automobile_list_tile.dart draws the filled car.
+    expect(icons, contains(Icons.directions_car));
+    expect(icons, isNot(contains(Icons.directions_car_outlined)));
+  });
 
   test('zh help is translated, not copied from en', () {
     final en = lookupAppLocalizations(const Locale('en'));
