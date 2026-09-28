@@ -1893,4 +1893,82 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenceNoImages => 'No photo captured yet';
+
+  @override
+  String get helpButtonTooltip => 'Help';
+
+  @override
+  String get helpAutomobileHubTitle => 'Automobile';
+
+  @override
+  String get helpAutomobileHubSummary =>
+      'Your driver\'s licence and your vehicles in one place.';
+
+  @override
+  String get helpAutomobileHubLicenceTitle => 'Driver\'s licence';
+
+  @override
+  String get helpAutomobileHubLicenceBody =>
+      'Tap the card to view or add your licence. Not shown in Cloud API mode.';
+
+  @override
+  String get helpAutomobileHubVehicleTitle => 'A vehicle';
+
+  @override
+  String get helpAutomobileHubVehicleBody =>
+      'Tap a vehicle\'s row to see and edit its details.';
+
+  @override
+  String get helpAutomobileHubNotesTitle => 'Notes';
+
+  @override
+  String get helpAutomobileHubNotesBody =>
+      'Opens this car\'s notes. The number is how many notes it has.';
+
+  @override
+  String get helpAutomobileHubFuelTitle => 'Gas log';
+
+  @override
+  String get helpAutomobileHubFuelBody => 'Opens this car\'s fuel log.';
+
+  @override
+  String get helpAutomobileHubManageTitle => 'Manage';
+
+  @override
+  String get helpAutomobileHubManageBody =>
+      'Add vehicles and choose which ones are active.';
+
+  @override
+  String get helpVehicleNotesTitle => 'Car notes';
+
+  @override
+  String get helpVehicleNotesSummary =>
+      'Everything written about this car. These notes are listed under Automobile in your notes.';
+
+  @override
+  String get helpVehicleNotesNewTitle => 'New note';
+
+  @override
+  String get helpVehicleNotesNewBody =>
+      'Writes a note that is already attached to this car.';
+
+  @override
+  String get helpVehicleNotesAttachTitle => 'Attach existing note';
+
+  @override
+  String get helpVehicleNotesAttachBody =>
+      'Pick a General note that isn\'t attached to anything and attach it to this car.';
+
+  @override
+  String get helpVehicleNotesDetachTitle => 'Detach';
+
+  @override
+  String get helpVehicleNotesDetachBody =>
+      'Unlinks the note from this car. The note is kept and moves to General; attach it again any time.';
+
+  @override
+  String get helpVehicleNotesOpenTitle => 'Open a note';
+
+  @override
+  String get helpVehicleNotesOpenBody => 'Tap a note to read or edit it.';
 }

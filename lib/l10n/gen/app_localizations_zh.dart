@@ -1850,4 +1850,74 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get licenceNoImages => '尚未拍摄照片';
+
+  @override
+  String get helpButtonTooltip => '帮助';
+
+  @override
+  String get helpAutomobileHubTitle => '汽车';
+
+  @override
+  String get helpAutomobileHubSummary => '驾驶证和车辆集中在这里。';
+
+  @override
+  String get helpAutomobileHubLicenceTitle => '驾驶证';
+
+  @override
+  String get helpAutomobileHubLicenceBody => '点击卡片查看或添加驾驶证。云端 API 模式下不显示。';
+
+  @override
+  String get helpAutomobileHubVehicleTitle => '车辆';
+
+  @override
+  String get helpAutomobileHubVehicleBody => '点击车辆所在行，查看和编辑车辆信息。';
+
+  @override
+  String get helpAutomobileHubNotesTitle => '备注';
+
+  @override
+  String get helpAutomobileHubNotesBody => '打开这辆车的备注。数字表示备注数量。';
+
+  @override
+  String get helpAutomobileHubFuelTitle => '加油记录';
+
+  @override
+  String get helpAutomobileHubFuelBody => '打开这辆车的加油记录。';
+
+  @override
+  String get helpAutomobileHubManageTitle => '管理';
+
+  @override
+  String get helpAutomobileHubManageBody => '添加车辆，并选择哪些车辆处于启用状态。';
+
+  @override
+  String get helpVehicleNotesTitle => '车辆备注';
+
+  @override
+  String get helpVehicleNotesSummary => '关于这辆车的所有记录。这些备注在备注列表中归入“汽车”。';
+
+  @override
+  String get helpVehicleNotesNewTitle => '新建备注';
+
+  @override
+  String get helpVehicleNotesNewBody => '新建一条已关联到这辆车的备注。';
+
+  @override
+  String get helpVehicleNotesAttachTitle => '关联已有备注';
+
+  @override
+  String get helpVehicleNotesAttachBody => '选择一条尚未关联的“常规”备注，把它关联到这辆车。';
+
+  @override
+  String get helpVehicleNotesDetachTitle => '取消关联';
+
+  @override
+  String get helpVehicleNotesDetachBody =>
+      '解除备注与这辆车的关联。备注会保留并移到“常规”，之后可随时重新关联。';
+
+  @override
+  String get helpVehicleNotesOpenTitle => '打开备注';
+
+  @override
+  String get helpVehicleNotesOpenBody => '点击备注即可查看或编辑。';
 }

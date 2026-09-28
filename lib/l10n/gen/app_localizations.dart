@@ -3403,6 +3403,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No photo captured yet'**
   String get licenceNoImages;
+
+  /// No description provided for @helpButtonTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get helpButtonTooltip;
+
+  /// No description provided for @helpAutomobileHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automobile'**
+  String get helpAutomobileHubTitle;
+
+  /// No description provided for @helpAutomobileHubSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your driver\'s licence and your vehicles in one place.'**
+  String get helpAutomobileHubSummary;
+
+  /// No description provided for @helpAutomobileHubLicenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver\'s licence'**
+  String get helpAutomobileHubLicenceTitle;
+
+  /// No description provided for @helpAutomobileHubLicenceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the card to view or add your licence. Not shown in Cloud API mode.'**
+  String get helpAutomobileHubLicenceBody;
+
+  /// No description provided for @helpAutomobileHubVehicleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A vehicle'**
+  String get helpAutomobileHubVehicleTitle;
+
+  /// No description provided for @helpAutomobileHubVehicleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a vehicle\'s row to see and edit its details.'**
+  String get helpAutomobileHubVehicleBody;
+
+  /// No description provided for @helpAutomobileHubNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get helpAutomobileHubNotesTitle;
+
+  /// No description provided for @helpAutomobileHubNotesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens this car\'s notes. The number is how many notes it has.'**
+  String get helpAutomobileHubNotesBody;
+
+  /// No description provided for @helpAutomobileHubFuelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gas log'**
+  String get helpAutomobileHubFuelTitle;
+
+  /// No description provided for @helpAutomobileHubFuelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens this car\'s fuel log.'**
+  String get helpAutomobileHubFuelBody;
+
+  /// No description provided for @helpAutomobileHubManageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get helpAutomobileHubManageTitle;
+
+  /// No description provided for @helpAutomobileHubManageBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add vehicles and choose which ones are active.'**
+  String get helpAutomobileHubManageBody;
+
+  /// No description provided for @helpVehicleNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Car notes'**
+  String get helpVehicleNotesTitle;
+
+  /// No description provided for @helpVehicleNotesSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything written about this car. These notes are listed under Automobile in your notes.'**
+  String get helpVehicleNotesSummary;
+
+  /// No description provided for @helpVehicleNotesNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New note'**
+  String get helpVehicleNotesNewTitle;
+
+  /// No description provided for @helpVehicleNotesNewBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Writes a note that is already attached to this car.'**
+  String get helpVehicleNotesNewBody;
+
+  /// No description provided for @helpVehicleNotesAttachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach existing note'**
+  String get helpVehicleNotesAttachTitle;
+
+  /// No description provided for @helpVehicleNotesAttachBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a General note that isn\'t attached to anything and attach it to this car.'**
+  String get helpVehicleNotesAttachBody;
+
+  /// No description provided for @helpVehicleNotesDetachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Detach'**
+  String get helpVehicleNotesDetachTitle;
+
+  /// No description provided for @helpVehicleNotesDetachBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlinks the note from this car. The note is kept and moves to General; attach it again any time.'**
+  String get helpVehicleNotesDetachBody;
+
+  /// No description provided for @helpVehicleNotesOpenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a note'**
+  String get helpVehicleNotesOpenTitle;
+
+  /// No description provided for @helpVehicleNotesOpenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a note to read or edit it.'**
+  String get helpVehicleNotesOpenBody;
 }
 
 class _AppLocalizationsDelegate
