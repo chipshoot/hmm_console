@@ -39,6 +39,24 @@ void main() {
     expect(find.byType(BottomSheet), findsNothing);
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
+  testWidgets('Close dismisses the sheet on both platforms', (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.tap(find.byTooltip('Help'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+    expect(find.text('Car notes'), findsNothing);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+  testWidgets('Close dismisses the Android sheet too', (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.tap(find.byTooltip('Help'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+    expect(find.text('Car notes'), findsNothing);
+  });
+
   testWidgets('Chinese help fits a small phone and scrolls', (tester) async {
     tester.view.physicalSize = const Size(320, 568);
     tester.view.devicePixelRatio = 1;

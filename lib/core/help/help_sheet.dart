@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/gen/app_localizations.dart';
 import 'help_models.dart';
 
 /// Shows [help] as a Cupertino popup on iOS and a Material bottom sheet
@@ -54,6 +55,16 @@ class _HelpBody extends StatelessWidget {
             title: Text(e.title),
             subtitle: Text(e.body),
           ),
+        const SizedBox(height: 8),
+        // An explicit way out: the iOS popup is not dismissible from
+        // VoiceOver's barrier, and not everyone knows to swipe down.
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(AppLocalizations.of(context).commonClose),
+          ),
+        ),
       ],
     );
   }
