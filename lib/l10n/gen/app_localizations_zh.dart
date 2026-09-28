@@ -1935,4 +1935,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get undoNoteRestoreFailed => '无法撤销，备注仍在“常规”中';
+
+  @override
+  String get notesAttachExistingTooltip => '关联已有备注';
+
+  @override
+  String get notesAddTooltip => '添加备注';
+
+  @override
+  String get notesDetachTooltip => '取消关联备注';
 }

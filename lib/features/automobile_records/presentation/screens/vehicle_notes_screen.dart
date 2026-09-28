@@ -4,6 +4,8 @@ import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
 import '../../../../core/notes/catalog_palette.dart';
 import '../../../gas_log/states/automobiles_state.dart';
 import '../../../notes/presentation/widgets/attached_notes_section.dart';
@@ -27,7 +29,10 @@ class VehicleNotesScreen extends ConsumerWidget {
         ?.displayName;
 
     return Scaffold(
-      appBar: AppBar(title: Text(name ?? l.recordsVehicleNotes)),
+      appBar: AppBar(
+        title: Text(name ?? l.recordsVehicleNotes),
+        actions: const [HelpButton(helpId: HelpId.vehicleNotes)],
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

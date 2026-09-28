@@ -34,7 +34,6 @@ const _allowed = <String, int>{
   'lib/features/launcher/presentation/launcher_manage_screen.dart': 2,
   'lib/features/notes/presentation/screens/notes_list_screen.dart': 4,
   'lib/features/notes/presentation/screens/raw_content_screen.dart': 1,
-  'lib/features/notes/presentation/widgets/attached_notes_section.dart': 3,
   'lib/features/notes/presentation/widgets/media_toolbar.dart': 6,
   'lib/features/notes/presentation/widgets/note_audio_card.dart': 2,
 };

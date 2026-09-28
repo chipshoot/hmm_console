@@ -80,4 +80,12 @@ void main() {
     expect(find.byType(AttachedNotesSection), findsOneWidget);
     expect(find.text('No notes yet'), findsOneWidget);
   });
+
+  testWidgets('? opens the car-notes help', (tester) async {
+    await _pump(tester);
+    await tester.tap(find.byTooltip('Help'));
+    await tester.pumpAndSettle();
+    expect(find.text('Car notes'), findsOneWidget);
+    expect(find.textContaining('moves to General'), findsOneWidget);
+  });
 }

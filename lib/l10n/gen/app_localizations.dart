@@ -3571,6 +3571,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t undo — the note is in General'**
   String get undoNoteRestoreFailed;
+
+  /// No description provided for @notesAttachExistingTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach existing note'**
+  String get notesAttachExistingTooltip;
+
+  /// No description provided for @notesAddTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get notesAddTooltip;
+
+  /// No description provided for @notesDetachTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Detach note'**
+  String get notesDetachTooltip;
 }
 
 class _AppLocalizationsDelegate

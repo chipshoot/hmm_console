@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/repository_providers.dart';
+import '../../../../core/help/undoable_action.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../data/general_catalog.dart';
 import '../../data/models/hmm_note.dart';
 import '../../states/attached_notes_state.dart';
@@ -43,15 +45,15 @@ class AttachedNotesSection extends ConsumerWidget {
                 child: Text(title,
                     style: Theme.of(context).textTheme.titleMedium),
               ),
-              IconButton(
-                tooltip: 'Attach existing note',
-                icon: const Icon(Icons.attach_file),
+              HmmIconButton(
+                tooltip: l.notesAttachExistingTooltip,
+                icon: Icons.attach_file,
                 onPressed: () => _attachExisting(context, ref),
               ),
               if (showAdd)
-                IconButton(
-                  tooltip: 'Add note',
-                  icon: const Icon(Icons.add),
+                HmmIconButton(
+                  tooltip: l.notesAddTooltip,
+                  icon: Icons.add,
                   onPressed: () async {
                     await context.push('/notes/new?parent=$parentId');
                     ref.invalidate(attachedNotesProvider(parentId));
@@ -76,14 +78,27 @@ class AttachedNotesSection extends ConsumerWidget {
                         title: Text(n.subject,
                             maxLines: 1, overflow: TextOverflow.ellipsis),
                         onTap: () => context.push('/notes/${n.id}'),
-                        trailing: IconButton(
-                          tooltip: 'Detach',
-                          icon: const Icon(Icons.link_off),
-                          onPressed: () async {
-                            await ref
-                                .read(mutateNoteProvider)
-                                .detachNote(n.id);
-                            ref.invalidate(attachedNotesProvider(parentId));
+                        trailing: HmmIconButton(
+                          tooltip: l.notesDetachTooltip,
+                          icon: Icons.link_off,
+                          onPressed: () {
+                            // The Undo snackbar outlives this screen, so it
+                            // holds the container, not this widget's ref.
+                            final mutate = ref.read(mutateNoteProvider);
+                            final container = ProviderScope.containerOf(
+                                context,
+                                listen: false);
+                            showUndoableAction(
+                              context,
+                              run: () => mutate.detachNote(n.id),
+                              undo: () => mutate.setParent(n.id, parentId),
+                              done: l.undoNoteDetached,
+                              failed: l.undoNoteDetachFailed,
+                              undone: l.undoNoteRestored,
+                              undoFailed: l.undoNoteRestoreFailed,
+                              onChanged: () => container
+                                  .invalidate(attachedNotesProvider(parentId)),
+                            );
                           },
                         ),
                       ),

@@ -1135,5 +1135,8 @@
   "undoNoteDetached": "Note moved to General",
   "undoNoteDetachFailed": "Couldn't detach the note",
   "undoNoteRestored": "Note is back",
-  "undoNoteRestoreFailed": "Couldn't undo — the note is in General"
+  "undoNoteRestoreFailed": "Couldn't undo — the note is in General",
+  "notesAttachExistingTooltip": "Attach existing note",
+  "notesAddTooltip": "Add note",
+  "notesDetachTooltip": "Detach note"
 }

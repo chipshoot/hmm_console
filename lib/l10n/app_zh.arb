@@ -579,5 +579,8 @@
   "undoNoteDetached": "备注已移至“常规”",
   "undoNoteDetachFailed": "无法取消关联备注",
   "undoNoteRestored": "备注已恢复",
-  "undoNoteRestoreFailed": "无法撤销，备注仍在“常规”中"
+  "undoNoteRestoreFailed": "无法撤销，备注仍在“常规”中",
+  "notesAttachExistingTooltip": "关联已有备注",
+  "notesAddTooltip": "添加备注",
+  "notesDetachTooltip": "取消关联备注"
 }

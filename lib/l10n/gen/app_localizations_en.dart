@@ -1986,4 +1986,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get undoNoteRestoreFailed => 'Couldn\'t undo — the note is in General';
+
+  @override
+  String get notesAttachExistingTooltip => 'Attach existing note';
+
+  @override
+  String get notesAddTooltip => 'Add note';
+
+  @override
+  String get notesDetachTooltip => 'Detach note';
 }
