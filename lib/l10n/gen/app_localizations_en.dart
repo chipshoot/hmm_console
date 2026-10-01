@@ -2197,11 +2197,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get helpContactDetailSummary => 'Everything saved about this contact.';
 
   @override
-  String get helpContactDetailCallTitle => 'Call or email';
+  String get helpContactDetailCallTitle => 'Call';
 
   @override
-  String get helpContactDetailCallBody =>
-      'Tap a phone number or email address to call or write to this contact.';
+  String get helpContactDetailCallBody => 'Tap a phone number to call it.';
 
   @override
   String get helpContactDetailMapTitle => 'Open in maps';

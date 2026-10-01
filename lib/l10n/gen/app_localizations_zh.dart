@@ -2141,10 +2141,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpContactDetailSummary => '这位联系人的全部信息。';
 
   @override
-  String get helpContactDetailCallTitle => '拨打或发邮件';
+  String get helpContactDetailCallTitle => '拨打电话';
 
   @override
-  String get helpContactDetailCallBody => '点按电话号码或邮箱地址，即可拨打电话或发送邮件。';
+  String get helpContactDetailCallBody => '点按电话号码即可拨打。';
 
   @override
   String get helpContactDetailMapTitle => '在地图中打开';

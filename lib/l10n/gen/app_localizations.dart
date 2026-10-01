@@ -3983,13 +3983,13 @@ abstract class AppLocalizations {
   /// No description provided for @helpContactDetailCallTitle.
   ///
   /// In en, this message translates to:
-  /// **'Call or email'**
+  /// **'Call'**
   String get helpContactDetailCallTitle;
 
   /// No description provided for @helpContactDetailCallBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap a phone number or email address to call or write to this contact.'**
+  /// **'Tap a phone number to call it.'**
   String get helpContactDetailCallBody;
 
   /// No description provided for @helpContactDetailMapTitle.

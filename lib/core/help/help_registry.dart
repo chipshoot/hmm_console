@@ -76,7 +76,7 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
                 body: l.helpContactsSelfBody),
           ],
         ),
-          HelpId.contactDetail => ScreenHelp(
+      HelpId.contactDetail => ScreenHelp(
           title: l.helpContactDetailTitle,
           summary: l.helpContactDetailSummary,
           entries: [
