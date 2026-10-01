@@ -2186,11 +2186,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpContactEditRelationshipTitle => '关系';
 
   @override
-  String get helpContactEditRelationshipBody => '这位联系人与你的关系。例如，家庭医生选“医生”。';
+  String get helpContactEditRelationshipBody =>
+      '这位联系人与你的关系。例如，家庭医生选“医生”。选“其他”可自行描述。';
 
   @override
   String get helpContactEditSelfTitle => '这是我';
 
   @override
   String get helpContactEditSelfBody => '将此联系人标记为你本人。只能标记一个联系人。';
+
+  @override
+  String get contactCustomRelationship => '描述这层关系';
+
+  @override
+  String get contactSaveFailed => '无法保存联系人';
 }

@@ -25,19 +25,31 @@ String relationshipLabel(RelationshipCategory c, AppLocalizations l) =>
     };
 
 String contactTypeLabel(ContactType t, AppLocalizations l) => switch (t) {
-      ContactType.person => l.contactTypePerson,
-      ContactType.organization => l.contactTypeOrganization,
-    };
+  ContactType.person => l.contactTypePerson,
+  ContactType.organization => l.contactTypeOrganization,
+};
+
+/// The stored labels each kind of field offers in the editor. Defined once
+/// here, next to [fieldLabelText], so the picker and the display copy cannot
+/// drift: every entry must have copy in [_fieldLabelCopy] (asserted by test).
+const phoneFieldLabels = ['mobile', 'home', 'work', 'other'];
+const emailFieldLabels = ['personal', 'work', 'other'];
+const addressFieldLabels = ['home', 'work', 'other'];
+
+final Map<String, String Function(AppLocalizations)> _fieldLabelCopy = {
+  'mobile': (l) => l.fieldLabelMobile,
+  'home': (l) => l.fieldLabelHome,
+  'work': (l) => l.fieldLabelWork,
+  'personal': (l) => l.fieldLabelPersonal,
+  'other': (l) => l.fieldLabelOther,
+};
+
+/// True when [stored] has translated display copy (not just a raw fallback).
+bool isKnownFieldLabel(String stored) => _fieldLabelCopy.containsKey(stored);
 
 /// Display copy for a stored field label (`mobile`, `work`, ...).
 ///
 /// Falls back to the raw stored value so a label written by a newer client, or
 /// typed by the user, still reads as itself rather than disappearing.
-String fieldLabelText(String stored, AppLocalizations l) => switch (stored) {
-      'mobile' => l.fieldLabelMobile,
-      'home' => l.fieldLabelHome,
-      'work' => l.fieldLabelWork,
-      'personal' => l.fieldLabelPersonal,
-      'other' => l.fieldLabelOther,
-      _ => stored,
-    };
+String fieldLabelText(String stored, AppLocalizations l) =>
+    _fieldLabelCopy[stored]?.call(l) ?? stored;

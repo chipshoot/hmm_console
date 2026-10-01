@@ -1219,7 +1219,9 @@
   "helpContactEditFieldsTitle": "Phones, emails and addresses",
   "helpContactEditFieldsBody": "Add as many as you need and label each one, such as Mobile or Work.",
   "helpContactEditRelationshipTitle": "Relationship",
-  "helpContactEditRelationshipBody": "How this contact relates to you. For example, a family doctor is a Doctor.",
+  "helpContactEditRelationshipBody": "How this contact relates to you. For example, a family doctor is a Doctor. Choose Other to describe it yourself.",
   "helpContactEditSelfTitle": "This is me",
-  "helpContactEditSelfBody": "Marks this contact as yourself. Only one contact can be marked."
+  "helpContactEditSelfBody": "Marks this contact as yourself. Only one contact can be marked.",
+  "contactCustomRelationship": "Describe the relationship",
+  "contactSaveFailed": "Could not save the contact"
 }

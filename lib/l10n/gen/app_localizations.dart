@@ -4073,7 +4073,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpContactEditRelationshipBody.
   ///
   /// In en, this message translates to:
-  /// **'How this contact relates to you. For example, a family doctor is a Doctor.'**
+  /// **'How this contact relates to you. For example, a family doctor is a Doctor. Choose Other to describe it yourself.'**
   String get helpContactEditRelationshipBody;
 
   /// No description provided for @helpContactEditSelfTitle.
@@ -4087,6 +4087,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marks this contact as yourself. Only one contact can be marked.'**
   String get helpContactEditSelfBody;
+
+  /// No description provided for @contactCustomRelationship.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the relationship'**
+  String get contactCustomRelationship;
+
+  /// No description provided for @contactSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the contact'**
+  String get contactSaveFailed;
 }
 
 class _AppLocalizationsDelegate

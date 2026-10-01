@@ -7,7 +7,7 @@ export 'help_models.dart';
 
 /// Every screen that has a "?" help sheet. Adding a value without a case in
 /// [helpFor] does not compile.
-enum HelpId { automobileHub, vehicleNotes, contacts, contactDetail }
+enum HelpId { automobileHub, vehicleNotes, contacts, contactDetail, contactEdit }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
       HelpId.automobileHub => ScreenHelp(
@@ -96,6 +96,28 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
                 icon: Icons.delete_outline,
                 title: l.helpContactDetailRemoveTitle,
                 body: l.helpContactDetailRemoveBody),
+          ],
+        ),
+      HelpId.contactEdit => ScreenHelp(
+          title: l.helpContactEditTitle,
+          summary: l.helpContactEditSummary,
+          entries: [
+            HelpEntry(
+                icon: Icons.person_outline,
+                title: l.helpContactEditTypeTitle,
+                body: l.helpContactEditTypeBody),
+            HelpEntry(
+                icon: Icons.add,
+                title: l.helpContactEditFieldsTitle,
+                body: l.helpContactEditFieldsBody),
+            HelpEntry(
+                icon: Icons.arrow_drop_down,
+                title: l.helpContactEditRelationshipTitle,
+                body: l.helpContactEditRelationshipBody),
+            HelpEntry(
+                icon: Icons.person_pin_outlined,
+                title: l.helpContactEditSelfTitle,
+                body: l.helpContactEditSelfBody),
           ],
         ),
     };

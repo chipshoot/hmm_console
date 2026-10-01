@@ -22,13 +22,29 @@ void main() {
   });
 
   test('labels are display copy, never the stored enum name', () {
-    expect(relationshipLabel(RelationshipCategory.insurer, zh),
-        isNot(RelationshipCategory.insurer.name));
-    expect(relationshipLabel(RelationshipCategory.doctor, zh),
-        isNot(RelationshipCategory.doctor.name));
+    expect(
+      relationshipLabel(RelationshipCategory.insurer, zh),
+      isNot(RelationshipCategory.insurer.name),
+    );
+    expect(
+      relationshipLabel(RelationshipCategory.doctor, zh),
+      isNot(RelationshipCategory.doctor.name),
+    );
   });
 
   test('an unknown stored field label falls back to the raw value', () {
     expect(fieldLabelText('carrier-pigeon', en), 'carrier-pigeon');
+  });
+
+  test('every label the editor offers has display copy in both locales', () {
+    for (final label in [
+      ...phoneFieldLabels,
+      ...emailFieldLabels,
+      ...addressFieldLabels,
+    ]) {
+      expect(isKnownFieldLabel(label), isTrue, reason: '$label');
+      expect(fieldLabelText(label, en), isNot(label), reason: '$label en');
+      expect(fieldLabelText(label, zh), isNot(label), reason: '$label zh');
+    }
   });
 }

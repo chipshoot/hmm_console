@@ -663,7 +663,9 @@
   "helpContactEditFieldsTitle": "电话、邮箱和地址",
   "helpContactEditFieldsBody": "可添加多个，并为每个设置标签，如手机或工作。",
   "helpContactEditRelationshipTitle": "关系",
-  "helpContactEditRelationshipBody": "这位联系人与你的关系。例如，家庭医生选“医生”。",
+  "helpContactEditRelationshipBody": "这位联系人与你的关系。例如，家庭医生选“医生”。选“其他”可自行描述。",
   "helpContactEditSelfTitle": "这是我",
-  "helpContactEditSelfBody": "将此联系人标记为你本人。只能标记一个联系人。"
+  "helpContactEditSelfBody": "将此联系人标记为你本人。只能标记一个联系人。",
+  "contactCustomRelationship": "描述这层关系",
+  "contactSaveFailed": "无法保存联系人"
 }

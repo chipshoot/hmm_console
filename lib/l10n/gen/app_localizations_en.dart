@@ -2248,7 +2248,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpContactEditRelationshipBody =>
-      'How this contact relates to you. For example, a family doctor is a Doctor.';
+      'How this contact relates to you. For example, a family doctor is a Doctor. Choose Other to describe it yourself.';
 
   @override
   String get helpContactEditSelfTitle => 'This is me';
@@ -2256,4 +2256,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpContactEditSelfBody =>
       'Marks this contact as yourself. Only one contact can be marked.';
+
+  @override
+  String get contactCustomRelationship => 'Describe the relationship';
+
+  @override
+  String get contactSaveFailed => 'Could not save the contact';
 }
