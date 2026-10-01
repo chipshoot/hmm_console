@@ -629,6 +629,7 @@
   "fieldLabelOther": "其他",
   "contactsCloudApiUnavailable": "联系人仅在本地和云存储模式下可用。请在设置中切换数据模式。",
   "contactsLoadFailed": "无法加载联系人",
+  "contactNotFound": "此联系人已不存在",
   "contactDeactivated": "联系人已移除",
   "contactDeactivateFailed": "无法移除联系人",
   "contactDeactivateUndone": "联系人已恢复",

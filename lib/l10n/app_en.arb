@@ -1185,6 +1185,7 @@
   "fieldLabelOther": "Other",
   "contactsCloudApiUnavailable": "Contacts are available in Local and Cloud storage modes. Switch data mode in Settings to use them.",
   "contactsLoadFailed": "Could not load contacts",
+  "contactNotFound": "This contact no longer exists",
   "contactDeactivated": "Contact removed",
   "contactDeactivateFailed": "Could not remove the contact",
   "contactDeactivateUndone": "Contact restored",

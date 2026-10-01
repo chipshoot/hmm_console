@@ -2084,6 +2084,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactsLoadFailed => '无法加载联系人';
 
   @override
+  String get contactNotFound => '此联系人已不存在';
+
+  @override
   String get contactDeactivated => '联系人已移除';
 
   @override

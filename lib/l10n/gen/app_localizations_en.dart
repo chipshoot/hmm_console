@@ -2136,6 +2136,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactsLoadFailed => 'Could not load contacts';
 
   @override
+  String get contactNotFound => 'This contact no longer exists';
+
+  @override
   String get contactDeactivated => 'Contact removed';
 
   @override

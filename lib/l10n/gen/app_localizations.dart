@@ -3866,6 +3866,12 @@ abstract class AppLocalizations {
   /// **'Could not load contacts'**
   String get contactsLoadFailed;
 
+  /// No description provided for @contactNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This contact no longer exists'**
+  String get contactNotFound;
+
   /// No description provided for @contactDeactivated.
   ///
   /// In en, this message translates to:
