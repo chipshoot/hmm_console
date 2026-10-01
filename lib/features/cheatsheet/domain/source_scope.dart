@@ -34,7 +34,7 @@ const kInfrastructureCatalogNames = <String>{
 /// belong together, and should not also decide what English word goes above
 /// them. `SourcePicker` maps these to headings, which is where the copy — and
 /// one day its translations — belongs.
-enum SourceDomainId { vehicle }
+enum SourceDomainId { vehicle, contacts }
 
 /// The subject area a template draws from: which domain it is, and the catalog
 /// prefix whose notes belong to that domain.
@@ -51,10 +51,11 @@ class SourceDomain {
 
 /// The domain [templateId] draws from, or null when it has no home domain.
 ///
-/// Only `accidentClaim` maps to one today. `healthInfo` and `document`
-/// deliberately do not: this app has no health or document catalogs, so
-/// claiming a domain for them would rank nothing and put a heading over an
-/// empty group. Add an entry here when the matching catalogs exist.
+/// `accidentClaim` maps to the vehicle catalogs and `healthInfo` to contacts
+/// (a family doctor, pharmacy or insurer). `document` deliberately has no
+/// domain: this app has no document catalogs, so claiming one would rank
+/// nothing and put a heading over an empty group. Add an entry here when the
+/// matching catalogs exist.
 ///
 /// Keyed on `templateId`, not `walletGroup`: the wallet group is a free-text
 /// field the user edits, so keying on it would make scoping change under them
@@ -63,6 +64,10 @@ SourceDomain? sourceDomainFor(String templateId) => switch (templateId) {
       'accidentClaim' => const SourceDomain(
           id: SourceDomainId.vehicle,
           catalogPrefix: 'Hmm.AutomobileMan.',
+        ),
+      'healthInfo' => const SourceDomain(
+          id: SourceDomainId.contacts,
+          catalogPrefix: 'Hmm.ContactMan.',
         ),
       _ => null,
     };

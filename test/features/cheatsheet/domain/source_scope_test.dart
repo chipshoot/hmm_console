@@ -168,11 +168,25 @@ void main() {
       expect(domain.catalogPrefix, 'Hmm.AutomobileMan.');
     });
 
+    test('health info is the contacts domain', () {
+      final domain = sourceDomainFor('healthInfo');
+      expect(domain, isNotNull);
+      expect(domain!.id, SourceDomainId.contacts);
+      expect(domain.catalogPrefix, 'Hmm.ContactMan.');
+    });
+
+    test('contact notes are preferred for health info', () {
+      final result = scopeSourceNotes(
+        all: [car, note(9, subject: 'Dr Lee', catalogId: 7)],
+        catalogNames: {...catalogNames, 7: 'Hmm.ContactMan.Contact'},
+        domain: sourceDomainFor('healthInfo'),
+      );
+      expect(subjects(result.preferred), ['Dr Lee']);
+      expect(subjects(result.other), ['My Car']);
+    });
+
     test('templates with no matching catalogs have no domain', () {
-      // healthInfo and document describe notes this app does not yet model as
-      // their own catalogs; claiming a domain for them would rank nothing and
-      // add a heading over an empty group.
-      expect(sourceDomainFor('healthInfo'), isNull);
+      expect(sourceDomainFor('document'), isNull);
       expect(sourceDomainFor('document'), isNull);
       expect(sourceDomainFor('blank'), isNull);
     });

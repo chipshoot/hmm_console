@@ -1244,6 +1244,12 @@ abstract class AppLocalizations {
   /// **'Vehicle'**
   String get cheatsheetSourceDomainVehicle;
 
+  /// Heading over the contact notes ranked first for a Health Info card. SourceDomain carries an id, not this copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get cheatsheetSourceDomainContacts;
+
   /// No description provided for @cheatsheetGroupVehicle.
   ///
   /// In en, this message translates to:

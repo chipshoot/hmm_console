@@ -14,7 +14,47 @@ const md = '# Title\n'
     '## Config\n'
     'set nu\n';
 
+const contactNote = '{"note":{"content":{"Contact":{"firstName":"Ann","phones":['
+    '{"label":"work","number":"555-0100"},{"label":"mobile","number":"555-0199"}],'
+    '"tags":["a"]}}}}';
+
 void main() {
+  group('lists of maps (contacts)', () {
+    test('fieldPaths walks list-of-map elements by index', () {
+      final paths = NotePieceExtractor.fieldPaths(contactNote);
+      expect(
+        paths,
+        containsAll([
+          'Contact.phones.0.number',
+          'Contact.phones.0.label',
+          'Contact.phones.1.number',
+          'Contact.firstName',
+        ]),
+      );
+      expect(paths, isNot(contains('Contact.tags')));
+      expect(paths, isNot(contains('Contact.tags.0')));
+    });
+
+    test('field steps into list elements by index', () {
+      expect(NotePieceExtractor.field(contactNote, 'Contact.phones.1.number'),
+          '555-0199');
+    });
+
+    test('field returns null for bad list segments', () {
+      expect(NotePieceExtractor.field(contactNote, 'Contact.phones.9.number'),
+          isNull);
+      expect(NotePieceExtractor.field(contactNote, 'Contact.phones.x.number'),
+          isNull);
+      expect(NotePieceExtractor.field(contactNote, 'Contact.phones.-1.number'),
+          isNull);
+    });
+
+    test('whole includes list-element fields', () {
+      expect(NotePieceExtractor.whole(contactNote, null),
+          contains('phones.0.number: 555-0100'));
+    });
+  });
+
   group('fieldPaths', () {
     test('flattens leaf scalars', () {
       expect(

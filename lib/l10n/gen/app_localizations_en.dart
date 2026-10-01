@@ -701,6 +701,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cheatsheetSourceDomainVehicle => 'Vehicle';
 
   @override
+  String get cheatsheetSourceDomainContacts => 'Contacts';
+
+  @override
   String get cheatsheetGroupVehicle => 'Vehicle';
 
   @override

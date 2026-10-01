@@ -262,6 +262,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
 /// the single place the picker's domain headings need to change.
 String _domainHeading(SourceDomainId id, AppLocalizations l) => switch (id) {
       SourceDomainId.vehicle => l.cheatsheetSourceDomainVehicle,
+      SourceDomainId.contacts => l.cheatsheetSourceDomainContacts,
     };
 
 class _SectionLabel extends StatelessWidget {

@@ -676,6 +676,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cheatsheetSourceDomainVehicle => '车辆';
 
   @override
+  String get cheatsheetSourceDomainContacts => '联系人';
+
+  @override
   String get cheatsheetGroupVehicle => '车辆';
 
   @override

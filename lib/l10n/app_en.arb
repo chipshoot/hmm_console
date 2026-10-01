@@ -426,6 +426,10 @@
   "@cheatsheetSourceDomainVehicle": {
     "description": "Heading over the notes ranked first for a vehicle-domain card. SourceDomain carries an id, not this copy."
   },
+  "cheatsheetSourceDomainContacts": "Contacts",
+  "@cheatsheetSourceDomainContacts": {
+    "description": "Heading over the contact notes ranked first for a Health Info card. SourceDomain carries an id, not this copy."
+  },
   "@_cheatsheetWalletGroups": {
     "description": "Display labels for the walletGroup values seeded by templates. The STORED value stays English ('Vehicle', 'Health', 'Reference', 'Ungrouped') because the wallet groups cards by exact string — a translated value would split one group in two when the user changes language. A group the user types themselves is shown verbatim."
   },

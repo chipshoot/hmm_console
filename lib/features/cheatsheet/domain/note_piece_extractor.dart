@@ -71,7 +71,15 @@ class NotePieceExtractor {
         final v = e.value;
         if (v is Map) {
           walk(path, v.cast<String, dynamic>());
-        } else if (v is! List) {
+        } else if (v is List) {
+          // Only a non-empty list of maps (a contact's phones) is walked, by
+          // index. Scalar, mixed and empty lists stay skipped.
+          if (v.isNotEmpty && v.every((x) => x is Map)) {
+            for (var i = 0; i < v.length; i++) {
+              walk('$path.$i', (v[i] as Map).cast<String, dynamic>());
+            }
+          }
+        } else {
           out.add(path);
         }
       }
@@ -87,6 +95,10 @@ class NotePieceExtractor {
     for (final seg in path.split('.')) {
       if (node is Map && node.containsKey(seg)) {
         node = node[seg];
+      } else if (node is List) {
+        final i = int.tryParse(seg);
+        if (i == null || i < 0 || i >= node.length) return null;
+        node = node[i];
       } else {
         return null;
       }
