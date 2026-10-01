@@ -54,6 +54,7 @@ void main() {
     WidgetTester tester, {
     String? cardId,
     CheatsheetSource? pickerResult,
+    Locale? locale,
   }) async {
     lastPickerTemplateId = null;
     await tester.pumpWidget(
@@ -69,6 +70,7 @@ void main() {
           ),
         ],
         child: MaterialApp(
+      locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: CheatsheetDesignerScreen(cardId: cardId)),
@@ -312,6 +314,33 @@ void main() {
 
       expect(find.textContaining('AutomobileInfo.plate'), findsOneWidget);
       expect(find.text('Tap to bind'), findsOneWidget); // only the VIN row
+    });
+
+    testWidgets('an image binding is summarised in the active language',
+        (tester) async {
+      _CapturingCheatsheets.seed = const [
+        CheatsheetCard(
+          id: 'img',
+          title: 'IDs',
+          walletGroup: 'Vehicle',
+          tags: [],
+          templateId: 'blank',
+          rows: [
+            CheatsheetRow(
+              label: 'Licence',
+              source: CheatsheetSource(
+                noteUuid: 'lic',
+                kind: SourceGranularity.image,
+                locator: 'images/a.png',
+              ),
+            ),
+          ],
+        ),
+      ];
+      await mount(tester, cardId: 'img', locale: const Locale('zh'));
+
+      expect(find.text('照片'), findsOneWidget);
+      expect(find.text('Photo'), findsNothing);
     });
 
     testWidgets('the loaded card\'s template reaches the picker',

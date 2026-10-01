@@ -279,7 +279,7 @@ class _CheatsheetDesignerScreenState
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                  source == null ? 'Tap to bind' : _summarize(source),
+                  source == null ? 'Tap to bind' : _summarize(source, l),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -314,10 +314,10 @@ class _CheatsheetDesignerScreenState
         ValueAction.map => 'Map',
       };
 
-  static String _summarize(CheatsheetSource s) => switch (s.kind) {
+  static String _summarize(CheatsheetSource s, AppLocalizations l) => switch (s.kind) {
         SourceGranularity.field => 'Field · ${s.locator}',
         SourceGranularity.section => 'Section · ${s.locator}',
         SourceGranularity.whole => 'Whole note',
-        SourceGranularity.image => 'Photo',
+        SourceGranularity.image => l.cheatsheetImageSummary,
       };
 }

@@ -332,7 +332,11 @@ void main() {
       ],
     );
 
-    Future<void> mountImage(WidgetTester tester, VaultStatus vault) async {
+    Future<void> mountImage(
+      WidgetTester tester,
+      VaultStatus vault, {
+      bool resolverFails = false,
+    }) async {
       _SeededCheatsheets.seed = const [imageCard];
       await tester.pumpWidget(
         ProviderScope(
@@ -340,8 +344,11 @@ void main() {
             hmmNoteRepositoryProvider
                 .overrideWithValue(_FakeNotes({'lic1': licenceNote})),
             cheatsheetsStateProvider.overrideWith(_SeededCheatsheets.new),
-            attachmentResolverProvider
-                .overrideWith((ref) async => _BytesResolver(png)),
+            attachmentResolverProvider.overrideWith(
+              (ref) async => resolverFails
+                  ? throw StateError('no resolver')
+                  : _BytesResolver(png),
+            ),
             vaultSessionProvider.overrideWith(() => _StubVault(vault)),
           ],
           child: const MaterialApp(
@@ -361,6 +368,14 @@ void main() {
       expect(find.byType(Image), findsOneWidget);
       expect(find.textContaining('images/front.png'), findsNothing);
       expect(find.byKey(const Key('row-0-missing')), findsNothing);
+    });
+
+    testWidgets('a failed resolver shows a broken placeholder, not a spinner',
+        (tester) async {
+      await mountImage(tester, VaultStatus.unlocked, resolverFails: true);
+
+      expect(find.byKey(const Key('row-0-image-error')), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('a locked vault shows the lock, not a broken image',

@@ -303,12 +303,20 @@ class _ImageValueState extends ConsumerState<_ImageValue> {
 
   @override
   Widget build(BuildContext context) {
-    final resolver = ref.watch(attachmentResolverProvider).value;
+    final resolverAsync = ref.watch(attachmentResolverProvider);
+    final resolver = resolverAsync.value;
     final unlocked = !widget.image.sensitive ||
         ref.watch(vaultSessionProvider) == VaultStatus.unlocked;
 
     final Widget image;
-    if (resolver == null) {
+    if (resolverAsync.hasError) {
+      // A resolver that failed to build will never produce one; a spinner
+      // would wait forever on a card someone is showing at a roadside.
+      image = Center(
+        key: Key('${widget.key is ValueKey ? (widget.key as ValueKey).value : 'image'}-error'),
+        child: const Icon(Icons.broken_image_outlined),
+      );
+    } else if (resolver == null) {
       image = const Center(child: CircularProgressIndicator.adaptive());
     } else if (widget.image.sensitive) {
       image = SensitiveAttachmentImage(
