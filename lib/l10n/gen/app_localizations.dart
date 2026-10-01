@@ -1214,6 +1214,18 @@ abstract class AppLocalizations {
   /// **'The whole note'**
   String get cheatsheetWholeNote;
 
+  /// No description provided for @cheatsheetSourceImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get cheatsheetSourceImages;
+
+  /// No description provided for @cheatsheetImageSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get cheatsheetImageSummary;
+
   /// No description provided for @cheatsheetSourceSearchHint.
   ///
   /// In en, this message translates to:
@@ -1321,6 +1333,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Address'**
   String get cheatsheetRowAddress;
+
+  /// No description provided for @cheatsheetRowLicencePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver\'s licence'**
+  String get cheatsheetRowLicencePhoto;
+
+  /// No description provided for @cheatsheetRowInsuranceCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance card'**
+  String get cheatsheetRowInsuranceCard;
 
   /// No description provided for @cheatsheetRowPerson.
   ///

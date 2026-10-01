@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_resolver.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
@@ -134,5 +135,54 @@ void main() {
       ),
     );
     expect(v.missing, isTrue);
+  });
+
+  group('image', () {
+    const front = VaultRef(
+      path: 'images/front.jpg',
+      contentType: 'image/jpeg',
+      byteSize: 10,
+      sensitive: true,
+    );
+    final licence = HmmNote(
+      id: 3,
+      uuid: 'lic1',
+      subject: 'Licence',
+      authorId: 1,
+      createDate: DateTime(2026),
+      content: '{"note":{"content":{"DriverLicence":'
+          '{"frontImagePath":"images/front.jpg"}}}}',
+      attachments: NoteAttachments(images: const [front]),
+    );
+
+    CheatsheetResolver imageResolver() =>
+        CheatsheetResolver(_FakeNotes({'lic1': licence}));
+
+    test('resolves to the attachment, not its path text', () async {
+      final v = await imageResolver().resolve(const CheatsheetRow(
+        label: 'Licence (front)',
+        source: CheatsheetSource(
+          noteUuid: 'lic1',
+          kind: SourceGranularity.image,
+          locator: 'images/front.jpg',
+        ),
+      ));
+      expect(v.image, front);
+      expect(v.text, isNull);
+      expect(v.missing, isFalse);
+    });
+
+    test('an image no longer on the note is missing', () async {
+      final v = await imageResolver().resolve(const CheatsheetRow(
+        label: 'Licence (back)',
+        source: CheatsheetSource(
+          noteUuid: 'lic1',
+          kind: SourceGranularity.image,
+          locator: 'images/back.jpg',
+        ),
+      ));
+      expect(v.missing, isTrue);
+      expect(v.image, isNull);
+    });
   });
 }

@@ -686,6 +686,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cheatsheetWholeNote => 'The whole note';
 
   @override
+  String get cheatsheetSourceImages => 'Photos';
+
+  @override
+  String get cheatsheetImageSummary => 'Photo';
+
+  @override
   String get cheatsheetSourceSearchHint => 'Search notes';
 
   @override
@@ -738,6 +744,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cheatsheetRowAddress => 'Address';
+
+  @override
+  String get cheatsheetRowLicencePhoto => 'Driver\'s licence';
+
+  @override
+  String get cheatsheetRowInsuranceCard => 'Insurance card';
 
   @override
   String get cheatsheetRowPerson => 'Person';

@@ -661,6 +661,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cheatsheetWholeNote => '整条笔记';
 
   @override
+  String get cheatsheetSourceImages => '照片';
+
+  @override
+  String get cheatsheetImageSummary => '照片';
+
+  @override
   String get cheatsheetSourceSearchHint => '搜索笔记';
 
   @override
@@ -713,6 +719,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cheatsheetRowAddress => '地址';
+
+  @override
+  String get cheatsheetRowLicencePhoto => '驾照';
+
+  @override
+  String get cheatsheetRowInsuranceCard => '保险卡';
 
   @override
   String get cheatsheetRowPerson => '本人';

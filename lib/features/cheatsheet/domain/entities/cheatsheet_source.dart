@@ -10,6 +10,12 @@ enum SourceGranularity {
 
   /// The whole note body.
   whole,
+
+  /// One image attachment of the note — a licence side, an insurance card —
+  /// addressed by its vault path. Images live in the note's `attachments`
+  /// column, never in its content, so no text granularity can reach them:
+  /// the content only holds the path string.
+  image,
 }
 
 /// What tapping a resolved value does. Explicit — v1 never infers an action
@@ -30,7 +36,8 @@ class CheatsheetSource {
   final String noteUuid;
   final SourceGranularity kind;
 
-  /// `field` -> dotted JSON path; `section` -> heading text; `whole` -> null.
+  /// `field` -> dotted JSON path; `section` -> heading text; `whole` -> null;
+  /// `image` -> the attachment's vault path.
   final String? locator;
 
   CheatsheetSource copyWith({

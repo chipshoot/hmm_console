@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
@@ -356,5 +357,37 @@ void main() {
       expect(find.byKey(const Key('source-picker-no-matches')), findsOneWidget);
       expect(find.byKey(const Key('source-picker-empty')), findsNothing);
     });
+  });
+
+  testWidgets('a photo ID is offered as an image, not as its path',
+      (tester) async {
+    const front = VaultRef(
+      path: 'images/front.jpg',
+      contentType: 'image/jpeg',
+      byteSize: 10,
+      sensitive: true,
+    );
+    final licence = HmmNote(
+      id: 7,
+      uuid: 'uuid-7',
+      subject: 'Driver licence',
+      authorId: 1,
+      createDate: DateTime(2026),
+      catalogId: 1,
+      content: '{"note":{"content":{"DriverLicence":'
+          '{"number":"D123","frontImagePath":"images/front.jpg"}}}}',
+      attachments: NoteAttachments(images: const [front]),
+    );
+    final picked = await mount(tester, [licence]);
+
+    await tester.tap(find.text('Driver licence'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('DriverLicence.frontImagePath'), findsNothing);
+    await tester.tap(find.byKey(const Key('granularity-image-images/front.jpg')));
+    await tester.pumpAndSettle();
+
+    expect(picked()!.kind, SourceGranularity.image);
+    expect(picked()!.locator, 'images/front.jpg');
   });
 }

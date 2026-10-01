@@ -66,6 +66,8 @@ class CheatsheetTemplates {
             l.cheatsheetRowDriver,
             l.cheatsheetRowPhone,
             l.cheatsheetRowAddress,
+            l.cheatsheetRowLicencePhoto,
+            l.cheatsheetRowInsuranceCard,
           ],
         ),
         CheatsheetTemplate(

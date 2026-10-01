@@ -192,6 +192,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
     final fields = NotePieceExtractor.fieldPaths(n.content);
     final headings =
         NotePieceExtractor.sectionHeadings(n.description ?? n.content);
+    final images = NotePieceExtractor.images(n.attachments);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -210,6 +211,17 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
           child: ListView(
             shrinkWrap: true,
             children: [
+              // Photos first: on a licence or insurance note the picture is
+              // usually the thing worth carrying, and it is the one piece no
+              // text granularity can reach.
+              if (images.isNotEmpty) _SectionLabel(l.cheatsheetSourceImages),
+              for (final img in images)
+                ListTile(
+                  key: Key('granularity-image-${img.path}'),
+                  leading: const Icon(Icons.image_outlined),
+                  title: Text(NotePieceExtractor.imageLabel(n.content, img)),
+                  onTap: () => _select(SourceGranularity.image, img.path),
+                ),
               if (fields.isNotEmpty) const _SectionLabel('Fields'),
               for (final path in fields)
                 ListTile(

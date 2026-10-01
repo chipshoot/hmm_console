@@ -318,5 +318,6 @@ class _CheatsheetDesignerScreenState
         SourceGranularity.field => 'Field · ${s.locator}',
         SourceGranularity.section => 'Section · ${s.locator}',
         SourceGranularity.whole => 'Whole note',
+        SourceGranularity.image => 'Photo',
       };
 }

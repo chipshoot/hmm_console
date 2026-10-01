@@ -1,3 +1,4 @@
+import '../../../core/data/attachments/attachment_ref.dart';
 import '../../../core/data/local/local_hmm_note_repository.dart';
 import '../domain/entities/cheatsheet_row.dart';
 import '../domain/entities/cheatsheet_source.dart';
@@ -7,9 +8,17 @@ import '../domain/note_piece_extractor.dart';
 /// an *unbound* row is a card the user hasn't finished, a *missing* one points
 /// at a note that is gone or hasn't synced yet, and neither is an error.
 class ResolvedValue {
-  const ResolvedValue({this.text, this.missing = false, this.unbound = false});
+  const ResolvedValue({
+    this.text,
+    this.image,
+    this.missing = false,
+    this.unbound = false,
+  });
 
   final String? text;
+
+  /// Set instead of [text] for an image row.
+  final VaultRef? image;
   final bool missing;
   final bool unbound;
 }
@@ -28,6 +37,13 @@ class CheatsheetResolver {
     final note = await _notes.getNoteByUuid(s.noteUuid);
     if (note == null) return const ResolvedValue(missing: true);
 
+    if (s.kind == SourceGranularity.image) {
+      final image = NotePieceExtractor.image(note.attachments, s.locator ?? '');
+      return image == null
+          ? const ResolvedValue(missing: true)
+          : ResolvedValue(image: image);
+    }
+
     final value = switch (s.kind) {
       SourceGranularity.field =>
         NotePieceExtractor.field(note.content, s.locator ?? ''),
@@ -37,6 +53,7 @@ class CheatsheetResolver {
         ),
       SourceGranularity.whole =>
         NotePieceExtractor.whole(note.content, note.description),
+      SourceGranularity.image => null, // handled above
     };
 
     if (value == null || value.isEmpty) {

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/features/cheatsheet/domain/note_piece_extractor.dart';
 
 const gasNote = '{"note":{"content":{"GasLog":{"station":"Shell","price":1.65,'
@@ -134,6 +135,43 @@ void main() {
 
     test('empty for content that has no readable fields', () {
       expect(NotePieceExtractor.whole('not json', null), '');
+    });
+  });
+
+  group('images', () {
+    const primary = VaultRef(
+        path: 'images/p.jpg', contentType: 'image/jpeg', byteSize: 1);
+    const gallery = VaultRef(
+        path: 'images/g.png', contentType: 'image/png', byteSize: 1);
+    const scan = VaultRef(
+        path: 'files/back.jpg', contentType: 'image/jpeg', byteSize: 1);
+    const pdf = VaultRef(
+        path: 'files/a.pdf', contentType: 'application/pdf', byteSize: 1);
+
+    test('offers every image attachment, primary first, and no PDFs', () {
+      final a = NoteAttachments(
+        primaryImage: primary,
+        images: const [gallery],
+        files: const [scan, pdf],
+      );
+      expect(NotePieceExtractor.images(a), [primary, gallery, scan]);
+    });
+
+    test('no attachments yields no images', () {
+      expect(NotePieceExtractor.images(null), isEmpty);
+    });
+
+    test('labels an image by the content key that points at it', () {
+      const content = '{"note":{"content":{"DriverLicence":'
+          '{"frontImagePath":"images/p.jpg"}}}}';
+      expect(NotePieceExtractor.imageLabel(content, primary), 'frontImage');
+      expect(NotePieceExtractor.imageLabel(content, gallery), 'g.png');
+    });
+
+    test('image path fields are not offered as text fields', () {
+      const content = '{"note":{"content":{"DriverLicence":'
+          '{"number":"D123","frontImagePath":"images/p.jpg"}}}}';
+      expect(NotePieceExtractor.fieldPaths(content), ['DriverLicence.number']);
     });
   });
 }

@@ -1,7 +1,9 @@
 import 'dart:convert';
 
-/// Pulls a *piece* out of a note: a scalar field, a markdown section, or the
-/// whole body.
+import '../../../core/data/attachments/attachment_ref.dart';
+
+/// Pulls a *piece* out of a note: a scalar field, a markdown section, the
+/// whole body, or one image attachment.
 ///
 /// There is no catalog field-schema on the client (the `schema` column is
 /// never parsed), so field binding works by introspecting the note's content
@@ -35,7 +37,11 @@ class NotePieceExtractor {
     'parentNoteId',
     'version',
   };
-  static final _internalPattern = RegExp(r'^_|Id$');
+  /// `Id$` hides foreign keys; `Path$` hides the vault paths that entity
+  /// notes (e.g. `DriverLicence.frontImagePath`) keep in content to point at
+  /// their attachments. Bound as text, such a field printed `images/…jpg`
+  /// where the photo should be — the image is offered through [images].
+  static final _internalPattern = RegExp(r'^_|Id$|Path$');
   static final _timestampPattern = RegExp(r'(date|at)$', caseSensitive: false);
 
   static bool _isInternal(String segment) =>
@@ -140,5 +146,49 @@ class NotePieceExtractor {
   static String _labelFor(String path) {
     final firstDot = path.indexOf('.');
     return firstDot < 0 ? path : path.substring(firstDot + 1);
+  }
+
+  /// The note's image attachments, in display order: primary, gallery, then
+  /// image-typed files (a document scan is stored as a file). Vault refs only
+  /// — a vault path is the one identity that survives a sync to another
+  /// device, which is what a card row needs to address it by.
+  static List<VaultRef> images(NoteAttachments? attachments) {
+    if (attachments == null) return const [];
+    return [
+      if (attachments.primaryImage case final VaultRef p) p,
+      ...attachments.images.whereType<VaultRef>(),
+      ...attachments.files.whereType<VaultRef>(),
+    ].where((r) => r.contentType.startsWith('image/')).toList();
+  }
+
+  /// The image at vault [path] on [attachments], or null if it is gone.
+  static VaultRef? image(NoteAttachments? attachments, String path) {
+    for (final r in images(attachments)) {
+      if (r.path == path) return r;
+    }
+    return null;
+  }
+
+  /// A human name for [ref]: the content key that points at it
+  /// (`frontImagePath` -> `frontImage`), else its file name.
+  static String imageLabel(String? content, VaultRef ref) {
+    String? found;
+    void walk(Map<String, dynamic> m) {
+      for (final e in m.entries) {
+        if (found != null) return;
+        final v = e.value;
+        if (v is Map) {
+          walk(v.cast<String, dynamic>());
+        } else if (v == ref.path) {
+          found = e.key.endsWith('Path')
+              ? e.key.substring(0, e.key.length - 4)
+              : e.key;
+        }
+      }
+    }
+
+    final root = _entityMap(content);
+    if (root != null) walk(root);
+    return found ?? ref.originalName ?? ref.path.split('/').last;
   }
 }

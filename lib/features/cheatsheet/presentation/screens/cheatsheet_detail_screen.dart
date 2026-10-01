@@ -4,7 +4,13 @@ import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/widgets/attachment_image.dart';
+import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../../core/data/vault/vault_session.dart';
+import '../../../notes/presentation/widgets/sensitive_attachment_image.dart';
 import '../../../../core/navigation/route_names.dart';
 import '../../data/cheatsheet_launcher.dart';
 import '../../data/cheatsheet_resolver.dart';
@@ -225,6 +231,12 @@ class _RowTile extends ConsumerWidget {
         key: Key('row-$index-missing'),
         style: muted,
       );
+    } else if (value.image != null) {
+      valueWidget = _ImageValue(
+        key: Key('row-$index-image'),
+        image: value.image!,
+        label: row.label,
+      );
     } else {
       final text = value.text ?? '';
       final action = row.valueAction;
@@ -256,6 +268,81 @@ class _RowTile extends ConsumerWidget {
               ),
             )
           : null,
+    );
+  }
+}
+
+/// An image row: a photo ID or insurance card, shown as a tappable thumbnail.
+///
+/// Sensitive images (a licence is always one) go through
+/// [SensitiveAttachmentImage], so a locked vault shows a tap-to-unlock lock
+/// rather than a broken image — the two must never look alike to someone
+/// holding out their phone at an accident scene.
+class _ImageValue extends ConsumerStatefulWidget {
+  const _ImageValue({super.key, required this.image, required this.label});
+
+  final VaultRef image;
+  final String label;
+
+  @override
+  ConsumerState<_ImageValue> createState() => _ImageValueState();
+}
+
+class _ImageValueState extends ConsumerState<_ImageValue> {
+  @override
+  void initState() {
+    super.initState();
+    // The session status can be stale on first build; without a refresh the
+    // tile shows the lock over an image it could already decrypt.
+    if (widget.image.sensitive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(vaultSessionProvider.notifier).refresh();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resolver = ref.watch(attachmentResolverProvider).value;
+    final unlocked = !widget.image.sensitive ||
+        ref.watch(vaultSessionProvider) == VaultStatus.unlocked;
+
+    final Widget image;
+    if (resolver == null) {
+      image = const Center(child: CircularProgressIndicator.adaptive());
+    } else if (widget.image.sensitive) {
+      image = SensitiveAttachmentImage(
+        ref: widget.image,
+        resolver: resolver,
+        fit: BoxFit.contain,
+        semanticLabel: widget.label,
+      );
+    } else {
+      image = AttachmentImage(
+        ref: widget.image,
+        resolver: resolver,
+        fit: BoxFit.contain,
+        semanticLabel: widget.label,
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          height: 180,
+          width: double.infinity,
+          // Only an image that can actually render opens full screen; while
+          // locked, the tap belongs to the lock placeholder's unlock flow.
+          child: unlocked
+              ? GestureDetector(
+                  onTap: () => showFullscreenImage(context, widget.image),
+                  child: image,
+                )
+              : image,
+        ),
+      ),
     );
   }
 }

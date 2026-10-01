@@ -1,8 +1,16 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
+import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
+import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
+import 'package:hmm_console/core/data/vault/vault_session.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/sensitive_attachment_image.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_launcher.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
@@ -286,4 +294,96 @@ void main() {
       expect(find.textContaining('not deleted'), findsOneWidget);
     });
   });
+
+  group('image rows', () {
+    final png = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAA'
+        'DUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+    const front = VaultRef(
+      path: 'images/front.png',
+      contentType: 'image/png',
+      byteSize: 70,
+      sensitive: true,
+    );
+    final licenceNote = HmmNote(
+      id: 3,
+      uuid: 'lic1',
+      subject: 'Licence',
+      authorId: 1,
+      createDate: DateTime(2026),
+      content: '{"note":{"content":{"DriverLicence":'
+          '{"frontImagePath":"images/front.png"}}}}',
+      attachments: NoteAttachments(images: const [front]),
+    );
+    const imageCard = CheatsheetCard(
+      id: 'c1',
+      title: 'Claim',
+      walletGroup: 'Vehicle',
+      tags: [],
+      templateId: 'accidentClaim',
+      rows: [
+        CheatsheetRow(
+          label: 'Licence (front)',
+          source: CheatsheetSource(
+            noteUuid: 'lic1',
+            kind: SourceGranularity.image,
+            locator: 'images/front.png',
+          ),
+        ),
+      ],
+    );
+
+    Future<void> mountImage(WidgetTester tester, VaultStatus vault) async {
+      _SeededCheatsheets.seed = const [imageCard];
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            hmmNoteRepositoryProvider
+                .overrideWithValue(_FakeNotes({'lic1': licenceNote})),
+            cheatsheetsStateProvider.overrideWith(_SeededCheatsheets.new),
+            attachmentResolverProvider
+                .overrideWith((ref) async => _BytesResolver(png)),
+            vaultSessionProvider.overrideWith(() => _StubVault(vault)),
+          ],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: CheatsheetDetailScreen(cardId: 'c1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows the photo, never its vault path', (tester) async {
+      await mountImage(tester, VaultStatus.unlocked);
+
+      expect(find.byKey(const Key('row-0-image')), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
+      expect(find.textContaining('images/front.png'), findsNothing);
+      expect(find.byKey(const Key('row-0-missing')), findsNothing);
+    });
+
+    testWidgets('a locked vault shows the lock, not a broken image',
+        (tester) async {
+      await mountImage(tester, VaultStatus.locked);
+
+      expect(find.byKey(sensitiveLockedPlaceholderKey), findsOneWidget);
+    });
+  });
+}
+
+class _BytesResolver implements IAttachmentResolver {
+  _BytesResolver(this.bytes);
+  final Uint8List bytes;
+  @override
+  Future<Uint8List?> resolve(AttachmentRef ref) async => bytes;
+}
+
+class _StubVault extends VaultSessionController {
+  _StubVault(this._status);
+  final VaultStatus _status;
+  @override
+  VaultStatus build() => _status;
+  @override
+  Future<void> refresh() async => state = _status;
 }
