@@ -9,10 +9,12 @@ import '../../features/gas_log/data/repositories/gas_station_repository.dart';
 import '../../features/gas_log/data/repositories/i_gas_log_repository.dart';
 import 'data_mode.dart';
 import '../../features/cheatsheet/data/i_cheatsheet_repository.dart';
+import '../../features/contacts/data/i_contact_repository.dart';
 import '../../features/cheatsheet/data/repositories/cheatsheet_api_repository.dart';
 import 'local/local_automobile_repository.dart';
 import 'local/local_author_repository.dart';
 import 'local/local_cheatsheet_repository.dart';
+import 'local/local_contact_repository.dart';
 import 'local/local_gas_log_repository.dart';
 import 'local/local_gas_station_repository.dart';
 import 'local/local_insurance_repository.dart';
@@ -102,6 +104,15 @@ final cheatsheetRepositoryModeProvider = Provider<ICheatsheetRepository>((ref) {
   final mode = ref.watch(dataModeProvider);
   if (_useLocal(mode)) return ref.watch(localCheatsheetRepositoryProvider);
   return ref.watch(cheatsheetApiRepositoryProvider);
+});
+
+/// cloudApi has no contacts repository until the backend plan ships. Throws
+/// [ContactsCloudApiUnavailable] (an [UnimplementedError]) so the UI can
+/// recognise it and show a friendly message rather than an empty address book.
+final contactRepositoryModeProvider = Provider<IContactRepository>((ref) {
+  final mode = ref.watch(dataModeProvider);
+  if (_useLocal(mode)) return ref.watch(localContactRepositoryProvider);
+  throw ContactsCloudApiUnavailable();
 });
 
 /// The licence has no API repository. The UI hides the feature outside the
