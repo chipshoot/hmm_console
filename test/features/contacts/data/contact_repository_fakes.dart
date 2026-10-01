@@ -3,6 +3,8 @@ import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
 import 'package:hmm_console/core/network/pagination.dart';
+import 'package:hmm_console/features/contacts/data/i_contact_repository.dart';
+import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 
 /// In-memory note store holding real [HmmNote]s so subject and content
@@ -86,4 +88,44 @@ class FakeCatalogRepository implements INoteCatalogRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} not faked');
+}
+
+/// In-memory [IContactRepository] for state and widget tests. Honours
+/// `isActivated` and the single-`isSelf` rule, and counts saves.
+class InMemoryContactRepository implements IContactRepository {
+  final Map<String, Contact> _byId = {};
+  int saveCalls = 0;
+  int _nextId = 1;
+
+  void seed(Contact c) => _byId[c.id] = c;
+
+  @override
+  Future<List<Contact>> getContacts({bool includeDeactivated = false}) async =>
+      _byId.values.where((c) => includeDeactivated || c.isActivated).toList();
+
+  @override
+  Future<Contact?> getContact(String id) async => _byId[id];
+
+  @override
+  Future<Contact> saveContact(Contact contact) async {
+    saveCalls++;
+    final saved = contact.id.isEmpty
+        ? contact.copyWith(id: 'gen-${_nextId++}')
+        : contact;
+    if (saved.isSelf) {
+      for (final e in _byId.entries.toList()) {
+        if (e.key != saved.id && e.value.isSelf) {
+          _byId[e.key] = e.value.copyWith(isSelf: false);
+        }
+      }
+    }
+    _byId[saved.id] = saved;
+    return saved;
+  }
+
+  @override
+  Future<void> deactivateContact(String id) async {
+    final c = _byId[id];
+    if (c != null) _byId[id] = c.copyWith(isActivated: false);
+  }
 }

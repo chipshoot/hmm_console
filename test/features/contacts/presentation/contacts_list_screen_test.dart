@@ -1,0 +1,134 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
+import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
+import 'package:hmm_console/features/contacts/presentation/screens/contacts_list_screen.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../data/contact_repository_fakes.dart';
+
+class _StubMode extends DataModeNotifier {
+  _StubMode(this._m);
+  final DataMode _m;
+  @override
+  DataMode build() => _m;
+}
+
+const _ada = Contact(
+  id: 'a',
+  contactType: ContactType.person,
+  firstName: 'Ada',
+  lastName: 'Lovelace',
+);
+const _bob = Contact(
+  id: 'b',
+  contactType: ContactType.person,
+  firstName: 'Bob',
+  lastName: 'Stone',
+);
+
+Future<void> _mount(WidgetTester tester, List<Override> overrides) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: overrides,
+      child: const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ContactsListScreen(),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+List<Override> _repo(InMemoryContactRepository r) => [
+  contactRepositoryModeProvider.overrideWithValue(r),
+];
+
+void main() {
+  testWidgets('empty repository shows the empty copy', (tester) async {
+    await _mount(tester, _repo(InMemoryContactRepository()));
+    expect(find.text('No contacts yet'), findsOneWidget);
+  });
+
+  testWidgets('seeded contacts render and search filters case-insensitively', (
+    tester,
+  ) async {
+    await _mount(
+      tester,
+      _repo(
+        InMemoryContactRepository()
+          ..seed(_ada)
+          ..seed(_bob),
+      ),
+    );
+    expect(find.text('Ada Lovelace'), findsOneWidget);
+    expect(find.text('Bob Stone'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'ADA');
+    await tester.pumpAndSettle();
+    expect(find.text('Ada Lovelace'), findsOneWidget);
+    expect(find.text('Bob Stone'), findsNothing);
+  });
+
+  testWidgets('an insurer is listed under Providers, family under Family', (
+    tester,
+  ) async {
+    const insurer = Contact(
+      id: 'i',
+      contactType: ContactType.organization,
+      organizationName: 'Acme Insurance',
+      relationship: ContactRelationship(category: RelationshipCategory.insurer),
+    );
+    const mum = Contact(
+      id: 'm',
+      contactType: ContactType.person,
+      firstName: 'Mum',
+      relationship: ContactRelationship(category: RelationshipCategory.parent),
+    );
+    await _mount(
+      tester,
+      _repo(
+        InMemoryContactRepository()
+          ..seed(insurer)
+          ..seed(mum),
+      ),
+    );
+
+    expect(find.text('Providers'), findsOneWidget);
+    expect(find.text('Family'), findsOneWidget);
+    expect(find.text('Other'), findsNothing);
+    final providersY = tester.getTopLeft(find.text('Providers')).dy;
+    final insurerY = tester.getTopLeft(find.text('Acme Insurance')).dy;
+    final familyY = tester.getTopLeft(find.text('Family')).dy;
+    expect(insurerY, greaterThan(providersY));
+    expect(providersY, greaterThan(familyY));
+    expect(find.text('Insurer'), findsOneWidget);
+  });
+
+  testWidgets('cloudApi mode shows the friendly unavailable message', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await _mount(tester, [
+      dataModeProvider.overrideWith(() => _StubMode(DataMode.cloudApi)),
+    ]);
+    expect(
+      find.textContaining(
+        'Contacts are available in Local and Cloud storage modes',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Unimplemented'), findsNothing);
+  });
+
+  testWidgets('has a help button and an add control', (tester) async {
+    await _mount(tester, _repo(InMemoryContactRepository()));
+    expect(find.byTooltip('Add contact'), findsOneWidget);
+    expect(find.byIcon(Icons.help_outline), findsOneWidget);
+  });
+}
