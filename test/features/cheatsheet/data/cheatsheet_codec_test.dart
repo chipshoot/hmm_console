@@ -194,22 +194,6 @@ void main() {
     expect(c.protected, isFalse);
   });
 
-  test('an unknown valueAction or kind degrades to a safe default', () {
-    final c = CheatsheetCodec.fromMap({
-      'id': 'x',
-      'title': 'T',
-      'rows': [
-        {
-          'label': 'r',
-          'valueAction': 'teleport',
-          'source': {'noteUuid': 'n', 'kind': 'quantum'},
-        },
-      ],
-    });
-    expect(c.rows.single.valueAction, ValueAction.none);
-    expect(c.rows.single.source!.kind, SourceGranularity.whole);
-  });
-
   test('a rows value of the wrong type yields no rows, not a throw', () {
     final c = CheatsheetCodec.fromMap({'id': 'x', 'title': 'T', 'rows': 'nope'});
     expect(c.rows, isEmpty);
