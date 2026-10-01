@@ -98,5 +98,101 @@ void main() {
       expect(decoded.phones, hasLength(1));
       expect(decoded.phones.single.number, '555');
     });
+
+    test('unknown nested fields in phones survive a save', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'c-1',
+        'contactType': 'person',
+        'phones': [
+          {'label': 'mobile', 'number': '555', 'primary': true},
+        ],
+      });
+
+      expect(decoded.phones.single.extraFields['primary'], true);
+
+      final resaved = ContactCodec.toMap(decoded);
+      expect(resaved['phones'][0]['primary'], true);
+    });
+
+    test('unknown nested fields in relationship survive a save', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'c-1',
+        'contactType': 'person',
+        'relationship': {
+          'category': 'doctor',
+          'note': 'family friend',
+        },
+      });
+
+      expect(decoded.relationship.extraFields['note'], 'family friend');
+
+      final resaved = ContactCodec.toMap(decoded);
+      expect(resaved['relationship']['note'], 'family friend');
+    });
+  });
+
+  test('unknown contactType enum value round-trips unchanged', () {
+    final decoded = ContactCodec.fromMap({
+      'id': 'c',
+      'contactType': 'pet',
+      'firstName': 'Fluffy',
+    });
+    expect(decoded.contactType, ContactType.person); // fallback
+    final resaved = ContactCodec.toMap(decoded);
+    expect(resaved['contactType'], 'pet'); // but raw value preserved
+  });
+
+  test('unknown contactType changes to new value after explicit copyWith', () {
+    final decoded = ContactCodec.fromMap({
+      'id': 'c',
+      'contactType': 'pet',
+    });
+    final edited = decoded.copyWith(contactType: ContactType.organization);
+    final resaved = ContactCodec.toMap(edited);
+    expect(resaved['contactType'], 'organization'); // new value written
+  });
+
+  test('unknown relationship category round-trips unchanged', () {
+    final decoded = ContactCodec.fromMap({
+      'id': 'c',
+      'contactType': 'person',
+      'relationship': {'category': 'dentist'},
+    });
+    expect(decoded.relationship.category, RelationshipCategory.other); // fallback
+    final resaved = ContactCodec.toMap(decoded);
+    expect(resaved['relationship']['category'], 'dentist'); // raw value preserved
+  });
+
+  test('unknown relationship category changes to new value after explicit copyWith', () {
+    final decoded = ContactCodec.fromMap({
+      'id': 'c',
+      'contactType': 'person',
+      'relationship': {'category': 'dentist'},
+    });
+    final edited = decoded.copyWith(
+      relationship: decoded.relationship.copyWith(category: RelationshipCategory.doctor),
+    );
+    final resaved = ContactCodec.toMap(edited);
+    expect(resaved['relationship']['category'], 'doctor'); // new value written
+  });
+
+  test('isSelf: true round-trips', () {
+    const contact = Contact(
+      id: 'c-1',
+      contactType: ContactType.person,
+      firstName: 'Self',
+      isSelf: true,
+    );
+    expect(ContactCodec.fromMap(ContactCodec.toMap(contact)), contact);
+  });
+
+  test('isActivated: false round-trips', () {
+    const contact = Contact(
+      id: 'c-1',
+      contactType: ContactType.person,
+      firstName: 'Inactive',
+      isActivated: false,
+    );
+    expect(ContactCodec.fromMap(ContactCodec.toMap(contact)), contact);
   });
 }

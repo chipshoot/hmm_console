@@ -56,8 +56,30 @@ void main() {
     expect(edited.id, 'c-1');
   });
 
+  test('copyWith(notes: null) clears notes', () {
+    final withNotes = person().copyWith(notes: 'some note');
+    expect(withNotes.notes, 'some note');
+    final cleared = withNotes.copyWith(notes: null);
+    expect(cleared.notes, isNull);
+  });
+
+  test('copyWith(firstName: null) clears firstName', () {
+    final withFirst = person();
+    final cleared = withFirst.copyWith(firstName: null);
+    expect(cleared.firstName, isNull);
+  });
+
   test('relationship defaults to other with no custom label', () {
     expect(person().relationship.category, RelationshipCategory.other);
     expect(person().relationship.customLabel, isNull);
+  });
+
+  test('relationship copyWith can clear customLabel', () {
+    final rel = person()
+        .relationship
+        .copyWith(customLabel: 'custom', category: RelationshipCategory.friend);
+    expect(rel.customLabel, 'custom');
+    final cleared = rel.copyWith(customLabel: null);
+    expect(cleared.customLabel, isNull);
   });
 }

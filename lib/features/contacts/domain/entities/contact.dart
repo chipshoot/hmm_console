@@ -1,5 +1,8 @@
 import 'contact_field.dart';
 
+/// Sentinel value for copyWith to distinguish "not provided" from "null".
+const Object _kSentinel = Object();
+
 enum ContactType { person, organization }
 
 /// Stored by `name` in the note JSON. NEVER localize these; add display copy
@@ -21,21 +24,41 @@ class ContactRelationship {
   const ContactRelationship({
     this.category = RelationshipCategory.other,
     this.customLabel,
-  });
+    this.extraFields = const {},
+    String? rawCategory,
+  }) : _rawCategory = rawCategory;
 
   final RelationshipCategory category;
 
   /// Free text, used when [category] is [RelationshipCategory.other].
   final String? customLabel;
 
+  /// Unknown keys from the stored entry, preserved verbatim on save.
+  final Map<String, dynamic> extraFields;
+
+  /// Raw enum string from storage (to preserve unknown values).
+  final String? _rawCategory;
+
+  /// Returns the category name to store: raw value if available and unchanged,
+  /// otherwise the typed enum name.
+  String get storedCategoryName => _rawCategory ?? category.name;
+
   ContactRelationship copyWith({
     RelationshipCategory? category,
-    String? customLabel,
-  }) =>
-      ContactRelationship(
-        category: category ?? this.category,
-        customLabel: customLabel ?? this.customLabel,
-      );
+    Object? customLabel = _kSentinel,
+    Map<String, dynamic>? extraFields,
+  }) {
+    final newCategory = category ?? this.category;
+    final newCustomLabel = identical(customLabel, _kSentinel)
+        ? this.customLabel
+        : customLabel as String?;
+    return ContactRelationship(
+      category: newCategory,
+      customLabel: newCustomLabel,
+      extraFields: extraFields ?? this.extraFields,
+      rawCategory: category != null ? null : _rawCategory,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -68,7 +91,8 @@ class Contact {
     this.notes,
     this.isActivated = true,
     this.extraFields = const {},
-  });
+    String? rawContactType,
+  }) : _rawContactType = rawContactType;
 
   final String id;
   final ContactType contactType;
@@ -94,6 +118,13 @@ class Contact {
   /// here cannot destroy a newer client's data.
   final Map<String, dynamic> extraFields;
 
+  /// Raw enum string from storage (to preserve unknown values).
+  final String? _rawContactType;
+
+  /// Returns the contact type name to store: raw value if available and unchanged,
+  /// otherwise the typed enum name.
+  String get storedContactTypeName => _rawContactType ?? contactType.name;
+
   /// Derived, never stored: person and organization both present one name to
   /// the UI and to cheatsheet binding.
   String get displayName => switch (contactType) {
@@ -105,32 +136,36 @@ class Contact {
   Contact copyWith({
     String? id,
     ContactType? contactType,
-    String? firstName,
-    String? lastName,
-    String? organizationName,
+    Object? firstName = _kSentinel,
+    Object? lastName = _kSentinel,
+    Object? organizationName = _kSentinel,
     List<ContactPhone>? phones,
     List<ContactEmail>? emails,
     List<ContactAddress>? addresses,
     ContactRelationship? relationship,
     bool? isSelf,
-    String? notes,
+    Object? notes = _kSentinel,
     bool? isActivated,
     Map<String, dynamic>? extraFields,
   }) =>
       Contact(
         id: id ?? this.id,
         contactType: contactType ?? this.contactType,
-        firstName: firstName ?? this.firstName,
-        lastName: lastName ?? this.lastName,
-        organizationName: organizationName ?? this.organizationName,
+        firstName:
+            identical(firstName, _kSentinel) ? this.firstName : firstName as String?,
+        lastName: identical(lastName, _kSentinel) ? this.lastName : lastName as String?,
+        organizationName: identical(organizationName, _kSentinel)
+            ? this.organizationName
+            : organizationName as String?,
         phones: phones ?? this.phones,
         emails: emails ?? this.emails,
         addresses: addresses ?? this.addresses,
         relationship: relationship ?? this.relationship,
         isSelf: isSelf ?? this.isSelf,
-        notes: notes ?? this.notes,
+        notes: identical(notes, _kSentinel) ? this.notes : notes as String?,
         isActivated: isActivated ?? this.isActivated,
         extraFields: extraFields ?? this.extraFields,
+        rawContactType: contactType != null ? null : _rawContactType,
       );
 
   static bool _sameList<T>(List<T> a, List<T> b) {

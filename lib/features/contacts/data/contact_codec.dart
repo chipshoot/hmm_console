@@ -29,27 +29,46 @@ class ContactCodec {
     'isActivated',
   };
 
+  static const _phoneKnownKeys = <String>{'label', 'number'};
+  static const _emailKnownKeys = <String>{'label', 'address'};
+  static const _addressKnownKeys = <String>{'label', 'value'};
+  static const _relationshipKnownKeys = <String>{'category', 'customLabel'};
+
   static Map<String, dynamic> toMap(Contact c) => {
         // Preserved keys first so a typed field always wins on conflict.
         ...c.extraFields,
         'schemaVersion': currentSchemaVersion,
         'id': c.id,
-        'contactType': c.contactType.name,
+        // Use raw value if enum wasn't explicitly changed; use .name if it was.
+        'contactType': c.storedContactTypeName,
         if (c.firstName != null) 'firstName': c.firstName,
         if (c.lastName != null) 'lastName': c.lastName,
         if (c.organizationName != null) 'organizationName': c.organizationName,
         'phones': c.phones
-            .map((p) => {'label': p.label, 'number': p.number})
+            .map((p) => {
+                  ...p.extraFields,
+                  'label': p.label,
+                  'number': p.number,
+                })
             .toList(),
         'emails': c.emails
-            .map((e) => {'label': e.label, 'address': e.address})
+            .map((e) => {
+                  ...e.extraFields,
+                  'label': e.label,
+                  'address': e.address,
+                })
             .toList(),
         'addresses': c.addresses
-            .map((a) => {'label': a.label, 'value': a.value})
+            .map((a) => {
+                  ...a.extraFields,
+                  'label': a.label,
+                  'value': a.value,
+                })
             .toList(),
         'relationship': {
-          // The enum NAME is the stored contract. Never a localized label.
-          'category': c.relationship.category.name,
+          ...c.relationship.extraFields,
+          // Use raw value if enum wasn't explicitly changed; use .name if it was.
+          'category': c.relationship.storedCategoryName,
           if (c.relationship.customLabel != null)
             'customLabel': c.relationship.customLabel,
         },
@@ -61,11 +80,12 @@ class ContactCodec {
   static Contact fromMap(Map<String, dynamic> m) {
     final rel = m['relationship'];
     final relMap = rel is Map ? rel.cast<String, dynamic>() : const {};
+    final storedContactType = _str(m['contactType']) ?? 'person';
 
     return Contact(
       id: _str(m['id']) ?? '',
       contactType: ContactType.values.firstWhere(
-        (t) => t.name == m['contactType'],
+        (t) => t.name == storedContactType,
         orElse: () => ContactType.person,
       ),
       firstName: _str(m['firstName']),
@@ -74,21 +94,42 @@ class ContactCodec {
       phones: _each(m['phones'], (e) => ContactPhone(
             label: _str(e['label']) ?? 'other',
             number: _str(e['number']) ?? '',
+            extraFields: {
+              for (final entry in e.entries)
+                if (!_phoneKnownKeys.contains(entry.key))
+                  entry.key: entry.value,
+            },
           )),
       emails: _each(m['emails'], (e) => ContactEmail(
             label: _str(e['label']) ?? 'other',
             address: _str(e['address']) ?? '',
+            extraFields: {
+              for (final entry in e.entries)
+                if (!_emailKnownKeys.contains(entry.key))
+                  entry.key: entry.value,
+            },
           )),
       addresses: _each(m['addresses'], (e) => ContactAddress(
             label: _str(e['label']) ?? 'other',
             value: _str(e['value']) ?? '',
+            extraFields: {
+              for (final entry in e.entries)
+                if (!_addressKnownKeys.contains(entry.key))
+                  entry.key: entry.value,
+            },
           )),
       relationship: ContactRelationship(
         category: RelationshipCategory.values.firstWhere(
-          (c) => c.name == relMap['category'],
+          (c) => c.name == _str(relMap['category']),
           orElse: () => RelationshipCategory.other,
         ),
         customLabel: _str(relMap['customLabel']),
+        extraFields: {
+          for (final entry in relMap.entries)
+            if (!_relationshipKnownKeys.contains(entry.key))
+              entry.key: entry.value,
+        },
+        rawCategory: _str(relMap['category']),
       ),
       isSelf: _bool(m['isSelf']) ?? false,
       notes: _str(m['notes']),
@@ -97,6 +138,7 @@ class ContactCodec {
         for (final entry in m.entries)
           if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
       },
+      rawContactType: storedContactType,
     );
   }
 
