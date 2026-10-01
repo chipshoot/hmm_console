@@ -42,7 +42,7 @@ void main() {
       ...emailFieldLabels,
       ...addressFieldLabels,
     ]) {
-      expect(isKnownFieldLabel(label), isTrue, reason: '$label');
+      expect(isKnownFieldLabel(label), isTrue, reason: label);
       expect(fieldLabelText(label, en), isNot(label), reason: '$label en');
       expect(fieldLabelText(label, zh), isNot(label), reason: '$label zh');
     }
