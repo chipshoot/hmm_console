@@ -92,10 +92,10 @@ class CheatsheetApiMapper {
             // A non-map Source throws, which drops just this row into
             // unreadableRows rather than losing it.
             : _srcFromApi((m['Source'] as Map).cast<String, dynamic>()),
-        valueAction: ValueAction.values.firstWhere(
-          (v) => v.name == m['ValueAction'],
-          orElse: () => ValueAction.none,
-        ),
+        valueAction: m['ValueAction'] == null
+            ? ValueAction.none
+            // An unrecognised value throws, so the row is preserved verbatim.
+            : ValueAction.values.firstWhere((v) => v.name == m['ValueAction']),
         openSource: _bool(m['OpenSource']) ?? true,
       );
 
@@ -108,10 +108,10 @@ class CheatsheetApiMapper {
   static CheatsheetSource _srcFromApi(Map<String, dynamic> m) =>
       CheatsheetSource(
         noteUuid: _str(m['NoteUuid']) ?? '',
-        kind: SourceGranularity.values.firstWhere(
-          (k) => k.name == m['Kind'],
-          orElse: () => SourceGranularity.whole,
-        ),
+        kind: m['Kind'] == null
+            ? SourceGranularity.whole
+            // An unrecognised kind throws, so the row is preserved verbatim.
+            : SourceGranularity.values.firstWhere((k) => k.name == m['Kind']),
         locator: _str(m['Locator']),
       );
 }

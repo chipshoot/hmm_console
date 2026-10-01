@@ -91,8 +91,14 @@ class Contact {
     this.notes,
     this.isActivated = true,
     this.extraFields = const {},
+    this.storedSchemaVersion = 1,
     String? rawContactType,
   }) : _rawContactType = rawContactType;
+
+  /// The `schemaVersion` this contact was read with. A save writes the larger
+  /// of this and the codec's current version, so an older client never
+  /// downgrades a newer client's data.
+  final int storedSchemaVersion;
 
   final String id;
   final ContactType contactType;
@@ -165,6 +171,7 @@ class Contact {
         notes: identical(notes, _kSentinel) ? this.notes : notes as String?,
         isActivated: isActivated ?? this.isActivated,
         extraFields: extraFields ?? this.extraFields,
+        storedSchemaVersion: storedSchemaVersion,
         rawContactType: contactType != null ? null : _rawContactType,
       );
 

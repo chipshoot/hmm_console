@@ -169,6 +169,38 @@ void main() {
       expect(result, isNot(contains('id: 7')));
     });
 
+    test('summarises a list-of-maps entity (service record parts)', () {
+      const rec = '{"note":{"content":{"ServiceRecord":{"title":"Brakes",'
+          '"parts":[{"name":"Pad","cost":40},{"name":"Rotor","cost":90}]}}}}';
+      final result = NotePieceExtractor.whole(rec, null);
+      expect(result, contains('title: Brakes'));
+      expect(result, contains('parts.0.name: Pad'));
+      expect(result, contains('parts.1.cost: 90'));
+    });
+
+    test('a contact summary omits schemaVersion, isSelf and isActivated', () {
+      const c = '{"note":{"content":{"Contact":{"schemaVersion":1,'
+          '"firstName":"Ann","isSelf":true,"isActivated":true}}}}';
+      final result = NotePieceExtractor.whole(c, null);
+      expect(result, contains('firstName: Ann'));
+      for (final k in ['schemaVersion', 'isSelf', 'isActivated']) {
+        expect(result, isNot(contains(k)));
+      }
+      // Offer filter only: an explicit path still resolves.
+      expect(NotePieceExtractor.field(c, 'Contact.isSelf'), 'true');
+    });
+
+    test('isDeactivated reads isActivated:false and never throws', () {
+      expect(NotePieceExtractor.isDeactivated(
+          '{"note":{"content":{"X":{"isActivated":false}}}}'), isTrue);
+      expect(NotePieceExtractor.isDeactivated(
+          '{"note":{"content":{"X":{"isActivated":true}}}}'), isFalse);
+      expect(NotePieceExtractor.isDeactivated(
+          '{"note":{"content":{"X":{"a":1}}}}'), isFalse);
+      expect(NotePieceExtractor.isDeactivated('not json'), isFalse);
+      expect(NotePieceExtractor.isDeactivated(null), isFalse);
+    });
+
     test('empty when neither is present', () {
       expect(NotePieceExtractor.whole(null, null), '');
     });

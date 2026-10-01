@@ -44,6 +44,11 @@ class CheatsheetResolver {
           : ResolvedValue(image: image);
     }
 
+    // A soft-deleted entity (`isActivated: false`) reads as removed.
+    if (NotePieceExtractor.isDeactivated(note.content)) {
+      return const ResolvedValue(missing: true);
+    }
+
     final value = switch (s.kind) {
       SourceGranularity.field =>
         NotePieceExtractor.field(note.content, s.locator ?? ''),

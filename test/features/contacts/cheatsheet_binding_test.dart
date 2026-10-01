@@ -60,11 +60,32 @@ void main() {
     expect(v.missing, isFalse);
   });
 
-  test('a deactivated contact still resolves', () async {
+  test('a deactivated contact resolves as missing', () async {
     final r = CheatsheetResolver(_FakeNotes({
       'doc-uuid': contactNote(doctor.copyWith(isActivated: false)),
     }));
-    expect((await r.resolve(_row)).text, '555-0100');
+    final v = await r.resolve(_row);
+    expect(v.missing, isTrue);
+    expect(v.text, isNull);
+  });
+
+  test('Contact.displayName resolves to the full name', () async {
+    const named = Contact(
+      id: 'c2',
+      contactType: ContactType.person,
+      firstName: 'First',
+      lastName: 'Last',
+    );
+    final r = CheatsheetResolver(_FakeNotes({'doc-uuid': contactNote(named)}));
+    final v = await r.resolve(const CheatsheetRow(
+      label: 'Name',
+      source: CheatsheetSource(
+        noteUuid: 'doc-uuid',
+        kind: SourceGranularity.field,
+        locator: 'Contact.displayName',
+      ),
+    ));
+    expect(v.text, 'First Last');
   });
 
   test('an absent contact note is missing', () async {

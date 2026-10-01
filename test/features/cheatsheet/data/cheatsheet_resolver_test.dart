@@ -76,6 +76,30 @@ void main() {
     expect(v.text, contains('# Title'));
   });
 
+  test('a deactivated non-contact entity resolves as missing', () async {
+    final off = HmmNote(
+      id: 3,
+      uuid: 'off1',
+      subject: 'Off',
+      authorId: 1,
+      createDate: DateTime(2026),
+      content:
+          '{"note":{"content":{"Thing":{"plate":"Z","isActivated":false}}}}',
+    );
+    final r = CheatsheetResolver(_FakeNotes({'off1': off}));
+    for (final kind in [SourceGranularity.field, SourceGranularity.whole]) {
+      final v = await r.resolve(CheatsheetRow(
+        label: 'x',
+        source: CheatsheetSource(
+          noteUuid: 'off1',
+          kind: kind,
+          locator: 'Thing.plate',
+        ),
+      ));
+      expect(v.missing, isTrue, reason: '$kind');
+    }
+  });
+
   test('unbound row', () async {
     final v =
         await resolver().resolve(const CheatsheetRow(label: 'x', source: null));

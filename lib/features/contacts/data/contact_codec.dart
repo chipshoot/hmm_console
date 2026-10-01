@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../domain/entities/contact.dart';
 import '../domain/entities/contact_field.dart';
 
@@ -27,6 +29,8 @@ class ContactCodec {
     'isSelf',
     'notes',
     'isActivated',
+    // Derived on write (Contact.displayName); never read back.
+    'displayName',
   };
 
   static const _phoneKnownKeys = <String>{'label', 'number'};
@@ -37,7 +41,9 @@ class ContactCodec {
   static Map<String, dynamic> toMap(Contact c) => {
         // Preserved keys first so a typed field always wins on conflict.
         ...c.extraFields,
-        'schemaVersion': currentSchemaVersion,
+        'schemaVersion': math.max(c.storedSchemaVersion, currentSchemaVersion),
+        // Derived so a cheatsheet can bind `Contact.displayName`; ignored on read.
+        'displayName': c.displayName,
         'id': c.id,
         // Use raw value if enum wasn't explicitly changed; use .name if it was.
         'contactType': c.storedContactTypeName,
@@ -138,6 +144,7 @@ class ContactCodec {
         for (final entry in m.entries)
           if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
       },
+      storedSchemaVersion: (m['schemaVersion'] as num?)?.toInt() ?? 1,
       rawContactType: storedContactType,
     );
   }

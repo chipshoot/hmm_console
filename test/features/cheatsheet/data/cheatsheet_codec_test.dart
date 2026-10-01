@@ -83,6 +83,39 @@ void main() {
     expect(c.title, 'T'); // whole card NOT discarded
   });
 
+  test('an unknown kind or valueAction is preserved as an unreadable row', () {
+    const bad1 = {
+      'label': 'a',
+      'valueAction': 'teleport',
+      'source': {'noteUuid': 'n', 'kind': 'field'},
+    };
+    const bad2 = {
+      'label': 'b',
+      'source': {'noteUuid': 'n', 'kind': 'quantum'},
+    };
+    final decoded = CheatsheetCodec.fromMap({
+      'id': 'x',
+      'rows': [bad1, bad2],
+    });
+    expect(decoded.rows, isEmpty);
+    expect(decoded.unreadableRows, [bad1, bad2]);
+    expect(CheatsheetCodec.toMap(decoded)['rows'], [bad1, bad2]);
+  });
+
+  test('an absent valueAction defaults to none and absent kind to whole', () {
+    final decoded = CheatsheetCodec.fromMap({
+      'id': 'x',
+      'rows': [
+        {
+          'label': 'a',
+          'source': {'noteUuid': 'n'},
+        },
+      ],
+    });
+    expect(decoded.rows.single.valueAction, ValueAction.none);
+    expect(decoded.rows.single.source!.kind, SourceGranularity.whole);
+  });
+
   test('an unreadable row survives a decode/encode round trip', () {
     // Saving rewrites the whole card, so a row merely *dropped* on read would
     // be erased by the next unrelated edit. It must come back out.

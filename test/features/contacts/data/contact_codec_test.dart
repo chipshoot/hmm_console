@@ -20,6 +20,34 @@ void main() {
     expect(ContactCodec.fromMap(ContactCodec.toMap(full)), full);
   });
 
+  test('a stored schemaVersion newer than current round-trips unchanged', () {
+    final decoded = ContactCodec.fromMap({
+      'id': 'c-9',
+      'contactType': 'person',
+      'schemaVersion': 2,
+    });
+    expect(ContactCodec.toMap(decoded)['schemaVersion'], 2);
+    expect(ContactCodec.toMap(full)['schemaVersion'],
+        ContactCodec.currentSchemaVersion);
+  });
+
+  test('toMap writes the derived displayName', () {
+    expect(ContactCodec.toMap(full)['displayName'], 'Ada Lovelace');
+  });
+
+  test('a stale stored displayName is ignored on read and rewritten', () {
+    final decoded = ContactCodec.fromMap({
+      'id': 'c-8',
+      'contactType': 'person',
+      'firstName': 'New',
+      'lastName': 'Name',
+      'displayName': 'Old Name',
+    });
+    expect(decoded.firstName, 'New');
+    expect(decoded.extraFields.containsKey('displayName'), isFalse);
+    expect(ContactCodec.toMap(decoded)['displayName'], 'New Name');
+  });
+
   test('round-trips an organization', () {
     const org = Contact(
       id: 'c-2',

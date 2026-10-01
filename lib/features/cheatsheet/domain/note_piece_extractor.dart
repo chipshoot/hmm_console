@@ -29,6 +29,17 @@ class NotePieceExtractor {
     }
   }
 
+  /// True when the entity map carries `isActivated: false` (a soft-deleted
+  /// note). Never throws; anything unreadable counts as active.
+  static bool isDeactivated(String? content) {
+    final root = _entityMap(content);
+    if (root == null) return false;
+    for (final v in root.values) {
+      if (v is Map && v['isActivated'] == false) return true;
+    }
+    return false;
+  }
+
   static const _internalKeys = {
     '_v',
     'id',
@@ -36,6 +47,9 @@ class NotePieceExtractor {
     'authorId',
     'parentNoteId',
     'version',
+    'schemaVersion',
+    'isSelf',
+    'isActivated',
   };
   /// `Id$` hides foreign keys; `Path$` hides the vault paths that entity
   /// notes (e.g. `DriverLicence.frontImagePath`) keep in content to point at

@@ -88,10 +88,11 @@ class CheatsheetCodec {
             ? null
             // A non-map source throws here, dropping just this row.
             : _srcFromMap((m['source'] as Map).cast<String, dynamic>()),
-        valueAction: ValueAction.values.firstWhere(
-          (v) => v.name == m['valueAction'],
-          orElse: () => ValueAction.none,
-        ),
+        valueAction: m['valueAction'] == null
+            ? ValueAction.none
+            // An unrecognised value throws, so the row is preserved verbatim
+            // rather than silently normalised to a different action.
+            : ValueAction.values.firstWhere((v) => v.name == m['valueAction']),
         openSource: _bool(m['openSource']) ?? true,
       );
 
@@ -104,10 +105,10 @@ class CheatsheetCodec {
   static CheatsheetSource _srcFromMap(Map<String, dynamic> m) =>
       CheatsheetSource(
         noteUuid: _str(m['noteUuid']) ?? '',
-        kind: SourceGranularity.values.firstWhere(
-          (k) => k.name == m['kind'],
-          orElse: () => SourceGranularity.whole,
-        ),
+        kind: m['kind'] == null
+            ? SourceGranularity.whole
+            // An unrecognised kind throws, so the row is preserved verbatim.
+            : SourceGranularity.values.firstWhere((k) => k.name == m['kind']),
         locator: _str(m['locator']),
       );
 }

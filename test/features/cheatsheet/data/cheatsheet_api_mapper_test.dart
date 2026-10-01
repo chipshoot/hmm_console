@@ -121,20 +121,35 @@ void main() {
       expect(decoded.rows, isEmpty);
     });
 
-    test('an unknown ValueAction or Kind falls back rather than throwing', () {
+    test('an unknown ValueAction or Kind is preserved as an unreadable row',
+        () {
+      const bad1 = {
+        'Label': 'Row',
+        'ValueAction': 'teleport',
+        'Source': {'NoteUuid': 'n-1', 'Kind': 'field'},
+      };
+      const bad2 = {
+        'Label': 'Row2',
+        'Source': {'NoteUuid': 'n-1', 'Kind': 'quantum'},
+      };
+      final decoded = CheatsheetApiMapper.fromApi({
+        'Id': 'c-1',
+        'Rows': [bad1, bad2],
+      });
+
+      expect(decoded.rows, isEmpty);
+      expect(decoded.unreadableRows, [bad1, bad2]);
+      expect(CheatsheetApiMapper.toApi(decoded)['Rows'], [bad1, bad2]);
+    });
+
+    test('an absent ValueAction still defaults to none', () {
       final decoded = CheatsheetApiMapper.fromApi({
         'Id': 'c-1',
         'Rows': [
-          {
-            'Label': 'Row',
-            'ValueAction': 'teleport',
-            'Source': {'NoteUuid': 'n-1', 'Kind': 'quantum'},
-          },
+          {'Label': 'Row'},
         ],
       });
-
       expect(decoded.rows.single.valueAction, ValueAction.none);
-      expect(decoded.rows.single.source!.kind, SourceGranularity.whole);
     });
   });
 }
