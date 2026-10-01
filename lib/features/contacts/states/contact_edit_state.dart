@@ -104,7 +104,19 @@ class ContactEditState extends Notifier<ContactEditData> {
     ),
   );
 
-  void setIsSelf(bool v) => _set(state.contact.copyWith(isSelf: v));
+  /// Marking a contact as "me" also files it under the `self` relationship;
+  /// switching it off leaves the relationship as the user last had it.
+  void setIsSelf(bool v) => _set(
+    state.contact.copyWith(
+      isSelf: v,
+      relationship: v
+          ? state.contact.relationship.copyWith(
+              category: RelationshipCategory.self,
+              customLabel: null,
+            )
+          : null,
+    ),
+  );
 
   void setNotes(String v) =>
       _set(state.contact.copyWith(notes: v.trim().isEmpty ? null : v));
@@ -121,10 +133,24 @@ class ContactEditState extends Notifier<ContactEditData> {
     // back and forth before saving keeps the typed text but nothing hidden
     // is persisted.
     final isOrg = c.contactType == ContactType.organization;
+    // A stored type this version does not know (a newer client's) is neither
+    // person nor organization here, so neither set of names may be dropped.
+    final knownType =
+        ContactType.values.any((t) => t.name == c.storedContactTypeName);
     return c.copyWith(
-      firstName: isOrg ? null : _blankToNull(c.firstName),
-      lastName: isOrg ? null : _blankToNull(c.lastName),
-      organizationName: isOrg ? _blankToNull(c.organizationName) : null,
+      firstName: !knownType
+          ? _blankToNull(c.firstName)
+          : isOrg
+              ? null
+              : _blankToNull(c.firstName),
+      lastName: !knownType
+          ? _blankToNull(c.lastName)
+          : isOrg
+              ? null
+              : _blankToNull(c.lastName),
+      organizationName: !knownType || isOrg
+          ? _blankToNull(c.organizationName)
+          : null,
       phones: c.phones.where((p) => p.number.trim().isNotEmpty).toList(),
       emails: c.emails.where((e) => e.address.trim().isNotEmpty).toList(),
       addresses: c.addresses.where((a) => a.value.trim().isNotEmpty).toList(),

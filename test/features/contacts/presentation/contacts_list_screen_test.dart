@@ -51,6 +51,27 @@ List<Override> _repo(InMemoryContactRepository r) => [
 ];
 
 void main() {
+  testWidgets('the self contact carries a Me marker, others do not', (
+    tester,
+  ) async {
+    await _mount(
+      tester,
+      _repo(
+        InMemoryContactRepository()
+          ..seed(_ada.copyWith(isSelf: true))
+          ..seed(_bob),
+      ),
+    );
+    expect(find.byKey(const Key('contact-self-badge')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('contact-self-badge')),
+        matching: find.text('Me'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('empty repository shows the empty copy', (tester) async {
     await _mount(tester, _repo(InMemoryContactRepository()));
     expect(find.text('No contacts yet'), findsOneWidget);

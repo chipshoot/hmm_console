@@ -646,7 +646,7 @@
   "helpContactsSearchTitle": "搜索",
   "helpContactsSearchBody": "输入文字，按姓名、电话或邮箱筛选联系人。",
   "helpContactsSelfTitle": "本人",
-  "helpContactsSelfBody": "“本人”联系人保存你自己的信息。点按即可查看或编辑。",
+  "helpContactsSelfBody": "“本人”联系人保存你自己的信息，并带有“本人”标记。在编辑页打开“这是我”即可标记，并自动归为“本人”关系。点按即可查看或编辑。",
   "helpContactDetailTitle": "联系人",
   "helpContactDetailSummary": "这位联系人的全部信息。",
   "helpContactDetailCallTitle": "拨打电话",

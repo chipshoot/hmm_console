@@ -1205,7 +1205,7 @@
   "helpContactsSearchTitle": "Search",
   "helpContactsSearchBody": "Type to filter contacts by name, phone or email.",
   "helpContactsSelfTitle": "Me",
-  "helpContactsSelfBody": "The Me contact holds your own details. Tap it to view or edit them.",
+  "helpContactsSelfBody": "The Me contact holds your own details and is marked with a Me badge. Switching on \"This is me\" in the edit form marks it and files it under the Me relationship. Tap it to view or edit them.",
   "helpContactDetailTitle": "Contact",
   "helpContactDetailSummary": "Everything saved about this contact.",
   "helpContactDetailCallTitle": "Call",

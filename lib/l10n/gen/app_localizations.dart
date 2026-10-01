@@ -3971,7 +3971,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpContactsSelfBody.
   ///
   /// In en, this message translates to:
-  /// **'The Me contact holds your own details. Tap it to view or edit them.'**
+  /// **'The Me contact holds your own details and is marked with a Me badge. Switching on \"This is me\" in the edit form marks it and files it under the Me relationship. Tap it to view or edit them.'**
   String get helpContactsSelfBody;
 
   /// No description provided for @helpContactDetailTitle.

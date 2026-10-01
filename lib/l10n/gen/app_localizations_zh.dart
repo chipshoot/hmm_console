@@ -2135,7 +2135,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpContactsSelfTitle => '本人';
 
   @override
-  String get helpContactsSelfBody => '“本人”联系人保存你自己的信息。点按即可查看或编辑。';
+  String get helpContactsSelfBody =>
+      '“本人”联系人保存你自己的信息，并带有“本人”标记。在编辑页打开“这是我”即可标记，并自动归为“本人”关系。点按即可查看或编辑。';
 
   @override
   String get helpContactDetailTitle => '联系人';

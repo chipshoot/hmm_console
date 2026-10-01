@@ -2191,7 +2191,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpContactsSelfBody =>
-      'The Me contact holds your own details. Tap it to view or edit them.';
+      'The Me contact holds your own details and is marked with a Me badge. Switching on \"This is me\" in the edit form marks it and files it under the Me relationship. Tap it to view or edit them.';
 
   @override
   String get helpContactDetailTitle => 'Contact';

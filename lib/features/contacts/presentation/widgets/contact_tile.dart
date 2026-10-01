@@ -29,6 +29,13 @@ class ContactTile extends StatelessWidget {
       ),
       title: Text(contact.displayName),
       subtitle: Text(label),
+      trailing: contact.isSelf
+          ? Chip(
+              key: const Key('contact-self-badge'),
+              label: Text(l.relationshipSelf),
+              visualDensity: VisualDensity.compact,
+            )
+          : null,
       onTap: onTap,
     );
   }
