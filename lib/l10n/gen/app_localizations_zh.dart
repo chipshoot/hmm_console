@@ -2081,6 +2081,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactsCloudApiUnavailable => '联系人仅在本地和云存储模式下可用。请在设置中切换数据模式。';
 
   @override
+  String get contactsLoadFailed => '无法加载联系人';
+
+  @override
   String get contactDeactivated => '联系人已移除';
 
   @override

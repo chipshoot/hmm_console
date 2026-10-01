@@ -11,6 +11,22 @@ import '../../domain/entities/contact.dart';
 import '../../states/contacts_state.dart';
 import '../widgets/contact_tile.dart';
 
+final _phoneNoise = RegExp(r'[\s\-.()]');
+
+/// Case-insensitive match on name or any email; phone numbers also match with
+/// spaces, dashes, dots and parentheses ignored on both sides.
+bool _matches(Contact c, String q) {
+  if (c.displayName.toLowerCase().contains(q)) return true;
+  if (c.emails.any((e) => e.address.toLowerCase().contains(q))) return true;
+  final digits = q.replaceAll(_phoneNoise, '');
+  return c.phones.any(
+    (p) =>
+        p.number.toLowerCase().contains(q) ||
+        (digits.isNotEmpty &&
+            p.number.replaceAll(_phoneNoise, '').contains(digits)),
+  );
+}
+
 enum _Group { family, providers, other }
 
 _Group _groupOf(RelationshipCategory c) => switch (c) {
@@ -83,17 +99,22 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
             child: async.when(
               loading: () =>
                   const Center(child: CircularProgressIndicator.adaptive()),
-              error: (e, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    isContactsCloudApiUnavailable(e)
-                        ? l.contactsCloudApiUnavailable
-                        : e.toString(),
-                    textAlign: TextAlign.center,
+              error: (e, _) {
+                if (!isContactsCloudApiUnavailable(e)) {
+                  debugPrint('Contacts failed to load: $e');
+                }
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      isContactsCloudApiUnavailable(e)
+                          ? l.contactsCloudApiUnavailable
+                          : l.contactsLoadFailed,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
               data: (all) => _body(l, all),
             ),
           ),
@@ -104,13 +125,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
 
   Widget _body(AppLocalizations l, List<Contact> all) {
     final shown =
-        all
-            .where(
-              (c) =>
-                  _query.isEmpty ||
-                  c.displayName.toLowerCase().contains(_query),
-            )
-            .toList()
+        all.where((c) => _query.isEmpty || _matches(c, _query)).toList()
           ..sort((a, b) {
             // "Me" first, then by name.
             if (a.isSelf != b.isSelf) return a.isSelf ? -1 : 1;

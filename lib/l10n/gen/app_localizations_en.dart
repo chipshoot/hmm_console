@@ -2133,6 +2133,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Contacts are available in Local and Cloud storage modes. Switch data mode in Settings to use them.';
 
   @override
+  String get contactsLoadFailed => 'Could not load contacts';
+
+  @override
   String get contactDeactivated => 'Contact removed';
 
   @override

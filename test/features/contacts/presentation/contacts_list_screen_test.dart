@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
+import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
 import 'package:hmm_console/features/contacts/presentation/screens/contacts_list_screen.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,6 +76,50 @@ void main() {
     expect(find.text('Bob Stone'), findsNothing);
   });
 
+  testWidgets('search matches an email and a formatted phone by digits', (
+    tester,
+  ) async {
+    const withEmail = Contact(
+      id: 'e',
+      contactType: ContactType.person,
+      firstName: 'Eve',
+      emails: [ContactEmail(label: 'work', address: 'Eve@Example.com')],
+    );
+    const withPhone = Contact(
+      id: 'p',
+      contactType: ContactType.person,
+      firstName: 'Pat',
+      phones: [ContactPhone(label: 'mobile', number: '(555) 010-0')],
+    );
+    await _mount(
+      tester,
+      _repo(
+        InMemoryContactRepository()
+          ..seed(withEmail)
+          ..seed(withPhone),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'example.COM');
+    await tester.pumpAndSettle();
+    expect(find.text('Eve'), findsOneWidget);
+    expect(find.text('Pat'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), '5550100');
+    await tester.pumpAndSettle();
+    expect(find.text('Pat'), findsOneWidget);
+    expect(find.text('Eve'), findsNothing);
+  });
+
+  testWidgets('a non-cloudApi load failure shows a localized message', (
+    tester,
+  ) async {
+    final repo = _ThrowingRepo();
+    await _mount(tester, _repo(repo));
+    expect(find.text('Could not load contacts'), findsOneWidget);
+    expect(find.textContaining('boom'), findsNothing);
+  });
+
   testWidgets('an insurer is listed under Providers, family under Family', (
     tester,
   ) async {
@@ -131,4 +176,10 @@ void main() {
     expect(find.byTooltip('Add contact'), findsOneWidget);
     expect(find.byIcon(Icons.help_outline), findsOneWidget);
   });
+}
+
+class _ThrowingRepo extends InMemoryContactRepository {
+  @override
+  Future<List<Contact>> getContacts({bool includeDeactivated = false}) async =>
+      throw StateError('boom');
 }

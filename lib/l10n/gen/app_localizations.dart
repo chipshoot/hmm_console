@@ -3860,6 +3860,12 @@ abstract class AppLocalizations {
   /// **'Contacts are available in Local and Cloud storage modes. Switch data mode in Settings to use them.'**
   String get contactsCloudApiUnavailable;
 
+  /// No description provided for @contactsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load contacts'**
+  String get contactsLoadFailed;
+
   /// No description provided for @contactDeactivated.
   ///
   /// In en, this message translates to:
