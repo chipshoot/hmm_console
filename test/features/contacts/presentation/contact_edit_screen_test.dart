@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
+import 'package:hmm_console/features/contacts/states/contacts_state.dart';
 import 'package:hmm_console/features/contacts/presentation/screens/contact_edit_screen.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
@@ -230,6 +231,83 @@ void main() {
     await tester.enterText(find.byKey(const Key('contact-notes')), '');
     await _save(tester);
     expect((await repo.getContact('d1'))!.notes, isNull);
+  });
+
+  testWidgets('saving an organization drops the hidden person names',
+      (tester) async {
+    final repo = await _mount(tester, contactId: 'd1', seed: _doc);
+    await tester.tap(find.text(_l.contactTypeOrganization));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('contact-org-name')), 'Clinic');
+    await _save(tester);
+    final saved = (await repo.getContact('d1'))!;
+    expect(saved.organizationName, 'Clinic');
+    expect(saved.firstName, isNull);
+    expect(saved.lastName, isNull);
+  });
+
+  testWidgets('saving a person drops the hidden organization name',
+      (tester) async {
+    final repo = await _mount(tester);
+    await tester.tap(find.text(_l.contactTypeOrganization));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('contact-org-name')), 'Clinic');
+    await tester.tap(find.text(_l.contactTypePerson));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('contact-first-name')), 'Sam');
+    await _save(tester);
+    final saved = (await repo.getContacts()).single;
+    expect(saved.firstName, 'Sam');
+    expect(saved.organizationName, isNull);
+  });
+
+  testWidgets('editing keeps unknown relationship, label and extra fields',
+      (tester) async {
+    const odd = Contact(
+      id: 'o1',
+      contactType: ContactType.person,
+      firstName: 'Ola',
+      relationship: ContactRelationship(rawCategory: 'astronaut'),
+      phones: [
+        ContactPhone(
+          label: 'carrier-pigeon',
+          number: '1',
+          extraFields: {'ext': '12'},
+        ),
+      ],
+    );
+    final repo = await _mount(tester, contactId: 'o1', seed: odd);
+    await _scrollTo(tester, find.byKey(const Key('contact-notes')));
+    await tester.enterText(find.byKey(const Key('contact-notes')), 'hi');
+    await _save(tester);
+    final saved = (await repo.getContact('o1'))!;
+    expect(saved.notes, 'hi');
+    expect(saved.relationship.storedCategoryName, 'astronaut');
+    expect(saved.phones.single.label, 'carrier-pigeon');
+    expect(saved.phones.single.extraFields, {'ext': '12'});
+  });
+
+  testWidgets(
+      'the edit session is pinned: a stored change mid-edit does not reset '
+      'it, and a tap after a successful save is ignored', (tester) async {
+    final repo = await _mount(tester, contactId: 'd1', seed: _doc);
+    await tester.enterText(find.byKey(const Key('contact-first-name')), 'Dan');
+    // The stored contact changes under the open form.
+    repo.seed(_doc.copyWith(lastName: 'Changed'));
+    ProviderScope.containerOf(tester.element(find.byType(ContactEditScreen)))
+        .invalidate(contactsStateProvider);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('contact-first-name')), findsOneWidget);
+
+    final save = find.byKey(const Key('contact-save'));
+    await tester.tap(save);
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(save, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(repo.saveCalls, 1);
+    final saved = (await repo.getContact('d1'))!;
+    expect(saved.firstName, 'Dan', reason: 'what is on screen is saved');
   });
 
   testWidgets(

@@ -117,10 +117,14 @@ class ContactEditState extends Notifier<ContactEditData> {
   /// The contact as it will be stored: names trimmed, empty rows dropped.
   Contact _normalized() {
     final c = state.contact;
+    // The inactive type's names are nulled here, not on toggle, so toggling
+    // back and forth before saving keeps the typed text but nothing hidden
+    // is persisted.
+    final isOrg = c.contactType == ContactType.organization;
     return c.copyWith(
-      firstName: _blankToNull(c.firstName),
-      lastName: _blankToNull(c.lastName),
-      organizationName: _blankToNull(c.organizationName),
+      firstName: isOrg ? null : _blankToNull(c.firstName),
+      lastName: isOrg ? null : _blankToNull(c.lastName),
+      organizationName: isOrg ? _blankToNull(c.organizationName) : null,
       phones: c.phones.where((p) => p.number.trim().isNotEmpty).toList(),
       emails: c.emails.where((e) => e.address.trim().isNotEmpty).toList(),
       addresses: c.addresses.where((a) => a.value.trim().isNotEmpty).toList(),

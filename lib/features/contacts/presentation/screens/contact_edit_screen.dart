@@ -14,14 +14,24 @@ import 'contact_detail_screen.dart' show contactByIdProvider;
 
 /// Create ([contactId] null) or edit one contact. After a successful save it
 /// pops: to the list when creating, to the detail screen when editing.
-class ContactEditScreen extends ConsumerWidget {
+class ContactEditScreen extends ConsumerStatefulWidget {
   const ContactEditScreen({super.key, this.contactId});
 
   final String? contactId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final id = contactId;
+  ConsumerState<ContactEditScreen> createState() => _ContactEditScreenState();
+}
+
+class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
+  /// The contact as first loaded. Pinned so the edit session (its provider
+  /// key, in-flight guard and controllers) stays stable even if the stored
+  /// contact changes mid-edit or right after a save, before the pop.
+  Contact? _pinned;
+
+  @override
+  Widget build(BuildContext context) {
+    final id = widget.contactId;
     if (id == null) {
       return const _ContactForm(
         initial: Contact(id: '', contactType: ContactType.person),
@@ -30,7 +40,7 @@ class ContactEditScreen extends ConsumerWidget {
     }
     final l = AppLocalizations.of(context);
     final async = ref.watch(contactByIdProvider(id));
-    final contact = async.value;
+    final contact = _pinned ??= async.value;
     if (contact != null) return _ContactForm(initial: contact, isCreate: false);
     return Scaffold(
       appBar: AppBar(actions: const [HelpButton(helpId: HelpId.contactEdit)]),
