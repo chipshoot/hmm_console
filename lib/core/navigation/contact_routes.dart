@@ -32,7 +32,6 @@ final contactRoutes = <RouteBase>[
         // key under context.go and reuse the previous contact's State.
         builder: (context, state) => ContactDetailScreen(
           key: ValueKey('contact-detail-${state.pathParameters['id']}'),
-
           contactId: state.pathParameters['id']!,
         ),
         routes: [
@@ -43,7 +42,6 @@ final contactRoutes = <RouteBase>[
             // reset on a contactId change, so each id needs its own State.
             builder: (context, state) => ContactEditScreen(
               key: ValueKey('contact-edit-${state.pathParameters['id']}'),
-
               contactId: state.pathParameters['id']!,
             ),
           ),

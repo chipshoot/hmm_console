@@ -173,7 +173,7 @@ List<LauncherDestination> _allLauncherDestinations(AppLocalizations l) => [
           'doctor',
           'phone book',
           'address book',
-          '联系人', '通讯录', '电话簿',
+          '联系人', '通讯录', '电话簿', '医生',
         ],
         icon: Icons.contacts_outlined,
         routeName: 'contacts',

@@ -19,9 +19,9 @@ import '../contact_labels.dart';
 /// navigation.
 final contactEditProvider = Provider<void Function(BuildContext, String)>(
   (ref) => (context, id) => context.pushNamed(
-      RouterNames.contactEdit.name,
-      pathParameters: {'id': id},
-    ),
+    RouterNames.contactEdit.name,
+    pathParameters: {'id': id},
+  ),
 );
 
 /// Resolves by id through the repository, not the active-only list, so a

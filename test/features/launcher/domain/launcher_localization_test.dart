@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/navigation/route_names.dart';
 import 'package:hmm_console/features/launcher/domain/launcher_matcher.dart';
 import 'package:hmm_console/features/launcher/domain/launcher_registry.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -47,11 +48,18 @@ void main() {
     });
   });
 
+  test('contacts destination points at the contacts route', () {
+    expect(launcherDestinationsById(en)['contacts']!.routeName,
+        RouterNames.contacts.name);
+  });
+
   group('titles are translated', () {
     test('destination titles render in Chinese', () {
       final byId = launcherDestinationsById(zh);
       expect(byId['gasLog']!.title, '加油记录');
       expect(byId['cheatsheets']!.title, '速查卡');
+      expect(byId['contacts']!.title, '联系人');
+      expect(launcherDestinationsById(en)['contacts']!.title, 'Contacts');
       // Negative too: a locale falling back to English would still be non-empty.
       expect(byId['gasLog']!.title,
           isNot(launcherDestinationsById(en)['gasLog']!.title));
@@ -91,6 +99,17 @@ void main() {
       final hits =
           match('速查卡', registry: launcherDestinations(zh), aliases: {});
       expect(hits.map((d) => d.id), contains('cheatsheets'));
+    });
+
+    test('contacts is found by English and Chinese terms in either UI', () {
+      for (final l in [en, zh]) {
+        final reg = launcherDestinations(l);
+        for (final q in ['doctor', '医生', 'contacts', '联系人']) {
+          expect(match(q, registry: reg, aliases: {}).map((d) => d.id),
+              contains('contacts'),
+              reason: '"$q" should find contacts');
+        }
+      }
     });
   });
 }

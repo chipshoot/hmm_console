@@ -3,19 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
 import 'package:hmm_console/core/navigation/contact_routes.dart';
-import 'package:hmm_console/core/data/repository_providers.dart';
-import 'package:hmm_console/features/contacts/presentation/screens/contacts_list_screen.dart';
-import '../contacts/data/contact_repository_fakes.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_wallet_screen.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
+import 'package:hmm_console/features/contacts/presentation/screens/contacts_list_screen.dart';
 import 'package:hmm_console/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:hmm_console/features/dashboard/providers/intro_card_provider.dart';
+
+import '../contacts/data/contact_repository_fakes.dart';
 
 /// A signed-in user short-circuits `_restoreUserIfNeeded`, so the dashboard
 /// never reaches IdpTokenService and no token fake is needed.
@@ -111,10 +112,10 @@ void main() {
           syncControllerProvider.overrideWithValue(_IdleSync()),
         ],
         child: MaterialApp.router(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: router,
-    ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
       ),
     );
     await tester.pumpAndSettle();
