@@ -28,9 +28,8 @@ final cheatsheetRoutes = <RouteBase>[
       GoRoute(
         path: ':id',
         name: RouterNames.cheatsheetDetail.name,
-        builder: (context, state) => CheatsheetDetailScreen(
-          cardId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            CheatsheetDetailScreen(cardId: state.pathParameters['id']!),
         routes: [
           GoRoute(
             path: 'edit',

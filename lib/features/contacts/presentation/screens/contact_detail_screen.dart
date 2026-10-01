@@ -6,6 +6,7 @@ import '../../../../core/data/repository_providers.dart';
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
 import '../../../../core/help/undoable_action.dart';
+import '../../../../core/navigation/route_names.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../../cheatsheet/data/cheatsheet_launcher.dart';
@@ -15,9 +16,12 @@ import '../../states/contacts_state.dart';
 import '../contact_labels.dart';
 
 /// Opens the edit screen for a contact. Overridable so tests can assert the
-/// navigation; Task 8 switches it to named routes.
+/// navigation.
 final contactEditProvider = Provider<void Function(BuildContext, String)>(
-  (ref) => (context, id) => context.push('/contacts/$id/edit'),
+  (ref) => (context, id) => context.pushNamed(
+      RouterNames.contactEdit.name,
+      pathParameters: {'id': id},
+    ),
 );
 
 /// Resolves by id through the repository, not the active-only list, so a

@@ -163,6 +163,22 @@ List<LauncherDestination> _allLauncherDestinations(AppLocalizations l) => [
         routeName: 'cheatsheets',
       ),
       LauncherDestination(
+        id: 'contacts',
+        title: l.contactsTitle,
+        synonyms: const [
+          'Contacts',
+          'contact',
+          'people',
+          'person',
+          'doctor',
+          'phone book',
+          'address book',
+          '联系人', '通讯录', '电话簿',
+        ],
+        icon: Icons.contacts_outlined,
+        routeName: 'contacts',
+      ),
+      LauncherDestination(
         // Literal id and routeName: favorites persist by id, so a
         // locale-dependent one would orphan every favorite the moment the UI
         // language changed. Only the title is localized, and the English

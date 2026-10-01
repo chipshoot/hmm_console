@@ -5,6 +5,10 @@ import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
+import 'package:hmm_console/core/navigation/contact_routes.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
+import 'package:hmm_console/features/contacts/presentation/screens/contacts_list_screen.dart';
+import '../contacts/data/contact_repository_fakes.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
@@ -84,6 +88,51 @@ void main() {
     // SnackBar and goes nowhere — so assert both the arrival and the absence
     // of that fallback.
     expect(find.byType(CheatsheetWalletScreen), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing,
+        reason: 'not the "coming soon" fallback');
+  });
+
+  testWidgets('the Contacts tile opens the contacts list', (tester) async {
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
+        ...contactRoutes,
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith(_SignedIn.new),
+          introCardSeenProvider.overrideWith(_IntroSeen.new),
+          contactRepositoryModeProvider
+              .overrideWithValue(InMemoryContactRepository()),
+          syncControllerProvider.overrideWithValue(_IdleSync()),
+        ],
+        child: MaterialApp.router(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: router,
+    ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tile = find.text('Contacts');
+    expect(tile, findsOneWidget, reason: 'the dashboard offers the feature');
+
+    await tester.ensureVisible(tile);
+    await tester.pumpAndSettle();
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+
+    // The real assertion: the tile's route string, the switch case and the
+    // RouterNames entry all line up. A typo in any one of them drops the tap
+    // into the dashboard's `default:` branch, which shows a "coming soon"
+    // SnackBar and goes nowhere — so assert both the arrival and the absence
+    // of that fallback.
+    expect(find.byType(ContactsListScreen), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing,
         reason: 'not the "coming soon" fallback');
   });

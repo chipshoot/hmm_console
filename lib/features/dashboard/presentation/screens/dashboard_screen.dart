@@ -83,6 +83,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       route: "cheatsheets",
     ),
     AppFunction(
+      icon: "\uD83D\uDCC7",
+      title: "Contacts",
+      description: "People and places",
+      route: "contacts",
+    ),
+    AppFunction(
       icon: "\uD83C\uDF24\uFE0F",
       title: "Weather",
       description: "Current forecast",
@@ -291,7 +297,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              function.title,
+              function.route == 'contacts'
+                  ? AppLocalizations.of(context).contactsTitle
+                  : function.title,
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.onSurface,
@@ -474,6 +482,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         context.push('/notes');
       case 'cheatsheets':
         context.pushNamed(RouterNames.cheatsheets.name);
+      case 'contacts':
+        context.pushNamed(RouterNames.contacts.name);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

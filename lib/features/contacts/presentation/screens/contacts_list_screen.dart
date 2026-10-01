@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
+import '../../../../core/navigation/route_names.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/i_contact_repository.dart';
@@ -52,7 +53,7 @@ class ContactsListScreen extends ConsumerStatefulWidget {
 class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
   String _query = '';
 
-  void _add() => context.push('/contacts/new');
+  void _add() => context.pushNamed(RouterNames.contactCreate.name);
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +164,10 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
               for (final c in members)
                 ContactTile(
                   contact: c,
-                  onTap: () => context.push('/contacts/${c.id}'),
+                  onTap: () => context.pushNamed(
+                    RouterNames.contactDetail.name,
+                    pathParameters: {'id': c.id},
+                  ),
                 ),
             ];
           }(),

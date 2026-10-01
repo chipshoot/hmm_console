@@ -35,6 +35,10 @@ enum RouterNames {
   cheatsheetCreate,
   cheatsheetDetail,
   cheatsheetEdit,
+  contacts,
+  contactCreate,
+  contactDetail,
+  contactEdit,
   driverLicence,
   driverLicenceShow,
 }

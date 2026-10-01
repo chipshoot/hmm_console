@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/navigation/auth_change_provider.dart';
 import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
+import 'package:hmm_console/core/navigation/contact_routes.dart';
 import 'package:hmm_console/core/navigation/onboarding_redirect.dart';
 import 'package:hmm_console/core/navigation/route_names.dart';
 import 'package:hmm_console/core/settings/settings_controller.dart';
@@ -73,8 +74,7 @@ final routerConfig = Provider<GoRouter>(
       // starts at initialLocation and threw the user back to the dashboard.
       return onboardingRedirect(
         isAuthenticated: isAuthenticated,
-        settingsLoaded:
-            ref.watch(settingsProvider.select((s) => s.hasValue)),
+        settingsLoaded: ref.watch(settingsProvider.select((s) => s.hasValue)),
         onboardingCompleted: ref.watch(onboardingCompletedProvider),
         isOnboardingPath: state.fullPath == '/onboarding',
       );
@@ -116,14 +116,12 @@ final routerConfig = Provider<GoRouter>(
           GoRoute(
             path: 'manage',
             name: RouterNames.automobileManagement.name,
-            builder: (context, state) =>
-                const AutomobileManagementScreen(),
+            builder: (context, state) => const AutomobileManagementScreen(),
             routes: [
               GoRoute(
                 path: 'new',
                 name: RouterNames.automobileCreate.name,
-                builder: (context, state) =>
-                    const AutomobileCreateScreen(),
+                builder: (context, state) => const AutomobileCreateScreen(),
               ),
               GoRoute(
                 path: ':id/edit',
@@ -154,8 +152,9 @@ final routerConfig = Provider<GoRouter>(
                     name: RouterNames.insurancePolicyEdit.name,
                     builder: (context, state) {
                       final id = int.parse(state.pathParameters['id']!);
-                      final policyId =
-                          int.parse(state.pathParameters['policyId']!);
+                      final policyId = int.parse(
+                        state.pathParameters['policyId']!,
+                      );
                       return InsurancePolicyFormScreen(
                         automobileId: id,
                         policyId: policyId,
@@ -185,8 +184,9 @@ final routerConfig = Provider<GoRouter>(
                     name: RouterNames.serviceRecordEdit.name,
                     builder: (context, state) {
                       final id = int.parse(state.pathParameters['id']!);
-                      final recordId =
-                          int.parse(state.pathParameters['recordId']!);
+                      final recordId = int.parse(
+                        state.pathParameters['recordId']!,
+                      );
                       return ServiceRecordFormScreen(
                         automobileId: id,
                         recordId: recordId,
@@ -216,8 +216,9 @@ final routerConfig = Provider<GoRouter>(
                     name: RouterNames.scheduledServiceEdit.name,
                     builder: (context, state) {
                       final id = int.parse(state.pathParameters['id']!);
-                      final scheduleId =
-                          int.parse(state.pathParameters['scheduleId']!);
+                      final scheduleId = int.parse(
+                        state.pathParameters['scheduleId']!,
+                      );
                       return ScheduledServiceFormScreen(
                         automobileId: id,
                         scheduleId: scheduleId,
@@ -278,6 +279,7 @@ final routerConfig = Provider<GoRouter>(
         ],
       ),
       ...cheatsheetRoutes,
+      ...contactRoutes,
       ...driverLicenceRoutes,
       GoRoute(
         path: '/notes',
@@ -290,7 +292,8 @@ final routerConfig = Provider<GoRouter>(
             builder: (context, state) {
               final p = state.uri.queryParameters['parent'];
               return NoteEditorScreen(
-                  presetParentId: p == null ? null : int.tryParse(p));
+                presetParentId: p == null ? null : int.tryParse(p),
+              );
             },
           ),
           GoRoute(
