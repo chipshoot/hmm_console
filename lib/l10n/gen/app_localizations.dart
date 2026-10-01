@@ -3613,6 +3613,468 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Detach note'**
   String get notesDetachTooltip;
+
+  /// No description provided for @contactsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get contactsTitle;
+
+  /// No description provided for @contactsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No contacts yet'**
+  String get contactsEmpty;
+
+  /// No description provided for @contactsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search contacts'**
+  String get contactsSearchHint;
+
+  /// No description provided for @contactAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add contact'**
+  String get contactAdd;
+
+  /// No description provided for @contactEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit contact'**
+  String get contactEdit;
+
+  /// No description provided for @contactDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete contact'**
+  String get contactDelete;
+
+  /// No description provided for @contactTypePerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Person'**
+  String get contactTypePerson;
+
+  /// No description provided for @contactTypeOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization'**
+  String get contactTypeOrganization;
+
+  /// No description provided for @contactFirstName.
+  ///
+  /// In en, this message translates to:
+  /// **'First name'**
+  String get contactFirstName;
+
+  /// No description provided for @contactLastName.
+  ///
+  /// In en, this message translates to:
+  /// **'Last name'**
+  String get contactLastName;
+
+  /// No description provided for @contactOrganizationName.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization name'**
+  String get contactOrganizationName;
+
+  /// No description provided for @contactPhones.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones'**
+  String get contactPhones;
+
+  /// No description provided for @contactEmails.
+  ///
+  /// In en, this message translates to:
+  /// **'Emails'**
+  String get contactEmails;
+
+  /// No description provided for @contactAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'Addresses'**
+  String get contactAddresses;
+
+  /// No description provided for @contactNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get contactNotes;
+
+  /// No description provided for @contactIsSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'This is me'**
+  String get contactIsSelf;
+
+  /// No description provided for @contactIsSelfHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only one contact can be marked as you'**
+  String get contactIsSelfHint;
+
+  /// No description provided for @contactRelationship.
+  ///
+  /// In en, this message translates to:
+  /// **'Relationship'**
+  String get contactRelationship;
+
+  /// No description provided for @contactAddPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Add phone'**
+  String get contactAddPhone;
+
+  /// No description provided for @contactAddEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Add email'**
+  String get contactAddEmail;
+
+  /// No description provided for @contactAddAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Add address'**
+  String get contactAddAddress;
+
+  /// No description provided for @contactNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A contact needs a name'**
+  String get contactNameRequired;
+
+  /// No description provided for @contactGroupFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get contactGroupFamily;
+
+  /// No description provided for @contactGroupProviders.
+  ///
+  /// In en, this message translates to:
+  /// **'Providers'**
+  String get contactGroupProviders;
+
+  /// No description provided for @contactGroupOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get contactGroupOther;
+
+  /// No description provided for @relationshipSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'Me'**
+  String get relationshipSelf;
+
+  /// No description provided for @relationshipSpouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Spouse'**
+  String get relationshipSpouse;
+
+  /// No description provided for @relationshipParent.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent'**
+  String get relationshipParent;
+
+  /// No description provided for @relationshipChild.
+  ///
+  /// In en, this message translates to:
+  /// **'Child'**
+  String get relationshipChild;
+
+  /// No description provided for @relationshipFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get relationshipFamily;
+
+  /// No description provided for @relationshipFriend.
+  ///
+  /// In en, this message translates to:
+  /// **'Friend'**
+  String get relationshipFriend;
+
+  /// No description provided for @relationshipDoctor.
+  ///
+  /// In en, this message translates to:
+  /// **'Doctor'**
+  String get relationshipDoctor;
+
+  /// No description provided for @relationshipPharmacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Pharmacy'**
+  String get relationshipPharmacy;
+
+  /// No description provided for @relationshipInsurer.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurer'**
+  String get relationshipInsurer;
+
+  /// No description provided for @relationshipOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get relationshipOther;
+
+  /// No description provided for @fieldLabelMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile'**
+  String get fieldLabelMobile;
+
+  /// No description provided for @fieldLabelHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get fieldLabelHome;
+
+  /// No description provided for @fieldLabelWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get fieldLabelWork;
+
+  /// No description provided for @fieldLabelPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal'**
+  String get fieldLabelPersonal;
+
+  /// No description provided for @fieldLabelOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get fieldLabelOther;
+
+  /// No description provided for @contactsCloudApiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts are available in Local and Cloud storage modes. Switch data mode in Settings to use them.'**
+  String get contactsCloudApiUnavailable;
+
+  /// No description provided for @contactDeactivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact removed'**
+  String get contactDeactivated;
+
+  /// No description provided for @contactDeactivateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not remove the contact'**
+  String get contactDeactivateFailed;
+
+  /// No description provided for @contactDeactivateUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact restored'**
+  String get contactDeactivateUndone;
+
+  /// No description provided for @contactDeactivateUndoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not restore the contact'**
+  String get contactDeactivateUndoFailed;
+
+  /// No description provided for @contactAddTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add contact'**
+  String get contactAddTooltip;
+
+  /// No description provided for @contactEditTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit contact'**
+  String get contactEditTooltip;
+
+  /// No description provided for @contactRemoveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove contact'**
+  String get contactRemoveTooltip;
+
+  /// No description provided for @contactRemoveFieldTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this entry'**
+  String get contactRemoveFieldTooltip;
+
+  /// No description provided for @helpContactsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get helpContactsTitle;
+
+  /// No description provided for @helpContactsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your address book: people and organizations you keep in touch with.'**
+  String get helpContactsSummary;
+
+  /// No description provided for @helpContactsAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add contact'**
+  String get helpContactsAddTitle;
+
+  /// No description provided for @helpContactsAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Creates a new contact, either a person or an organization.'**
+  String get helpContactsAddBody;
+
+  /// No description provided for @helpContactsSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get helpContactsSearchTitle;
+
+  /// No description provided for @helpContactsSearchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to filter contacts by name, phone or email.'**
+  String get helpContactsSearchBody;
+
+  /// No description provided for @helpContactsSelfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Me'**
+  String get helpContactsSelfTitle;
+
+  /// No description provided for @helpContactsSelfBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The Me contact holds your own details. Tap it to view or edit them.'**
+  String get helpContactsSelfBody;
+
+  /// No description provided for @helpContactDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get helpContactDetailTitle;
+
+  /// No description provided for @helpContactDetailSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything saved about this contact.'**
+  String get helpContactDetailSummary;
+
+  /// No description provided for @helpContactDetailCallTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Call or email'**
+  String get helpContactDetailCallTitle;
+
+  /// No description provided for @helpContactDetailCallBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a phone number or email address to call or write to this contact.'**
+  String get helpContactDetailCallBody;
+
+  /// No description provided for @helpContactDetailMapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in maps'**
+  String get helpContactDetailMapTitle;
+
+  /// No description provided for @helpContactDetailMapBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap an address to see it on a map.'**
+  String get helpContactDetailMapBody;
+
+  /// No description provided for @helpContactDetailEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get helpContactDetailEditTitle;
+
+  /// No description provided for @helpContactDetailEditBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Change this contact\'s name, details or relationship.'**
+  String get helpContactDetailEditBody;
+
+  /// No description provided for @helpContactDetailRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get helpContactDetailRemoveTitle;
+
+  /// No description provided for @helpContactDetailRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes this contact from your list. Tap Undo right after to bring it back.'**
+  String get helpContactDetailRemoveBody;
+
+  /// No description provided for @helpContactEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit contact'**
+  String get helpContactEditTitle;
+
+  /// No description provided for @helpContactEditSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the contact\'s name and details, then save.'**
+  String get helpContactEditSummary;
+
+  /// No description provided for @helpContactEditTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Person or organization'**
+  String get helpContactEditTypeTitle;
+
+  /// No description provided for @helpContactEditTypeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose whether this is a person or an organization. This decides which name fields you see.'**
+  String get helpContactEditTypeBody;
+
+  /// No description provided for @helpContactEditFieldsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones, emails and addresses'**
+  String get helpContactEditFieldsTitle;
+
+  /// No description provided for @helpContactEditFieldsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add as many as you need and label each one, such as Mobile or Work.'**
+  String get helpContactEditFieldsBody;
+
+  /// No description provided for @helpContactEditRelationshipTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Relationship'**
+  String get helpContactEditRelationshipTitle;
+
+  /// No description provided for @helpContactEditRelationshipBody.
+  ///
+  /// In en, this message translates to:
+  /// **'How this contact relates to you. For example, a family doctor is a Doctor.'**
+  String get helpContactEditRelationshipBody;
+
+  /// No description provided for @helpContactEditSelfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This is me'**
+  String get helpContactEditSelfTitle;
+
+  /// No description provided for @helpContactEditSelfBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Marks this contact as yourself. Only one contact can be marked.'**
+  String get helpContactEditSelfBody;
 }
 
 class _AppLocalizationsDelegate

@@ -1956,4 +1956,235 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesDetachTooltip => '取消关联备注';
+
+  @override
+  String get contactsTitle => '联系人';
+
+  @override
+  String get contactsEmpty => '暂无联系人';
+
+  @override
+  String get contactsSearchHint => '搜索联系人';
+
+  @override
+  String get contactAdd => '添加联系人';
+
+  @override
+  String get contactEdit => '编辑联系人';
+
+  @override
+  String get contactDelete => '删除联系人';
+
+  @override
+  String get contactTypePerson => '个人';
+
+  @override
+  String get contactTypeOrganization => '机构';
+
+  @override
+  String get contactFirstName => '名';
+
+  @override
+  String get contactLastName => '姓';
+
+  @override
+  String get contactOrganizationName => '机构名称';
+
+  @override
+  String get contactPhones => '电话';
+
+  @override
+  String get contactEmails => '电子邮箱';
+
+  @override
+  String get contactAddresses => '地址';
+
+  @override
+  String get contactNotes => '备注';
+
+  @override
+  String get contactIsSelf => '这是我';
+
+  @override
+  String get contactIsSelfHint => '只能有一个联系人标记为本人';
+
+  @override
+  String get contactRelationship => '关系';
+
+  @override
+  String get contactAddPhone => '添加电话';
+
+  @override
+  String get contactAddEmail => '添加邮箱';
+
+  @override
+  String get contactAddAddress => '添加地址';
+
+  @override
+  String get contactNameRequired => '联系人需要名称';
+
+  @override
+  String get contactGroupFamily => '家人';
+
+  @override
+  String get contactGroupProviders => '服务提供方';
+
+  @override
+  String get contactGroupOther => '其他';
+
+  @override
+  String get relationshipSelf => '本人';
+
+  @override
+  String get relationshipSpouse => '配偶';
+
+  @override
+  String get relationshipParent => '父母';
+
+  @override
+  String get relationshipChild => '子女';
+
+  @override
+  String get relationshipFamily => '家人';
+
+  @override
+  String get relationshipFriend => '朋友';
+
+  @override
+  String get relationshipDoctor => '医生';
+
+  @override
+  String get relationshipPharmacy => '药房';
+
+  @override
+  String get relationshipInsurer => '保险';
+
+  @override
+  String get relationshipOther => '其他';
+
+  @override
+  String get fieldLabelMobile => '手机';
+
+  @override
+  String get fieldLabelHome => '住宅';
+
+  @override
+  String get fieldLabelWork => '工作';
+
+  @override
+  String get fieldLabelPersonal => '个人';
+
+  @override
+  String get fieldLabelOther => '其他';
+
+  @override
+  String get contactsCloudApiUnavailable => '联系人仅在本地和云存储模式下可用。请在设置中切换数据模式。';
+
+  @override
+  String get contactDeactivated => '联系人已移除';
+
+  @override
+  String get contactDeactivateFailed => '无法移除联系人';
+
+  @override
+  String get contactDeactivateUndone => '联系人已恢复';
+
+  @override
+  String get contactDeactivateUndoFailed => '无法恢复联系人';
+
+  @override
+  String get contactAddTooltip => '添加联系人';
+
+  @override
+  String get contactEditTooltip => '编辑联系人';
+
+  @override
+  String get contactRemoveTooltip => '移除联系人';
+
+  @override
+  String get contactRemoveFieldTooltip => '移除此项';
+
+  @override
+  String get helpContactsTitle => '联系人';
+
+  @override
+  String get helpContactsSummary => '你的通讯录：保存你联系的人和机构。';
+
+  @override
+  String get helpContactsAddTitle => '添加联系人';
+
+  @override
+  String get helpContactsAddBody => '新建联系人，可以是个人或机构。';
+
+  @override
+  String get helpContactsSearchTitle => '搜索';
+
+  @override
+  String get helpContactsSearchBody => '输入文字，按姓名、电话或邮箱筛选联系人。';
+
+  @override
+  String get helpContactsSelfTitle => '本人';
+
+  @override
+  String get helpContactsSelfBody => '“本人”联系人保存你自己的信息。点按即可查看或编辑。';
+
+  @override
+  String get helpContactDetailTitle => '联系人';
+
+  @override
+  String get helpContactDetailSummary => '这位联系人的全部信息。';
+
+  @override
+  String get helpContactDetailCallTitle => '拨打或发邮件';
+
+  @override
+  String get helpContactDetailCallBody => '点按电话号码或邮箱地址，即可拨打电话或发送邮件。';
+
+  @override
+  String get helpContactDetailMapTitle => '在地图中打开';
+
+  @override
+  String get helpContactDetailMapBody => '点按地址，在地图中查看。';
+
+  @override
+  String get helpContactDetailEditTitle => '编辑';
+
+  @override
+  String get helpContactDetailEditBody => '修改联系人的名称、详细信息或关系。';
+
+  @override
+  String get helpContactDetailRemoveTitle => '移除';
+
+  @override
+  String get helpContactDetailRemoveBody => '将此联系人从列表中移除。移除后立即点按“撤销”即可恢复。';
+
+  @override
+  String get helpContactEditTitle => '编辑联系人';
+
+  @override
+  String get helpContactEditSummary => '填写联系人的名称和详细信息，然后保存。';
+
+  @override
+  String get helpContactEditTypeTitle => '个人或机构';
+
+  @override
+  String get helpContactEditTypeBody => '选择这是个人还是机构，这会决定显示哪些名称栏。';
+
+  @override
+  String get helpContactEditFieldsTitle => '电话、邮箱和地址';
+
+  @override
+  String get helpContactEditFieldsBody => '可添加多个，并为每个设置标签，如手机或工作。';
+
+  @override
+  String get helpContactEditRelationshipTitle => '关系';
+
+  @override
+  String get helpContactEditRelationshipBody => '这位联系人与你的关系。例如，家庭医生选“医生”。';
+
+  @override
+  String get helpContactEditSelfTitle => '这是我';
+
+  @override
+  String get helpContactEditSelfBody => '将此联系人标记为你本人。只能标记一个联系人。';
 }

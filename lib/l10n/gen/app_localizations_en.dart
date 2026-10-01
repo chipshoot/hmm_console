@@ -2007,4 +2007,248 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesDetachTooltip => 'Detach note';
+
+  @override
+  String get contactsTitle => 'Contacts';
+
+  @override
+  String get contactsEmpty => 'No contacts yet';
+
+  @override
+  String get contactsSearchHint => 'Search contacts';
+
+  @override
+  String get contactAdd => 'Add contact';
+
+  @override
+  String get contactEdit => 'Edit contact';
+
+  @override
+  String get contactDelete => 'Delete contact';
+
+  @override
+  String get contactTypePerson => 'Person';
+
+  @override
+  String get contactTypeOrganization => 'Organization';
+
+  @override
+  String get contactFirstName => 'First name';
+
+  @override
+  String get contactLastName => 'Last name';
+
+  @override
+  String get contactOrganizationName => 'Organization name';
+
+  @override
+  String get contactPhones => 'Phones';
+
+  @override
+  String get contactEmails => 'Emails';
+
+  @override
+  String get contactAddresses => 'Addresses';
+
+  @override
+  String get contactNotes => 'Notes';
+
+  @override
+  String get contactIsSelf => 'This is me';
+
+  @override
+  String get contactIsSelfHint => 'Only one contact can be marked as you';
+
+  @override
+  String get contactRelationship => 'Relationship';
+
+  @override
+  String get contactAddPhone => 'Add phone';
+
+  @override
+  String get contactAddEmail => 'Add email';
+
+  @override
+  String get contactAddAddress => 'Add address';
+
+  @override
+  String get contactNameRequired => 'A contact needs a name';
+
+  @override
+  String get contactGroupFamily => 'Family';
+
+  @override
+  String get contactGroupProviders => 'Providers';
+
+  @override
+  String get contactGroupOther => 'Other';
+
+  @override
+  String get relationshipSelf => 'Me';
+
+  @override
+  String get relationshipSpouse => 'Spouse';
+
+  @override
+  String get relationshipParent => 'Parent';
+
+  @override
+  String get relationshipChild => 'Child';
+
+  @override
+  String get relationshipFamily => 'Family';
+
+  @override
+  String get relationshipFriend => 'Friend';
+
+  @override
+  String get relationshipDoctor => 'Doctor';
+
+  @override
+  String get relationshipPharmacy => 'Pharmacy';
+
+  @override
+  String get relationshipInsurer => 'Insurer';
+
+  @override
+  String get relationshipOther => 'Other';
+
+  @override
+  String get fieldLabelMobile => 'Mobile';
+
+  @override
+  String get fieldLabelHome => 'Home';
+
+  @override
+  String get fieldLabelWork => 'Work';
+
+  @override
+  String get fieldLabelPersonal => 'Personal';
+
+  @override
+  String get fieldLabelOther => 'Other';
+
+  @override
+  String get contactsCloudApiUnavailable =>
+      'Contacts are available in Local and Cloud storage modes. Switch data mode in Settings to use them.';
+
+  @override
+  String get contactDeactivated => 'Contact removed';
+
+  @override
+  String get contactDeactivateFailed => 'Could not remove the contact';
+
+  @override
+  String get contactDeactivateUndone => 'Contact restored';
+
+  @override
+  String get contactDeactivateUndoFailed => 'Could not restore the contact';
+
+  @override
+  String get contactAddTooltip => 'Add contact';
+
+  @override
+  String get contactEditTooltip => 'Edit contact';
+
+  @override
+  String get contactRemoveTooltip => 'Remove contact';
+
+  @override
+  String get contactRemoveFieldTooltip => 'Remove this entry';
+
+  @override
+  String get helpContactsTitle => 'Contacts';
+
+  @override
+  String get helpContactsSummary =>
+      'Your address book: people and organizations you keep in touch with.';
+
+  @override
+  String get helpContactsAddTitle => 'Add contact';
+
+  @override
+  String get helpContactsAddBody =>
+      'Creates a new contact, either a person or an organization.';
+
+  @override
+  String get helpContactsSearchTitle => 'Search';
+
+  @override
+  String get helpContactsSearchBody =>
+      'Type to filter contacts by name, phone or email.';
+
+  @override
+  String get helpContactsSelfTitle => 'Me';
+
+  @override
+  String get helpContactsSelfBody =>
+      'The Me contact holds your own details. Tap it to view or edit them.';
+
+  @override
+  String get helpContactDetailTitle => 'Contact';
+
+  @override
+  String get helpContactDetailSummary => 'Everything saved about this contact.';
+
+  @override
+  String get helpContactDetailCallTitle => 'Call or email';
+
+  @override
+  String get helpContactDetailCallBody =>
+      'Tap a phone number or email address to call or write to this contact.';
+
+  @override
+  String get helpContactDetailMapTitle => 'Open in maps';
+
+  @override
+  String get helpContactDetailMapBody => 'Tap an address to see it on a map.';
+
+  @override
+  String get helpContactDetailEditTitle => 'Edit';
+
+  @override
+  String get helpContactDetailEditBody =>
+      'Change this contact\'s name, details or relationship.';
+
+  @override
+  String get helpContactDetailRemoveTitle => 'Remove';
+
+  @override
+  String get helpContactDetailRemoveBody =>
+      'Removes this contact from your list. Tap Undo right after to bring it back.';
+
+  @override
+  String get helpContactEditTitle => 'Edit contact';
+
+  @override
+  String get helpContactEditSummary =>
+      'Enter the contact\'s name and details, then save.';
+
+  @override
+  String get helpContactEditTypeTitle => 'Person or organization';
+
+  @override
+  String get helpContactEditTypeBody =>
+      'Choose whether this is a person or an organization. This decides which name fields you see.';
+
+  @override
+  String get helpContactEditFieldsTitle => 'Phones, emails and addresses';
+
+  @override
+  String get helpContactEditFieldsBody =>
+      'Add as many as you need and label each one, such as Mobile or Work.';
+
+  @override
+  String get helpContactEditRelationshipTitle => 'Relationship';
+
+  @override
+  String get helpContactEditRelationshipBody =>
+      'How this contact relates to you. For example, a family doctor is a Doctor.';
+
+  @override
+  String get helpContactEditSelfTitle => 'This is me';
+
+  @override
+  String get helpContactEditSelfBody =>
+      'Marks this contact as yourself. Only one contact can be marked.';
 }
