@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_launcher.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
+import 'package:hmm_console/features/contacts/data/i_contact_repository.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
 import 'package:hmm_console/features/contacts/presentation/screens/contact_detail_screen.dart';
@@ -30,8 +31,9 @@ Future<InMemoryContactRepository> _mount(
   Contact? seed,
   List<(ValueAction, String)>? launched,
   List<String>? edits,
+  InMemoryContactRepository? repository,
 }) async {
-  final repo = InMemoryContactRepository();
+  final repo = repository ?? InMemoryContactRepository();
   if (seed != null) repo.seed(seed);
   final List<Override> overrides = [
     contactRepositoryModeProvider.overrideWithValue(repo),
@@ -137,5 +139,40 @@ void main() {
     await tester.pumpAndSettle();
     expect((await repo.getContact('d1'))!.isActivated, isTrue);
     expect(find.text('Contact restored'), findsOneWidget);
+  });
+
+  testWidgets('a failed remove says so and stays on the screen',
+      (tester) async {
+    final repo = InMemoryContactRepository()
+      ..throwOnDeactivate = const ContactNotFound('d1');
+    await _mount(tester, id: 'd1', seed: _doc, repository: repo);
+    await tester.tap(find.byTooltip('Remove contact'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not remove the contact'), findsOneWidget);
+    expect(find.text('Contact removed'), findsNothing);
+    expect(find.text('Dana Reyes'), findsOneWidget);
+  });
+
+  testWidgets('a failed Undo says restore failed', (tester) async {
+    final repo = await _mount(tester, id: 'd1', seed: _doc);
+    await tester.tap(find.byTooltip('Remove contact'));
+    await tester.pumpAndSettle();
+    expect(find.text('Contact removed'), findsOneWidget);
+
+    repo.throwOnSave = const ContactNotFound('d1');
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Could not restore the contact'), findsOneWidget);
+    expect(find.text('Contact restored'), findsNothing);
+  });
+
+  testWidgets('an unreadable contact shows load-failed, not not-found',
+      (tester) async {
+    final repo = InMemoryContactRepository()
+      ..throwOnGet = const ContactUnreadable('d1');
+    await _mount(tester, id: 'd1', repository: repo);
+    expect(find.text('Could not load contacts'), findsOneWidget);
+    expect(find.text('This contact no longer exists'), findsNothing);
   });
 }

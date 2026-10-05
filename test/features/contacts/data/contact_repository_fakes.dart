@@ -97,6 +97,13 @@ class InMemoryContactRepository implements IContactRepository {
   int saveCalls = 0;
   int _nextId = 1;
 
+  /// When set, the matching call throws it (after any write it would make
+  /// for [throwAfterSave], to model a partially applied multi-write).
+  Object? throwOnGet;
+  Object? throwOnSave;
+  Object? throwAfterSave;
+  Object? throwOnDeactivate;
+
   void seed(Contact c) => _byId[c.id] = c;
 
   @override
@@ -104,10 +111,14 @@ class InMemoryContactRepository implements IContactRepository {
       _byId.values.where((c) => includeDeactivated || c.isActivated).toList();
 
   @override
-  Future<Contact?> getContact(String id) async => _byId[id];
+  Future<Contact?> getContact(String id) async {
+    if (throwOnGet != null) throw throwOnGet!;
+    return _byId[id];
+  }
 
   @override
   Future<Contact> saveContact(Contact contact) async {
+    if (throwOnSave != null) throw throwOnSave!;
     saveCalls++;
     final saved = contact.id.isEmpty
         ? contact.copyWith(id: 'gen-${_nextId++}')
@@ -120,12 +131,15 @@ class InMemoryContactRepository implements IContactRepository {
       }
     }
     _byId[saved.id] = saved;
+    if (throwAfterSave != null) throw throwAfterSave!;
     return saved;
   }
 
   @override
   Future<void> deactivateContact(String id) async {
+    if (throwOnDeactivate != null) throw throwOnDeactivate!;
     final c = _byId[id];
-    if (c != null) _byId[id] = c.copyWith(isActivated: false);
+    if (c == null) throw ContactNotFound(id);
+    _byId[id] = c.copyWith(isActivated: false);
   }
 }

@@ -26,6 +26,30 @@ bool isContactsCloudApiUnavailable(Object error) {
   return e is ContactsCloudApiUnavailable;
 }
 
+/// No contact is stored under [id]. Thrown by a write that needs an existing
+/// contact (deactivate, restore) so it cannot report success after writing
+/// nothing.
+class ContactNotFound implements Exception {
+  const ContactNotFound(this.id);
+
+  final String id;
+
+  @override
+  String toString() => 'ContactNotFound($id)';
+}
+
+/// A note is stored under [id]'s subject but its contact JSON cannot be
+/// decoded. Distinct from absent: the data exists and must not be treated as
+/// gone (or overwritten as if it were).
+class ContactUnreadable implements Exception {
+  const ContactUnreadable(this.id);
+
+  final String id;
+
+  @override
+  String toString() => 'ContactUnreadable($id)';
+}
+
 /// CRUD over contacts, keyed by the contact's own stable [Contact.id] rather
 /// than any storage-local identity.
 abstract interface class IContactRepository {
@@ -33,6 +57,9 @@ abstract interface class IContactRepository {
   /// still resolves by id so references to it degrade rather than dangle.
   Future<List<Contact>> getContacts({bool includeDeactivated = false});
 
+  /// Null when nothing is stored under [id] (a blank [id] is always absent).
+  /// Throws [ContactUnreadable] when a note is stored under [id] but cannot
+  /// be decoded.
   Future<Contact?> getContact(String id);
 
   /// Upsert by [Contact.id]. A blank id means "create" and is minted here;
@@ -43,6 +70,8 @@ abstract interface class IContactRepository {
   /// see the whole collection.
   Future<Contact> saveContact(Contact contact);
 
-  /// Soft delete.
+  /// Soft delete. Throws [ContactNotFound] when nothing is stored under [id]
+  /// (including a blank [id]) and [ContactUnreadable] when it cannot be
+  /// decoded; it never returns without writing.
   Future<void> deactivateContact(String id);
 }

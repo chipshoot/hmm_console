@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/local_contact_repository.dart';
+import 'package:hmm_console/features/contacts/data/i_contact_repository.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
@@ -106,8 +107,14 @@ void main() {
 
     expect(await repo.getContacts(includeDeactivated: true), isEmpty);
     expect(await repo.getContact(''), isNull);
-    await repo.deactivateContact(''); // no-op, must not throw or write
+    // Blank id is never an identity: deactivating it is "not found", and it
+    // writes nothing.
+    await expectLater(
+      repo.deactivateContact(''),
+      throwsA(isA<ContactNotFound>()),
+    );
     expect(notes.stored, hasLength(1));
+    expect(notes.stored.single.content, contains('"firstName":"X"'));
   });
 
   test('saving over an unreadable note updates it, not a duplicate', () async {
@@ -191,5 +198,43 @@ void main() {
     ));
     final json = jsonDecode(notes.stored.single.content!) as Map;
     expect(json['note']['content']['Contact']['firstName'], 'C');
+  });
+
+  group('not found and unreadable are reported, never silent', () {
+    test('deactivating an unknown id throws ContactNotFound', () async {
+      await expectLater(
+        repo.deactivateContact('nope'),
+        throwsA(isA<ContactNotFound>().having((e) => e.id, 'id', 'nope')),
+      );
+      expect(notes.stored, isEmpty);
+    });
+
+    test('getContact on an unreadable note throws ContactUnreadable', () async {
+      notes.stored.add(_rawNote(90, contactSubjectFor('u1'), 'not json'));
+      await expectLater(
+        repo.getContact('u1'),
+        throwsA(isA<ContactUnreadable>().having((e) => e.id, 'id', 'u1')),
+      );
+    });
+
+    test('getContact on a note with no Contact payload throws unreadable',
+        () async {
+      notes.stored.add(_rawNote(
+          91, contactSubjectFor('u2'), jsonEncode({'note': {'content': {}}})));
+      await expectLater(
+          repo.getContact('u2'), throwsA(isA<ContactUnreadable>()));
+    });
+
+    test('getContact on an absent id still returns null', () async {
+      expect(await repo.getContact('absent'), isNull);
+    });
+
+    test('deactivating an unreadable contact throws and writes nothing',
+        () async {
+      notes.stored.add(_rawNote(92, contactSubjectFor('u3'), 'not json'));
+      await expectLater(
+          repo.deactivateContact('u3'), throwsA(isA<ContactUnreadable>()));
+      expect(notes.stored.single.content, 'not json');
+    });
   });
 }

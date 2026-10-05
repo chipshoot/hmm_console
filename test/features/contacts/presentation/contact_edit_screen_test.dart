@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
+import 'package:hmm_console/features/contacts/data/i_contact_repository.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
 import 'package:hmm_console/features/contacts/states/contacts_state.dart';
@@ -332,6 +333,15 @@ void main() {
       expect((await repo.getContacts()).length, 1);
     },
   );
+
+  testWidgets('an unreadable contact shows load-failed, not not-found',
+      (tester) async {
+    final repo = InMemoryContactRepository()
+      ..throwOnGet = const ContactUnreadable('d1');
+    await _mountWith(tester, repo, contactId: 'd1');
+    expect(find.text(_l.contactsLoadFailed), findsOneWidget);
+    expect(find.text(_l.contactNotFound), findsNothing);
+  });
 }
 
 /// Holds saveContact open until [gate] completes, so a second tap lands while

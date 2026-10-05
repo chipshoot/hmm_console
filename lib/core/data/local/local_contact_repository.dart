@@ -144,10 +144,15 @@ class LocalContactRepository implements IContactRepository {
 
   @override
   Future<Contact?> getContact(String id) async {
+    // A blank id is never an identity, so it is always absent.
     if (id.isEmpty) return null;
     final subject = contactSubjectFor(id);
     for (final n in await _allNotes()) {
-      if (n.subject == subject) return _deserialize(n);
+      if (n.subject == subject) {
+        // Stored but undecodable is not "absent": callers must not treat the
+        // data as gone (deactivate would otherwise report success).
+        return _deserialize(n) ?? (throw ContactUnreadable(id));
+      }
     }
     return null;
   }
@@ -211,8 +216,10 @@ class LocalContactRepository implements IContactRepository {
 
   @override
   Future<void> deactivateContact(String id) async {
+    // Throws ContactUnreadable for an undecodable note; absent (including a
+    // blank id) is ContactNotFound - never a silent success.
     final existing = await getContact(id);
-    if (existing == null) return;
+    if (existing == null) throw ContactNotFound(id);
     await _write(existing.copyWith(isActivated: false));
   }
 }
