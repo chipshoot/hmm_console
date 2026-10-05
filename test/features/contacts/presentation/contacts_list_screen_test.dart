@@ -239,10 +239,33 @@ void main() {
     expect(find.byTooltip('Add contact'), findsOneWidget);
     expect(find.byIcon(Icons.help_outline), findsOneWidget);
   });
+
+  testWidgets('a load failure logs the error type, never its text', (
+    tester,
+  ) async {
+    final logs = await _captureLogs(
+        () => _mount(tester, _repo(_ThrowingRepo())));
+    expect(logs.join('\n'), contains('StateError'));
+    expect(logs.join('\n'), isNot(contains('boom')));
+  });
 }
 
 class _ThrowingRepo extends InMemoryContactRepository {
   @override
   Future<List<Contact>> getContacts({bool includeDeactivated = false}) async =>
       throw StateError('boom');
+}
+
+/// Captures debugPrint output for [body], restoring it before returning (the
+/// widget binding checks debugPrint is unchanged before tear-downs run).
+Future<List<String>> _captureLogs(Future<void> Function() body) async {
+  final logs = <String>[];
+  final saved = debugPrint;
+  debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+  try {
+    await body();
+  } finally {
+    debugPrint = saved;
+  }
+  return logs;
 }

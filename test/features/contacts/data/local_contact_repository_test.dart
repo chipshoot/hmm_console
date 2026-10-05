@@ -252,4 +252,25 @@ void main() {
     expect(logs.join('\n'), contains('95'));
     expect(logs.join('\n'), isNot(contains('555-SECRET')));
   });
+
+  test('a routine update logs nothing', () async {
+    final saved = await repo.saveContact(person('Ada'));
+    final logs = await _captureLogs(
+        () => repo.saveContact(saved.copyWith(firstName: 'Grace')));
+    expect(logs, isEmpty);
+  });
+}
+
+/// Captures debugPrint output for [body], restoring it before returning (the
+/// widget binding checks debugPrint is unchanged before tear-downs run).
+Future<List<String>> _captureLogs(Future<void> Function() body) async {
+  final logs = <String>[];
+  final saved = debugPrint;
+  debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+  try {
+    await body();
+  } finally {
+    debugPrint = saved;
+  }
+  return logs;
 }

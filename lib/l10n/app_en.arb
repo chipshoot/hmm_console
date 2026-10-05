@@ -368,34 +368,13 @@
   },
   "cheatsheetWalletTitle": "Cheatsheets",
   "cheatsheetNew": "New cheatsheet",
-  "cheatsheetLoadFailed": "Could not load your cheatsheets.\n{error}",
-  "@cheatsheetLoadFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "cheatsheetLoadFailed": "Could not load your cheatsheets.",
   "cheatsheetEmpty": "No cheatsheets yet. Tap + to make one.",
   "cheatsheetSearchHint": "Search cheatsheets",
   "cheatsheetNoMatches": "Nothing matches that search.",
   "cheatsheetGone": "That cheatsheet no longer exists.",
-  "cheatsheetSaveFailed": "Could not save this cheatsheet: {error}",
-  "@cheatsheetSaveFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
-  "cheatsheetDeleteFailed": "Could not delete this cheatsheet: {error}",
-  "@cheatsheetDeleteFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "cheatsheetSaveFailed": "Could not save this cheatsheet.",
+  "cheatsheetDeleteFailed": "Could not delete this cheatsheet.",
   "cheatsheetDeleteTitle": "Delete this cheatsheet?",
   "cheatsheetEditTooltip": "Edit cheatsheet",
   "cheatsheetDeleteTooltip": "Delete cheatsheet",

@@ -115,11 +115,12 @@ class CheatsheetDetailScreen extends ConsumerWidget {
     } catch (e) {
       // A delete that silently didn't happen is worse than one that failed
       // loudly — the user walks away believing the card is gone.
-      debugPrint('CheatsheetDetail: deleting card $cardId failed ($e); '
-          'the card is still stored.');
+      // Type only: the error text can quote stored values.
+      debugPrint('CheatsheetDetail: deleting card $cardId failed '
+          '(${e.runtimeType}); the card is still stored.');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.cheatsheetDeleteFailed('$e'))),
+        SnackBar(content: Text(l.cheatsheetDeleteFailed)),
       );
       return;
     }

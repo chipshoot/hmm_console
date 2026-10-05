@@ -587,9 +587,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cheatsheetNew => '新建速查卡';
 
   @override
-  String cheatsheetLoadFailed(String error) {
-    return '无法加载速查卡。\n$error';
-  }
+  String get cheatsheetLoadFailed => '无法加载速查卡。';
 
   @override
   String get cheatsheetEmpty => '暂无速查卡。点击 + 新建一张。';
@@ -604,14 +602,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cheatsheetGone => '这张速查卡已不存在。';
 
   @override
-  String cheatsheetSaveFailed(String error) {
-    return '无法保存这张速查卡：$error';
-  }
+  String get cheatsheetSaveFailed => '无法保存这张速查卡。';
 
   @override
-  String cheatsheetDeleteFailed(String error) {
-    return '无法删除这张速查卡：$error';
-  }
+  String get cheatsheetDeleteFailed => '无法删除这张速查卡。';
 
   @override
   String get cheatsheetDeleteTitle => '删除这张速查卡？';

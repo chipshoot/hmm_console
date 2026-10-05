@@ -246,4 +246,23 @@ void main() {
       expect(NotePieceExtractor.fieldPaths(content), ['DriverLicence.number']);
     });
   });
+
+  test('isDeactivated follows the contact codec for malformed values', () {
+    for (final raw in ['"false"', '0', '"0"']) {
+      expect(
+        NotePieceExtractor.isDeactivated(
+            '{"note":{"content":{"Contact":{"isActivated":$raw}}}}'),
+        isTrue,
+        reason: raw,
+      );
+    }
+    for (final raw in ['"yes"', '1', '"true"', 'null']) {
+      expect(
+        NotePieceExtractor.isDeactivated(
+            '{"note":{"content":{"Contact":{"isActivated":$raw}}}}'),
+        isFalse,
+        reason: raw,
+      );
+    }
+  });
 }

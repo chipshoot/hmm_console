@@ -398,6 +398,21 @@ void main() {
     expect(find.text(_l.contactsLoadFailed), findsOneWidget);
     expect(find.text(_l.contactNotFound), findsNothing);
   });
+
+  testWidgets('a failed save logs the error type, never the contact', (
+    tester,
+  ) async {
+    final repo = InMemoryContactRepository()
+      // Like SqliteException, whose text appends the bound contact JSON.
+      ..throwOnSave = StateError('{"firstName":"Dana","phone":"604-555-0100"}');
+    repo.seed(_doc);
+    await _mountWith(tester, repo, contactId: 'd1');
+    final logs = await _captureLogs(() => _save(tester));
+    expect(find.text(_l.contactSaveFailed), findsOneWidget);
+    expect(logs.join('\n'), contains('StateError'));
+    expect(logs.join('\n'), isNot(contains('Dana')));
+    expect(logs.join('\n'), isNot(contains('555-0100')));
+  });
 }
 
 /// Holds saveContact open until [gate] completes, so a second tap lands while
@@ -412,4 +427,18 @@ class _GatedRepository extends InMemoryContactRepository {
     await gate.future;
     return result;
   }
+}
+
+/// Captures debugPrint output for [body], restoring it before returning (the
+/// widget binding checks debugPrint is unchanged before tear-downs run).
+Future<List<String>> _captureLogs(Future<void> Function() body) async {
+  final logs = <String>[];
+  final saved = debugPrint;
+  debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+  try {
+    await body();
+  } finally {
+    debugPrint = saved;
+  }
+  return logs;
 }

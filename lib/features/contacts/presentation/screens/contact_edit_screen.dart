@@ -105,7 +105,9 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
       final saved = await notifier.save();
       if (saved && navigator.mounted) navigator.pop();
     } catch (e) {
-      debugPrint('ContactEdit: save failed ($e)');
+      // Type only: SqliteException's text appends the bound parameters,
+      // i.e. the whole contact JSON.
+      debugPrint('ContactEdit: save failed (${e.runtimeType})');
       messenger.showSnackBar(SnackBar(content: Text(l.contactSaveFailed)));
     }
   }

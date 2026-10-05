@@ -201,4 +201,10 @@ void main() {
     await mount(tester, failing: true);
     expect(find.byKey(const Key('wallet-error')), findsOneWidget);
   });
+
+  testWidgets('a load failure never shows the exception text', (tester) async {
+    await mount(tester, failing: true);
+    expect(find.text('Could not load your cheatsheets.'), findsOneWidget);
+    expect(find.textContaining('boom'), findsNothing);
+  });
 }

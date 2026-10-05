@@ -35,10 +35,16 @@ class NotePieceExtractor {
     final root = _entityMap(content);
     if (root == null) return false;
     for (final v in root.values) {
-      if (v is Map && v['isActivated'] == false) return true;
+      if (v is Map && _deactivated(v['isActivated'])) return true;
     }
     return false;
   }
+
+  /// Same rule as `ContactCodec`: `false`, `"false"`, `0` and `"0"` are
+  /// deactivated, so a contact hidden from the list also reads as removed on
+  /// a card. Anything else (absent included) is active.
+  static bool _deactivated(Object? v) =>
+      v == false || v == 'false' || v == 0 || v == '0';
 
   static const _internalKeys = {
     '_v',

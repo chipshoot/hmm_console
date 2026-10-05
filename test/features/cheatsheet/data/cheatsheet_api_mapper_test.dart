@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/cheatsheet/data/mappers/cheatsheet_api_mapper.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
@@ -152,4 +153,33 @@ void main() {
       expect(decoded.rows.single.valueAction, ValueAction.none);
     });
   });
+
+  test('an unreadable row is logged by type only, never its message', () async {
+    final logs = await _captureLogs(() async {
+      CheatsheetApiMapper.fromApi({
+        'Id': 'c-1',
+        'Rows': [
+          {'Label': 'Dr', 'ValueAction': 'teleport'},
+        ],
+      });
+    });
+    expect(logs, hasLength(1));
+    expect(logs.single, contains('c-1'));
+    expect(logs.single, isNot(contains('No element')));
+    expect(logs.single, isNot(contains('teleport')));
+  });
+}
+
+/// Captures debugPrint output for [body], restoring it before returning (the
+/// widget binding checks debugPrint is unchanged before tear-downs run).
+Future<List<String>> _captureLogs(Future<void> Function() body) async {
+  final logs = <String>[];
+  final saved = debugPrint;
+  debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+  try {
+    await body();
+  } finally {
+    debugPrint = saved;
+  }
+  return logs;
 }

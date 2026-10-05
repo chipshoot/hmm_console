@@ -42,8 +42,14 @@ class _SeededCheatsheets extends CheatsheetsState {
   @override
   Future<List<CheatsheetCard>> build() async => seed;
 
+  /// When set, [remove] throws it instead of removing.
+  static Object? removeError;
+
   @override
-  Future<void> remove(String id) async => removed.add(id);
+  Future<void> remove(String id) async {
+    if (removeError != null) throw removeError!;
+    removed.add(id);
+  }
 }
 
 final autoNote = HmmNote(
@@ -266,6 +272,25 @@ void main() {
       expect(find.byType(AlertDialog), findsNothing);
     });
 
+    testWidgets('a failed delete says so without the exception text',
+        (tester) async {
+      _SeededCheatsheets.removeError = StateError('/vault/secret-path');
+      addTearDown(() => _SeededCheatsheets.removeError = null);
+      await mount(tester);
+
+      await tester.tap(find.byKey(const Key('detail-delete')));
+      await tester.pumpAndSettle();
+      final logs = await _captureLogs(() async {
+        await tester.tap(find.byKey(const Key('delete-confirm')));
+        await tester.pumpAndSettle();
+      });
+
+      expect(find.text('Could not delete this cheatsheet.'), findsOneWidget);
+      expect(find.textContaining('secret-path'), findsNothing);
+      expect(logs.join('\n'), contains('StateError'));
+      expect(logs.join('\n'), isNot(contains('secret-path')));
+    });
+
     testWidgets('confirming deletes this card', (tester) async {
       await mount(tester);
 
@@ -401,4 +426,18 @@ class _StubVault extends VaultSessionController {
   VaultStatus build() => _status;
   @override
   Future<void> refresh() async => state = _status;
+}
+
+/// Captures debugPrint output for [body], restoring it before returning (the
+/// widget binding checks debugPrint is unchanged before tear-downs run).
+Future<List<String>> _captureLogs(Future<void> Function() body) async {
+  final logs = <String>[];
+  final saved = debugPrint;
+  debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+  try {
+    await body();
+  } finally {
+    debugPrint = saved;
+  }
+  return logs;
 }

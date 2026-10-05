@@ -102,7 +102,8 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                   const Center(child: CircularProgressIndicator.adaptive()),
               error: (e, _) {
                 if (!isContactsCloudApiUnavailable(e)) {
-                  debugPrint('Contacts failed to load: $e');
+                  // Type only: the error text can quote stored contact data.
+                  debugPrint('Contacts failed to load (${e.runtimeType})');
                 }
                 return Center(
                   child: Padding(

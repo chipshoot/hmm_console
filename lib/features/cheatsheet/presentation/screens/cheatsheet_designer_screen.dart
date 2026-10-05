@@ -181,11 +181,12 @@ class _CheatsheetDesignerScreenState
       if (mounted) await Navigator.of(context).maybePop();
     } catch (e) {
       // Losing a card the user just filled in must not look like success.
-      debugPrint('CheatsheetDesigner: saving card $cardId failed ($e); '
-          'nothing was written.');
+      // Type only: the error text can quote the card's values.
+      debugPrint('CheatsheetDesigner: saving card $cardId failed '
+          '(${e.runtimeType}); nothing was written.');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.cheatsheetSaveFailed('$e'))),
+        SnackBar(content: Text(l.cheatsheetSaveFailed)),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

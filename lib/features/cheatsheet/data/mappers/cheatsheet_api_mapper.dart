@@ -52,7 +52,7 @@ class CheatsheetApiMapper {
         if (kept) unreadable.add(e.cast<String, dynamic>());
         debugPrint(
           'CheatsheetApiMapper: card ${_str(m['Id'])} row $index is unreadable '
-          '($err); ${kept ? 'preserved verbatim' : 'dropped - not a map'}.',
+          '(${err.runtimeType}); ${kept ? 'preserved verbatim' : 'dropped - not a map'}.',
         );
       }
       index++;

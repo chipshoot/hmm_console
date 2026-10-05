@@ -69,9 +69,6 @@ class LocalContactRepository implements IContactRepository {
       // the only value replaced. Logged so the replacement is diagnosable.
       debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
           'had no note.content object; rebuilt it, kept top-level keys.');
-    } else {
-      debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
-          'updated in place; sibling keys kept.');
     }
     content['Contact'] = ContactCodec.toMap(c);
     note['content'] = content;

@@ -1085,8 +1085,8 @@ abstract class AppLocalizations {
   /// No description provided for @cheatsheetLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not load your cheatsheets.\n{error}'**
-  String cheatsheetLoadFailed(String error);
+  /// **'Could not load your cheatsheets.'**
+  String get cheatsheetLoadFailed;
 
   /// No description provided for @cheatsheetEmpty.
   ///
@@ -1115,14 +1115,14 @@ abstract class AppLocalizations {
   /// No description provided for @cheatsheetSaveFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not save this cheatsheet: {error}'**
-  String cheatsheetSaveFailed(String error);
+  /// **'Could not save this cheatsheet.'**
+  String get cheatsheetSaveFailed;
 
   /// No description provided for @cheatsheetDeleteFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not delete this cheatsheet: {error}'**
-  String cheatsheetDeleteFailed(String error);
+  /// **'Could not delete this cheatsheet.'**
+  String get cheatsheetDeleteFailed;
 
   /// No description provided for @cheatsheetDeleteTitle.
   ///

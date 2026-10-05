@@ -612,9 +612,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cheatsheetNew => 'New cheatsheet';
 
   @override
-  String cheatsheetLoadFailed(String error) {
-    return 'Could not load your cheatsheets.\n$error';
-  }
+  String get cheatsheetLoadFailed => 'Could not load your cheatsheets.';
 
   @override
   String get cheatsheetEmpty => 'No cheatsheets yet. Tap + to make one.';
@@ -629,14 +627,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cheatsheetGone => 'That cheatsheet no longer exists.';
 
   @override
-  String cheatsheetSaveFailed(String error) {
-    return 'Could not save this cheatsheet: $error';
-  }
+  String get cheatsheetSaveFailed => 'Could not save this cheatsheet.';
 
   @override
-  String cheatsheetDeleteFailed(String error) {
-    return 'Could not delete this cheatsheet: $error';
-  }
+  String get cheatsheetDeleteFailed => 'Could not delete this cheatsheet.';
 
   @override
   String get cheatsheetDeleteTitle => 'Delete this cheatsheet?';

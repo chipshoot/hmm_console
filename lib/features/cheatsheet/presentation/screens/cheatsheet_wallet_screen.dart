@@ -61,11 +61,12 @@ class _CheatsheetWalletScreenState
       ),
       body: cards.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
+        // Never the exception text on screen: it can quote stored values.
+        error: (_, _) => Center(
           key: const Key('wallet-error'),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(l.cheatsheetLoadFailed('$e')),
+            child: Text(l.cheatsheetLoadFailed),
           ),
         ),
         data: _body,

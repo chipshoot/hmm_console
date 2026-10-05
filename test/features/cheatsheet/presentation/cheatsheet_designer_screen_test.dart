@@ -23,8 +23,14 @@ class _CapturingCheatsheets extends CheatsheetsState {
   @override
   Future<List<CheatsheetCard>> build() async => seed;
 
+  /// When set, [save] throws it instead of saving.
+  static Object? saveError;
+
   @override
-  Future<void> save(CheatsheetCard card) async => saved.add(card);
+  Future<void> save(CheatsheetCard card) async {
+    if (saveError != null) throw saveError!;
+    saved.add(card);
+  }
 }
 
 const existingCard = CheatsheetCard(
@@ -365,4 +371,37 @@ void main() {
       expect(find.byKey(const Key('designer-not-found')), findsOneWidget);
     });
   });
+
+  testWidgets('a failed save says so without the exception text',
+      (tester) async {
+    _CapturingCheatsheets.saveError = StateError('{"plate":"SECRET1"}');
+    addTearDown(() => _CapturingCheatsheets.saveError = null);
+    await mount(tester);
+    await tester.tap(find.byKey(const Key('template-accidentClaim')));
+    await tester.pumpAndSettle();
+
+    final logs = await _captureLogs(() async {
+      await tester.tap(find.byKey(const Key('designer-save')));
+      await tester.pumpAndSettle();
+    });
+
+    expect(find.text('Could not save this cheatsheet.'), findsOneWidget);
+    expect(find.textContaining('SECRET1'), findsNothing);
+    expect(logs.join('\n'), contains('StateError'));
+    expect(logs.join('\n'), isNot(contains('SECRET1')));
+  });
+}
+
+/// Captures debugPrint output for [body], restoring it before returning (the
+/// widget binding checks debugPrint is unchanged before tear-downs run).
+Future<List<String>> _captureLogs(Future<void> Function() body) async {
+  final logs = <String>[];
+  final saved = debugPrint;
+  debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+  try {
+    await body();
+  } finally {
+    debugPrint = saved;
+  }
+  return logs;
 }
