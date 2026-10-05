@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/core/data/local/local_contact_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
@@ -17,6 +18,15 @@ class _StubMode extends DataModeNotifier {
   final DataMode _m;
   @override
   DataMode build() => _m;
+}
+
+/// A data mode the test can switch while the screen stays mounted.
+class _SwitchableMode extends DataModeNotifier {
+  _SwitchableMode(this._m);
+  final DataMode _m;
+  @override
+  DataMode build() => _m;
+  void switchTo(DataMode m) => state = m;
 }
 
 const _ada = Contact(
@@ -190,6 +200,38 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Unimplemented'), findsNothing);
+  });
+
+  testWidgets('switching data mode while mounted swaps list and message', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await _mount(tester, [
+      dataModeProvider.overrideWith(() => _SwitchableMode(DataMode.local)),
+      localContactRepositoryProvider.overrideWithValue(
+        InMemoryContactRepository()..seed(_ada),
+      ),
+    ]);
+    expect(find.text('Ada Lovelace'), findsOneWidget);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ContactsListScreen)),
+    );
+    final mode = container.read(dataModeProvider.notifier) as _SwitchableMode;
+
+    mode.switchTo(DataMode.cloudApi);
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining(
+        'Contacts are available in Local and Cloud storage modes',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Ada Lovelace'), findsNothing);
+
+    mode.switchTo(DataMode.local);
+    await tester.pumpAndSettle();
+    expect(find.text('Ada Lovelace'), findsOneWidget);
   });
 
   testWidgets('has a help button and an add control', (tester) async {

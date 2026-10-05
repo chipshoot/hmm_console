@@ -10,9 +10,11 @@ import '../domain/entities/contact.dart';
 /// always re-read from storage rather than patched in memory - the repository
 /// owns the isSelf rule, and mirroring it here is how the two would drift.
 class ContactsState extends AsyncNotifier<List<Contact>> {
+  /// Watches the repository so a data-mode switch rebuilds the list (or
+  /// surfaces the cloudApi "unavailable" error). Action methods `ref.read`.
   @override
   Future<List<Contact>> build() =>
-      ref.read(contactRepositoryModeProvider).getContacts();
+      ref.watch(contactRepositoryModeProvider).getContacts();
 
   // Each mutation invalidates in `finally`: a write that fails part-way (the
   // isSelf rule touches several notes) must not leave a stale list.
