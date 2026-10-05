@@ -8,6 +8,7 @@ class ContactPhone {
     required this.label,
     required this.number,
     this.extraFields = const {},
+    this.rawKnownValues = const {},
   });
 
   final String label;
@@ -15,6 +16,11 @@ class ContactPhone {
 
   /// Unknown keys from the stored entry, preserved verbatim on save.
   final Map<String, dynamic> extraFields;
+
+  /// Known keys whose stored value had the wrong type, kept verbatim and
+  /// written back while the typed field still holds its decode default; see
+  /// `ContactCodec`.
+  final Map<String, dynamic> rawKnownValues;
 
   ContactPhone copyWith({
     String? label,
@@ -25,6 +31,7 @@ class ContactPhone {
         label: label ?? this.label,
         number: number ?? this.number,
         extraFields: extraFields ?? this.extraFields,
+        rawKnownValues: rawKnownValues,
       );
 
   @override
@@ -41,6 +48,7 @@ class ContactEmail {
     required this.label,
     required this.address,
     this.extraFields = const {},
+    this.rawKnownValues = const {},
   });
 
   final String label;
@@ -48,6 +56,11 @@ class ContactEmail {
 
   /// Unknown keys from the stored entry, preserved verbatim on save.
   final Map<String, dynamic> extraFields;
+
+  /// Known keys whose stored value had the wrong type, kept verbatim and
+  /// written back while the typed field still holds its decode default; see
+  /// `ContactCodec`.
+  final Map<String, dynamic> rawKnownValues;
 
   ContactEmail copyWith({
     String? label,
@@ -58,6 +71,7 @@ class ContactEmail {
         label: label ?? this.label,
         address: address ?? this.address,
         extraFields: extraFields ?? this.extraFields,
+        rawKnownValues: rawKnownValues,
       );
 
   @override
@@ -74,6 +88,7 @@ class ContactAddress {
     required this.label,
     required this.value,
     this.extraFields = const {},
+    this.rawKnownValues = const {},
   });
 
   final String label;
@@ -86,6 +101,11 @@ class ContactAddress {
   /// Unknown keys from the stored entry, preserved verbatim on save.
   final Map<String, dynamic> extraFields;
 
+  /// Known keys whose stored value had the wrong type, kept verbatim and
+  /// written back while the typed field still holds its decode default; see
+  /// `ContactCodec`.
+  final Map<String, dynamic> rawKnownValues;
+
   ContactAddress copyWith({
     String? label,
     String? value,
@@ -95,6 +115,7 @@ class ContactAddress {
         label: label ?? this.label,
         value: value ?? this.value,
         extraFields: extraFields ?? this.extraFields,
+        rawKnownValues: rawKnownValues,
       );
 
   @override

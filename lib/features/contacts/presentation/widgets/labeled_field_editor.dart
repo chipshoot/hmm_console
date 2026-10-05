@@ -5,27 +5,36 @@ import '../../../../l10n/gen/app_localizations.dart';
 import '../contact_labels.dart';
 
 /// One editable (label, value) row. [label] is the STORED literal
-/// (`mobile`), never its display text. [extraFields] rides along untouched so
-/// a save here cannot drop keys a newer client wrote.
+/// (`mobile`), never its display text. [extraFields] and [rawKnownValues]
+/// ride along untouched so a save here cannot drop keys a newer client wrote
+/// or a stored value this version could not read.
 class LabeledFieldEntry {
   const LabeledFieldEntry({
     required this.label,
     required this.value,
     this.extraFields = const {},
+    this.rawKnownValues = const {},
   });
 
   final String label;
   final String value;
   final Map<String, dynamic> extraFields;
+  final Map<String, dynamic> rawKnownValues;
 }
 
 class _Row {
-  _Row(this.id, this.label, String value, this.extraFields)
-    : controller = TextEditingController(text: value);
+  _Row(
+    this.id,
+    this.label,
+    String value,
+    this.extraFields, [
+    this.rawKnownValues = const {},
+  ]) : controller = TextEditingController(text: value);
 
   final int id;
   String label;
   final Map<String, dynamic> extraFields;
+  final Map<String, dynamic> rawKnownValues;
   final TextEditingController controller;
 }
 
@@ -72,7 +81,7 @@ class _LabeledFieldEditorState extends State<LabeledFieldEditor> {
     super.initState();
     _rows = [
       for (final e in widget.initial)
-        _Row(_nextId++, e.label, e.value, e.extraFields),
+        _Row(_nextId++, e.label, e.value, e.extraFields, e.rawKnownValues),
     ];
   }
 
@@ -90,6 +99,7 @@ class _LabeledFieldEditorState extends State<LabeledFieldEditor> {
         label: r.label,
         value: r.controller.text,
         extraFields: r.extraFields,
+        rawKnownValues: r.rawKnownValues,
       ),
   ]);
 

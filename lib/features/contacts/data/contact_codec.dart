@@ -1,14 +1,34 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
+
 import '../domain/entities/contact.dart';
 import '../domain/entities/contact_field.dart';
 
 /// `Contact` <-> the JSON map stored as note content.
 ///
-/// Every reader below is defensive: persisted data may hold anything, and a
-/// type error here would lose the whole contact rather than one field. Keys
-/// this version does not know are carried in `extraFields` and written back
-/// untouched, so an older client cannot destroy a newer one's data.
+/// Persisted JSON is never lost silently. Three mechanisms keep a save here
+/// from destroying data this version cannot read:
+///
+/// * **Unknown keys** go to `extraFields` (on the contact, the relationship
+///   and every list entry) and are written back untouched.
+/// * **Known keys with the wrong type** (`"isActivated": "false"`,
+///   `"number": 5551234`, a non-Map `relationship`, a non-List `phones`) decode
+///   to the field's default for display, and the stored value is kept in that
+///   entity's `rawKnownValues`. [toMap] writes the raw value back verbatim
+///   while the typed field still equals what the raw value decoded to - i.e.
+///   until the user actually changes that field. An explicit JSON `null` is
+///   treated as absent, not as malformed.
+/// * **Unreadable list entries** (not a Map) are kept per list in
+///   `Contact.unreadableEntries` and re-emitted after the readable entries.
+///
+/// `isActivated` is special-cased: a malformed `"false"`, `0` or `"0"` reads
+/// as deactivated, so a malformed value can never resurrect a removed
+/// contact. Any other malformed value reads as active. Either way the raw
+/// value is what gets saved back.
+///
+/// Every reader is defensive: a type error here would lose the whole contact
+/// rather than one field.
 class ContactCodec {
   const ContactCodec._();
 
@@ -38,134 +58,280 @@ class ContactCodec {
   static const _addressKnownKeys = <String>{'label', 'value'};
   static const _relationshipKnownKeys = <String>{'category', 'customLabel'};
 
-  static Map<String, dynamic> toMap(Contact c) => {
-        // Preserved keys first so a typed field always wins on conflict.
-        ...c.extraFields,
-        'schemaVersion': math.max(c.storedSchemaVersion, currentSchemaVersion),
-        // Derived so a cheatsheet can bind `Contact.displayName`; ignored on read.
-        'displayName': c.displayName,
-        'id': c.id,
-        // Use raw value if enum wasn't explicitly changed; use .name if it was.
-        'contactType': c.storedContactTypeName,
-        if (c.firstName != null) 'firstName': c.firstName,
-        if (c.lastName != null) 'lastName': c.lastName,
-        if (c.organizationName != null) 'organizationName': c.organizationName,
-        'phones': c.phones
-            .map((p) => {
-                  ...p.extraFields,
-                  'label': p.label,
-                  'number': p.number,
-                })
-            .toList(),
-        'emails': c.emails
-            .map((e) => {
-                  ...e.extraFields,
-                  'label': e.label,
-                  'address': e.address,
-                })
-            .toList(),
-        'addresses': c.addresses
-            .map((a) => {
-                  ...a.extraFields,
-                  'label': a.label,
-                  'value': a.value,
-                })
-            .toList(),
-        'relationship': {
-          ...c.relationship.extraFields,
-          // Use raw value if enum wasn't explicitly changed; use .name if it was.
-          'category': c.relationship.storedCategoryName,
-          if (c.relationship.customLabel != null)
-            'customLabel': c.relationship.customLabel,
+  static const _defaultFieldLabel = 'other';
+
+  static Map<String, dynamic> toMap(Contact c) {
+    final raw = c.rawKnownValues;
+    final out = <String, dynamic>{
+      // Preserved keys first so a typed field always wins on conflict.
+      ...c.extraFields,
+      'schemaVersion': raw.containsKey('schemaVersion')
+          ? raw['schemaVersion']
+          : math.max(c.storedSchemaVersion, currentSchemaVersion),
+      // Derived so a cheatsheet can bind `Contact.displayName`; ignored on read.
+      'displayName': c.displayName,
+      'id': _keep(raw, 'id', c.id, ''),
+      // Raw enum string if the type was not explicitly changed.
+      'contactType': _keep(
+        raw,
+        'contactType',
+        c.storedContactTypeName,
+        ContactType.person.name,
+      ),
+    };
+    _putOptional(out, raw, 'firstName', c.firstName);
+    _putOptional(out, raw, 'lastName', c.lastName);
+    _putOptional(out, raw, 'organizationName', c.organizationName);
+    out['phones'] = _list(c, 'phones', [
+      for (final p in c.phones)
+        {
+          ...p.extraFields,
+          'label': _keep(
+            p.rawKnownValues,
+            'label',
+            p.label,
+            _defaultFieldLabel,
+          ),
+          'number': _keep(p.rawKnownValues, 'number', p.number, ''),
         },
-        'isSelf': c.isSelf,
-        if (c.notes != null) 'notes': c.notes,
-        'isActivated': c.isActivated,
-      };
+    ]);
+    out['emails'] = _list(c, 'emails', [
+      for (final e in c.emails)
+        {
+          ...e.extraFields,
+          'label': _keep(
+            e.rawKnownValues,
+            'label',
+            e.label,
+            _defaultFieldLabel,
+          ),
+          'address': _keep(e.rawKnownValues, 'address', e.address, ''),
+        },
+    ]);
+    out['addresses'] = _list(c, 'addresses', [
+      for (final a in c.addresses)
+        {
+          ...a.extraFields,
+          'label': _keep(
+            a.rawKnownValues,
+            'label',
+            a.label,
+            _defaultFieldLabel,
+          ),
+          'value': _keep(a.rawKnownValues, 'value', a.value, ''),
+        },
+    ]);
+    out['relationship'] = _relationshipToJson(c);
+    out['isSelf'] = _keep(raw, 'isSelf', c.isSelf, false);
+    _putOptional(out, raw, 'notes', c.notes);
+    out['isActivated'] =
+        raw.containsKey('isActivated') &&
+            c.isActivated == _activatedFromMalformed(raw['isActivated'])
+        ? raw['isActivated']
+        : c.isActivated;
+    return out;
+  }
+
+  static Object? _relationshipToJson(Contact c) {
+    final rel = c.relationship;
+    // A non-Map relationship decoded to the default; keep it until edited.
+    if (c.rawKnownValues.containsKey('relationship') &&
+        rel.category == RelationshipCategory.other &&
+        rel.storedCategoryName == RelationshipCategory.other.name &&
+        rel.customLabel == null &&
+        rel.extraFields.isEmpty) {
+      return c.rawKnownValues['relationship'];
+    }
+    final out = <String, dynamic>{
+      ...rel.extraFields,
+      // Raw enum string if the category was not explicitly changed.
+      'category': _keep(
+        rel.rawKnownValues,
+        'category',
+        rel.storedCategoryName,
+        RelationshipCategory.other.name,
+      ),
+    };
+    _putOptional(out, rel.rawKnownValues, 'customLabel', rel.customLabel);
+    return out;
+  }
+
+  /// The readable entries, then any unreadable ones; or the raw non-List
+  /// value while the list is still empty.
+  static Object? _list(
+    Contact c,
+    String key,
+    List<Map<String, dynamic>> typed,
+  ) {
+    if (typed.isEmpty && c.rawKnownValues.containsKey(key)) {
+      return c.rawKnownValues[key];
+    }
+    return [...typed, ...?c.unreadableEntries[key]];
+  }
+
+  /// [typed], unless [raw] holds a malformed stored value for [key] and
+  /// [typed] still equals what that value decoded to ([decoded]).
+  static Object? _keep(
+    Map<String, dynamic> raw,
+    String key,
+    Object? typed,
+    Object? decoded,
+  ) => raw.containsKey(key) && typed == decoded ? raw[key] : typed;
+
+  /// Writes an optional string field: omitted when null, unless a malformed
+  /// stored value is being kept.
+  static void _putOptional(
+    Map<String, dynamic> out,
+    Map<String, dynamic> raw,
+    String key,
+    String? typed,
+  ) {
+    final v = _keep(raw, key, typed, null);
+    if (v != null) out[key] = v;
+  }
 
   static Contact fromMap(Map<String, dynamic> m) {
-    final rel = m['relationship'];
-    final relMap = rel is Map ? rel.cast<String, dynamic>() : const {};
-    final storedContactType = _str(m['contactType']) ?? 'person';
+    final r = _Reader(m);
+    final relMap = r.map('relationship');
+    final rel = _Reader(relMap);
+    final unreadable = <String, List<dynamic>>{};
 
-    return Contact(
-      id: _str(m['id']) ?? '',
+    final storedContactType = r.str('contactType');
+    final id = r.str('id') ?? '';
+    final rawCategory = rel.str('category');
+
+    final contact = Contact(
+      id: id,
       contactType: ContactType.values.firstWhere(
         (t) => t.name == storedContactType,
         orElse: () => ContactType.person,
       ),
-      firstName: _str(m['firstName']),
-      lastName: _str(m['lastName']),
-      organizationName: _str(m['organizationName']),
-      phones: _each(m['phones'], (e) => ContactPhone(
-            label: _str(e['label']) ?? 'other',
-            number: _str(e['number']) ?? '',
-            extraFields: {
-              for (final entry in e.entries)
-                if (!_phoneKnownKeys.contains(entry.key))
-                  entry.key: entry.value,
-            },
-          )),
-      emails: _each(m['emails'], (e) => ContactEmail(
-            label: _str(e['label']) ?? 'other',
-            address: _str(e['address']) ?? '',
-            extraFields: {
-              for (final entry in e.entries)
-                if (!_emailKnownKeys.contains(entry.key))
-                  entry.key: entry.value,
-            },
-          )),
-      addresses: _each(m['addresses'], (e) => ContactAddress(
-            label: _str(e['label']) ?? 'other',
-            value: _str(e['value']) ?? '',
-            extraFields: {
-              for (final entry in e.entries)
-                if (!_addressKnownKeys.contains(entry.key))
-                  entry.key: entry.value,
-            },
-          )),
+      firstName: r.str('firstName'),
+      lastName: r.str('lastName'),
+      organizationName: r.str('organizationName'),
+      phones: _each(r.list('phones'), 'phones', unreadable, (e) {
+        final er = _Reader(e);
+        return ContactPhone(
+          label: er.str('label') ?? _defaultFieldLabel,
+          number: er.str('number') ?? '',
+          extraFields: _extras(e, _phoneKnownKeys),
+          rawKnownValues: er.raw,
+        );
+      }),
+      emails: _each(r.list('emails'), 'emails', unreadable, (e) {
+        final er = _Reader(e);
+        return ContactEmail(
+          label: er.str('label') ?? _defaultFieldLabel,
+          address: er.str('address') ?? '',
+          extraFields: _extras(e, _emailKnownKeys),
+          rawKnownValues: er.raw,
+        );
+      }),
+      addresses: _each(r.list('addresses'), 'addresses', unreadable, (e) {
+        final er = _Reader(e);
+        return ContactAddress(
+          label: er.str('label') ?? _defaultFieldLabel,
+          value: er.str('value') ?? '',
+          extraFields: _extras(e, _addressKnownKeys),
+          rawKnownValues: er.raw,
+        );
+      }),
       relationship: ContactRelationship(
         category: RelationshipCategory.values.firstWhere(
-          (c) => c.name == _str(relMap['category']),
+          (c) => c.name == rawCategory,
           orElse: () => RelationshipCategory.other,
         ),
-        customLabel: _str(relMap['customLabel']),
-        extraFields: {
-          for (final entry in relMap.entries)
-            if (!_relationshipKnownKeys.contains(entry.key))
-              entry.key: entry.value,
-        },
-        rawCategory: _str(relMap['category']),
+        customLabel: rel.str('customLabel'),
+        extraFields: _extras(relMap, _relationshipKnownKeys),
+        rawKnownValues: rel.raw,
+        rawCategory: rawCategory,
       ),
-      isSelf: _bool(m['isSelf']) ?? false,
-      notes: _str(m['notes']),
-      isActivated: _bool(m['isActivated']) ?? true,
-      extraFields: {
-        for (final entry in m.entries)
-          if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
-      },
-      storedSchemaVersion: (m['schemaVersion'] as num?)?.toInt() ?? 1,
+      isSelf: r.boolean('isSelf') ?? false,
+      notes: r.str('notes'),
+      isActivated: r.activated(),
+      extraFields: _extras(m, _knownKeys),
+      storedSchemaVersion: r.integer('schemaVersion') ?? 1,
+      rawKnownValues: r.raw,
+      unreadableEntries: unreadable,
       rawContactType: storedContactType,
     );
+
+    if (unreadable.isNotEmpty) {
+      // Ids and list names only: the entries themselves are personal data.
+      debugPrint(
+        'ContactCodec: contact ${id.isEmpty ? '(no id)' : id} has '
+        'unreadable entries in ${unreadable.keys.join(', ')}; kept verbatim.',
+      );
+    }
+    return contact;
   }
 
-  /// Decodes each map entry, skipping any that is not a map or that throws.
-  /// One malformed entry costs that entry, never the contact.
-  static List<T> _each<T>(Object? raw, T Function(Map<String, dynamic>) build) {
-    if (raw is! List) return const [];
+  static Map<String, dynamic> _extras(
+    Map<String, dynamic> m,
+    Set<String> known,
+  ) => {
+    for (final entry in m.entries)
+      if (!known.contains(entry.key)) entry.key: entry.value,
+  };
+
+  /// Decodes each map entry. An entry that is not a map, or that throws, is
+  /// kept raw under [name] in [unreadable] - one malformed entry is neither
+  /// fatal to the contact nor silently dropped.
+  static List<T> _each<T>(
+    List<dynamic> raw,
+    String name,
+    Map<String, List<dynamic>> unreadable,
+    T Function(Map<String, dynamic>) build,
+  ) {
     final out = <T>[];
     for (final e in raw) {
-      if (e is! Map) continue;
       try {
+        if (e is! Map) throw const FormatException('not a map');
         out.add(build(e.cast<String, dynamic>()));
       } catch (_) {
-        continue;
+        (unreadable[name] ??= []).add(e);
       }
     }
     return out;
   }
 
-  static String? _str(Object? v) => v is String ? v : null;
+  /// `"false"`, `0` and `"0"` read as deactivated; anything else as active.
+  static bool _activatedFromMalformed(Object? v) =>
+      !(v == 'false' || v == 0 || v == '0');
+}
 
-  static bool? _bool(Object? v) => v is bool ? v : null;
+/// Typed reads over one JSON object. A key that is present (and not null)
+/// with the wrong type yields null / empty and is recorded in [raw].
+class _Reader {
+  _Reader(this._m);
+
+  final Map<String, dynamic> _m;
+  final Map<String, dynamic> raw = {};
+
+  T? _read<T>(String key) {
+    final v = _m[key];
+    if (v == null) return null;
+    if (v is T) return v;
+    raw[key] = v;
+    return null;
+  }
+
+  String? str(String key) => _read<String>(key);
+
+  bool? boolean(String key) => _read<bool>(key);
+
+  int? integer(String key) => _read<num>(key)?.toInt();
+
+  List<dynamic> list(String key) => _read<List>(key) ?? const [];
+
+  Map<String, dynamic> map(String key) =>
+      _read<Map>(key)?.cast<String, dynamic>() ?? const {};
+
+  bool activated() {
+    final v = _m['isActivated'];
+    if (v == null) return true;
+    if (v is bool) return v;
+    raw['isActivated'] = v;
+    return ContactCodec._activatedFromMalformed(v);
+  }
 }

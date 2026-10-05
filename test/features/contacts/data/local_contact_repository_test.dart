@@ -128,4 +128,31 @@ void main() {
     }
     expect(await repo.getContacts(), hasLength(105));
   });
+
+  test(
+    'a malformed "isActivated": "false" stays hidden from getContacts',
+    () async {
+      notes.stored.add(
+        _rawNote(
+          70,
+          contactSubjectFor('m1'),
+          jsonEncode({
+            'note': {
+              'content': {
+                'Contact': {
+                  'id': 'm1',
+                  'contactType': 'person',
+                  'firstName': 'Gone',
+                  'isActivated': 'false',
+                },
+              },
+            },
+          }),
+        ),
+      );
+
+      expect(await repo.getContacts(), isEmpty);
+      expect(await repo.getContacts(includeDeactivated: true), hasLength(1));
+    },
+  );
 }

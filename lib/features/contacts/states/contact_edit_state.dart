@@ -52,6 +52,7 @@ class ContactEditState extends Notifier<ContactEditData> {
             label: r.label,
             number: r.value,
             extraFields: r.extraFields,
+            rawKnownValues: r.rawKnownValues,
           ),
       ],
     ),
@@ -65,6 +66,7 @@ class ContactEditState extends Notifier<ContactEditData> {
             label: r.label,
             address: r.value,
             extraFields: r.extraFields,
+            rawKnownValues: r.rawKnownValues,
           ),
       ],
     ),
@@ -78,6 +80,7 @@ class ContactEditState extends Notifier<ContactEditData> {
             label: r.label,
             value: r.value,
             extraFields: r.extraFields,
+            rawKnownValues: r.rawKnownValues,
           ),
       ],
     ),
@@ -126,7 +129,9 @@ class ContactEditState extends Notifier<ContactEditData> {
     return t.isEmpty ? null : t;
   }
 
-  /// The contact as it will be stored: names trimmed, empty rows dropped.
+  /// The contact as it will be stored: names trimmed, empty rows dropped. A
+  /// row whose stored value this version could not read shows empty but is
+  /// not empty: it is kept so the codec can write that value back.
   Contact _normalized() {
     final c = state.contact;
     // The inactive type's names are nulled here, not on toggle, so toggling
@@ -151,9 +156,20 @@ class ContactEditState extends Notifier<ContactEditData> {
       organizationName: !knownType || isOrg
           ? _blankToNull(c.organizationName)
           : null,
-      phones: c.phones.where((p) => p.number.trim().isNotEmpty).toList(),
-      emails: c.emails.where((e) => e.address.trim().isNotEmpty).toList(),
-      addresses: c.addresses.where((a) => a.value.trim().isNotEmpty).toList(),
+      phones: c.phones
+          .where((p) =>
+              p.number.trim().isNotEmpty ||
+              p.rawKnownValues.containsKey('number'))
+          .toList(),
+      emails: c.emails
+          .where((e) =>
+              e.address.trim().isNotEmpty ||
+              e.rawKnownValues.containsKey('address'))
+          .toList(),
+      addresses: c.addresses
+          .where((a) =>
+              a.value.trim().isNotEmpty || a.rawKnownValues.containsKey('value'))
+          .toList(),
     );
   }
 

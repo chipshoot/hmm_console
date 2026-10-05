@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/contacts/data/contact_codec.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
@@ -222,5 +223,262 @@ void main() {
       isActivated: false,
     );
     expect(ContactCodec.fromMap(ContactCodec.toMap(contact)), contact);
+  });
+
+  group('wrong-typed known values survive a save', () {
+    Map<String, dynamic> roundTrip(Map<String, dynamic> m) =>
+        ContactCodec.toMap(ContactCodec.fromMap(m));
+
+    test('a string isActivated "false" reads as deactivated and is kept', () {
+      final m = {'id': 'c', 'contactType': 'person', 'isActivated': 'false'};
+      expect(ContactCodec.fromMap(m).isActivated, isFalse);
+      expect(roundTrip(m)['isActivated'], 'false');
+    });
+
+    test('isActivated 0 and "0" read as deactivated and are kept', () {
+      for (final raw in [0, '0']) {
+        final m = {'id': 'c', 'contactType': 'person', 'isActivated': raw};
+        expect(ContactCodec.fromMap(m).isActivated, isFalse, reason: '$raw');
+        expect(roundTrip(m)['isActivated'], raw);
+      }
+    });
+
+    test('any other malformed isActivated stays active and is kept', () {
+      final m = {'id': 'c', 'contactType': 'person', 'isActivated': 'yes'};
+      expect(ContactCodec.fromMap(m).isActivated, isTrue);
+      expect(roundTrip(m)['isActivated'], 'yes');
+    });
+
+    test(
+      'changing isActivated writes the typed value over a malformed one',
+      () {
+        final decoded = ContactCodec.fromMap({
+          'id': 'c',
+          'contactType': 'person',
+          'isActivated': 'false',
+        });
+        expect(
+          ContactCodec.toMap(
+            decoded.copyWith(isActivated: true),
+          )['isActivated'],
+          true,
+        );
+      },
+    );
+
+    test('a numeric phone number is kept verbatim', () {
+      final m = {
+        'id': 'c',
+        'contactType': 'person',
+        'phones': [
+          {'label': 'mobile', 'number': 5551234},
+        ],
+      };
+      expect(roundTrip(m)['phones'], [
+        {'label': 'mobile', 'number': 5551234},
+      ]);
+    });
+
+    test(
+      'a wrong-typed entry label, email address and address value are kept',
+      () {
+        final m = {
+          'id': 'c',
+          'contactType': 'person',
+          'emails': [
+            {'label': 3, 'address': true},
+          ],
+          'addresses': [
+            {
+              'label': 'home',
+              'value': {'street': '1 Main'},
+            },
+          ],
+        };
+        final out = roundTrip(m);
+        expect(out['emails'], [
+          {'label': 3, 'address': true},
+        ]);
+        expect(out['addresses'], [
+          {
+            'label': 'home',
+            'value': {'street': '1 Main'},
+          },
+        ]);
+      },
+    );
+
+    test('editing the number replaces the malformed raw value', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'c',
+        'contactType': 'person',
+        'phones': [
+          {'label': 'mobile', 'number': 5551234},
+        ],
+      });
+      final edited = decoded.copyWith(
+        phones: [decoded.phones.single.copyWith(number: '555-1234')],
+      );
+      expect(ContactCodec.toMap(edited)['phones'][0]['number'], '555-1234');
+    });
+
+    test('a non-Map relationship is kept verbatim', () {
+      final m = {'id': 'c', 'contactType': 'person', 'relationship': 'doctor'};
+      expect(roundTrip(m)['relationship'], 'doctor');
+    });
+
+    test('choosing a relationship replaces a non-Map one', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'c',
+        'contactType': 'person',
+        'relationship': 'doctor',
+      });
+      final edited = decoded.copyWith(
+        relationship: decoded.relationship.copyWith(
+          category: RelationshipCategory.doctor,
+        ),
+      );
+      expect(ContactCodec.toMap(edited)['relationship'], {
+        'category': 'doctor',
+      });
+    });
+
+    test(
+      'wrong-typed category and customLabel inside relationship are kept',
+      () {
+        final m = {
+          'id': 'c',
+          'contactType': 'person',
+          'relationship': {'category': 4, 'customLabel': 9},
+        };
+        expect(roundTrip(m)['relationship'], {'category': 4, 'customLabel': 9});
+      },
+    );
+
+    test('a non-List phones/emails/addresses is kept verbatim', () {
+      final m = {
+        'id': 'c',
+        'contactType': 'person',
+        'phones': 'not-a-list',
+        'emails': {'a': 1},
+        'addresses': 7,
+      };
+      final out = roundTrip(m);
+      expect(out['phones'], 'not-a-list');
+      expect(out['emails'], {'a': 1});
+      expect(out['addresses'], 7);
+    });
+
+    test('adding a phone replaces a non-List phones value', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'c',
+        'contactType': 'person',
+        'phones': 'not-a-list',
+      });
+      final edited = decoded.copyWith(
+        phones: const [ContactPhone(label: 'mobile', number: '1')],
+      );
+      expect(ContactCodec.toMap(edited)['phones'], [
+        {'label': 'mobile', 'number': '1'},
+      ]);
+    });
+
+    test('wrong-typed scalar fields are kept verbatim', () {
+      final m = {
+        'id': 'c',
+        'contactType': 5,
+        'firstName': 42,
+        'lastName': ['x'],
+        'organizationName': false,
+        'notes': {'n': 1},
+        'isSelf': 'true',
+        'schemaVersion': '2',
+      };
+      final decoded = ContactCodec.fromMap(m);
+      expect(decoded.firstName, isNull);
+      expect(decoded.isSelf, isFalse);
+      final out = ContactCodec.toMap(decoded);
+      for (final k in m.keys) {
+        expect(out[k], m[k], reason: k);
+      }
+    });
+
+    test('typing a first name replaces a wrong-typed one', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'c',
+        'contactType': 'person',
+        'firstName': 42,
+      });
+      expect(
+        ContactCodec.toMap(decoded.copyWith(firstName: 'Ada'))['firstName'],
+        'Ada',
+      );
+    });
+  });
+
+  group('malformed list entries are never dropped', () {
+    test('non-Map entries are re-emitted after the readable ones', () {
+      final m = {
+        'id': 'c',
+        'contactType': 'person',
+        'phones': [
+          'garbage',
+          {'label': 'mobile', 'number': '555'},
+          42,
+        ],
+        'emails': [null],
+        'addresses': [
+          ['nested'],
+        ],
+      };
+      final decoded = ContactCodec.fromMap(m);
+      expect(decoded.phones.single.number, '555');
+      final out = ContactCodec.toMap(decoded);
+      expect(out['phones'], [
+        {'label': 'mobile', 'number': '555'},
+        'garbage',
+        42,
+      ]);
+      expect(out['emails'], [null]);
+      expect(out['addresses'], [
+        ['nested'],
+      ]);
+    });
+
+    test('unreadable entries survive an edit of the readable ones', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'c',
+        'contactType': 'person',
+        'phones': ['garbage'],
+      });
+      final edited = decoded.copyWith(
+        phones: const [ContactPhone(label: 'home', number: '1')],
+      );
+      expect(ContactCodec.toMap(edited)['phones'], [
+        {'label': 'home', 'number': '1'},
+        'garbage',
+      ]);
+    });
+
+    test('logs the contact id and list name, never the entry', () {
+      final logs = <String>[];
+      final saved = debugPrint;
+      debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+      addTearDown(() => debugPrint = saved);
+
+      ContactCodec.fromMap({
+        'id': 'c-77',
+        'contactType': 'person',
+        'phones': ['555-SECRET', 'x'],
+        'emails': ['secret@example.com'],
+      });
+
+      expect(logs, hasLength(1));
+      expect(logs.single, contains('c-77'));
+      expect(logs.single, contains('phones'));
+      expect(logs.single, contains('emails'));
+      expect(logs.single, isNot(contains('SECRET')));
+      expect(logs.single, isNot(contains('secret@')));
+    });
   });
 }

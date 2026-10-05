@@ -25,6 +25,7 @@ class ContactRelationship {
     this.category = RelationshipCategory.other,
     this.customLabel,
     this.extraFields = const {},
+    this.rawKnownValues = const {},
     String? rawCategory,
   }) : _rawCategory = rawCategory;
 
@@ -35,6 +36,9 @@ class ContactRelationship {
 
   /// Unknown keys from the stored entry, preserved verbatim on save.
   final Map<String, dynamic> extraFields;
+
+  /// Known keys whose stored value had the wrong type; see `ContactCodec`.
+  final Map<String, dynamic> rawKnownValues;
 
   /// Raw enum string from storage (to preserve unknown values).
   final String? _rawCategory;
@@ -56,6 +60,7 @@ class ContactRelationship {
       category: newCategory,
       customLabel: newCustomLabel,
       extraFields: extraFields ?? this.extraFields,
+      rawKnownValues: rawKnownValues,
       rawCategory: category != null ? null : _rawCategory,
     );
   }
@@ -92,6 +97,8 @@ class Contact {
     this.isActivated = true,
     this.extraFields = const {},
     this.storedSchemaVersion = 1,
+    this.rawKnownValues = const {},
+    this.unreadableEntries = const {},
     String? rawContactType,
   }) : _rawContactType = rawContactType;
 
@@ -123,6 +130,16 @@ class Contact {
   /// Top-level JSON keys this version does not model, kept verbatim so a save
   /// here cannot destroy a newer client's data.
   final Map<String, dynamic> extraFields;
+
+  /// Known top-level keys whose stored value had the wrong type, kept
+  /// verbatim and written back while the typed field still holds what that
+  /// value decoded to; see `ContactCodec`.
+  final Map<String, dynamic> rawKnownValues;
+
+  /// List entries (by list key: `phones`, `emails`, `addresses`) that could
+  /// not be decoded. Never shown or edited; re-emitted after the readable
+  /// entries on save so they are not lost.
+  final Map<String, List<dynamic>> unreadableEntries;
 
   /// Raw enum string from storage (to preserve unknown values).
   final String? _rawContactType;
@@ -172,6 +189,8 @@ class Contact {
         isActivated: isActivated ?? this.isActivated,
         extraFields: extraFields ?? this.extraFields,
         storedSchemaVersion: storedSchemaVersion,
+        rawKnownValues: rawKnownValues,
+        unreadableEntries: unreadableEntries,
         rawContactType: contactType != null ? null : _rawContactType,
       );
 
