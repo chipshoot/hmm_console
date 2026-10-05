@@ -208,5 +208,29 @@ void main() {
       expect(v.missing, isTrue);
       expect(v.image, isNull);
     });
+
+    test('an image on a deactivated note reads as removed', () async {
+      final removed = HmmNote(
+        id: 4,
+        uuid: 'lic2',
+        subject: 'Licence',
+        authorId: 1,
+        createDate: DateTime(2026),
+        content: '{"note":{"content":{"DriverLicence":'
+            '{"frontImagePath":"images/front.jpg","isActivated":false}}}}',
+        attachments: NoteAttachments(images: const [front]),
+      );
+      final v = await CheatsheetResolver(_FakeNotes({'lic2': removed}))
+          .resolve(const CheatsheetRow(
+        label: 'Licence (front)',
+        source: CheatsheetSource(
+          noteUuid: 'lic2',
+          kind: SourceGranularity.image,
+          locator: 'images/front.jpg',
+        ),
+      ));
+      expect(v.missing, isTrue);
+      expect(v.image, isNull);
+    });
   });
 }

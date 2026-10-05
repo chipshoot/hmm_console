@@ -37,16 +37,17 @@ class CheatsheetResolver {
     final note = await _notes.getNoteByUuid(s.noteUuid);
     if (note == null) return const ResolvedValue(missing: true);
 
+    // A soft-deleted entity (`isActivated: false`) reads as removed - for
+    // every kind, image rows included, so a removed note's photo is not shown.
+    if (NotePieceExtractor.isDeactivated(note.content)) {
+      return const ResolvedValue(missing: true);
+    }
+
     if (s.kind == SourceGranularity.image) {
       final image = NotePieceExtractor.image(note.attachments, s.locator ?? '');
       return image == null
           ? const ResolvedValue(missing: true)
           : ResolvedValue(image: image);
-    }
-
-    // A soft-deleted entity (`isActivated: false`) reads as removed.
-    if (NotePieceExtractor.isDeactivated(note.content)) {
-      return const ResolvedValue(missing: true);
     }
 
     final value = switch (s.kind) {
