@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/local_contact_repository.dart';
 import 'package:hmm_console/features/contacts/data/i_contact_repository.dart';
@@ -236,5 +237,19 @@ void main() {
           repo.deactivateContact('u3'), throwsA(isA<ContactUnreadable>()));
       expect(notes.stored.single.content, 'not json');
     });
+  });
+
+  test('an unreadable note is logged by id, never by its JSON', () async {
+    final logs = <String>[];
+    final saved = debugPrint;
+    debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+    addTearDown(() => debugPrint = saved);
+
+    notes.stored.add(
+        _rawNote(95, contactSubjectFor('p1'), '{"phone":"555-SECRET"'));
+    await repo.getContacts();
+
+    expect(logs.join('\n'), contains('95'));
+    expect(logs.join('\n'), isNot(contains('555-SECRET')));
   });
 }

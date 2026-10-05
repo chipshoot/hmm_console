@@ -12,8 +12,11 @@ class LaunchActionException implements Exception {
 
   final Uri uri;
 
+  /// Scheme only: the uri carries a phone number or a street address, and
+  /// this string ends up in logs.
   @override
-  String toString() => 'LaunchActionException: could not launch $uri';
+  String toString() =>
+      'LaunchActionException: could not launch a ${uri.scheme} uri';
 }
 
 /// The URI [action] implies for [value], or null when there is nothing to

@@ -32,12 +32,14 @@ Future<InMemoryContactRepository> _mount(
   List<(ValueAction, String)>? launched,
   List<String>? edits,
   InMemoryContactRepository? repository,
+  Object? launchError,
 }) async {
   final repo = repository ?? InMemoryContactRepository();
   if (seed != null) repo.seed(seed);
   final List<Override> overrides = [
     contactRepositoryModeProvider.overrideWithValue(repo),
     launchActionProvider.overrideWithValue((a, v) async {
+      if (launchError != null) throw launchError;
       launched?.add((a, v));
     }),
     contactEditProvider.overrideWithValue((ctx, cid) => edits?.add(cid)),
@@ -174,5 +176,27 @@ void main() {
     await _mount(tester, id: 'd1', repository: repo);
     expect(find.text('Could not load contacts'), findsOneWidget);
     expect(find.text('This contact no longer exists'), findsNothing);
+  });
+
+  testWidgets('a launch that throws an Error still shows the failure', (
+    tester,
+  ) async {
+    await _mount(tester,
+        id: 'd1', seed: _doc, launchError: StateError('(604) 555-0100'));
+
+    // Restored inside the body: the widget binding checks debugPrint is
+    // unchanged before tear-downs run.
+    final logs = <String>[];
+    final saved = debugPrint;
+    debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+    try {
+      await tester.tap(find.text('(604) 555-0100'));
+      await tester.pumpAndSettle();
+    } finally {
+      debugPrint = saved;
+    }
+
+    expect(find.text("Could not open that."), findsOneWidget);
+    expect(logs.join('\n'), isNot(contains('555-0100')));
   });
 }

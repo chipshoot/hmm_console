@@ -183,8 +183,11 @@ class _FieldRow extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(launchActionProvider)(action, value);
-    } on Exception catch (e) {
-      debugPrint('ContactDetail: launching ${action.name} failed ($e)');
+    } catch (e) {
+      // Everything, Errors included: the user tapped a value and must hear
+      // that it did not open. Logged by type only - never the value or uri.
+      debugPrint(
+          'ContactDetail: launching ${action.name} failed (${e.runtimeType})');
       messenger.showSnackBar(SnackBar(content: Text(l.cheatsheetOpenFailed)));
     }
   }

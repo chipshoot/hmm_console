@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/util/launch_actions.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_launcher.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 
@@ -48,9 +49,18 @@ void main() {
   });
 
   group('LaunchActionException', () {
-    test('names the uri it could not open', () {
-      final e = LaunchActionException(Uri.parse('tel:5551234567'));
-      expect(e.toString(), contains('tel:5551234567'));
+    // It reaches logs; the uri carries a phone number or a street address.
+    test('names only the scheme, never the number', () {
+      final e = LaunchActionException(Uri.parse('tel:5551234'));
+      expect(e.toString(), isNot(contains('5551234')));
+      expect(e.toString(), contains('tel'));
+    });
+
+    test('names only the scheme, never the address', () {
+      final e = LaunchActionException(mapsUri('1 Main St, Vancouver'));
+      expect(e.toString(), isNot(contains('Main')));
+      expect(e.toString(), isNot(contains('Vancouver')));
+      expect(e.toString(), contains('https'));
     });
   });
 }

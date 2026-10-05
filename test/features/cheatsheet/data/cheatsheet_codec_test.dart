@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_codec.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
@@ -198,5 +199,25 @@ void main() {
     final c = CheatsheetCodec.fromMap({'id': 'x', 'title': 'T', 'rows': 'nope'});
     expect(c.rows, isEmpty);
     expect(c.id, 'x');
+  });
+
+  test('an unreadable row is logged by type only, never its message', () {
+    final logs = <String>[];
+    final saved = debugPrint;
+    debugPrint = (String? m, {int? wrapWidth}) => logs.add(m ?? '');
+    addTearDown(() => debugPrint = saved);
+
+    CheatsheetCodec.fromMap({
+      'id': 'x',
+      'rows': [
+        {'label': 'Dr', 'valueAction': 'teleport'},
+      ],
+    });
+
+    expect(logs, hasLength(1));
+    expect(logs.single, contains('StateError'));
+    // StateError's message ("No element") stands in for any error text,
+    // which can quote stored values.
+    expect(logs.single, isNot(contains('No element')));
   });
 }

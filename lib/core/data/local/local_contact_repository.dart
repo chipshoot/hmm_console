@@ -102,8 +102,10 @@ class LocalContactRepository implements IContactRepository {
       // The contact vanishes from the list with nothing on screen to explain
       // it, so name the note - otherwise this is undiagnosable without
       // reproducing it locally.
+      // Type only: a FormatException message quotes the source JSON.
       debugPrint('LocalContactRepository: note ${note!.id}/${note.uuid} has '
-          'unreadable contact JSON ($e); omitted from the address book.');
+          'unreadable contact JSON (${e.runtimeType}); omitted from the '
+          'address book.');
       return null;
     }
   }

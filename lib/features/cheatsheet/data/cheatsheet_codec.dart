@@ -51,7 +51,7 @@ class CheatsheetCodec {
         if (kept) unreadable.add(e.cast<String, dynamic>());
         debugPrint(
           'CheatsheetCodec: card ${_str(m['id'])} row $index is unreadable '
-          '($err); ${kept ? 'preserved verbatim and re-saved untouched' : 'dropped — not a map'}.',
+          '(${err.runtimeType}); ${kept ? 'preserved verbatim and re-saved untouched' : 'dropped — not a map'}.',
         );
       }
       index++;

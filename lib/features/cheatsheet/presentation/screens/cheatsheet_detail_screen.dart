@@ -204,8 +204,9 @@ class _RowTile extends ConsumerWidget {
       // Exceptions only. A missing handler app is an expected, recoverable
       // outcome worth reporting; an Error is a defect, and showing it as
       // "could not open that" would disguise a bug as a normal failure.
+      // Type only: the error can quote the value (a number or address).
       debugPrint('CheatsheetDetail: launching ${row.valueAction.name} failed '
-          '($e); showed the user a message.');
+          '(${e.runtimeType}); showed the user a message.');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l.cheatsheetOpenFailed)),
