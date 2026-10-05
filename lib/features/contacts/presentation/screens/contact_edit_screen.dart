@@ -236,6 +236,9 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
             _pad(
               DropdownButtonFormField<RelationshipCategory>(
                 key: const Key('contact-relationship'),
+                // Driven from state: DropdownButtonFormField re-syncs when
+                // initialValue changes, so "This is me" (which files the
+                // contact under `self`) shows here at once.
                 initialValue: c.relationship.category,
                 decoration: InputDecoration(labelText: l.contactRelationship),
                 items: [
@@ -268,7 +271,12 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
               title: Text(l.contactIsSelf),
               subtitle: Text(l.contactIsSelfHint),
               value: c.isSelf,
-              onChanged: notifier.setIsSelf,
+              onChanged: (v) {
+                notifier.setIsSelf(v);
+                // setIsSelf(true) nulls the custom label; the field must not
+                // bring the stale text back if Other is picked again.
+                if (v) _custom.clear();
+              },
             ),
             _pad(
               TextField(

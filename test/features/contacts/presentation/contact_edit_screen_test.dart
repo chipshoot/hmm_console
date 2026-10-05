@@ -226,6 +226,62 @@ void main() {
     expect(rel.customLabel, isNull);
   });
 
+  group('"This is me" keeps the relationship picker in step', () {
+    Finder shown(String text) => find.descendant(
+      of: find.byKey(const Key('contact-relationship')),
+      matching: find.text(text),
+    );
+
+    Future<void> pick(WidgetTester tester, String label) async {
+      await _scrollTo(tester, find.byKey(const Key('contact-relationship')));
+      await tester.tap(find.byKey(const Key('contact-relationship')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> toggleSelf(WidgetTester tester) async {
+      await _scrollTo(tester, find.byKey(const Key('contact-is-self')));
+      await tester.tap(find.byKey(const Key('contact-is-self')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Doctor then "This is me" shows Me; then Other is blank', (
+      tester,
+    ) async {
+      await _mount(tester, contactId: 'd1', seed: _doc);
+      await pick(tester, _l.relationshipDoctor);
+      expect(shown(_l.relationshipDoctor), findsOneWidget);
+
+      await toggleSelf(tester);
+      await _scrollTo(tester, find.byKey(const Key('contact-relationship')));
+      expect(shown(_l.relationshipSelf), findsOneWidget);
+      expect(shown(_l.relationshipDoctor), findsNothing);
+
+      await pick(tester, _l.relationshipOther);
+      final custom = tester.widget<TextField>(
+        find.byKey(const Key('contact-custom-label')),
+      );
+      expect(custom.controller!.text, isEmpty);
+    });
+
+    testWidgets('a custom label is cleared by "This is me"', (tester) async {
+      await _mount(tester, contactId: 'd1', seed: _doc);
+      await _scrollTo(tester, find.byKey(const Key('contact-relationship')));
+      expect(find.text('Neighbour'), findsOneWidget);
+
+      await toggleSelf(tester);
+      await _scrollTo(tester, find.byKey(const Key('contact-relationship')));
+      expect(shown(_l.relationshipSelf), findsOneWidget);
+
+      await pick(tester, _l.relationshipOther);
+      final custom = tester.widget<TextField>(
+        find.byKey(const Key('contact-custom-label')),
+      );
+      expect(custom.controller!.text, isEmpty);
+    });
+  });
+
   testWidgets('clearing the notes field clears notes', (tester) async {
     final repo = await _mount(tester, contactId: 'd1', seed: _doc);
     await _scrollTo(tester, find.byKey(const Key('contact-notes')));
