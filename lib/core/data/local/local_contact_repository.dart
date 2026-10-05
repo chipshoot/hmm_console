@@ -37,6 +37,48 @@ class LocalContactRepository implements IContactRepository {
         },
       });
 
+  /// Replaces only `note.content.Contact` inside [existing]'s content, keeping
+  /// every sibling: other entities under `note.content`, other keys under
+  /// `note`, and top-level keys. A fresh envelope is written only when the
+  /// stored content is not a JSON object at all - there is nothing to keep.
+  String _serializeOver(Contact c, HmmNote existing) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(existing.content ?? '');
+    } on FormatException {
+      debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
+          'content is not JSON; writing a fresh envelope.');
+      return _serialize(c);
+    }
+    if (decoded is! Map) {
+      debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
+          'content is not a JSON object; writing a fresh envelope.');
+      return _serialize(c);
+    }
+    final root = Map<String, dynamic>.from(decoded);
+    final noteRaw = root['note'];
+    final note = noteRaw is Map
+        ? Map<String, dynamic>.from(noteRaw)
+        : <String, dynamic>{};
+    final contentRaw = note['content'];
+    final content = contentRaw is Map
+        ? Map<String, dynamic>.from(contentRaw)
+        : <String, dynamic>{};
+    if (noteRaw is! Map || contentRaw is! Map) {
+      // A non-object `note` / `note.content` cannot hold the contact; it is
+      // the only value replaced. Logged so the replacement is diagnosable.
+      debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
+          'had no note.content object; rebuilt it, kept top-level keys.');
+    } else {
+      debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
+          'updated in place; sibling keys kept.');
+    }
+    content['Contact'] = ContactCodec.toMap(c);
+    note['content'] = content;
+    root['note'] = note;
+    return jsonEncode(root);
+  }
+
   Contact? _deserialize(HmmNote? note) {
     final content = note?.content;
     if (content == null) return null;
@@ -159,7 +201,10 @@ class LocalContactRepository implements IContactRepository {
       // update throws. Only subject and content move.
       await _notes.updateNote(
         existing.id,
-        HmmNoteUpdate(subject: subject, content: _serialize(c)),
+        HmmNoteUpdate(
+          subject: subject,
+          content: _serializeOver(c, existing),
+        ),
       );
     }
   }

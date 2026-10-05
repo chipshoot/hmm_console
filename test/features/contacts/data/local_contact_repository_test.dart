@@ -155,4 +155,41 @@ void main() {
       expect(await repo.getContacts(includeDeactivated: true), hasLength(1));
     },
   );
+
+  test('an update keeps every other key in the note envelope', () async {
+    notes.stored.add(_rawNote(
+      80,
+      contactSubjectFor('e1'),
+      jsonEncode({
+        'note': {
+          'content': {
+            'Contact': {'id': 'e1', 'contactType': 'person', 'firstName': 'A'},
+            'ContactPhoto': {'x': 1},
+          },
+          'schemaVersion': 2,
+        },
+        'top': true,
+      }),
+    ));
+
+    final existing = (await repo.getContact('e1'))!;
+    await repo.saveContact(existing.copyWith(firstName: 'B'));
+
+    final json = jsonDecode(notes.stored.single.content!) as Map;
+    expect(json['top'], true);
+    expect(json['note']['schemaVersion'], 2);
+    expect(json['note']['content']['ContactPhoto'], {'x': 1});
+    expect(json['note']['content']['Contact']['firstName'], 'B');
+  });
+
+  test('an update over unparsable content writes a fresh envelope', () async {
+    notes.stored.add(_rawNote(81, contactSubjectFor('e2'), '{broken'));
+    await repo.saveContact(const Contact(
+      id: 'e2',
+      contactType: ContactType.person,
+      firstName: 'C',
+    ));
+    final json = jsonDecode(notes.stored.single.content!) as Map;
+    expect(json['note']['content']['Contact']['firstName'], 'C');
+  });
 }
