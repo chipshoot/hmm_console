@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/util/calling_codes.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../contact_labels.dart';
+import 'calling_code_picker.dart';
 
 /// One editable (label, value) row. [label] is the STORED literal
 /// (`mobile`), never its display text. [extraFields] and [rawKnownValues]
@@ -29,13 +31,35 @@ class _Row {
     String value,
     this.extraFields, [
     this.rawKnownValues = const {},
-  ]) : controller = TextEditingController(text: value);
+    this.code,
+  ]) : initialValue = value,
+       controller = TextEditingController(text: value);
 
   final int id;
   String label;
   final Map<String, dynamic> extraFields;
   final Map<String, dynamic> rawKnownValues;
   final TextEditingController controller;
+
+  /// Selected country calling code (phone rows only); [controller] then holds
+  /// just the national part.
+  CallingCode? code;
+
+  /// The stored string as loaded (or '' for a new row). An untouched row is
+  /// written back as this, byte for byte, never re-composed.
+  String initialValue;
+  bool touched = false;
+
+  /// The one stored string: `+<code> <national>` with a code, else the text
+  /// as typed. A code with no digits after it is an empty value.
+  String get value {
+    if (!touched) return initialValue;
+    final national = controller.text;
+    final c = code;
+    if (c == null) return national;
+    final t = national.trim();
+    return t.isEmpty ? '' : '+${c.code} $t';
+  }
 }
 
 /// A repeatable list of (label dropdown, value field, remove button) rows with
@@ -54,6 +78,8 @@ class LabeledFieldEditor extends StatefulWidget {
     required this.initial,
     required this.onChanged,
     this.keyboardType,
+    this.countryCode = false,
+    this.defaultRegion,
   });
 
   /// Prefix for widget keys: `<prefix>-label-<i>`, `<prefix>-value-<i>`.
@@ -68,6 +94,13 @@ class LabeledFieldEditor extends StatefulWidget {
   final ValueChanged<List<LabeledFieldEntry>> onChanged;
   final TextInputType? keyboardType;
 
+  /// Phone rows: show the country-code picker, split a leading `+<code>`
+  /// into it, and filter the field to phone characters.
+  final bool countryCode;
+
+  /// ISO region (e.g. `CN`) that seeds the code of a NEW row.
+  final String? defaultRegion;
+
   @override
   State<LabeledFieldEditor> createState() => _LabeledFieldEditorState();
 }
@@ -79,10 +112,21 @@ class _LabeledFieldEditorState extends State<LabeledFieldEditor> {
   @override
   void initState() {
     super.initState();
-    _rows = [
-      for (final e in widget.initial)
-        _Row(_nextId++, e.label, e.value, e.extraFields, e.rawKnownValues),
-    ];
+    _rows = [for (final e in widget.initial) _loadRow(e)];
+  }
+
+  _Row _loadRow(LabeledFieldEntry e) {
+    final split = widget.countryCode ? splitInternationalNumber(e.value) : null;
+    final row = _Row(
+      _nextId++,
+      e.label,
+      split?.national ?? e.value,
+      e.extraFields,
+      e.rawKnownValues,
+      split?.code,
+    );
+    row.initialValue = e.value;
+    return row;
   }
 
   @override
@@ -97,14 +141,54 @@ class _LabeledFieldEditorState extends State<LabeledFieldEditor> {
     for (final r in _rows)
       LabeledFieldEntry(
         label: r.label,
-        value: r.controller.text,
+        value: r.value,
         extraFields: r.extraFields,
         rawKnownValues: r.rawKnownValues,
       ),
   ]);
 
   void _add() {
-    setState(() => _rows.add(_Row(_nextId++, widget.labels.first, '', {})));
+    setState(
+      () => _rows.add(
+        _Row(
+          _nextId++,
+          widget.labels.first,
+          '',
+          {},
+          const {},
+          widget.countryCode
+              ? callingCodeForRegion(widget.defaultRegion)
+              : null,
+        ),
+      ),
+    );
+    _emit();
+  }
+
+  void _onText(_Row row, String text) {
+    row.touched = true;
+    if (widget.countryCode) {
+      final split = splitInternationalNumber(text);
+      if (split != null) {
+        // Keep a selected region that already has this code (CA for +1).
+        if (row.code?.code != split.code.code) row.code = split.code;
+        row.controller.value = TextEditingValue(
+          text: split.national,
+          selection: TextSelection.collapsed(offset: split.national.length),
+        );
+        setState(() {});
+      }
+    }
+    _emit();
+  }
+
+  Future<void> _pickCode(_Row row) async {
+    final choice = await showCallingCodePicker(context, selected: row.code);
+    if (choice == null || !mounted) return;
+    setState(() {
+      row.code = choice.code;
+      row.touched = true;
+    });
     _emit();
   }
 
@@ -150,14 +234,29 @@ class _LabeledFieldEditorState extends State<LabeledFieldEditor> {
                     _emit();
                   },
                 ),
+                if (widget.countryCode)
+                  TextButton(
+                    key: Key('${widget.keyPrefix}-code-$i'),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    onPressed: () => _pickCode(_rows[i]),
+                    child: Text(
+                      _rows[i].code?.label ?? l.contactCountryCodePlaceholder,
+                    ),
+                  ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     key: Key('${widget.keyPrefix}-value-$i'),
                     controller: _rows[i].controller,
                     keyboardType: widget.keyboardType,
+                    inputFormatters: widget.countryCode
+                        ? const [PhoneNumberFormatter()]
+                        : null,
                     decoration: InputDecoration(labelText: widget.valueLabel),
-                    onChanged: (_) => _emit(),
+                    onChanged: (v) => _onText(_rows[i], v),
                   ),
                 ),
                 HmmIconButton(

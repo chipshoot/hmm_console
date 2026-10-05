@@ -26,13 +26,12 @@ class ContactPhone {
     String? label,
     String? number,
     Map<String, dynamic>? extraFields,
-  }) =>
-      ContactPhone(
-        label: label ?? this.label,
-        number: number ?? this.number,
-        extraFields: extraFields ?? this.extraFields,
-        rawKnownValues: rawKnownValues,
-      );
+  }) => ContactPhone(
+    label: label ?? this.label,
+    number: number ?? this.number,
+    extraFields: extraFields ?? this.extraFields,
+    rawKnownValues: rawKnownValues,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -66,13 +65,12 @@ class ContactEmail {
     String? label,
     String? address,
     Map<String, dynamic>? extraFields,
-  }) =>
-      ContactEmail(
-        label: label ?? this.label,
-        address: address ?? this.address,
-        extraFields: extraFields ?? this.extraFields,
-        rawKnownValues: rawKnownValues,
-      );
+  }) => ContactEmail(
+    label: label ?? this.label,
+    address: address ?? this.address,
+    extraFields: extraFields ?? this.extraFields,
+    rawKnownValues: rawKnownValues,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -110,13 +108,12 @@ class ContactAddress {
     String? label,
     String? value,
     Map<String, dynamic>? extraFields,
-  }) =>
-      ContactAddress(
-        label: label ?? this.label,
-        value: value ?? this.value,
-        extraFields: extraFields ?? this.extraFields,
-        rawKnownValues: rawKnownValues,
-      );
+  }) => ContactAddress(
+    label: label ?? this.label,
+    value: value ?? this.value,
+    extraFields: extraFields ?? this.extraFields,
+    rawKnownValues: rawKnownValues,
+  );
 
   @override
   bool operator ==(Object other) =>

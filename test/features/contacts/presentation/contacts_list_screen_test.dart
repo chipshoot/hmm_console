@@ -244,7 +244,8 @@ void main() {
     tester,
   ) async {
     final logs = await _captureLogs(
-        () => _mount(tester, _repo(_ThrowingRepo())));
+      () => _mount(tester, _repo(_ThrowingRepo())),
+    );
     expect(logs.join('\n'), contains('StateError'));
     expect(logs.join('\n'), isNot(contains('boom')));
   });

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/util/launch_actions.dart';
 
 void main() {
+  _phoneCodeTests();
   group('telUri', () {
     test('strips punctuation and spacing', () {
       expect(telUri('(555) 123-4567').toString(), 'tel:5551234567');
@@ -37,5 +38,11 @@ void main() {
     test('is https so it resolves on platforms without Apple Maps', () {
       expect(mapsUri('1 Main St').scheme, 'https');
     });
+  });
+}
+
+void _phoneCodeTests() {
+  test('a code-prefixed stored phone dials as an international number', () {
+    expect(telUri('+86 138 0013 8000').toString(), 'tel:+8613800138000');
   });
 }

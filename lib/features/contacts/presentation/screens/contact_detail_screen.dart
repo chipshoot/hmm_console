@@ -18,20 +18,22 @@ import '../contact_labels.dart';
 /// Opens the edit screen for a contact. Overridable so tests can assert the
 /// navigation.
 final contactEditProvider = Provider<void Function(BuildContext, String)>(
-  (ref) => (context, id) => context.pushNamed(
-    RouterNames.contactEdit.name,
-    pathParameters: {'id': id},
-  ),
+  (ref) =>
+      (context, id) => context.pushNamed(
+        RouterNames.contactEdit.name,
+        pathParameters: {'id': id},
+      ),
 );
 
 /// Resolves by id through the repository, not the active-only list, so a
 /// deactivated contact still renders. Watching the list state re-reads after
 /// a save.
-final contactByIdProvider =
-    FutureProvider.autoDispose.family<Contact?, String>((ref, id) async {
-  await ref.watch(contactsStateProvider.future);
-  return ref.watch(contactRepositoryModeProvider).getContact(id);
-});
+final contactByIdProvider = FutureProvider.autoDispose.family<Contact?, String>(
+  (ref, id) async {
+    await ref.watch(contactsStateProvider.future);
+    return ref.watch(contactRepositoryModeProvider).getContact(id);
+  },
+);
 
 class ContactDetailScreen extends ConsumerWidget {
   const ContactDetailScreen({super.key, required this.contactId});
@@ -75,9 +77,8 @@ class ContactDetailScreen extends ConsumerWidget {
           child: async.isLoading
               ? const CircularProgressIndicator()
               : async.hasError
-                  ? Text(l.contactsLoadFailed)
-                  : Text(l.contactNotFound,
-                      key: const Key('contact-not-found')),
+              ? Text(l.contactsLoadFailed)
+              : Text(l.contactNotFound, key: const Key('contact-not-found')),
         ),
       );
     }
@@ -102,11 +103,12 @@ class ContactDetailScreen extends ConsumerWidget {
       body: ListView(
         children: [
           ListTile(
-            leading: Icon(contact.contactType == ContactType.organization
-                ? Icons.business
-                : Icons.person_outline),
-            title: Text(contact.displayName,
-                style: theme.textTheme.titleLarge),
+            leading: Icon(
+              contact.contactType == ContactType.organization
+                  ? Icons.business
+                  : Icons.person_outline,
+            ),
+            title: Text(contact.displayName, style: theme.textTheme.titleLarge),
             subtitle: Text(
               contact.relationship.category == RelationshipCategory.other &&
                       (contact.relationship.customLabel ?? '').isNotEmpty
@@ -160,9 +162,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-        child: Text(text, style: Theme.of(context).textTheme.titleSmall),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+    child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+  );
 }
 
 class _FieldRow extends ConsumerWidget {
@@ -187,16 +189,17 @@ class _FieldRow extends ConsumerWidget {
       // Everything, Errors included: the user tapped a value and must hear
       // that it did not open. Logged by type only - never the value or uri.
       debugPrint(
-          'ContactDetail: launching ${action.name} failed (${e.runtimeType})');
+        'ContactDetail: launching ${action.name} failed (${e.runtimeType})',
+      );
       messenger.showSnackBar(SnackBar(content: Text(l.cheatsheetOpenFailed)));
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListTile(
-        leading: Icon(icon),
-        title: Text(value),
-        subtitle: Text(label),
-        onTap: action == ValueAction.none ? null : () => _launch(context, ref),
-      );
+    leading: Icon(icon),
+    title: Text(value),
+    subtitle: Text(label),
+    onTap: action == ValueAction.none ? null : () => _launch(context, ref),
+  );
 }

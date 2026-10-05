@@ -24,17 +24,17 @@ class _FakeNotes implements IHmmNoteRepository {
 
 /// The envelope `LocalContactRepository._serialize` writes.
 HmmNote contactNote(Contact c) => HmmNote(
-      id: 1,
-      uuid: 'doc-uuid',
-      subject: 'Contact:${c.id}',
-      authorId: 1,
-      createDate: DateTime(2026),
-      content: jsonEncode({
-        'note': {
-          'content': {'Contact': ContactCodec.toMap(c)},
-        },
-      }),
-    );
+  id: 1,
+  uuid: 'doc-uuid',
+  subject: 'Contact:${c.id}',
+  authorId: 1,
+  createDate: DateTime(2026),
+  content: jsonEncode({
+    'note': {
+      'content': {'Contact': ContactCodec.toMap(c)},
+    },
+  }),
+);
 
 const _row = CheatsheetRow(
   label: 'Family doctor phone',
@@ -61,9 +61,11 @@ void main() {
   });
 
   test('a deactivated contact resolves as missing', () async {
-    final r = CheatsheetResolver(_FakeNotes({
-      'doc-uuid': contactNote(doctor.copyWith(isActivated: false)),
-    }));
+    final r = CheatsheetResolver(
+      _FakeNotes({
+        'doc-uuid': contactNote(doctor.copyWith(isActivated: false)),
+      }),
+    );
     final v = await r.resolve(_row);
     expect(v.missing, isTrue);
     expect(v.text, isNull);
@@ -77,14 +79,16 @@ void main() {
       lastName: 'Last',
     );
     final r = CheatsheetResolver(_FakeNotes({'doc-uuid': contactNote(named)}));
-    final v = await r.resolve(const CheatsheetRow(
-      label: 'Name',
-      source: CheatsheetSource(
-        noteUuid: 'doc-uuid',
-        kind: SourceGranularity.field,
-        locator: 'Contact.displayName',
+    final v = await r.resolve(
+      const CheatsheetRow(
+        label: 'Name',
+        source: CheatsheetSource(
+          noteUuid: 'doc-uuid',
+          kind: SourceGranularity.field,
+          locator: 'Contact.displayName',
+        ),
       ),
-    ));
+    );
     expect(v.text, 'First Last');
   });
 

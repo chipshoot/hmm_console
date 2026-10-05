@@ -140,35 +140,43 @@ class ContactEditState extends Notifier<ContactEditData> {
     final isOrg = c.contactType == ContactType.organization;
     // A stored type this version does not know (a newer client's) is neither
     // person nor organization here, so neither set of names may be dropped.
-    final knownType =
-        ContactType.values.any((t) => t.name == c.storedContactTypeName);
+    final knownType = ContactType.values.any(
+      (t) => t.name == c.storedContactTypeName,
+    );
     return c.copyWith(
       firstName: !knownType
           ? _blankToNull(c.firstName)
           : isOrg
-              ? null
-              : _blankToNull(c.firstName),
+          ? null
+          : _blankToNull(c.firstName),
       lastName: !knownType
           ? _blankToNull(c.lastName)
           : isOrg
-              ? null
-              : _blankToNull(c.lastName),
+          ? null
+          : _blankToNull(c.lastName),
       organizationName: !knownType || isOrg
           ? _blankToNull(c.organizationName)
           : null,
       phones: c.phones
-          .where((p) =>
-              p.number.trim().isNotEmpty ||
-              p.rawKnownValues.containsKey('number'))
+          .where(
+            (p) =>
+                p.number.trim().isNotEmpty ||
+                p.rawKnownValues.containsKey('number'),
+          )
           .toList(),
       emails: c.emails
-          .where((e) =>
-              e.address.trim().isNotEmpty ||
-              e.rawKnownValues.containsKey('address'))
+          .where(
+            (e) =>
+                e.address.trim().isNotEmpty ||
+                e.rawKnownValues.containsKey('address'),
+          )
           .toList(),
       addresses: c.addresses
-          .where((a) =>
-              a.value.trim().isNotEmpty || a.rawKnownValues.containsKey('value'))
+          .where(
+            (a) =>
+                a.value.trim().isNotEmpty ||
+                a.rawKnownValues.containsKey('value'),
+          )
           .toList(),
     );
   }

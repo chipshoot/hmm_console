@@ -1804,6 +1804,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactFieldPhone => 'Phone';
 
   @override
+  String get contactCountryCodeTitle => 'Country code';
+
+  @override
+  String get contactCountryCodeSearchHint => 'Search by country or code';
+
+  @override
+  String get contactCountryCodePlaceholder => 'Code';
+
+  @override
+  String get contactCountryCodeNone => 'No country code';
+
+  @override
   String get contactFieldMobile => 'Cell';
 
   @override
@@ -2241,7 +2253,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpContactEditFieldsBody =>
-      'Add as many as you need and label each one, such as Mobile or Work.';
+      'Add as many as you need and label each one, such as Mobile or Work. For phones, tap the code beside the number to pick a country calling code, or paste a number that starts with +.';
 
   @override
   String get helpContactEditRelationshipTitle => 'Relationship';

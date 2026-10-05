@@ -1762,6 +1762,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactFieldPhone => '电话';
 
   @override
+  String get contactCountryCodeTitle => '国家/地区代码';
+
+  @override
+  String get contactCountryCodeSearchHint => '按国家/地区或区号搜索';
+
+  @override
+  String get contactCountryCodePlaceholder => '区号';
+
+  @override
+  String get contactCountryCodeNone => '不设区号';
+
+  @override
   String get contactFieldMobile => '手机';
 
   @override
@@ -2181,7 +2193,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpContactEditFieldsTitle => '电话、邮箱和地址';
 
   @override
-  String get helpContactEditFieldsBody => '可添加多个，并为每个设置标签，如手机或工作。';
+  String get helpContactEditFieldsBody =>
+      '可添加多个，并为每个设置标签，如手机或工作。电话号码旁可点按区号选择国家/地区区号，也可直接粘贴以 + 开头的号码。';
 
   @override
   String get helpContactEditRelationshipTitle => '关系';

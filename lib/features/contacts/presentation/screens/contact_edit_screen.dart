@@ -8,6 +8,7 @@ import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/entities/contact.dart';
 import '../../states/contact_edit_state.dart';
+import '../../states/device_region_provider.dart';
 import '../contact_labels.dart';
 import '../widgets/labeled_field_editor.dart';
 import 'contact_detail_screen.dart' show contactByIdProvider;
@@ -187,7 +188,12 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
               valueLabel: l.contactFieldPhone,
               addLabel: l.contactAddPhone,
               labels: phoneFieldLabels,
-              keyboardType: TextInputType.phone,
+              // iOS's phone pad has no `+`; the signed number pad does.
+              keyboardType: isIos
+                  ? const TextInputType.numberWithOptions(signed: true)
+                  : TextInputType.phone,
+              countryCode: true,
+              defaultRegion: ref.watch(deviceRegionProvider),
               initial: [
                 for (final p in widget.initial.phones)
                   LabeledFieldEntry(

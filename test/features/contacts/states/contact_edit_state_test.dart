@@ -9,11 +9,7 @@ import 'package:hmm_console/features/contacts/presentation/widgets/labeled_field
 
 import '../data/contact_repository_fakes.dart';
 
-const _p = Contact(
-  id: '',
-  contactType: ContactType.person,
-  firstName: 'Ann',
-);
+const _p = Contact(id: '', contactType: ContactType.person, firstName: 'Ann');
 
 ProviderContainer _container(InMemoryContactRepository repo) {
   final c = ProviderContainer(
@@ -43,23 +39,25 @@ void main() {
     expect(contact.relationship.category, RelationshipCategory.self);
   });
 
-  test('an unknown stored contact type keeps both sets of names on save',
-      () async {
-    final repo = InMemoryContactRepository();
-    final c = _container(repo);
-    final future = ContactCodec.fromMap({
-      'id': 'x',
-      'contactType': 'robot',
-      'firstName': 'R',
-      'organizationName': 'Org',
-    });
-    final n = c.read(contactEditStateProvider(future).notifier);
-    expect(await n.save(), isTrue);
-    final saved = (await repo.getContacts()).single;
-    expect(saved.firstName, 'R');
-    expect(saved.organizationName, 'Org');
-    expect(saved.storedContactTypeName, 'robot');
-  });
+  test(
+    'an unknown stored contact type keeps both sets of names on save',
+    () async {
+      final repo = InMemoryContactRepository();
+      final c = _container(repo);
+      final future = ContactCodec.fromMap({
+        'id': 'x',
+        'contactType': 'robot',
+        'firstName': 'R',
+        'organizationName': 'Org',
+      });
+      final n = c.read(contactEditStateProvider(future).notifier);
+      expect(await n.save(), isTrue);
+      final saved = (await repo.getContacts()).single;
+      expect(saved.firstName, 'R');
+      expect(saved.organizationName, 'Org');
+      expect(saved.storedContactTypeName, 'robot');
+    },
+  );
 
   group('a wrong-typed entry value survives the edit form', () {
     final stored = ContactCodec.fromMap({

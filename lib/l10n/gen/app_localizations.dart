@@ -3236,6 +3236,30 @@ abstract class AppLocalizations {
   /// **'Phone'**
   String get contactFieldPhone;
 
+  /// No description provided for @contactCountryCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Country code'**
+  String get contactCountryCodeTitle;
+
+  /// No description provided for @contactCountryCodeSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by country or code'**
+  String get contactCountryCodeSearchHint;
+
+  /// No description provided for @contactCountryCodePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get contactCountryCodePlaceholder;
+
+  /// No description provided for @contactCountryCodeNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No country code'**
+  String get contactCountryCodeNone;
+
   /// No description provided for @contactFieldMobile.
   ///
   /// In en, this message translates to:
@@ -4073,7 +4097,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpContactEditFieldsBody.
   ///
   /// In en, this message translates to:
-  /// **'Add as many as you need and label each one, such as Mobile or Work.'**
+  /// **'Add as many as you need and label each one, such as Mobile or Work. For phones, tap the code beside the number to pick a country calling code, or paste a number that starts with +.'**
   String get helpContactEditFieldsBody;
 
   /// No description provided for @helpContactEditRelationshipTitle.
