@@ -13,7 +13,7 @@ void main() {
     });
 
     test('a + anywhere else is not punctuation worth keeping', () {
-      expect(telUri('555-123-4567 ext+2').toString(), 'tel:55512345672');
+      expect(telUri('555-123-4567 1+2').toString(), 'tel:555123456712');
     });
 
     test('an already-clean number is unchanged', () {
@@ -42,6 +42,15 @@ void main() {
 }
 
 void _phoneCodeTests() {
+  test('digits after an extension marker are not dialled', () {
+    expect(telUri('555 0100 x23').toString(), 'tel:5550100');
+    expect(telUri('+1 555 0100 ext 5').toString(), 'tel:+15550100');
+    expect(telUri('555 0100,,2').toString(), 'tel:5550100');
+    expect(telUri('555 0100;2').toString(), 'tel:5550100');
+    expect(telUri('555 0100 #9').toString(), 'tel:5550100');
+    expect(telUri('555 0100 X23').toString(), 'tel:5550100');
+  });
+
   test('a code-prefixed stored phone dials as an international number', () {
     expect(telUri('+86 138 0013 8000').toString(), 'tel:+8613800138000');
   });

@@ -173,29 +173,65 @@ class _Row extends StatelessWidget {
   }
 }
 
-/// Keeps digits, spaces, `-`, `(`, `)`, `.` and a `+` at the very start.
+/// Phone-number input filter. Allows digits, spaces, `- ( ) .`, extension
+/// characters (`x X , ; # *`) and a `+` at the very start.
+///
+/// Only the newly inserted characters are filtered (diffed against the old
+/// value), so text already in the field is never deleted by an edit.
 class PhoneNumberFormatter extends TextInputFormatter {
   const PhoneNumberFormatter();
+
+  static final _allowed = RegExp(r'[0-9 \-().xX,;#*]');
 
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final b = StringBuffer();
-    for (var i = 0; i < newValue.text.length; i++) {
-      final ch = newValue.text[i];
-      if (RegExp(r'[0-9 \-().]').hasMatch(ch) || (ch == '+' && b.isEmpty)) {
-        b.write(ch);
-      }
+    final o = oldValue.text;
+    final n = newValue.text;
+    var p = 0;
+    while (p < o.length && p < n.length && o[p] == n[p]) {
+      p++;
     }
-    final out = b.toString();
-    if (out == newValue.text) return newValue;
+    var s = 0;
+    while (s < o.length - p &&
+        s < n.length - p &&
+        o[o.length - 1 - s] == n[n.length - 1 - s]) {
+      s++;
+    }
+    final inserted = n.substring(p, n.length - s);
+    final prefix = n.substring(0, p);
+    final suffix = n.substring(n.length - s);
+
+    String filter(String text, {required bool atStart}) {
+      final b = StringBuffer();
+      for (final ch in text.split('')) {
+        if (_allowed.hasMatch(ch) ||
+            (ch == '+' && atStart && b.isEmpty && !suffix.startsWith('+'))) {
+          b.write(ch);
+        }
+      }
+      return b.toString();
+    }
+
+    final atStart = prefix.isEmpty;
+    final kept = filter(inserted, atStart: atStart);
+    if (kept == inserted) return newValue;
+    final base = newValue.selection.baseOffset;
+    final int offset;
+    if (base < p) {
+      offset = base;
+    } else if (base <= p + inserted.length) {
+      offset =
+          p + filter(inserted.substring(0, base - p), atStart: atStart).length;
+    } else {
+      offset = base - (inserted.length - kept.length);
+    }
+    final text = prefix + kept + suffix;
     return TextEditingValue(
-      text: out,
-      selection: TextSelection.collapsed(
-        offset: newValue.selection.baseOffset.clamp(0, out.length),
-      ),
+      text: text,
+      selection: TextSelection.collapsed(offset: offset.clamp(0, text.length)),
     );
   }
 }

@@ -185,6 +185,9 @@ class _LabeledFieldEditorState extends State<LabeledFieldEditor> {
   Future<void> _pickCode(_Row row) async {
     final choice = await showCallingCodePicker(context, selected: row.code);
     if (choice == null || !mounted) return;
+    // Re-picking the current code changes nothing, so the stored value
+    // must stay as loaded.
+    if (choice.code == row.code) return;
     setState(() {
       row.code = choice.code;
       row.touched = true;
@@ -235,15 +238,19 @@ class _LabeledFieldEditorState extends State<LabeledFieldEditor> {
                   },
                 ),
                 if (widget.countryCode)
-                  TextButton(
-                    key: Key('${widget.keyPrefix}-code-$i'),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(48, 40),
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                    onPressed: () => _pickCode(_rows[i]),
-                    child: Text(
-                      _rows[i].code?.label ?? l.contactCountryCodePlaceholder,
+                  Semantics(
+                    label: l.contactCountryCodeTitle,
+                    button: true,
+                    child: TextButton(
+                      key: Key('${widget.keyPrefix}-code-$i'),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(48, 40),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () => _pickCode(_rows[i]),
+                      child: Text(
+                        _rows[i].code?.label ?? l.contactCountryCodePlaceholder,
+                      ),
                     ),
                   ),
                 const SizedBox(width: 8),

@@ -323,7 +323,7 @@ CallingCode? primaryCallingCode(String code) => _primaryByCode[code];
   for (var n = digits.length; n >= 1; n--) {
     final hit = _primaryByCode[digits.substring(0, n)];
     if (hit != null) {
-      final rest = s.substring(1 + n).replaceFirst(RegExp(r'^[\s\-.()]+'), '');
+      final rest = s.substring(1 + n).replaceFirst(RegExp(r'^[\s\-.]+'), '');
       return (code: hit, national: rest);
     }
   }

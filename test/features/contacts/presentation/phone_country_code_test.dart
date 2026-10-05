@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hmm_console/features/contacts/presentation/widgets/calling_code_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
@@ -268,5 +269,168 @@ void main() {
     await tester.pumpAndSettle();
     await _save(tester);
     expect((await repo.getContact('p1'))!.phones.single.number, '138');
+  });
+
+  testWidgets('paste keeps brackets in the national part', (tester) async {
+    final repo = await _mount(tester, seed: _seed(const []), region: null);
+    await _addPhone(tester);
+    await tester.enterText(
+      find.byKey(const Key('phones-value-0')),
+      '+44 (0)20 7946 0958',
+    );
+    await _save(tester);
+    expect(
+      (await repo.getContact('p1'))!.phones.single.number,
+      '+44 (0)20 7946 0958',
+    );
+  });
+
+  testWidgets('editing a loaded row keeps brackets and extension text', (
+    tester,
+  ) async {
+    final repo = await _mount(
+      tester,
+      seed: _seed(const [
+        ContactPhone(label: 'mobile', number: '+1 (555) 123-4567'),
+        ContactPhone(label: 'work', number: '555 0100 x23'),
+        ContactPhone(label: 'home', number: 'ext 5#*,'),
+      ]),
+    );
+    final f0 = find.byKey(const Key('phones-value-0'));
+    await tester.enterText(f0, '(555) 123-45678');
+    final f1 = find.byKey(const Key('phones-value-1'));
+    await tester.enterText(f1, '555 0100 x234');
+    final f2 = find.byKey(const Key('phones-value-2'));
+    await tester.enterText(f2, 'ext 5#*,1');
+    await _save(tester);
+    expect((await repo.getContact('p1'))!.phones.map((p) => p.number), [
+      '+1 (555) 123-45678',
+      '555 0100 x234',
+      'ext 5#*,1',
+    ]);
+  });
+
+  testWidgets('typing at the end of a loaded row keeps characters outside '
+      'the old allow-list', (tester) async {
+    await _mount(
+      tester,
+      seed: _seed(const [
+        ContactPhone(label: 'mobile', number: '555 0100 x23'),
+      ]),
+    );
+    final f = find.byKey(const Key('phones-value-0'));
+    // Simulate a keystroke: the new text is the old text plus one digit.
+    await tester.enterText(f, '555 0100 x234');
+    expect(tester.widget<TextField>(f).controller!.text, '555 0100 x234');
+  });
+
+  testWidgets('letters other than x are still rejected', (tester) async {
+    await _mount(
+      tester,
+      seed: _seed(const [ContactPhone(label: 'mobile', number: '')]),
+    );
+    final f = find.byKey(const Key('phones-value-0'));
+    await tester.enterText(f, '12ab3x4,5;6#7*');
+    expect(tester.widget<TextField>(f).controller!.text, '123x4,5;6#7*');
+  });
+
+  test('formatter: a rejected insert mid-number keeps the cursor in place', () {
+    const fmt = PhoneNumberFormatter();
+    final r = fmt.formatEditUpdate(
+      const TextEditingValue(
+        text: '12345',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+      const TextEditingValue(
+        text: '12a345',
+        selection: TextSelection.collapsed(offset: 3),
+      ),
+    );
+    expect(r.text, '12345');
+    expect(r.selection.baseOffset, 2);
+  });
+
+  test('formatter never deletes pre-existing characters', () {
+    const fmt = PhoneNumberFormatter();
+    final r = fmt.formatEditUpdate(
+      const TextEditingValue(
+        text: 'abc 1',
+        selection: TextSelection.collapsed(offset: 5),
+      ),
+      const TextEditingValue(
+        text: 'abc 12',
+        selection: TextSelection.collapsed(offset: 6),
+      ),
+    );
+    expect(r.text, 'abc 12');
+  });
+
+  testWidgets('re-picking the same code leaves the stored value untouched', (
+    tester,
+  ) async {
+    final repo = await _mount(
+      tester,
+      seed: _seed(const [ContactPhone(label: 'mobile', number: '+1-555-0100')]),
+    );
+    await tester.tap(find.byKey(chip0));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('calling-code-search')), 'US');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('calling-code-US')));
+    await tester.pumpAndSettle();
+    await _save(tester);
+    expect((await repo.getContact('p1'))!.phones.single.number, '+1-555-0100');
+  });
+
+  testWidgets('open then cancel the picker leaves the value untouched', (
+    tester,
+  ) async {
+    final repo = await _mount(
+      tester,
+      seed: _seed(const [ContactPhone(label: 'mobile', number: '+1-555-0100')]),
+    );
+    await tester.tap(find.byKey(chip0));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    await _save(tester);
+    expect((await repo.getContact('p1'))!.phones.single.number, '+1-555-0100');
+  });
+
+  testWidgets('label-only change and removing another row keep numbers', (
+    tester,
+  ) async {
+    final repo = await _mount(
+      tester,
+      seed: _seed(const [
+        ContactPhone(label: 'mobile', number: '+1-555-0100'),
+        ContactPhone(label: 'work', number: '(555) 010-0100'),
+        ContactPhone(label: 'home', number: '+999 123'),
+      ]),
+    );
+    await _scrollTo(tester, find.byKey(const Key('phones-label-0')));
+    await tester.tap(find.byKey(const Key('phones-label-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(_l.fieldLabelWork).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(_l.contactRemoveFieldTooltip).at(1));
+    await tester.pumpAndSettle();
+    await _save(tester);
+    final phones = (await repo.getContact('p1'))!.phones;
+    expect(phones.map((p) => p.number), ['+1-555-0100', '+999 123']);
+    expect(phones.first.label, 'work');
+  });
+
+  testWidgets('the code chip has a localized semantic label', (tester) async {
+    final handle = tester.ensureSemantics();
+    await _mount(
+      tester,
+      seed: _seed(const [ContactPhone(label: 'mobile', number: '')]),
+    );
+    expect(
+      find.bySemanticsLabel(RegExp(_l.contactCountryCodeTitle)),
+      findsWidgets,
+    );
+    handle.dispose();
   });
 }

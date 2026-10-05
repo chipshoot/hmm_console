@@ -25,6 +25,16 @@ void main() {
       );
       expect(splitInternationalNumber('+1-555-0100')!.national, '555-0100');
     });
+    test('brackets in the national part are kept', () {
+      expect(
+        splitInternationalNumber('+1 (555) 123-4567')!.national,
+        '(555) 123-4567',
+      );
+      expect(
+        splitInternationalNumber('+44 (0)20 7946 0958')!.national,
+        '(0)20 7946 0958',
+      );
+    });
     test('unknown code and non-international input do not match', () {
       expect(splitInternationalNumber('+999 1'), isNull);
       expect(splitInternationalNumber('604-555-0100'), isNull);

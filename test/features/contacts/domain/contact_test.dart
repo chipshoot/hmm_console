@@ -4,11 +4,11 @@ import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart
 
 void main() {
   Contact person() => const Contact(
-    id: 'c-1',
-    contactType: ContactType.person,
-    firstName: 'Ada',
-    lastName: 'Lovelace',
-  );
+        id: 'c-1',
+        contactType: ContactType.person,
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+      );
 
   group('displayName', () {
     test('a person reads First Last', () {
@@ -17,11 +17,8 @@ void main() {
 
     test('a person with only a first name does not trail a space', () {
       expect(
-        const Contact(
-          id: 'c',
-          contactType: ContactType.person,
-          firstName: 'Ada',
-        ).displayName,
+        const Contact(id: 'c', contactType: ContactType.person, firstName: 'Ada')
+            .displayName,
         'Ada',
       );
     });
@@ -38,10 +35,7 @@ void main() {
     });
 
     test('a nameless contact yields empty, never null', () {
-      expect(
-        const Contact(id: 'c', contactType: ContactType.person).displayName,
-        '',
-      );
+      expect(const Contact(id: 'c', contactType: ContactType.person).displayName, '');
     });
   });
 
@@ -81,10 +75,9 @@ void main() {
   });
 
   test('relationship copyWith can clear customLabel', () {
-    final rel = person().relationship.copyWith(
-      customLabel: 'custom',
-      category: RelationshipCategory.friend,
-    );
+    final rel = person()
+        .relationship
+        .copyWith(customLabel: 'custom', category: RelationshipCategory.friend);
     expect(rel.customLabel, 'custom');
     final cleared = rel.copyWith(customLabel: null);
     expect(cleared.customLabel, isNull);

@@ -14,24 +14,19 @@ class _Mode extends DataModeNotifier {
   DataMode build() => _m;
 }
 
-ProviderContainer _c(DataMode m) => ProviderContainer(
-  overrides: [
-    dataModeProvider.overrideWith(() => _Mode(m)),
-    localContactRepositoryProvider.overrideWithValue(
-      LocalContactRepository(FakeNoteRepository(), FakeCatalogRepository()),
-    ),
-  ],
-);
+ProviderContainer _c(DataMode m) => ProviderContainer(overrides: [
+      dataModeProvider.overrideWith(() => _Mode(m)),
+      localContactRepositoryProvider.overrideWithValue(
+          LocalContactRepository(FakeNoteRepository(), FakeCatalogRepository())),
+    ]);
 
 void main() {
   test('local and cloudStorage resolve the local repository', () {
     for (final m in [DataMode.local, DataMode.cloudStorage]) {
       final c = _c(m);
       addTearDown(c.dispose);
-      expect(
-        c.read(contactRepositoryModeProvider),
-        isA<LocalContactRepository>(),
-      );
+      expect(c.read(contactRepositoryModeProvider),
+          isA<LocalContactRepository>());
     }
   });
 

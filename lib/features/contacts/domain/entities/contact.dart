@@ -151,12 +151,10 @@ class Contact {
   /// Derived, never stored: person and organization both present one name to
   /// the UI and to cheatsheet binding.
   String get displayName => switch (contactType) {
-    ContactType.organization => organizationName ?? '',
-    ContactType.person => [
-      firstName,
-      lastName,
-    ].whereType<String>().where((s) => s.isNotEmpty).join(' '),
-  };
+        ContactType.organization => organizationName ?? '',
+        ContactType.person =>
+          [firstName, lastName].whereType<String>().where((s) => s.isNotEmpty).join(' '),
+      };
 
   Contact copyWith({
     String? id,
@@ -172,31 +170,29 @@ class Contact {
     Object? notes = _kSentinel,
     bool? isActivated,
     Map<String, dynamic>? extraFields,
-  }) => Contact(
-    id: id ?? this.id,
-    contactType: contactType ?? this.contactType,
-    firstName: identical(firstName, _kSentinel)
-        ? this.firstName
-        : firstName as String?,
-    lastName: identical(lastName, _kSentinel)
-        ? this.lastName
-        : lastName as String?,
-    organizationName: identical(organizationName, _kSentinel)
-        ? this.organizationName
-        : organizationName as String?,
-    phones: phones ?? this.phones,
-    emails: emails ?? this.emails,
-    addresses: addresses ?? this.addresses,
-    relationship: relationship ?? this.relationship,
-    isSelf: isSelf ?? this.isSelf,
-    notes: identical(notes, _kSentinel) ? this.notes : notes as String?,
-    isActivated: isActivated ?? this.isActivated,
-    extraFields: extraFields ?? this.extraFields,
-    storedSchemaVersion: storedSchemaVersion,
-    rawKnownValues: rawKnownValues,
-    unreadableEntries: unreadableEntries,
-    rawContactType: contactType != null ? null : _rawContactType,
-  );
+  }) =>
+      Contact(
+        id: id ?? this.id,
+        contactType: contactType ?? this.contactType,
+        firstName:
+            identical(firstName, _kSentinel) ? this.firstName : firstName as String?,
+        lastName: identical(lastName, _kSentinel) ? this.lastName : lastName as String?,
+        organizationName: identical(organizationName, _kSentinel)
+            ? this.organizationName
+            : organizationName as String?,
+        phones: phones ?? this.phones,
+        emails: emails ?? this.emails,
+        addresses: addresses ?? this.addresses,
+        relationship: relationship ?? this.relationship,
+        isSelf: isSelf ?? this.isSelf,
+        notes: identical(notes, _kSentinel) ? this.notes : notes as String?,
+        isActivated: isActivated ?? this.isActivated,
+        extraFields: extraFields ?? this.extraFields,
+        storedSchemaVersion: storedSchemaVersion,
+        rawKnownValues: rawKnownValues,
+        unreadableEntries: unreadableEntries,
+        rawContactType: contactType != null ? null : _rawContactType,
+      );
 
   static bool _sameList<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;
@@ -225,17 +221,17 @@ class Contact {
 
   @override
   int get hashCode => Object.hash(
-    id,
-    contactType,
-    firstName,
-    lastName,
-    organizationName,
-    Object.hashAll(phones),
-    Object.hashAll(emails),
-    Object.hashAll(addresses),
-    relationship,
-    isSelf,
-    notes,
-    isActivated,
-  );
+        id,
+        contactType,
+        firstName,
+        lastName,
+        organizationName,
+        Object.hashAll(phones),
+        Object.hashAll(emails),
+        Object.hashAll(addresses),
+        relationship,
+        isSelf,
+        notes,
+        isActivated,
+      );
 }

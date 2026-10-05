@@ -290,9 +290,8 @@ void main() {
     expect((await repo.getContact('d1'))!.notes, isNull);
   });
 
-  testWidgets('saving an organization drops the hidden person names', (
-    tester,
-  ) async {
+  testWidgets('saving an organization drops the hidden person names',
+      (tester) async {
     final repo = await _mount(tester, contactId: 'd1', seed: _doc);
     await tester.tap(find.text(_l.contactTypeOrganization));
     await tester.pumpAndSettle();
@@ -304,9 +303,8 @@ void main() {
     expect(saved.lastName, isNull);
   });
 
-  testWidgets('saving a person drops the hidden organization name', (
-    tester,
-  ) async {
+  testWidgets('saving a person drops the hidden organization name',
+      (tester) async {
     final repo = await _mount(tester);
     await tester.tap(find.text(_l.contactTypeOrganization));
     await tester.pumpAndSettle();
@@ -320,9 +318,8 @@ void main() {
     expect(saved.organizationName, isNull);
   });
 
-  testWidgets('editing keeps unknown relationship, label and extra fields', (
-    tester,
-  ) async {
+  testWidgets('editing keeps unknown relationship, label and extra fields',
+      (tester) async {
     const odd = Contact(
       id: 'o1',
       contactType: ContactType.person,
@@ -348,33 +345,27 @@ void main() {
   });
 
   testWidgets(
-    'the edit session is pinned: a stored change mid-edit does not reset '
-    'it, and a tap after a successful save is ignored',
-    (tester) async {
-      final repo = await _mount(tester, contactId: 'd1', seed: _doc);
-      await tester.enterText(
-        find.byKey(const Key('contact-first-name')),
-        'Dan',
-      );
-      // The stored contact changes under the open form.
-      repo.seed(_doc.copyWith(lastName: 'Changed'));
-      ProviderScope.containerOf(
-        tester.element(find.byType(ContactEditScreen)),
-      ).invalidate(contactsStateProvider);
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('contact-first-name')), findsOneWidget);
+      'the edit session is pinned: a stored change mid-edit does not reset '
+      'it, and a tap after a successful save is ignored', (tester) async {
+    final repo = await _mount(tester, contactId: 'd1', seed: _doc);
+    await tester.enterText(find.byKey(const Key('contact-first-name')), 'Dan');
+    // The stored contact changes under the open form.
+    repo.seed(_doc.copyWith(lastName: 'Changed'));
+    ProviderScope.containerOf(tester.element(find.byType(ContactEditScreen)))
+        .invalidate(contactsStateProvider);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('contact-first-name')), findsOneWidget);
 
-      final save = find.byKey(const Key('contact-save'));
-      await tester.tap(save);
-      await tester.pump();
-      await tester.pump();
-      await tester.tap(save, warnIfMissed: false);
-      await tester.pumpAndSettle();
-      expect(repo.saveCalls, 1);
-      final saved = (await repo.getContact('d1'))!;
-      expect(saved.firstName, 'Dan', reason: 'what is on screen is saved');
-    },
-  );
+    final save = find.byKey(const Key('contact-save'));
+    await tester.tap(save);
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(save, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(repo.saveCalls, 1);
+    final saved = (await repo.getContact('d1'))!;
+    expect(saved.firstName, 'Dan', reason: 'what is on screen is saved');
+  });
 
   testWidgets(
     'a save is not re-entrant: taps while one is in flight are ignored',
@@ -399,9 +390,8 @@ void main() {
     },
   );
 
-  testWidgets('an unreadable contact shows load-failed, not not-found', (
-    tester,
-  ) async {
+  testWidgets('an unreadable contact shows load-failed, not not-found',
+      (tester) async {
     final repo = InMemoryContactRepository()
       ..throwOnGet = const ContactUnreadable('d1');
     await _mountWith(tester, repo, contactId: 'd1');

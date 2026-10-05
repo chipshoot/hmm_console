@@ -11,8 +11,13 @@ final _nonDigits = RegExp(r'[^0-9]');
 ///
 /// A leading `+` survives because it is the international prefix, not
 /// decoration; a `+` anywhere else is decoration.
+///
+/// Dialling stops at the first extension marker (`x`, `ext`, `,`, `;`, `#`):
+/// digits after it belong to the extension, not the number.
 Uri telUri(String phone) {
-  final trimmed = phone.trim();
+  var trimmed = phone.trim();
+  final cut = trimmed.indexOf(RegExp(r'[xX,;#]'));
+  if (cut >= 0) trimmed = trimmed.substring(0, cut);
   final international = trimmed.startsWith('+');
   final digits = trimmed.replaceAll(_nonDigits, '');
   return Uri.parse('tel:${international ? '+' : ''}$digits');

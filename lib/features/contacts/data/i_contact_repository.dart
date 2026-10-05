@@ -11,7 +11,7 @@ import '../domain/entities/contact.dart';
 /// of a raw stack trace.
 class ContactsCloudApiUnavailable extends UnimplementedError {
   ContactsCloudApiUnavailable()
-    : super('contacts cloudApi repo ships in the backend plan');
+      : super('contacts cloudApi repo ships in the backend plan');
 }
 
 /// True when [error] is, or is Riverpod's wrapper around, a

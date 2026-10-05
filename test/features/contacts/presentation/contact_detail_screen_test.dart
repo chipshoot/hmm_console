@@ -143,9 +143,8 @@ void main() {
     expect(find.text('Contact restored'), findsOneWidget);
   });
 
-  testWidgets('a failed remove says so and stays on the screen', (
-    tester,
-  ) async {
+  testWidgets('a failed remove says so and stays on the screen',
+      (tester) async {
     final repo = InMemoryContactRepository()
       ..throwOnDeactivate = const ContactNotFound('d1');
     await _mount(tester, id: 'd1', seed: _doc, repository: repo);
@@ -170,9 +169,8 @@ void main() {
     expect(find.text('Contact restored'), findsNothing);
   });
 
-  testWidgets('an unreadable contact shows load-failed, not not-found', (
-    tester,
-  ) async {
+  testWidgets('an unreadable contact shows load-failed, not not-found',
+      (tester) async {
     final repo = InMemoryContactRepository()
       ..throwOnGet = const ContactUnreadable('d1');
     await _mount(tester, id: 'd1', repository: repo);
@@ -183,12 +181,8 @@ void main() {
   testWidgets('a launch that throws an Error still shows the failure', (
     tester,
   ) async {
-    await _mount(
-      tester,
-      id: 'd1',
-      seed: _doc,
-      launchError: StateError('(604) 555-0100'),
-    );
+    await _mount(tester,
+        id: 'd1', seed: _doc, launchError: StateError('(604) 555-0100'));
 
     // Restored inside the body: the widget binding checks debugPrint is
     // unchanged before tear-downs run.

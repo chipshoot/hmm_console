@@ -83,38 +83,34 @@ void main() {
     );
   });
 
-  test(
-    'a save that fails after a partial write still re-reads the list',
-    () async {
-      final repo = InMemoryContactRepository();
-      final container = _container(repo);
-      expect(await container.read(contactsStateProvider.future), isEmpty);
+  test('a save that fails after a partial write still re-reads the list',
+      () async {
+    final repo = InMemoryContactRepository();
+    final container = _container(repo);
+    expect(await container.read(contactsStateProvider.future), isEmpty);
 
-      repo.throwAfterSave = StateError('second write failed');
-      await expectLater(
-        container.read(contactsStateProvider.notifier).save(_ada),
-        throwsStateError,
-      );
+    repo.throwAfterSave = StateError('second write failed');
+    await expectLater(
+      container.read(contactsStateProvider.notifier).save(_ada),
+      throwsStateError,
+    );
 
-      expect(await container.read(contactsStateProvider.future), hasLength(1));
-    },
-  );
+    expect(await container.read(contactsStateProvider.future), hasLength(1));
+  });
 
-  test(
-    'a restore that fails after a partial write still re-reads the list',
-    () async {
-      final repo = InMemoryContactRepository()
-        ..seed(_ada.copyWith(isActivated: false));
-      final container = _container(repo);
-      expect(await container.read(contactsStateProvider.future), isEmpty);
+  test('a restore that fails after a partial write still re-reads the list',
+      () async {
+    final repo = InMemoryContactRepository()
+      ..seed(_ada.copyWith(isActivated: false));
+    final container = _container(repo);
+    expect(await container.read(contactsStateProvider.future), isEmpty);
 
-      repo.throwAfterSave = StateError('second write failed');
-      await expectLater(
-        container.read(contactsStateProvider.notifier).restore('c-1'),
-        throwsStateError,
-      );
+    repo.throwAfterSave = StateError('second write failed');
+    await expectLater(
+      container.read(contactsStateProvider.notifier).restore('c-1'),
+      throwsStateError,
+    );
 
-      expect(await container.read(contactsStateProvider.future), hasLength(1));
-    },
-  );
+    expect(await container.read(contactsStateProvider.future), hasLength(1));
+  });
 }
