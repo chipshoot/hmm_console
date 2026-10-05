@@ -603,6 +603,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Set up Secure Vault in Settings to view this image.';
 
   @override
+  String get attachmentPhotoLoadFailed => 'Could not load photo';
+
+  @override
   String get cheatsheetWalletTitle => 'Cheatsheets';
 
   @override

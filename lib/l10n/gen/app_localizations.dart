@@ -1064,6 +1064,12 @@ abstract class AppLocalizations {
   /// **'Set up Secure Vault in Settings to view this image.'**
   String get notesVaultSetUpPrompt;
 
+  /// No description provided for @attachmentPhotoLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load photo'**
+  String get attachmentPhotoLoadFailed;
+
   /// No description provided for @cheatsheetWalletTitle.
   ///
   /// In en, this message translates to:

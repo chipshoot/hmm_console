@@ -18,7 +18,7 @@ import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart'
 import 'package:hmm_console/core/data/vault/encrypted_vault_store.dart'
     show VaultLockedException;
 import 'package:hmm_console/core/data/vault/vault_session.dart';
-import 'package:hmm_console/features/notes/presentation/widgets/sensitive_attachment_image.dart';
+import 'package:hmm_console/core/data/attachments/widgets/sensitive_attachment_image.dart';
 
 const _lockedPlaceholderKey = Key('sensitiveLockedPlaceholder');
 

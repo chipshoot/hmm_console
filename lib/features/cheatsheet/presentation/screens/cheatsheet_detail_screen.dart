@@ -10,7 +10,7 @@ import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/data/vault/vault_session.dart';
-import '../../../notes/presentation/widgets/sensitive_attachment_image.dart';
+import '../../../../core/data/attachments/widgets/sensitive_attachment_image.dart';
 import '../../../../core/navigation/route_names.dart';
 import '../../data/cheatsheet_launcher.dart';
 import '../../data/cheatsheet_resolver.dart';

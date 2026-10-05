@@ -7,7 +7,7 @@ import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/data/vault/sensitive_path.dart';
-import 'sensitive_attachment_image.dart';
+import '../../../../core/data/attachments/widgets/sensitive_attachment_image.dart';
 
 /// Apple-Journal-style media: large rounded image cards. Shows saved
 /// attachments (resolved from the vault) and pending picks (from local bytes).

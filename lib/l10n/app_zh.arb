@@ -162,6 +162,7 @@
   "notesRecording": "正在录音…  {time}",
   "notesRecordStop": "停止",
   "notesVaultSetUpPrompt": "请先在设置中启用安全保险库才能查看这张图片。",
+  "attachmentPhotoLoadFailed": "无法加载照片",
   "cheatsheetWalletTitle": "速查卡",
   "cheatsheetNew": "新建速查卡",
   "cheatsheetLoadFailed": "无法加载速查卡。\n{error}",

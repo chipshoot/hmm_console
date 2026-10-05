@@ -10,7 +10,7 @@ import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/vault/vault_session.dart';
-import 'package:hmm_console/features/notes/presentation/widgets/sensitive_attachment_image.dart';
+import 'package:hmm_console/core/data/attachments/widgets/sensitive_attachment_image.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_launcher.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';

@@ -578,6 +578,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesVaultSetUpPrompt => '请先在设置中启用安全保险库才能查看这张图片。';
 
   @override
+  String get attachmentPhotoLoadFailed => '无法加载照片';
+
+  @override
   String get cheatsheetWalletTitle => '速查卡';
 
   @override

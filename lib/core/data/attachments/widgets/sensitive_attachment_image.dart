@@ -1,5 +1,9 @@
 // Blurred / lock preview for sensitive images (Task B6, Phase 4b).
 //
+// Lives in core (moved from features/notes) because the shared full-screen
+// viewer (fullscreen_image.dart) must gate sensitive images too, and core
+// must not import a feature.
+//
 // SensitiveAttachmentImage wraps AttachmentImage with a vault-aware gate:
 // while the sensitive-attachments vault is locked (or a resolve races into
 // VaultLockedException between the status check and the actual read), it
@@ -19,12 +23,12 @@ import 'package:flutter/material.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/attachments/attachment_ref.dart';
-import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
-import '../../../../core/data/attachments/widgets/attachment_image.dart';
-import '../../../../core/data/vault/encrypted_vault_store.dart'
+import '../attachment_ref.dart';
+import '../resolver/attachment_resolver.dart';
+import 'attachment_image.dart';
+import '../../vault/encrypted_vault_store.dart'
     show VaultLockedException;
-import '../../../../core/data/vault/vault_session.dart';
+import '../../vault/vault_session.dart';
 
 /// Key on the locked placeholder's tap target — asserted by tests to
 /// distinguish it from AttachmentImage's own "missing" broken-image

@@ -362,6 +362,7 @@
   },
   "notesRecordStop": "Stop",
   "notesVaultSetUpPrompt": "Set up Secure Vault in Settings to view this image.",
+  "attachmentPhotoLoadFailed": "Could not load photo",
   "@_cheatsheet": {
     "description": "Cheatsheet wallet cards. Note the split: template ROW LABELS are translated because they seed a user document (nothing matches on them), while walletGroup keeps an English key because the wallet groups by exact string — see cheatsheet_templates.dart."
   },
