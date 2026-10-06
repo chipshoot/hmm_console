@@ -148,153 +148,160 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
         ],
       ),
       body: SafeArea(
-        child: ListView(
+        // Not a ListView: a lazy list disposes sections scrolled past its
+        // cache extent, and the field editors would then rebuild from the
+        // initial contact, reverting (and later overwriting) typed edits.
+        // The form is bounded, so building it all at once is cheap.
+        child: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _TypeToggle(
-                isIos: isIos,
-                value: c.contactType,
-                onChanged: notifier.setType,
-              ),
-            ),
-            if (isOrg)
-              _pad(
-                TextField(
-                  key: const Key('contact-org-name'),
-                  controller: _org,
-                  decoration: InputDecoration(
-                    labelText: l.contactOrganizationName,
-                    errorText: nameError,
-                  ),
-                  onChanged: notifier.setOrganizationName,
-                ),
-              )
-            else ...[
-              _pad(
-                TextField(
-                  key: const Key('contact-first-name'),
-                  controller: _first,
-                  decoration: InputDecoration(
-                    labelText: l.contactFirstName,
-                    errorText: nameError,
-                  ),
-                  onChanged: notifier.setFirstName,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: _TypeToggle(
+                  isIos: isIos,
+                  value: c.contactType,
+                  onChanged: notifier.setType,
                 ),
               ),
+              if (isOrg)
+                _pad(
+                  TextField(
+                    key: const Key('contact-org-name'),
+                    controller: _org,
+                    decoration: InputDecoration(
+                      labelText: l.contactOrganizationName,
+                      errorText: nameError,
+                    ),
+                    onChanged: notifier.setOrganizationName,
+                  ),
+                )
+              else ...[
+                _pad(
+                  TextField(
+                    key: const Key('contact-first-name'),
+                    controller: _first,
+                    decoration: InputDecoration(
+                      labelText: l.contactFirstName,
+                      errorText: nameError,
+                    ),
+                    onChanged: notifier.setFirstName,
+                  ),
+                ),
+                _pad(
+                  TextField(
+                    key: const Key('contact-last-name'),
+                    controller: _last,
+                    decoration: InputDecoration(labelText: l.contactLastName),
+                    onChanged: notifier.setLastName,
+                  ),
+                ),
+              ],
+              LabeledFieldEditor(
+                keyPrefix: 'phones',
+                title: l.contactPhones,
+                valueLabel: l.contactFieldPhone,
+                addLabel: l.contactAddPhone,
+                labels: phoneFieldLabels,
+                // iOS's phone pad has no `+`; the signed number pad does.
+                keyboardType: isIos
+                    ? const TextInputType.numberWithOptions(signed: true)
+                    : TextInputType.phone,
+                countryCode: true,
+                defaultRegion: ref.watch(deviceRegionProvider),
+                initial: [
+                  for (final p in widget.initial.phones)
+                    LabeledFieldEntry(
+                      label: p.label,
+                      value: p.number,
+                      extraFields: p.extraFields,
+                      rawKnownValues: p.rawKnownValues,
+                    ),
+                ],
+                onChanged: notifier.setPhones,
+              ),
+              LabeledFieldEditor(
+                keyPrefix: 'emails',
+                title: l.contactEmails,
+                valueLabel: l.contactFieldEmail,
+                addLabel: l.contactAddEmail,
+                labels: emailFieldLabels,
+                keyboardType: TextInputType.emailAddress,
+                initial: [
+                  for (final e in widget.initial.emails)
+                    LabeledFieldEntry(
+                      label: e.label,
+                      value: e.address,
+                      extraFields: e.extraFields,
+                      rawKnownValues: e.rawKnownValues,
+                    ),
+                ],
+                onChanged: notifier.setEmails,
+              ),
+              AddressEditor(
+                key: _addresses,
+                defaultRegion: ref.watch(deviceRegionProvider),
+                initial: widget.initial.addresses,
+                onChanged: notifier.setAddresses,
+              ),
+              _pad(
+                DropdownButtonFormField<RelationshipCategory>(
+                  key: const Key('contact-relationship'),
+                  // Driven from state: DropdownButtonFormField re-syncs when
+                  // initialValue changes, so "This is me" (which files the
+                  // contact under `self`) shows here at once.
+                  initialValue: c.relationship.category,
+                  decoration: InputDecoration(labelText: l.contactRelationship),
+                  items: [
+                    for (final r in RelationshipCategory.values)
+                      DropdownMenuItem(
+                        value: r,
+                        child: Text(relationshipLabel(r, l)),
+                      ),
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    notifier.setRelationship(v);
+                    if (v != RelationshipCategory.other) _custom.clear();
+                  },
+                ),
+              ),
+              if (c.relationship.category == RelationshipCategory.other)
+                _pad(
+                  TextField(
+                    key: const Key('contact-custom-label'),
+                    controller: _custom,
+                    decoration: InputDecoration(
+                      labelText: l.contactCustomRelationship,
+                    ),
+                    onChanged: notifier.setCustomLabel,
+                  ),
+                ),
+              SwitchListTile.adaptive(
+                key: const Key('contact-is-self'),
+                title: Text(l.contactIsSelf),
+                subtitle: Text(l.contactIsSelfHint),
+                value: c.isSelf,
+                onChanged: (v) {
+                  notifier.setIsSelf(v);
+                  // setIsSelf(true) nulls the custom label; the field must not
+                  // bring the stale text back if Other is picked again.
+                  if (v) _custom.clear();
+                },
+              ),
               _pad(
                 TextField(
-                  key: const Key('contact-last-name'),
-                  controller: _last,
-                  decoration: InputDecoration(labelText: l.contactLastName),
-                  onChanged: notifier.setLastName,
+                  key: const Key('contact-notes'),
+                  controller: _notes,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: InputDecoration(labelText: l.contactNotes),
+                  onChanged: notifier.setNotes,
                 ),
               ),
             ],
-            LabeledFieldEditor(
-              keyPrefix: 'phones',
-              title: l.contactPhones,
-              valueLabel: l.contactFieldPhone,
-              addLabel: l.contactAddPhone,
-              labels: phoneFieldLabels,
-              // iOS's phone pad has no `+`; the signed number pad does.
-              keyboardType: isIos
-                  ? const TextInputType.numberWithOptions(signed: true)
-                  : TextInputType.phone,
-              countryCode: true,
-              defaultRegion: ref.watch(deviceRegionProvider),
-              initial: [
-                for (final p in widget.initial.phones)
-                  LabeledFieldEntry(
-                    label: p.label,
-                    value: p.number,
-                    extraFields: p.extraFields,
-                    rawKnownValues: p.rawKnownValues,
-                  ),
-              ],
-              onChanged: notifier.setPhones,
-            ),
-            LabeledFieldEditor(
-              keyPrefix: 'emails',
-              title: l.contactEmails,
-              valueLabel: l.contactFieldEmail,
-              addLabel: l.contactAddEmail,
-              labels: emailFieldLabels,
-              keyboardType: TextInputType.emailAddress,
-              initial: [
-                for (final e in widget.initial.emails)
-                  LabeledFieldEntry(
-                    label: e.label,
-                    value: e.address,
-                    extraFields: e.extraFields,
-                    rawKnownValues: e.rawKnownValues,
-                  ),
-              ],
-              onChanged: notifier.setEmails,
-            ),
-            AddressEditor(
-              key: _addresses,
-              defaultRegion: ref.watch(deviceRegionProvider),
-              initial: widget.initial.addresses,
-              onChanged: notifier.setAddresses,
-            ),
-            _pad(
-              DropdownButtonFormField<RelationshipCategory>(
-                key: const Key('contact-relationship'),
-                // Driven from state: DropdownButtonFormField re-syncs when
-                // initialValue changes, so "This is me" (which files the
-                // contact under `self`) shows here at once.
-                initialValue: c.relationship.category,
-                decoration: InputDecoration(labelText: l.contactRelationship),
-                items: [
-                  for (final r in RelationshipCategory.values)
-                    DropdownMenuItem(
-                      value: r,
-                      child: Text(relationshipLabel(r, l)),
-                    ),
-                ],
-                onChanged: (v) {
-                  if (v == null) return;
-                  notifier.setRelationship(v);
-                  if (v != RelationshipCategory.other) _custom.clear();
-                },
-              ),
-            ),
-            if (c.relationship.category == RelationshipCategory.other)
-              _pad(
-                TextField(
-                  key: const Key('contact-custom-label'),
-                  controller: _custom,
-                  decoration: InputDecoration(
-                    labelText: l.contactCustomRelationship,
-                  ),
-                  onChanged: notifier.setCustomLabel,
-                ),
-              ),
-            SwitchListTile.adaptive(
-              key: const Key('contact-is-self'),
-              title: Text(l.contactIsSelf),
-              subtitle: Text(l.contactIsSelfHint),
-              value: c.isSelf,
-              onChanged: (v) {
-                notifier.setIsSelf(v);
-                // setIsSelf(true) nulls the custom label; the field must not
-                // bring the stale text back if Other is picked again.
-                if (v) _custom.clear();
-              },
-            ),
-            _pad(
-              TextField(
-                key: const Key('contact-notes'),
-                controller: _notes,
-                minLines: 2,
-                maxLines: 5,
-                decoration: InputDecoration(labelText: l.contactNotes),
-                onChanged: notifier.setNotes,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

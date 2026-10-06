@@ -490,4 +490,66 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets('edits survive scrolling a section far off screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repo = InMemoryContactRepository()
+      ..seed(
+        Contact(
+          id: 'a1',
+          contactType: ContactType.person,
+          firstName: 'Pat',
+          phones: [
+            for (var i = 0; i < 4; i++)
+              ContactPhone(label: 'mobile', number: '555-010$i'),
+          ],
+          addresses: [
+            for (var i = 0; i < 4; i++)
+              ContactAddress(
+                label: 'home',
+                value: 'v$i',
+                country: 'US',
+                city: 'City $i',
+              ),
+          ],
+        ),
+      );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          contactRepositoryModeProvider.overrideWithValue(repo),
+          deviceRegionProvider.overrideWithValue('US'),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const ContactEditScreen(contactId: 'a1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enter(tester, 'phones-value-0', '555-9999');
+    // A focused field keeps itself alive; the bug needs it unfocused.
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    // Far past any cache extent, then back.
+    await _scrollTo(tester, _k('contact-notes'));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 5000));
+    await tester.pumpAndSettle();
+    expect(_text(tester, 'phones-value-0'), '555-9999');
+    await _enter(tester, 'addresses-city-3', 'Last City');
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 5000));
+    await tester.pumpAndSettle();
+    await _enter(tester, 'contact-first-name', 'Pat2');
+    await _save(tester);
+    final saved = (await repo.getContact('a1'))!;
+    expect(saved.firstName, 'Pat2');
+    expect(saved.phones.first.number, '555-9999');
+    expect(saved.addresses[3].city, 'Last City');
+    expect(saved.addresses[0].city, 'City 0');
+  });
 }
