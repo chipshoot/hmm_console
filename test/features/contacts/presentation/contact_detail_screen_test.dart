@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_launcher.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
+import 'package:hmm_console/features/contacts/data/contact_codec.dart';
 import 'package:hmm_console/features/contacts/data/i_contact_repository.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
@@ -144,6 +145,36 @@ void main() {
     await tester.tap(find.text(lines));
     await tester.pumpAndSettle();
     expect(launched, [(ValueAction.map, value)]);
+  });
+
+  testWidgets('a country with no modelled parts shows the stored value', (
+    tester,
+  ) async {
+    final launched = <(ValueAction, String)>[];
+    await _mount(
+      tester,
+      id: 's2',
+      launched: launched,
+      seed: ContactCodec.fromMap({
+        'id': 's2',
+        'contactType': 'person',
+        'firstName': 'Sam',
+        'addresses': [
+          {'label': 'home', 'value': '1 Main St, Springfield', 'country': 'US'},
+          {
+            'label': 'work',
+            'value': '10 Downing St, London',
+            'country': 'GB',
+            'line1': '10 Downing St',
+          },
+        ],
+      }),
+    );
+    expect(find.text('1 Main St, Springfield'), findsOneWidget);
+    expect(find.text('10 Downing St, London'), findsOneWidget);
+    await tester.tap(find.text('10 Downing St, London'));
+    await tester.pumpAndSettle();
+    expect(launched, [(ValueAction.map, '10 Downing St, London')]);
   });
 
   testWidgets('unknown id shows not-found', (tester) async {

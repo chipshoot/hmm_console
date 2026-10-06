@@ -48,6 +48,9 @@ class _Row {
   /// Other: the free text.
   final TextEditingController text;
 
+  /// Locates the postal field so a refused save can scroll it into view.
+  final postalKey = GlobalKey();
+
   List<TextEditingController> get _all => [
     street1,
     street2,
@@ -96,6 +99,8 @@ class _Row {
     }
     final extra = o?.extraFields ?? const <String, dynamic>{};
     final raw = o?.rawKnownValues ?? const <String, dynamic>{};
+    // Other. An address in a country this version does not know opens here
+    // too, so editing its text saves it as free-form (its parts are dropped).
     if (country == null) {
       return ContactAddress(
         label: label,
@@ -105,15 +110,20 @@ class _Row {
       );
     }
     final s = structured();
+    // A part the form does not show for this country (US/CA `district`, CN
+    // `street2`) is carried over while the country is unchanged; it stays
+    // out of the derived value.
+    final same = o != null && o.country == country;
+    final cn = country == 'CN';
     return withDerivedValue(
       ContactAddress(
         label: s.label,
         value: '',
         country: s.country,
         street1: s.street1,
-        street2: s.street2,
+        street2: cn ? (same ? o.street2 : null) : s.street2,
         city: s.city,
-        district: s.district,
+        district: cn ? s.district : (same ? o.district : null),
         region: s.region,
         postalCode: s.postalCode,
         extraFields: extra,
@@ -143,10 +153,11 @@ class AddressEditor extends StatefulWidget {
   final String? defaultRegion;
 
   @override
-  State<AddressEditor> createState() => _AddressEditorState();
+  State<AddressEditor> createState() => AddressEditorState();
 }
 
-class _AddressEditorState extends State<AddressEditor> {
+/// Public so the screen can call [revealInvalidPostal] through a GlobalKey.
+class AddressEditorState extends State<AddressEditor> {
   late final List<_Row> _rows;
   int _nextId = 0;
 
@@ -173,6 +184,23 @@ class _AddressEditorState extends State<AddressEditor> {
       r.dispose();
     }
     super.dispose();
+  }
+
+  /// Scrolls the first malformed postal field into view. Synchronous: the
+  /// caller checks validity before any await.
+  void revealInvalidPostal() {
+    for (final r in _rows) {
+      if (!r.postalInvalid) continue;
+      final ctx = r.postalKey.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.5,
+          duration: const Duration(milliseconds: 250),
+        );
+      }
+      return;
+    }
   }
 
   void _emit() => widget.onChanged([
@@ -363,7 +391,9 @@ class _AddressEditorState extends State<AddressEditor> {
       int? minLines,
       String? error,
       TextInputType? keyboard,
+      Key? outerKey,
     }) => Padding(
+      key: outerKey,
       padding: const EdgeInsets.only(top: 4),
       child: TextField(
         key: Key('addresses-$key-$i'),
@@ -426,6 +456,7 @@ class _AddressEditorState extends State<AddressEditor> {
           row.postal,
           l.contactAddressPostalCode,
           error: postalError(),
+          outerKey: row.postalKey,
           keyboard: TextInputType.number,
         ),
       ];
@@ -440,6 +471,7 @@ class _AddressEditorState extends State<AddressEditor> {
         row.postal,
         country == 'US' ? l.contactAddressZip : l.contactAddressPostalCode,
         error: postalError(),
+        outerKey: row.postalKey,
         keyboard: TextInputType.text,
       ),
     ];

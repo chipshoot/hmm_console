@@ -405,4 +405,89 @@ void main() {
     expect(_k('region-XJ'), findsOneWidget);
     expect(_k('region-GD'), findsNothing);
   });
+
+  testWidgets('editing keeps a stored part the form does not show', (
+    tester,
+  ) async {
+    const us = ContactAddress(
+      label: 'home',
+      value: 'v',
+      country: 'US',
+      city: 'Springfield',
+      district: 'Sangamon County',
+    );
+    const cn = ContactAddress(
+      label: 'work',
+      value: 'v',
+      country: 'CN',
+      city: '深圳市',
+      street2: 'B座',
+    );
+    final repo = await _mount(
+      tester,
+      seed: _seed(const [us, cn]),
+      region: 'US',
+    );
+    await _enter(tester, 'addresses-city-0', 'Chicago');
+    await _enter(tester, 'addresses-city-1', '广州市');
+    await _save(tester);
+    final saved = (await repo.getContact('a1'))!.addresses;
+    expect(saved[0].city, 'Chicago');
+    expect(saved[0].district, 'Sangamon County');
+    expect(saved[0].value, 'Chicago, United States');
+    expect(saved[1].city, '广州市');
+    expect(saved[1].street2, 'B座');
+  });
+
+  testWidgets('a hidden part is not carried into another country', (
+    tester,
+  ) async {
+    const us = ContactAddress(
+      label: 'home',
+      value: 'v',
+      country: 'US',
+      city: 'Springfield',
+      district: 'Sangamon County',
+    );
+    final repo = await _mount(tester, seed: _seed(const [us]), region: 'US');
+    await _pickCountry(tester, _l.contactAddressCountryCA);
+    await _save(tester);
+    final a = (await repo.getContact('a1'))!.addresses.single;
+    expect(a.country, 'CA');
+    expect(a.district, isNull);
+  });
+
+  testWidgets('a refused save says why and reveals the postal field', (
+    tester,
+  ) async {
+    final repo = InMemoryContactRepository()..seed(_seed());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          contactRepositoryModeProvider.overrideWithValue(repo),
+          deviceRegionProvider.overrideWithValue('US'),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const ContactEditScreen(contactId: 'a1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _addAddress(tester);
+    await _enter(tester, 'addresses-postal-0', '1234');
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+    await tester.pumpAndSettle();
+    final view = tester.getRect(find.byType(Scrollable).first);
+    expect(view.overlaps(tester.getRect(_k('addresses-postal-0'))), isFalse);
+    await _save(tester);
+    expect(repo.saveCalls, 0);
+    expect(find.text(_l.contactAddressFixPostal), findsOneWidget);
+    final field = tester.getRect(_k('addresses-postal-0'));
+    expect(
+      view.contains(field.topLeft) && view.contains(field.bottomRight),
+      isTrue,
+    );
+  });
 }

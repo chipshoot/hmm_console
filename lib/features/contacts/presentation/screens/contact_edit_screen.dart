@@ -73,6 +73,7 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
   late final TextEditingController _org;
   late final TextEditingController _custom;
   late final TextEditingController _notes;
+  final _addresses = GlobalKey<AddressEditorState>();
 
   @override
   void initState() {
@@ -103,6 +104,14 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
     );
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    // Checked before any await, so the reveal and snackbar use live state.
+    if (notifier.addressesInvalid) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.contactAddressFixPostal)),
+      );
+      _addresses.currentState?.revealInvalidPostal();
+      return;
+    }
     try {
       final saved = await notifier.save();
       if (saved && navigator.mounted) navigator.pop();
@@ -225,6 +234,7 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
               onChanged: notifier.setEmails,
             ),
             AddressEditor(
+              key: _addresses,
               defaultRegion: ref.watch(deviceRegionProvider),
               initial: widget.initial.addresses,
               onChanged: notifier.setAddresses,

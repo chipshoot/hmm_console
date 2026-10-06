@@ -141,8 +141,8 @@ class ContactDetailScreen extends ConsumerWidget {
               _FieldRow(
                 label: fieldLabelText(a.label, l),
                 value: a.value,
-                // Structured: the country's lines. Free-form: as stored.
-                display: formatMultiline(a),
+                // Structured: the country's lines. Otherwise as stored.
+                display: displayAddress(a),
                 icon: Icons.map_outlined,
                 action: ValueAction.map,
               ),

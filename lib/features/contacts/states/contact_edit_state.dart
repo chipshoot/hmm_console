@@ -29,6 +29,9 @@ class ContactEditState extends Notifier<ContactEditData> {
 
   bool _addressesInvalid = false;
 
+  /// An edited address has a malformed postal code, so [save] will refuse.
+  bool get addressesInvalid => _addressesInvalid;
+
   @override
   ContactEditData build() => ContactEditData(contact: initial);
 

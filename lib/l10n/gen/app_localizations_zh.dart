@@ -2183,6 +2183,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactAddressInvalidCnPostal => '请输入 6 位邮政编码';
 
   @override
+  String get contactAddressFixPostal => '请先修正标出的邮政编码再保存';
+
+  @override
   String get helpContactsTitle => '联系人';
 
   @override
@@ -2261,7 +2264,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpContactEditAddressBody =>
-      '为每个地址选择国家/地区。美国、加拿大和中国按当地格式提供对应字段：街道、单元、城市、州或省（从列表中选择）以及 ZIP 或邮政编码；中国地址依次为省份、城市、区/县、详细地址和邮政编码。邮政编码格式不正确时会提示，修正前无法保存联系人。选择“其他”可用多行自由文本填写任意地址；切换到“其他”时，已填写的内容会保留为文本。';
+      '为每个地址选择国家/地区。美国、加拿大和中国按当地格式提供对应字段：街道、单元、城市、州或省（从列表中选择）以及 ZIP 或邮政编码；中国地址依次为省份、城市、区/县、详细地址和邮政编码。邮政编码格式不正确时会提示，修正前无法保存联系人。切换国家/地区会保留街道、城市和邮政编码，但会清空州/省和区/县。选择“其他”可用多行自由文本填写任意地址；切换到“其他”时，已填写的内容会保留为文本。';
 
   @override
   String get helpContactEditRelationshipTitle => '关系';

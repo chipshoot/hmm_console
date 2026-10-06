@@ -158,4 +158,34 @@ void main() {
       expect(normalizePostalCode('CA', 'bad'), 'bad', reason: 'invalid kept');
     });
   });
+
+  group('displayAddress', () {
+    test('known country with parts: the multi-line form', () {
+      expect(displayAddress(us), formatMultiline(us));
+    });
+
+    test('known country with no modelled parts: the stored value', () {
+      const a = ContactAddress(
+        label: 'home',
+        value: '1 Main St, Springfield',
+        country: 'US',
+      );
+      expect(displayAddress(a), '1 Main St, Springfield');
+    });
+
+    test('unknown country: the stored value, even with parts', () {
+      const a = ContactAddress(
+        label: 'home',
+        value: '10 Downing St, London SW1A 2AA',
+        country: 'GB',
+        city: 'London',
+      );
+      expect(displayAddress(a), '10 Downing St, London SW1A 2AA');
+    });
+
+    test('free-form: the stored value', () {
+      const a = ContactAddress(label: 'home', value: 'a\nb');
+      expect(displayAddress(a), 'a\nb');
+    });
+  });
 }

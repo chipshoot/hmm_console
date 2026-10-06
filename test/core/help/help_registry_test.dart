@@ -35,6 +35,7 @@ void main() {
     final address = entries.singleWhere((e) => e.icon == Icons.public);
     expect(address.title, l.helpContactEditAddressTitle);
     expect(address.body, contains('Other'));
+    expect(address.body, contains('clears the state or province'));
   });
 
   test('zh help is translated, not copied from en', () {

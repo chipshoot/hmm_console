@@ -4076,6 +4076,12 @@ abstract class AppLocalizations {
   /// **'Enter a 6-digit postal code'**
   String get contactAddressInvalidCnPostal;
 
+  /// No description provided for @contactAddressFixPostal.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix the highlighted postal code to save'**
+  String get contactAddressFixPostal;
+
   /// No description provided for @helpContactsTitle.
   ///
   /// In en, this message translates to:
@@ -4229,7 +4235,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpContactEditAddressBody.
   ///
   /// In en, this message translates to:
-  /// **'Pick the country for each address. United States, Canada and China get their own fields in that country\'s order: street, unit, city, state or province (pick from the list) and ZIP or postal code; for China, province, city, district, detailed address and postal code. A postal code in the wrong format is flagged and the contact will not save until it is fixed. Choose Other to type any address as free text over several lines. Switching to Other keeps what you entered as text.'**
+  /// **'Pick the country for each address. United States, Canada and China get their own fields in that country\'s order: street, unit, city, state or province (pick from the list) and ZIP or postal code; for China, province, city, district, detailed address and postal code. A postal code in the wrong format is flagged and the contact will not save until it is fixed. Switching country keeps the street, city and postal code but clears the state or province and the district. Choose Other to type any address as free text over several lines. Switching to Other keeps what you entered as text.'**
   String get helpContactEditAddressBody;
 
   /// No description provided for @helpContactEditRelationshipTitle.

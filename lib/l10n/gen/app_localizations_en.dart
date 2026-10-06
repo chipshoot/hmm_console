@@ -2237,6 +2237,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactAddressInvalidCnPostal => 'Enter a 6-digit postal code';
 
   @override
+  String get contactAddressFixPostal =>
+      'Fix the highlighted postal code to save';
+
+  @override
   String get helpContactsTitle => 'Contacts';
 
   @override
@@ -2322,7 +2326,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpContactEditAddressBody =>
-      'Pick the country for each address. United States, Canada and China get their own fields in that country\'s order: street, unit, city, state or province (pick from the list) and ZIP or postal code; for China, province, city, district, detailed address and postal code. A postal code in the wrong format is flagged and the contact will not save until it is fixed. Choose Other to type any address as free text over several lines. Switching to Other keeps what you entered as text.';
+      'Pick the country for each address. United States, Canada and China get their own fields in that country\'s order: street, unit, city, state or province (pick from the list) and ZIP or postal code; for China, province, city, district, detailed address and postal code. A postal code in the wrong format is flagged and the contact will not save until it is fixed. Switching country keeps the street, city and postal code but clears the state or province and the district. Choose Other to type any address as free text over several lines. Switching to Other keeps what you entered as text.';
 
   @override
   String get helpContactEditRelationshipTitle => 'Relationship';

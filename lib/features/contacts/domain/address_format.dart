@@ -24,6 +24,15 @@ String _join(Iterable<String?> parts, String sep) =>
 String formatMultiline(ContactAddress a) =>
     a.country == null ? a.value : _lines(a).join('\n');
 
+/// What a screen shows for [a]: the multi-line form of a structured address
+/// in a country this version formats, else the stored `value` (free-form, a
+/// newer client's country, or a country with none of the modelled parts).
+String displayAddress(ContactAddress a) {
+  if (!knownAddressCountries.contains(a.country)) return a.value;
+  final lines = formatMultiline(a);
+  return lines.isEmpty ? a.value : lines;
+}
+
 /// The canonical single-line form stored in `ContactAddress.value` for a
 /// structured address: the lines joined with ", " (spaces for CN).
 String formatSingleLine(ContactAddress a) {
