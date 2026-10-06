@@ -111,6 +111,10 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
                 title: l.helpContactEditFieldsTitle,
                 body: l.helpContactEditFieldsBody),
             HelpEntry(
+                icon: Icons.public,
+                title: l.helpContactEditAddressTitle,
+                body: l.helpContactEditAddressBody),
+            HelpEntry(
                 icon: Icons.arrow_drop_down,
                 title: l.helpContactEditRelationshipTitle,
                 body: l.helpContactEditRelationshipBody),

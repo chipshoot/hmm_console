@@ -28,6 +28,15 @@ void main() {
     expect(icons, isNot(contains(Icons.directions_car_outlined)));
   });
 
+  test('contact edit help describes the address country selector', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final entries = helpFor(HelpId.contactEdit, l).entries;
+    // address_editor.dart draws Icons.public beside the country selector.
+    final address = entries.singleWhere((e) => e.icon == Icons.public);
+    expect(address.title, l.helpContactEditAddressTitle);
+    expect(address.body, contains('Other'));
+  });
+
   test('zh help is translated, not copied from en', () {
     final en = lookupAppLocalizations(const Locale('en'));
     final zh = lookupAppLocalizations(const Locale('zh'));

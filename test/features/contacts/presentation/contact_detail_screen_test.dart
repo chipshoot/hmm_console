@@ -110,6 +110,42 @@ void main() {
     expect(launched, [(ValueAction.map, '1 Main St, Vancouver')]);
   });
 
+  testWidgets('a structured address shows its lines; tap maps the value', (
+    tester,
+  ) async {
+    const value = '1 Main St, Springfield, IL 62701, United States';
+    final launched = <(ValueAction, String)>[];
+    await _mount(
+      tester,
+      id: 's1',
+      launched: launched,
+      seed: const Contact(
+        id: 's1',
+        contactType: ContactType.person,
+        firstName: 'Sam',
+        addresses: [
+          ContactAddress(
+            label: 'home',
+            value: value,
+            country: 'US',
+            street1: '1 Main St',
+            city: 'Springfield',
+            region: 'IL',
+            postalCode: '62701',
+          ),
+          ContactAddress(label: 'work', value: '10 Downing St\nLondon'),
+        ],
+      ),
+    );
+    const lines = '1 Main St\nSpringfield, IL 62701\nUnited States';
+    expect(find.text(lines), findsOneWidget);
+    expect(find.text(value), findsNothing);
+    expect(find.text('10 Downing St\nLondon'), findsOneWidget);
+    await tester.tap(find.text(lines));
+    await tester.pumpAndSettle();
+    expect(launched, [(ValueAction.map, value)]);
+  });
+
   testWidgets('unknown id shows not-found', (tester) async {
     await _mount(tester, id: 'nope');
     expect(find.text('This contact no longer exists'), findsOneWidget);

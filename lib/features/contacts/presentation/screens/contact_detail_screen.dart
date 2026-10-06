@@ -11,6 +11,7 @@ import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../../cheatsheet/data/cheatsheet_launcher.dart';
 import '../../../cheatsheet/domain/entities/cheatsheet_source.dart';
+import '../../domain/address_format.dart';
 import '../../domain/entities/contact.dart';
 import '../../states/contacts_state.dart';
 import '../contact_labels.dart';
@@ -140,6 +141,8 @@ class ContactDetailScreen extends ConsumerWidget {
               _FieldRow(
                 label: fieldLabelText(a.label, l),
                 value: a.value,
+                // Structured: the country's lines. Free-form: as stored.
+                display: formatMultiline(a),
                 icon: Icons.map_outlined,
                 action: ValueAction.map,
               ),
@@ -171,10 +174,16 @@ class _FieldRow extends ConsumerWidget {
     required this.value,
     required this.icon,
     required this.action,
+    this.display,
   });
 
   final String label;
+
+  /// What a tap launches with.
   final String value;
+
+  /// What is shown, when it differs from [value].
+  final String? display;
   final IconData icon;
   final ValueAction action;
 
@@ -195,7 +204,7 @@ class _FieldRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListTile(
         leading: Icon(icon),
-        title: Text(value),
+        title: Text(display ?? value),
         subtitle: Text(label),
         onTap: action == ValueAction.none ? null : () => _launch(context, ref),
       );
