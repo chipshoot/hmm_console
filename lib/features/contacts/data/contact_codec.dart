@@ -55,7 +55,22 @@ class ContactCodec {
 
   static const _phoneKnownKeys = <String>{'label', 'number'};
   static const _emailKnownKeys = <String>{'label', 'address'};
-  static const _addressKnownKeys = <String>{'label', 'value'};
+  /// Structured address parts, written only when non-null (in this order,
+  /// after `label` and `value`) so a free-form address keeps its two keys.
+  static const _addressPartKeys = <String>[
+    'country',
+    'street1',
+    'street2',
+    'city',
+    'district',
+    'region',
+    'postalCode',
+  ];
+  static const _addressKnownKeys = <String>{
+    'label',
+    'value',
+    ..._addressPartKeys,
+  };
   static const _relationshipKnownKeys = <String>{'category', 'customLabel'};
 
   static const _defaultFieldLabel = 'other';
@@ -119,7 +134,7 @@ class ContactCodec {
             _defaultFieldLabel,
           ),
           'value': _keep(a.rawKnownValues, 'value', a.value, ''),
-        },
+        }..addAll(_addressParts(a)),
     ]);
     out['relationship'] = _relationshipToJson(c);
     out['isSelf'] = _keep(raw, 'isSelf', c.isSelf, false);
@@ -129,6 +144,26 @@ class ContactCodec {
             c.isActivated == _activatedFromMalformed(raw['isActivated'])
         ? raw['isActivated']
         : c.isActivated;
+    return out;
+  }
+
+  /// The structured parts of [a] that are set (or held raw), in
+  /// [_addressPartKeys] order. `value` is written as stored, never
+  /// re-derived here: an untouched address must save byte-identical.
+  static Map<String, dynamic> _addressParts(ContactAddress a) {
+    final out = <String, dynamic>{};
+    final typed = <String, String?>{
+      'country': a.country,
+      'street1': a.street1,
+      'street2': a.street2,
+      'city': a.city,
+      'district': a.district,
+      'region': a.region,
+      'postalCode': a.postalCode,
+    };
+    for (final k in _addressPartKeys) {
+      _putOptional(out, a.rawKnownValues, k, typed[k]);
+    }
     return out;
   }
 
@@ -232,6 +267,13 @@ class ContactCodec {
         return ContactAddress(
           label: er.str('label') ?? _defaultFieldLabel,
           value: er.str('value') ?? '',
+          country: er.str('country'),
+          street1: er.str('street1'),
+          street2: er.str('street2'),
+          city: er.str('city'),
+          district: er.str('district'),
+          region: er.str('region'),
+          postalCode: er.str('postalCode'),
           extraFields: _extras(e, _addressKnownKeys),
           rawKnownValues: er.raw,
         );

@@ -110,3 +110,23 @@ String normalizePostalCode(String? country, String postal) {
   }
   return t;
 }
+
+/// [a] with `value` re-derived from its parts (`formatSingleLine`). A
+/// free-form address is returned unchanged. Called by the editor when a
+/// structured address is edited; the codec never re-derives, so an untouched
+/// address is written back exactly as stored.
+ContactAddress withDerivedValue(ContactAddress a) => a.country == null
+    ? a
+    : ContactAddress(
+        label: a.label,
+        value: formatSingleLine(a),
+        country: a.country,
+        street1: a.street1,
+        street2: a.street2,
+        city: a.city,
+        district: a.district,
+        region: a.region,
+        postalCode: a.postalCode,
+        extraFields: a.extraFields,
+        rawKnownValues: a.rawKnownValues,
+      );

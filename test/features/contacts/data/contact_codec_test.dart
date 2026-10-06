@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/contacts/data/contact_codec.dart';
+import 'package:hmm_console/features/contacts/domain/address_format.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
 
@@ -479,6 +482,133 @@ void main() {
       expect(logs.single, contains('emails'));
       expect(logs.single, isNot(contains('SECRET')));
       expect(logs.single, isNot(contains('secret@')));
+    });
+  });
+
+  group('structured addresses', () {
+    Map<String, dynamic> stored(List<Object?> addresses) => {
+      'schemaVersion': 1,
+      'id': 'c-9',
+      'contactType': 'person',
+      'firstName': 'Ada',
+      'addresses': addresses,
+    };
+
+    String roundTrip(Map<String, dynamic> m) =>
+        jsonEncode(ContactCodec.toMap(ContactCodec.fromMap(m))['addresses']);
+
+    test('an old {label, value} entry is free-form and byte-identical', () {
+      final m = stored([
+        {'label': 'home', 'value': '1 Main St\nSpringfield'},
+      ]);
+      final a = ContactCodec.fromMap(m).addresses.single;
+      expect(a.country, isNull);
+      expect(a.isStructured, isFalse);
+      expect(a.value, '1 Main St\nSpringfield');
+      expect(roundTrip(m), jsonEncode(m['addresses']));
+      expect(
+        ContactCodec.toMap(ContactCodec.fromMap(m))['addresses'][0].keys,
+        ['label', 'value'],
+        reason: 'no structured key is invented for a free-form address',
+      );
+    });
+
+    test('a structured entry decodes every part and round-trips', () {
+      final m = stored([
+        {
+          'label': 'home',
+          'value': '1 Main St, Springfield, IL 62701, United States',
+          'country': 'US',
+          'street1': '1 Main St',
+          'city': 'Springfield',
+          'region': 'IL',
+          'postalCode': '62701',
+        },
+        {
+          'label': 'work',
+          'value': '中国 广东省 深圳市 南山区 科技园路1号',
+          'country': 'CN',
+          'street1': '科技园路1号',
+          'city': '深圳市',
+          'district': '南山区',
+          'region': 'GD',
+        },
+      ]);
+      final c = ContactCodec.fromMap(m);
+      final us = c.addresses[0];
+      expect(us.country, 'US');
+      expect(us.street1, '1 Main St');
+      expect(us.street2, isNull);
+      expect(us.city, 'Springfield');
+      expect(us.region, 'IL');
+      expect(us.postalCode, '62701');
+      expect(us.extraFields, isEmpty, reason: 'structured keys are known');
+      final cn = c.addresses[1];
+      expect(cn.district, '南山区');
+      expect(roundTrip(m), jsonEncode(m['addresses']));
+    });
+
+    test('unknown keys inside a structured address are preserved', () {
+      final m = stored([
+        {
+          'geo': {'lat': 1.5, 'lng': 2.5},
+          'label': 'home',
+          'value': 'x',
+          'country': 'CA',
+          'city': 'Ottawa',
+        },
+      ]);
+      final a = ContactCodec.fromMap(m).addresses.single;
+      expect(a.extraFields, {
+        'geo': {'lat': 1.5, 'lng': 2.5},
+      });
+      expect(roundTrip(m), jsonEncode(m['addresses']));
+    });
+
+    test('wrong-typed structured keys are kept verbatim until edited', () {
+      final m = stored([
+        {'label': 'home', 'value': 'x', 'country': 'US', 'postalCode': 62701},
+      ]);
+      final a = ContactCodec.fromMap(m).addresses.single;
+      expect(a.postalCode, isNull);
+      expect(roundTrip(m), jsonEncode(m['addresses']));
+    });
+
+    test('an edited structured address writes its derived value', () {
+      final a = withDerivedValue(
+        const ContactAddress(
+          label: 'home',
+          value: 'stale',
+          country: 'US',
+          street1: '1 Main St',
+          city: 'Springfield',
+          region: 'IL',
+          postalCode: '62701',
+        ),
+      );
+      expect(a.value, formatSingleLine(a));
+      final out =
+          ContactCodec.toMap(
+                const Contact(
+                  id: 'c',
+                  contactType: ContactType.person,
+                ).copyWith(addresses: [a]),
+              )['addresses']
+              as List;
+      expect(out.single, {
+        'label': 'home',
+        'value': '1 Main St, Springfield, IL 62701, United States',
+        'country': 'US',
+        'street1': '1 Main St',
+        'city': 'Springfield',
+        'region': 'IL',
+        'postalCode': '62701',
+      });
+    });
+
+    test('withDerivedValue leaves a free-form address alone', () {
+      const a = ContactAddress(label: 'home', value: 'as typed');
+      expect(withDerivedValue(a).value, 'as typed');
     });
   });
 }
