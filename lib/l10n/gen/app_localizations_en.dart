@@ -2175,6 +2175,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactRemoveFieldTooltip => 'Remove this entry';
 
   @override
+  String get contactAddressCountry => 'Country';
+
+  @override
+  String get contactAddressCountryUS => 'United States';
+
+  @override
+  String get contactAddressCountryCA => 'Canada';
+
+  @override
+  String get contactAddressCountryCN => 'China';
+
+  @override
+  String get contactAddressCountryOther => 'Other';
+
+  @override
+  String get contactAddressStreet => 'Street address';
+
+  @override
+  String get contactAddressUnit => 'Apt / Suite / Unit';
+
+  @override
+  String get contactAddressCity => 'City';
+
+  @override
+  String get contactAddressState => 'State';
+
+  @override
+  String get contactAddressProvinceTerritory => 'Province / Territory';
+
+  @override
+  String get contactAddressZip => 'ZIP code';
+
+  @override
+  String get contactAddressPostalCode => 'Postal code';
+
+  @override
+  String get contactAddressCnProvince => 'Province';
+
+  @override
+  String get contactAddressCnDistrict => 'District / County';
+
+  @override
+  String get contactAddressCnDetail => 'Detailed address';
+
+  @override
+  String get contactAddressRegionSelect => 'Select';
+
+  @override
+  String get contactAddressRegionSearchHint => 'Search by name or code';
+
+  @override
+  String get contactAddressInvalidZip =>
+      'Enter a 5-digit ZIP code, or ZIP+4 (12345-6789)';
+
+  @override
+  String get contactAddressInvalidCaPostal =>
+      'Enter a postal code like A1A 1A1';
+
+  @override
+  String get contactAddressInvalidCnPostal => 'Enter a 6-digit postal code';
+
+  @override
   String get helpContactsTitle => 'Contacts';
 
   @override
@@ -2254,6 +2316,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpContactEditFieldsBody =>
       'Add as many as you need and label each one, such as Mobile or Work. For phones, tap the code beside the number to pick a country calling code, or paste a number that starts with +.';
+
+  @override
+  String get helpContactEditAddressTitle => 'Addresses';
+
+  @override
+  String get helpContactEditAddressBody =>
+      'Pick the country for each address. United States, Canada and China get their own fields in that country\'s order: street, unit, city, state or province (pick from the list) and ZIP or postal code; for China, province, city, district, detailed address and postal code. A postal code in the wrong format is flagged and the contact will not save until it is fixed. Choose Other to type any address as free text over several lines. Switching to Other keeps what you entered as text.';
 
   @override
   String get helpContactEditRelationshipTitle => 'Relationship';

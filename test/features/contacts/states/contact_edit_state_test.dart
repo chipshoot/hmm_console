@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/contacts/data/contact_codec.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
+import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
 import 'package:hmm_console/features/contacts/states/contact_edit_state.dart';
 
 import 'package:hmm_console/features/contacts/presentation/widgets/labeled_field_editor.dart';
@@ -104,6 +105,40 @@ void main() {
         {'label': 'mobile', 'number': 5551234},
         {'label': 'home', 'number': '1'},
       ]);
+    });
+  });
+
+  group('addresses', () {
+    test('a malformed postal code refuses the save until fixed', () async {
+      final repo = InMemoryContactRepository();
+      final c = _container(repo);
+      final n = c.read(contactEditStateProvider(_p).notifier);
+      const bad = ContactAddress(
+        label: 'home',
+        value: '1 Main St, 123, United States',
+        country: 'US',
+        street1: '1 Main St',
+        postalCode: '123',
+      );
+      n.setAddresses(const [bad], invalid: true);
+      expect(await n.save(), isFalse);
+      expect(repo.saveCalls, 0);
+      n.setAddresses(const [bad], invalid: false);
+      expect(await n.save(), isTrue);
+      expect(repo.saveCalls, 1);
+    });
+
+    test('a structured address with no parts is dropped as blank', () async {
+      final repo = InMemoryContactRepository();
+      final c = _container(repo);
+      final n = c.read(contactEditStateProvider(_p).notifier);
+      n.setAddresses(const [
+        ContactAddress(label: 'home', value: '', country: 'CA'),
+        ContactAddress(label: 'work', value: 'kept'),
+      ]);
+      expect(await n.save(), isTrue);
+      final saved = (await repo.getContacts()).single;
+      expect(saved.addresses.map((a) => a.value), ['kept']);
     });
   });
 }

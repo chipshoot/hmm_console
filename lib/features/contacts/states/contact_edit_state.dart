@@ -27,6 +27,8 @@ class ContactEditState extends Notifier<ContactEditData> {
   /// gap must not mint a second record (cheatsheet once did exactly that).
   bool _inFlight = false;
 
+  bool _addressesInvalid = false;
+
   @override
   ContactEditData build() => ContactEditData(contact: initial);
 
@@ -72,19 +74,12 @@ class ContactEditState extends Notifier<ContactEditData> {
     ),
   );
 
-  void setAddresses(List<LabeledFieldEntry> rows) => _set(
-    state.contact.copyWith(
-      addresses: [
-        for (final r in rows)
-          ContactAddress(
-            label: r.label,
-            value: r.value,
-            extraFields: r.extraFields,
-            rawKnownValues: r.rawKnownValues,
-          ),
-      ],
-    ),
-  );
+  /// [invalid]: an edited address has a malformed postal code; [save] is
+  /// refused until a later call clears it.
+  void setAddresses(List<ContactAddress> addresses, {bool invalid = false}) {
+    _addressesInvalid = invalid;
+    _set(state.contact.copyWith(addresses: addresses));
+  }
 
   /// Leaving `other` drops the free-text label: it only describes `other`, and
   /// keeping it would persist a stale label under, say, Doctor.
@@ -166,9 +161,11 @@ class ContactEditState extends Notifier<ContactEditData> {
               e.address.trim().isNotEmpty ||
               e.rawKnownValues.containsKey('address'))
           .toList(),
+      // Any raw (malformed) stored part keeps the address: the codec still
+      // has a value to write back.
       addresses: c.addresses
           .where((a) =>
-              a.value.trim().isNotEmpty || a.rawKnownValues.containsKey('value'))
+              a.value.trim().isNotEmpty || a.rawKnownValues.isNotEmpty)
           .toList(),
     );
   }
@@ -177,7 +174,7 @@ class ContactEditState extends Notifier<ContactEditData> {
   /// duplicate call returns false; a repository failure rethrows after
   /// releasing the guard so the user can retry.
   Future<bool> save() async {
-    if (_inFlight) return false;
+    if (_inFlight || _addressesInvalid) return false;
     _inFlight = true;
     final contact = _normalized();
     if (contact.displayName.isEmpty) {

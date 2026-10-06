@@ -3956,6 +3956,126 @@ abstract class AppLocalizations {
   /// **'Remove this entry'**
   String get contactRemoveFieldTooltip;
 
+  /// No description provided for @contactAddressCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get contactAddressCountry;
+
+  /// No description provided for @contactAddressCountryUS.
+  ///
+  /// In en, this message translates to:
+  /// **'United States'**
+  String get contactAddressCountryUS;
+
+  /// No description provided for @contactAddressCountryCA.
+  ///
+  /// In en, this message translates to:
+  /// **'Canada'**
+  String get contactAddressCountryCA;
+
+  /// No description provided for @contactAddressCountryCN.
+  ///
+  /// In en, this message translates to:
+  /// **'China'**
+  String get contactAddressCountryCN;
+
+  /// No description provided for @contactAddressCountryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get contactAddressCountryOther;
+
+  /// No description provided for @contactAddressStreet.
+  ///
+  /// In en, this message translates to:
+  /// **'Street address'**
+  String get contactAddressStreet;
+
+  /// No description provided for @contactAddressUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Apt / Suite / Unit'**
+  String get contactAddressUnit;
+
+  /// No description provided for @contactAddressCity.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get contactAddressCity;
+
+  /// No description provided for @contactAddressState.
+  ///
+  /// In en, this message translates to:
+  /// **'State'**
+  String get contactAddressState;
+
+  /// No description provided for @contactAddressProvinceTerritory.
+  ///
+  /// In en, this message translates to:
+  /// **'Province / Territory'**
+  String get contactAddressProvinceTerritory;
+
+  /// No description provided for @contactAddressZip.
+  ///
+  /// In en, this message translates to:
+  /// **'ZIP code'**
+  String get contactAddressZip;
+
+  /// No description provided for @contactAddressPostalCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Postal code'**
+  String get contactAddressPostalCode;
+
+  /// No description provided for @contactAddressCnProvince.
+  ///
+  /// In en, this message translates to:
+  /// **'Province'**
+  String get contactAddressCnProvince;
+
+  /// No description provided for @contactAddressCnDistrict.
+  ///
+  /// In en, this message translates to:
+  /// **'District / County'**
+  String get contactAddressCnDistrict;
+
+  /// No description provided for @contactAddressCnDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed address'**
+  String get contactAddressCnDetail;
+
+  /// No description provided for @contactAddressRegionSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get contactAddressRegionSelect;
+
+  /// No description provided for @contactAddressRegionSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name or code'**
+  String get contactAddressRegionSearchHint;
+
+  /// No description provided for @contactAddressInvalidZip.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a 5-digit ZIP code, or ZIP+4 (12345-6789)'**
+  String get contactAddressInvalidZip;
+
+  /// No description provided for @contactAddressInvalidCaPostal.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a postal code like A1A 1A1'**
+  String get contactAddressInvalidCaPostal;
+
+  /// No description provided for @contactAddressInvalidCnPostal.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a 6-digit postal code'**
+  String get contactAddressInvalidCnPostal;
+
   /// No description provided for @helpContactsTitle.
   ///
   /// In en, this message translates to:
@@ -4099,6 +4219,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add as many as you need and label each one, such as Mobile or Work. For phones, tap the code beside the number to pick a country calling code, or paste a number that starts with +.'**
   String get helpContactEditFieldsBody;
+
+  /// No description provided for @helpContactEditAddressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Addresses'**
+  String get helpContactEditAddressTitle;
+
+  /// No description provided for @helpContactEditAddressBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the country for each address. United States, Canada and China get their own fields in that country\'s order: street, unit, city, state or province (pick from the list) and ZIP or postal code; for China, province, city, district, detailed address and postal code. A postal code in the wrong format is flagged and the contact will not save until it is fixed. Choose Other to type any address as free text over several lines. Switching to Other keeps what you entered as text.'**
+  String get helpContactEditAddressBody;
 
   /// No description provided for @helpContactEditRelationshipTitle.
   ///

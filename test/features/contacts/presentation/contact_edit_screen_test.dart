@@ -173,6 +173,11 @@ void main() {
     await _scrollTo(tester, find.text(_l.contactAddAddress));
     await tester.tap(find.text(_l.contactAddAddress));
     await tester.pumpAndSettle();
+    // A new address starts in the device region's format; use free text.
+    await tester.tap(find.byKey(const Key('addresses-country-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(_l.contactAddressCountryOther).last);
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('addresses-value-0')),
       '1 Main St',

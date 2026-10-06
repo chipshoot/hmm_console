@@ -10,6 +10,7 @@ import '../../domain/entities/contact.dart';
 import '../../states/contact_edit_state.dart';
 import '../../states/device_region_provider.dart';
 import '../contact_labels.dart';
+import '../widgets/address_editor.dart';
 import '../widgets/labeled_field_editor.dart';
 import 'contact_detail_screen.dart' show contactByIdProvider;
 
@@ -223,22 +224,9 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
               ],
               onChanged: notifier.setEmails,
             ),
-            LabeledFieldEditor(
-              keyPrefix: 'addresses',
-              title: l.contactAddresses,
-              valueLabel: l.contactFieldAddress,
-              addLabel: l.contactAddAddress,
-              labels: addressFieldLabels,
-              keyboardType: TextInputType.streetAddress,
-              initial: [
-                for (final a in widget.initial.addresses)
-                  LabeledFieldEntry(
-                    label: a.label,
-                    value: a.value,
-                    extraFields: a.extraFields,
-                    rawKnownValues: a.rawKnownValues,
-                  ),
-              ],
+            AddressEditor(
+              defaultRegion: ref.watch(deviceRegionProvider),
+              initial: widget.initial.addresses,
               onChanged: notifier.setAddresses,
             ),
             _pad(

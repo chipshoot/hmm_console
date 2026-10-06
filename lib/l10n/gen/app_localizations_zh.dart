@@ -2123,6 +2123,66 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactRemoveFieldTooltip => '移除此项';
 
   @override
+  String get contactAddressCountry => '国家/地区';
+
+  @override
+  String get contactAddressCountryUS => '美国';
+
+  @override
+  String get contactAddressCountryCA => '加拿大';
+
+  @override
+  String get contactAddressCountryCN => '中国';
+
+  @override
+  String get contactAddressCountryOther => '其他';
+
+  @override
+  String get contactAddressStreet => '街道地址';
+
+  @override
+  String get contactAddressUnit => '公寓/套房/单元';
+
+  @override
+  String get contactAddressCity => '城市';
+
+  @override
+  String get contactAddressState => '州';
+
+  @override
+  String get contactAddressProvinceTerritory => '省/地区';
+
+  @override
+  String get contactAddressZip => 'ZIP 邮政编码';
+
+  @override
+  String get contactAddressPostalCode => '邮政编码';
+
+  @override
+  String get contactAddressCnProvince => '省份';
+
+  @override
+  String get contactAddressCnDistrict => '区/县';
+
+  @override
+  String get contactAddressCnDetail => '详细地址';
+
+  @override
+  String get contactAddressRegionSelect => '请选择';
+
+  @override
+  String get contactAddressRegionSearchHint => '按名称或代码搜索';
+
+  @override
+  String get contactAddressInvalidZip => '请输入 5 位 ZIP 邮政编码，或 ZIP+4（12345-6789）';
+
+  @override
+  String get contactAddressInvalidCaPostal => '请输入形如 A1A 1A1 的邮政编码';
+
+  @override
+  String get contactAddressInvalidCnPostal => '请输入 6 位邮政编码';
+
+  @override
   String get helpContactsTitle => '联系人';
 
   @override
@@ -2195,6 +2255,13 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpContactEditFieldsBody =>
       '可添加多个，并为每个设置标签，如手机或工作。电话号码旁可点按区号选择国家/地区区号，也可直接粘贴以 + 开头的号码。';
+
+  @override
+  String get helpContactEditAddressTitle => '地址';
+
+  @override
+  String get helpContactEditAddressBody =>
+      '为每个地址选择国家/地区。美国、加拿大和中国按当地格式提供对应字段：街道、单元、城市、州或省（从列表中选择）以及 ZIP 或邮政编码；中国地址依次为省份、城市、区/县、详细地址和邮政编码。邮政编码格式不正确时会提示，修正前无法保存联系人。选择“其他”可用多行自由文本填写任意地址；切换到“其他”时，已填写的内容会保留为文本。';
 
   @override
   String get helpContactEditRelationshipTitle => '关系';
