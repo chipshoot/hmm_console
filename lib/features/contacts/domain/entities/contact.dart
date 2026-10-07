@@ -1,9 +1,15 @@
 import 'contact_field.dart';
+import '../contact_name.dart';
 
 /// Sentinel value for copyWith to distinguish "not provided" from "null".
 const Object _kSentinel = Object();
 
 enum ContactType { person, organization }
+
+/// Per-contact display order override. Stored by `name` under `nameOrder`
+/// only when not [auto]. NEVER localize; display copy is in
+/// `contact_labels.dart`.
+enum ContactNameOrder { auto, givenFirst, familyFirst }
 
 /// Stored by `name` in the note JSON. NEVER localize these; add display copy
 /// to `contact_labels.dart` instead.
@@ -88,6 +94,9 @@ class Contact {
     this.firstName,
     this.lastName,
     this.organizationName,
+    this.nameOrder = ContactNameOrder.auto,
+    this.phoneticFamily,
+    this.phoneticGiven,
     this.phones = const [],
     this.emails = const [],
     this.addresses = const [],
@@ -109,9 +118,22 @@ class Contact {
 
   final String id;
   final ContactType contactType;
+
+  /// The GIVEN name (stored key `firstName`).
   final String? firstName;
+
+  /// The FAMILY name (stored key `lastName`).
   final String? lastName;
   final String? organizationName;
+
+  /// Display-order override; see `ContactName.effectiveOrder`.
+  final ContactNameOrder nameOrder;
+
+  /// Optional romanization of [lastName] / [firstName]. When set it wins over
+  /// automatic pinyin for sort and search; it never changes the display.
+  final String? phoneticFamily;
+  final String? phoneticGiven;
+
   final List<ContactPhone> phones;
   final List<ContactEmail> emails;
   final List<ContactAddress> addresses;
@@ -148,13 +170,8 @@ class Contact {
   /// otherwise the typed enum name.
   String get storedContactTypeName => _rawContactType ?? contactType.name;
 
-  /// Derived, never stored: person and organization both present one name to
-  /// the UI and to cheatsheet binding.
-  String get displayName => switch (contactType) {
-        ContactType.organization => organizationName ?? '',
-        ContactType.person =>
-          [firstName, lastName].whereType<String>().where((s) => s.isNotEmpty).join(' '),
-      };
+  /// Derived, never read back: see `ContactName.displayName`.
+  String get displayName => ContactName.displayName(this);
 
   Contact copyWith({
     String? id,
@@ -162,6 +179,9 @@ class Contact {
     Object? firstName = _kSentinel,
     Object? lastName = _kSentinel,
     Object? organizationName = _kSentinel,
+    ContactNameOrder? nameOrder,
+    Object? phoneticFamily = _kSentinel,
+    Object? phoneticGiven = _kSentinel,
     List<ContactPhone>? phones,
     List<ContactEmail>? emails,
     List<ContactAddress>? addresses,
@@ -180,6 +200,13 @@ class Contact {
         organizationName: identical(organizationName, _kSentinel)
             ? this.organizationName
             : organizationName as String?,
+        nameOrder: nameOrder ?? this.nameOrder,
+        phoneticFamily: identical(phoneticFamily, _kSentinel)
+            ? this.phoneticFamily
+            : phoneticFamily as String?,
+        phoneticGiven: identical(phoneticGiven, _kSentinel)
+            ? this.phoneticGiven
+            : phoneticGiven as String?,
         phones: phones ?? this.phones,
         emails: emails ?? this.emails,
         addresses: addresses ?? this.addresses,
@@ -211,6 +238,9 @@ class Contact {
           other.firstName == firstName &&
           other.lastName == lastName &&
           other.organizationName == organizationName &&
+          other.nameOrder == nameOrder &&
+          other.phoneticFamily == phoneticFamily &&
+          other.phoneticGiven == phoneticGiven &&
           _sameList(other.phones, phones) &&
           _sameList(other.emails, emails) &&
           _sameList(other.addresses, addresses) &&
@@ -226,6 +256,9 @@ class Contact {
         firstName,
         lastName,
         organizationName,
+        nameOrder,
+        phoneticFamily,
+        phoneticGiven,
         Object.hashAll(phones),
         Object.hashAll(emails),
         Object.hashAll(addresses),
