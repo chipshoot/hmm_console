@@ -4115,7 +4115,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpContactsSearchBody.
   ///
   /// In en, this message translates to:
-  /// **'Type to filter contacts by name, phone or email.'**
+  /// **'Type to filter contacts by name, phone or email. Chinese names also match their pinyin, written out (zhangwei) or as initials (zw).'**
   String get helpContactsSearchBody;
 
   /// No description provided for @helpContactsSelfTitle.

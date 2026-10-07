@@ -2259,7 +2259,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpContactsSearchBody =>
-      'Type to filter contacts by name, phone or email.';
+      'Type to filter contacts by name, phone or email. Chinese names also match their pinyin, written out (zhangwei) or as initials (zw).';
 
   @override
   String get helpContactsSelfTitle => 'Me';

@@ -2201,7 +2201,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpContactsSearchTitle => '搜索';
 
   @override
-  String get helpContactsSearchBody => '输入文字，按姓名、电话或邮箱筛选联系人。';
+  String get helpContactsSearchBody =>
+      '输入文字，按姓名、电话或邮箱筛选联系人。中文姓名也可用拼音全拼（zhangwei）或首字母（zw）搜索。';
 
   @override
   String get helpContactsSelfTitle => '本人';

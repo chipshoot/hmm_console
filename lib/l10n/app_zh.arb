@@ -670,7 +670,7 @@
   "helpContactsAddTitle": "添加联系人",
   "helpContactsAddBody": "新建联系人，可以是个人或机构。",
   "helpContactsSearchTitle": "搜索",
-  "helpContactsSearchBody": "输入文字，按姓名、电话或邮箱筛选联系人。",
+  "helpContactsSearchBody": "输入文字，按姓名、电话或邮箱筛选联系人。中文姓名也可用拼音全拼（zhangwei）或首字母（zw）搜索。",
   "helpContactsSelfTitle": "本人",
   "helpContactsSelfBody": "“本人”联系人保存你自己的信息，并带有“本人”标记。在编辑页打开“这是我”即可标记，并自动归为“本人”关系。点按即可查看或编辑。",
   "helpContactDetailTitle": "联系人",

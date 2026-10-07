@@ -5,13 +5,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/local/local_contact_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
+import 'package:hmm_console/features/contacts/domain/contact_sort_by.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
 import 'package:hmm_console/features/contacts/presentation/screens/contacts_list_screen.dart';
+import 'package:hmm_console/features/contacts/states/pinyin_transcriber_provider.dart';
+import 'package:hmm_console/features/settings/providers/contact_sort_provider.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/contact_repository_fakes.dart';
+import '../fake_pinyin_transcriber.dart';
 
 class _StubMode extends DataModeNotifier {
   _StubMode(this._m);
@@ -60,7 +64,14 @@ List<Override> _repo(InMemoryContactRepository r) => [
   contactRepositoryModeProvider.overrideWithValue(r),
 ];
 
+
+List<String> _titles(WidgetTester tester) => [
+  for (final t in tester.widgetList<ListTile>(find.byType(ListTile)))
+    (t.title! as Text).data!,
+];
+
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets('the self contact carries a Me marker, others do not', (
     tester,
   ) async {
@@ -247,6 +258,81 @@ void main() {
         () => _mount(tester, _repo(_ThrowingRepo())));
     expect(logs.join('\n'), contains('StateError'));
     expect(logs.join('\n'), isNot(contains('boom')));
+  });
+
+  testWidgets('search finds 张伟 by zw and zhangwei', (tester) async {
+    const zw = Contact(
+      id: 'zw',
+      contactType: ContactType.person,
+      lastName: '张',
+      firstName: '伟',
+    );
+    await _mount(tester, [
+      ..._repo(InMemoryContactRepository()..seed(zw)..seed(_ada)),
+      pinyinTranscriberProvider.overrideWithValue(FakePinyinTranscriber()),
+    ]);
+    expect(find.text('张伟'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'zw');
+    await tester.pump();
+    expect(find.text('张伟'), findsOneWidget);
+    expect(find.text('Ada Lovelace'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'zhangwei');
+    await tester.pump();
+    expect(find.text('张伟'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'wz');
+    await tester.pump();
+    expect(find.text('张伟'), findsNothing);
+  });
+
+  testWidgets('Chinese and Latin names interleave by family name; the '
+      'sort setting reorders', (tester) async {
+    await _mount(tester, [
+      ..._repo(
+        InMemoryContactRepository()
+          ..seed(const Contact(
+            id: 'zw',
+            contactType: ContactType.person,
+            lastName: '张',
+            firstName: '伟',
+          ))
+          ..seed(const Contact(
+            id: 'kc',
+            contactType: ContactType.organization,
+            organizationName: 'Kaiser Clinic',
+          ))
+          ..seed(_ada) // Lovelace, Ada
+          ..seed(_bob), // Stone, Bob
+      ),
+      pinyinTranscriberProvider.overrideWithValue(FakePinyinTranscriber()),
+    ]);
+    expect(_titles(tester),
+        ['Kaiser Clinic', 'Ada Lovelace', 'Bob Stone', '张伟']);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ContactsListScreen)),
+    );
+    await container
+        .read(contactSortByProvider.notifier)
+        .set(ContactSortBy.given);
+    await tester.pumpAndSettle();
+    // given|family: ada, bob, kaiser clinic, wei|zhang
+    expect(_titles(tester),
+        ['Ada Lovelace', 'Bob Stone', 'Kaiser Clinic', '张伟']);
+  });
+
+  testWidgets('Me stays first in its group whatever its name', (tester) async {
+    await _mount(tester, [
+      ..._repo(
+        InMemoryContactRepository()
+          // Both default to the Other group; "Zulu" would sort last.
+          ..seed(_ada.copyWith(isSelf: true, lastName: 'Zulu'))
+          ..seed(_bob),
+      ),
+    ]);
+    expect(_titles(tester), ['Ada Zulu', 'Bob Stone']);
   });
 }
 

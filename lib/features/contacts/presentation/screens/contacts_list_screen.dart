@@ -8,25 +8,10 @@ import '../../../../core/navigation/route_names.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/i_contact_repository.dart';
+import '../../domain/contact_sort.dart';
 import '../../domain/entities/contact.dart';
-import '../../states/contacts_state.dart';
+import '../../states/contact_list_entries.dart';
 import '../widgets/contact_tile.dart';
-
-final _phoneNoise = RegExp(r'[\s\-.()]');
-
-/// Case-insensitive match on name or any email; phone numbers also match with
-/// spaces, dashes, dots and parentheses ignored on both sides.
-bool _matches(Contact c, String q) {
-  if (c.displayName.toLowerCase().contains(q)) return true;
-  if (c.emails.any((e) => e.address.toLowerCase().contains(q))) return true;
-  final digits = q.replaceAll(_phoneNoise, '');
-  return c.phones.any(
-    (p) =>
-        p.number.toLowerCase().contains(q) ||
-        (digits.isNotEmpty &&
-            p.number.replaceAll(_phoneNoise, '').contains(digits)),
-  );
-}
 
 enum _Group { family, providers, other }
 
@@ -58,7 +43,7 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final async = ref.watch(contactsStateProvider);
+    final async = ref.watch(contactListEntriesProvider);
     final isApple = Theme.of(context).platform == TargetPlatform.iOS;
 
     return Scaffold(
@@ -93,7 +78,8 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
                 border: const OutlineInputBorder(),
                 isDense: true,
               ),
-              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              // Raw: matchesSearch normalizes (case, accents, whitespace).
+              onChanged: (v) => setState(() => _query = v),
             ),
           ),
           Expanded(
@@ -125,16 +111,14 @@ class _ContactsListScreenState extends ConsumerState<ContactsListScreen> {
     );
   }
 
-  Widget _body(AppLocalizations l, List<Contact> all) {
-    final shown =
-        all.where((c) => _query.isEmpty || _matches(c, _query)).toList()
-          ..sort((a, b) {
-            // "Me" first, then by name.
-            if (a.isSelf != b.isSelf) return a.isSelf ? -1 : 1;
-            return a.displayName.toLowerCase().compareTo(
-              b.displayName.toLowerCase(),
-            );
-          });
+  /// [all] arrives sorted ("Me" first, then the sort key), so filtering and
+  /// grouping below keep that order.
+  Widget _body(AppLocalizations l, List<ContactListEntry> all) {
+    final shown = [
+      for (final e in all)
+        if (_query.trim().isEmpty || matchesSearch(e.contact, e.terms, _query))
+          e.contact,
+    ];
     if (shown.isEmpty) {
       return Center(child: Text(l.contactsEmpty));
     }

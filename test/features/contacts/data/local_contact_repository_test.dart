@@ -259,6 +259,31 @@ void main() {
         () => repo.saveContact(saved.copyWith(firstName: 'Grace')));
     expect(logs, isEmpty);
   });
+
+  test('getContacts orders by family name, part-wise', () async {
+    await repo.saveContact(const Contact(
+      id: 'lin',
+      contactType: ContactType.person,
+      firstName: 'Amy',
+      lastName: 'Lin',
+    ));
+    await repo.saveContact(const Contact(
+      id: 'li',
+      contactType: ContactType.person,
+      firstName: 'Zoe',
+      lastName: 'Li',
+    ));
+    await repo.saveContact(const Contact(
+      id: 'adams',
+      contactType: ContactType.person,
+      firstName: 'Zed',
+      lastName: 'Adams',
+    ));
+    expect(
+      [for (final c in await repo.getContacts()) c.id],
+      ['adams', 'li', 'lin'],
+    );
+  });
 }
 
 /// Captures debugPrint output for [body], restoring it before returning (the

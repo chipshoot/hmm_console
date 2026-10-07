@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/contacts/data/contact_codec.dart';
 import '../../../features/contacts/data/i_contact_repository.dart';
+import '../../../features/contacts/domain/contact_sort.dart';
+import '../../../features/contacts/domain/contact_sort_by.dart';
 import '../../../features/contacts/domain/entities/contact.dart';
 import '../../../features/notes/data/models/hmm_note.dart';
 import '../../util/uuid.dart';
@@ -136,8 +138,14 @@ class LocalContactRepository implements IContactRepository {
     final all = await _all();
     final visible =
         includeDeactivated ? all : all.where((c) => c.isActivated).toList();
-    visible.sort((a, b) =>
-        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+    // A stable default order without pinyin (the repository holds no
+    // transcriber); the contacts list re-sorts with pinyin and the user's
+    // setting in contactListEntriesProvider.
+    final keys = Map<Contact, String>.identity();
+    for (final c in visible) {
+      keys[c] = sortKey(c, ContactSortBy.family, null);
+    }
+    visible.sort((a, b) => compareContactKeys(a, keys[a]!, b, keys[b]!));
     return visible;
   }
 
