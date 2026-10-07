@@ -2347,4 +2347,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contactSaveFailed => 'Could not save the contact';
+
+  @override
+  String get settingsContactSortBy => 'Sort contacts by';
+
+  @override
+  String get settingsContactSortFamily => 'Family name';
+
+  @override
+  String get settingsContactSortGiven => 'Given name';
+
+  @override
+  String get helpContactsSortTitle => 'Sort order';
+
+  @override
+  String get helpContactsSortBody =>
+      'Contacts are sorted by family name. To sort by given name instead, change Sort contacts by in Settings. Chinese names sort by their pinyin, next to Latin names.';
 }

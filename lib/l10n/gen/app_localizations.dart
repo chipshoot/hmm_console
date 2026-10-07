@@ -4273,6 +4273,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not save the contact'**
   String get contactSaveFailed;
+
+  /// No description provided for @settingsContactSortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort contacts by'**
+  String get settingsContactSortBy;
+
+  /// No description provided for @settingsContactSortFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family name'**
+  String get settingsContactSortFamily;
+
+  /// No description provided for @settingsContactSortGiven.
+  ///
+  /// In en, this message translates to:
+  /// **'Given name'**
+  String get settingsContactSortGiven;
+
+  /// No description provided for @helpContactsSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort order'**
+  String get helpContactsSortTitle;
+
+  /// No description provided for @helpContactsSortBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts are sorted by family name. To sort by given name instead, change Sort contacts by in Settings. Chinese names sort by their pinyin, next to Latin names.'**
+  String get helpContactsSortBody;
 }
 
 class _AppLocalizationsDelegate

@@ -71,6 +71,10 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
                 title: l.helpContactsSearchTitle,
                 body: l.helpContactsSearchBody),
             HelpEntry(
+                icon: Icons.sort_by_alpha,
+                title: l.helpContactsSortTitle,
+                body: l.helpContactsSortBody),
+            HelpEntry(
                 icon: Icons.person_outline,
                 title: l.helpContactsSelfTitle,
                 body: l.helpContactsSelfBody),

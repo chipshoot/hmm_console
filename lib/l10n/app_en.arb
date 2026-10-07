@@ -1234,5 +1234,10 @@
   "helpContactEditSelfTitle": "This is me",
   "helpContactEditSelfBody": "Marks this contact as yourself. Only one contact can be marked.",
   "contactCustomRelationship": "Describe the relationship",
-  "contactSaveFailed": "Could not save the contact"
+  "contactSaveFailed": "Could not save the contact",
+  "settingsContactSortBy": "Sort contacts by",
+  "settingsContactSortFamily": "Family name",
+  "settingsContactSortGiven": "Given name",
+  "helpContactsSortTitle": "Sort order",
+  "helpContactsSortBody": "Contacts are sorted by family name. To sort by given name instead, change Sort contacts by in Settings. Chinese names sort by their pinyin, next to Latin names."
 }

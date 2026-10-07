@@ -30,6 +30,8 @@ import '../../domain/sync_settings.dart';
 import '../../providers/gas_log_settings_provider.dart';
 import '../../providers/geo_capture_provider.dart';
 import '../../providers/sync_settings_provider.dart';
+import '../../../contacts/domain/contact_sort_by.dart';
+import '../../providers/contact_sort_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -302,6 +304,31 @@ class SettingsScreen extends ConsumerWidget {
                 ref.read(localeProvider.notifier).setLocale(
                       code == null ? null : Locale(code),
                     );
+              },
+            ),
+            GapWidgets.h16,
+            // Same picker as the rest of this screen (Material dropdown on
+            // both platforms). Synced via SyncableSettings.contactSortBy.
+            DropdownButtonFormField<ContactSortBy>(
+              key: const Key('settings-contact-sort'),
+              initialValue: ref.watch(contactSortByProvider),
+              decoration: InputDecoration(
+                labelText: l.settingsContactSortBy,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.sort_by_alpha),
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: ContactSortBy.family,
+                  child: Text(l.settingsContactSortFamily),
+                ),
+                DropdownMenuItem(
+                  value: ContactSortBy.given,
+                  child: Text(l.settingsContactSortGiven),
+                ),
+              ],
+              onChanged: (v) {
+                if (v != null) ref.read(contactSortByProvider.notifier).set(v);
               },
             ),
             GapWidgets.h24,

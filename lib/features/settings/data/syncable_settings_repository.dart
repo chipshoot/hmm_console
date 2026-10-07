@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../contacts/domain/contact_sort_by.dart';
 import '../../launcher/domain/launcher_prefs.dart';
 import '../domain/gas_log_settings.dart';
 import '../domain/sync_settings.dart';
@@ -14,6 +15,7 @@ import '../domain/syncable_settings.dart';
 ///   - `gas_log_settings`     → `GasLogSettings` JSON blob
 ///   - `sync.network_policy`  → `SyncNetworkPolicy` enum name
 ///   - `app_locale`           → language code string ('en', 'zh', …)
+///   - `contacts.sort_by`     → `ContactSortBy` enum name
 ///   - `settings.last_modified` → ISO8601 UTC, bumped by every setter
 ///
 /// The cloud sync layer goes through THIS repo to get a coherent
@@ -31,6 +33,9 @@ class SyncableSettingsRepository {
   static const _networkPolicyKey = 'sync.network_policy';
   static const _lastModifiedKey = 'settings.last_modified';
   static const _launcherKey = 'launcher_prefs';
+
+  /// Public: `ContactSortByNotifier` owns the same key.
+  static const contactSortKey = 'contacts.sort_by';
 
   /// Reads the current local snapshot. Missing keys fall back to
   /// defaults — same behaviour as the per-feature notifiers' first-
@@ -85,6 +90,7 @@ class SyncableSettingsRepository {
       localeCode: (localeCode == null || localeCode.isEmpty) ? null : localeCode,
       lastModified: lastModified,
       launcher: launcher,
+      contactSortBy: ContactSortBy.fromName(prefs.getString(contactSortKey)),
     );
   }
 
@@ -108,6 +114,7 @@ class SyncableSettingsRepository {
       await prefs.setString(_localeKey, settings.localeCode!);
     }
     await prefs.setString(_launcherKey, settings.launcher.toJsonString());
+    await prefs.setString(contactSortKey, settings.contactSortBy.name);
     await prefs.setString(
       _lastModifiedKey,
       settings.lastModified.toUtc().toIso8601String(),

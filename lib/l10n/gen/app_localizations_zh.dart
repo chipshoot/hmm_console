@@ -2284,4 +2284,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get contactSaveFailed => '无法保存联系人';
+
+  @override
+  String get settingsContactSortBy => '联系人排序方式';
+
+  @override
+  String get settingsContactSortFamily => '姓氏';
+
+  @override
+  String get settingsContactSortGiven => '名字';
+
+  @override
+  String get helpContactsSortTitle => '排序';
+
+  @override
+  String get helpContactsSortBody =>
+      '联系人默认按姓氏排序。如需按名字排序，请在“设置”中更改“联系人排序方式”。中文姓名按拼音排序，与拉丁字母姓名排在一起。';
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../contacts/domain/contact_sort_by.dart';
 import '../../launcher/domain/launcher_prefs.dart';
 import 'gas_log_settings.dart';
 import 'sync_settings.dart';
@@ -35,6 +36,7 @@ class SyncableSettings {
     required this.localeCode,
     required this.lastModified,
     this.launcher = LauncherPrefs.empty,
+    this.contactSortBy = ContactSortBy.family,
   });
 
   final GasLogSettings gasLog;
@@ -42,6 +44,10 @@ class SyncableSettings {
 
   /// Launcher favorites + aliases. Synced with the rest of the bundle.
   final LauncherPrefs launcher;
+
+  /// Contacts list order (Settings → Sort contacts by). Absent in older
+  /// bundles, which read as [ContactSortBy.family].
+  final ContactSortBy contactSortBy;
 
   /// User-selected UI locale code (e.g. 'en', 'zh'). Null = follow
   /// system. Stored as the raw language code rather than a `Locale`
@@ -65,6 +71,8 @@ class SyncableSettings {
         },
         if (localeCode != null) 'localeCode': localeCode,
         'launcher': launcher.toJson(),
+        if (contactSortBy != ContactSortBy.family)
+          'contactSortBy': contactSortBy.name,
         'lastModified': lastModified.toUtc().toIso8601String(),
         '_v': 1,
       };
@@ -90,6 +98,7 @@ class SyncableSettings {
         final l = json['launcher'] as Map<String, dynamic>?;
         return l != null ? LauncherPrefs.fromJson(l) : LauncherPrefs.empty;
       }(),
+      contactSortBy: ContactSortBy.fromName(json['contactSortBy']),
       lastModified: () {
         final raw = json['lastModified'] as String?;
         if (raw == null) return epochZero;
@@ -117,6 +126,7 @@ class SyncableSettings {
     Object? localeCode = _sentinel,
     DateTime? lastModified,
     LauncherPrefs? launcher,
+    ContactSortBy? contactSortBy,
   }) {
     return SyncableSettings(
       gasLog: gasLog ?? this.gasLog,
@@ -125,6 +135,7 @@ class SyncableSettings {
           identical(localeCode, _sentinel) ? this.localeCode : localeCode as String?,
       lastModified: lastModified ?? this.lastModified,
       launcher: launcher ?? this.launcher,
+      contactSortBy: contactSortBy ?? this.contactSortBy,
     );
   }
 }

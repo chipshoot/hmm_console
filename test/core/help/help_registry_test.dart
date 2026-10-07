@@ -46,4 +46,13 @@ void main() {
           reason: '$id');
     }
   });
+
+  test('contacts help explains the sort setting with its icon', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final entry = helpFor(HelpId.contacts, l)
+        .entries
+        .singleWhere((e) => e.icon == Icons.sort_by_alpha);
+    expect(entry.title, l.helpContactsSortTitle);
+    expect(entry.body, contains('Settings'));
+  });
 }

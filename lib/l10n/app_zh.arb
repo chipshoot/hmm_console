@@ -696,5 +696,10 @@
   "helpContactEditSelfTitle": "这是我",
   "helpContactEditSelfBody": "将此联系人标记为你本人。只能标记一个联系人。",
   "contactCustomRelationship": "描述这层关系",
-  "contactSaveFailed": "无法保存联系人"
+  "contactSaveFailed": "无法保存联系人",
+  "settingsContactSortBy": "联系人排序方式",
+  "settingsContactSortFamily": "姓氏",
+  "settingsContactSortGiven": "名字",
+  "helpContactsSortTitle": "排序",
+  "helpContactsSortBody": "联系人默认按姓氏排序。如需按名字排序，请在“设置”中更改“联系人排序方式”。中文姓名按拼音排序，与拉丁字母姓名排在一起。"
 }
