@@ -46,6 +46,26 @@ void main() {
     expect(_ids(entries), ['me', 'al', 'org', 'zw', 'nameless']);
   });
 
+  test('the per-contact name order never changes list position', () {
+    for (final by in ContactSortBy.values) {
+      for (final o in ContactNameOrder.values) {
+        final entries = buildContactListEntries(
+          [
+            _p('a', 'Adams', 'Zoe'),
+            _p('zw', '张', '伟').copyWith(nameOrder: o),
+            _p('z', 'Young', 'Amy'),
+          ],
+          by,
+          FakePinyinTranscriber(),
+        );
+        final expected = by == ContactSortBy.family
+            ? ['a', 'z', 'zw']
+            : ['z', 'zw', 'a'];
+        expect(_ids(entries), expected, reason: '$by $o');
+      }
+    }
+  });
+
   test('given-name sort reorders', () {
     final entries = buildContactListEntries(
       [_p('a', 'Adams', 'Zoe'), _p('b', 'Young', 'Amy')],

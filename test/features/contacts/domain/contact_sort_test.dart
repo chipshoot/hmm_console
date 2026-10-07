@@ -53,6 +53,22 @@ void main() {
     });
   });
 
+  group('name order override', () {
+    test('never changes the sort key, in either sort mode', () {
+      for (final by in ContactSortBy.values) {
+        final keys = {
+          for (final o in ContactNameOrder.values)
+            o: sortKey(
+              _p('a', '张', '伟').copyWith(nameOrder: o),
+              by,
+              t,
+            ),
+        };
+        expect(keys.values.toSet(), hasLength(1), reason: '$by: $keys');
+      }
+    });
+  });
+
   group('normalizeForSearch', () {
     test('lowercases, folds accents, collapses whitespace, drops |', () {
       expect(normalizeForSearch('  Émile   ZOLA '), 'emile zola');
