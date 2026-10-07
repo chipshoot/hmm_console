@@ -35,9 +35,16 @@ class ContactEditState extends Notifier<ContactEditData> {
 
   /// A phonetic field holds something other than Latin letters, spaces and
   /// apostrophes, so [save] will refuse.
-  bool get phoneticInvalid =>
-      !ContactName.isValidPhonetic(state.contact.phoneticFamily ?? '') ||
-      !ContactName.isValidPhonetic(state.contact.phoneticGiven ?? '');
+  bool get phoneticInvalid {
+    final c = state.contact;
+    // Phonetic fields are person-only: for a known organization they are
+    // hidden and dropped on save, so they cannot refuse it.
+    final knownType =
+        ContactType.values.any((t) => t.name == c.storedContactTypeName);
+    if (knownType && c.contactType == ContactType.organization) return false;
+    return !ContactName.isValidPhonetic(c.phoneticFamily ?? '') ||
+        !ContactName.isValidPhonetic(c.phoneticGiven ?? '');
+  }
 
   @override
   ContactEditData build() => ContactEditData(contact: initial);

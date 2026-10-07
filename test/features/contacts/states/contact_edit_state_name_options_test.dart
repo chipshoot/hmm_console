@@ -37,6 +37,22 @@ void main() {
     expect(n.phoneticInvalid, isFalse);
   });
 
+  test(
+    'an invalid phonetic does not block saving once switched to organization',
+    () async {
+      final (c, repo) = _setup(_zh);
+      final n = c.read(contactEditStateProvider(_zh).notifier);
+      n.setPhoneticFamily('zh4ng');
+      n.setType(ContactType.organization);
+      n.setOrganizationName('人民医院');
+      expect(n.phoneticInvalid, isFalse);
+      expect(await n.save(), isTrue);
+      final saved = (await repo.getContacts()).single;
+      expect(saved.phoneticFamily, isNull);
+      expect(saved.phoneticGiven, isNull);
+    },
+  );
+
   test('phonetics are trimmed; blank phonetics are not stored', () async {
     final (c, repo) = _setup(_zh);
     final n = c.read(contactEditStateProvider(_zh).notifier);
