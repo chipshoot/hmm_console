@@ -334,6 +334,25 @@ void main() {
     ]);
     expect(_titles(tester), ['Ada Zulu', 'Bob Stone']);
   });
+
+  testWidgets('the Me tile shows the ordered name', (tester) async {
+    await _mount(tester, [
+      ..._repo(
+        InMemoryContactRepository()
+          ..seed(const Contact(
+            id: 'me',
+            contactType: ContactType.person,
+            firstName: '伟',
+            lastName: '张',
+            isSelf: true,
+          )),
+      ),
+      pinyinTranscriberProvider.overrideWithValue(FakePinyinTranscriber()),
+    ]);
+    expect(find.text('张伟'), findsOneWidget);
+    expect(find.byKey(const Key('contact-self-badge')), findsOneWidget);
+  });
+
 }
 
 class _ThrowingRepo extends InMemoryContactRepository {

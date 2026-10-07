@@ -18,9 +18,13 @@ import '../../domain/entities/cheatsheet_card.dart';
 import '../../domain/entities/cheatsheet_row.dart';
 import '../../domain/entities/cheatsheet_source.dart';
 import '../../states/cheatsheets_state.dart';
+import '../../states/derived_field_registry_provider.dart';
 
 final cheatsheetResolverProvider = Provider<CheatsheetResolver>(
-  (ref) => CheatsheetResolver(ref.watch(hmmNoteRepositoryProvider)),
+  (ref) => CheatsheetResolver(
+    ref.watch(hmmNoteRepositoryProvider),
+    ref.watch(derivedFieldRegistryProvider),
+  ),
 );
 
 /// Opens the note a row points at.

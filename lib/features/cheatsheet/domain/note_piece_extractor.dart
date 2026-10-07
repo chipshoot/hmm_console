@@ -29,6 +29,12 @@ class NotePieceExtractor {
     }
   }
 
+  /// The map under `note.content.<rootKey>`, or null. Never throws.
+  static Map<String, dynamic>? entity(String? content, String rootKey) {
+    final v = _entityMap(content)?[rootKey];
+    return v is Map ? v.cast<String, dynamic>() : null;
+  }
+
   /// True when the entity map carries `isActivated: false` (a soft-deleted
   /// note). Never throws; anything unreadable counts as active.
   static bool isDeactivated(String? content) {
@@ -56,6 +62,11 @@ class NotePieceExtractor {
     'schemaVersion',
     'isSelf',
     'isActivated',
+    // Contact name options: sort/display plumbing, not card content. Hidden
+    // so a contact with them set offers the same paths as before.
+    'nameOrder',
+    'phoneticFamily',
+    'phoneticGiven',
   };
   /// `Id$` hides foreign keys; `Path$` hides the vault paths that entity
   /// notes (e.g. `DriverLicence.frontImagePath`) keep in content to point at

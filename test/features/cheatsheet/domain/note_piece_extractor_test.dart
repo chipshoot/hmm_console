@@ -265,4 +265,21 @@ void main() {
       );
     }
   });
+
+  test('contact name options are never offered, but still resolve', () {
+    const content = '{"note":{"content":{"Contact":{"displayName":"Zhang Wei",'
+        '"firstName":"Wei","lastName":"Zhang","nameOrder":"familyFirst",'
+        '"phoneticFamily":"Zhang","phoneticGiven":"Wei"}}}}';
+    final paths = NotePieceExtractor.fieldPaths(content);
+    expect(paths, [
+      'Contact.displayName',
+      'Contact.firstName',
+      'Contact.lastName',
+    ]);
+    // Offer policy only: an explicit binding still resolves.
+    expect(NotePieceExtractor.field(content, 'Contact.nameOrder'),
+        'familyFirst');
+    expect(NotePieceExtractor.field(content, 'Contact.phoneticFamily'),
+        'Zhang');
+  });
 }

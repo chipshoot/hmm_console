@@ -2,6 +2,7 @@ import '../../../core/data/attachments/attachment_ref.dart';
 import '../../../core/data/local/local_hmm_note_repository.dart';
 import '../domain/entities/cheatsheet_row.dart';
 import '../domain/entities/cheatsheet_source.dart';
+import '../domain/derived_field_registry.dart';
 import '../domain/note_piece_extractor.dart';
 
 /// The outcome of resolving one row. The three states are distinct on purpose:
@@ -26,9 +27,29 @@ class ResolvedValue {
 /// Reads a row's referenced note by **uuid** — the cross-device stable
 /// identity — and extracts the referenced piece.
 class CheatsheetResolver {
-  CheatsheetResolver(this._notes);
+  CheatsheetResolver(
+    this._notes, [
+    this._derived = const DerivedFieldRegistry(),
+  ]);
 
   final IHmmNoteRepository _notes;
+  final DerivedFieldRegistry _derived;
+
+  /// A derived value (e.g. `Contact.displayName` in the contact's name
+  /// order) wins; otherwise the stored scalar at [locator].
+  String? _field(String? content, String locator) {
+    final dot = locator.indexOf('.');
+    if (dot > 0) {
+      final root = locator.substring(0, dot);
+      final entity = NotePieceExtractor.entity(content, root);
+      if (entity != null) {
+        final derived =
+            _derived.resolve(root, locator.substring(dot + 1), entity);
+        if (derived != null && derived.isNotEmpty) return derived;
+      }
+    }
+    return NotePieceExtractor.field(content, locator);
+  }
 
   Future<ResolvedValue> resolve(CheatsheetRow row) async {
     final s = row.source;
@@ -51,8 +72,7 @@ class CheatsheetResolver {
     }
 
     final value = switch (s.kind) {
-      SourceGranularity.field =>
-        NotePieceExtractor.field(note.content, s.locator ?? ''),
+      SourceGranularity.field => _field(note.content, s.locator ?? ''),
       SourceGranularity.section => NotePieceExtractor.section(
           note.description ?? note.content,
           s.locator ?? '',

@@ -266,4 +266,20 @@ void main() {
     expect(find.text("Could not open that."), findsOneWidget);
     expect(logs.join('\n'), isNot(contains('555-0100')));
   });
+
+  testWidgets('a Chinese name is shown family-first in the title',
+      (tester) async {
+    await _mount(
+      tester,
+      id: 'zh',
+      seed: const Contact(
+        id: 'zh',
+        contactType: ContactType.person,
+        firstName: '伟',
+        lastName: '张',
+      ),
+    );
+    expect(find.text('张伟'), findsOneWidget);
+    expect(find.text('伟 张'), findsNothing);
+  });
 }
