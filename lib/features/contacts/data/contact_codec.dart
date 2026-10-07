@@ -42,6 +42,10 @@ class ContactCodec {
     'firstName',
     'lastName',
     'organizationName',
+    // Written only when not auto / non-empty; see toMap.
+    'nameOrder',
+    'phoneticFamily',
+    'phoneticGiven',
     'phones',
     'emails',
     'addresses',
@@ -49,7 +53,8 @@ class ContactCodec {
     'isSelf',
     'notes',
     'isActivated',
-    // Derived on write (Contact.displayName); never read back.
+    // Kept verbatim on an untouched save (Contact.storedDisplayName),
+    // otherwise derived from ContactName.displayName.
     'displayName',
   };
 
@@ -83,8 +88,9 @@ class ContactCodec {
       'schemaVersion': raw.containsKey('schemaVersion')
           ? raw['schemaVersion']
           : math.max(c.storedSchemaVersion, currentSchemaVersion),
-      // Derived so a cheatsheet can bind `Contact.displayName`; ignored on read.
-      'displayName': c.displayName,
+      // Stored bytes while untouched (no bulk rewrite); else derived in the
+      // contact's name order. A cheatsheet resolves the order at read time.
+      'displayName': c.storedDisplayName ?? c.displayName,
       'id': _keep(raw, 'id', c.id, ''),
       // Raw enum string if the type was not explicitly changed.
       'contactType': _keep(
@@ -97,6 +103,17 @@ class ContactCodec {
     _putOptional(out, raw, 'firstName', c.firstName);
     _putOptional(out, raw, 'lastName', c.lastName);
     _putOptional(out, raw, 'organizationName', c.organizationName);
+    // Auto is the default and is never written; an unknown or explicit
+    // stored value is held raw and written back while still auto.
+    final order = _keep(
+      raw,
+      'nameOrder',
+      c.nameOrder == ContactNameOrder.auto ? null : c.nameOrder.name,
+      null,
+    );
+    if (order != null) out['nameOrder'] = order;
+    _putOptional(out, raw, 'phoneticFamily', c.phoneticFamily);
+    _putOptional(out, raw, 'phoneticGiven', c.phoneticGiven);
     out['phones'] = _list(c, 'phones', [
       for (final p in c.phones)
         {
@@ -234,6 +251,16 @@ class ContactCodec {
     final storedContactType = r.str('contactType');
     final id = r.str('id') ?? '';
     final rawCategory = rel.str('category');
+    final storedOrder = m['nameOrder'];
+    final nameOrder = ContactNameOrder.values.firstWhere(
+      (o) => o != ContactNameOrder.auto && o.name == storedOrder,
+      orElse: () => ContactNameOrder.auto,
+    );
+    // Unknown, explicit "auto" or wrong-typed: decode as auto, keep the raw
+    // value so an untouched save writes it back.
+    if (storedOrder != null && nameOrder == ContactNameOrder.auto) {
+      r.raw['nameOrder'] = storedOrder;
+    }
 
     final contact = Contact(
       id: id,
@@ -244,6 +271,9 @@ class ContactCodec {
       firstName: r.str('firstName'),
       lastName: r.str('lastName'),
       organizationName: r.str('organizationName'),
+      nameOrder: nameOrder,
+      phoneticFamily: r.str('phoneticFamily'),
+      phoneticGiven: r.str('phoneticGiven'),
       phones: _each(r.list('phones'), 'phones', unreadable, (e) {
         final er = _Reader(e);
         return ContactPhone(
@@ -295,6 +325,7 @@ class ContactCodec {
       storedSchemaVersion: r.integer('schemaVersion') ?? 1,
       rawKnownValues: r.raw,
       unreadableEntries: unreadable,
+      storedDisplayName: m['displayName'],
       rawContactType: storedContactType,
     );
 

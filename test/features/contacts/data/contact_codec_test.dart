@@ -39,7 +39,7 @@ void main() {
     expect(ContactCodec.toMap(full)['displayName'], 'Ada Lovelace');
   });
 
-  test('a stale stored displayName is ignored on read and rewritten', () {
+  test('a stale stored displayName survives an untouched save only', () {
     final decoded = ContactCodec.fromMap({
       'id': 'c-8',
       'contactType': 'person',
@@ -49,7 +49,18 @@ void main() {
     });
     expect(decoded.firstName, 'New');
     expect(decoded.extraFields.containsKey('displayName'), isFalse);
-    expect(ContactCodec.toMap(decoded)['displayName'], 'New Name');
+    // Untouched: the stored bytes are kept (spec: no bulk rewrite).
+    expect(ContactCodec.toMap(decoded)['displayName'], 'Old Name');
+    // A no-op copy is still untouched.
+    expect(
+      ContactCodec.toMap(decoded.copyWith(firstName: 'New'))['displayName'],
+      'Old Name',
+    );
+    // Any edit re-derives it.
+    expect(
+      ContactCodec.toMap(decoded.copyWith(notes: 'x'))['displayName'],
+      'New Name',
+    );
   });
 
   test('round-trips an organization', () {
@@ -609,6 +620,153 @@ void main() {
     test('withDerivedValue leaves a free-form address alone', () {
       const a = ContactAddress(label: 'home', value: 'as typed');
       expect(withDerivedValue(a).value, 'as typed');
+    });
+  });
+
+  group('name order and phonetics', () {
+    const legacyZh =
+        '{"schemaVersion":1,"displayName":"伟 张","id":"c-zh",'
+        '"contactType":"person","firstName":"伟","lastName":"张",'
+        '"phones":[],"emails":[],"addresses":[],'
+        '"relationship":{"category":"family"},"isSelf":false,'
+        '"isActivated":true}';
+
+    String roundTrip(String json) => jsonEncode(
+      ContactCodec.toMap(
+        ContactCodec.fromMap(jsonDecode(json) as Map<String, dynamic>),
+      ),
+    );
+
+    test('an untouched legacy Chinese contact is byte-identical', () {
+      expect(roundTrip(legacyZh), legacyZh);
+    });
+
+    test('an untouched padded Latin displayName is byte-identical', () {
+      // ContactName trims padded parts, so a re-derived name would differ.
+      const padded =
+          '{"schemaVersion":1,"displayName":"Ada  Lovelace ","id":"c-pad",'
+          '"contactType":"person","firstName":"Ada ","lastName":"Lovelace ",'
+          '"phones":[],"emails":[],"addresses":[],'
+          '"relationship":{"category":"other"},"isSelf":false,'
+          '"isActivated":true}';
+      expect(roundTrip(padded), padded);
+      final decoded = ContactCodec.fromMap(
+        jsonDecode(padded) as Map<String, dynamic>,
+      );
+      expect(decoded.displayName, isNot('Ada  Lovelace '));
+      // Survives a no-op copy (e.g. the repository's copyWith(id: sameId)).
+      expect(
+        jsonEncode(ContactCodec.toMap(decoded.copyWith(id: 'c-pad'))),
+        padded,
+      );
+    });
+
+    test('a wrong-typed stored displayName is kept verbatim untouched', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'd',
+        'contactType': 'person',
+        'firstName': 'Ada',
+        'displayName': 42,
+      });
+      expect(ContactCodec.toMap(decoded)['displayName'], 42);
+      expect(
+        ContactCodec.toMap(decoded.copyWith(firstName: 'Bea'))['displayName'],
+        'Bea',
+      );
+    });
+
+    test('an edited legacy contact gets the ordered displayName', () {
+      final decoded = ContactCodec.fromMap(
+        jsonDecode(legacyZh) as Map<String, dynamic>,
+      );
+      expect(decoded.displayName, '张伟');
+      final edited = ContactCodec.toMap(decoded.copyWith(notes: 'n'));
+      expect(edited['displayName'], '张伟');
+      expect(edited.containsKey('nameOrder'), isFalse);
+    });
+
+    test('new keys are written only when non-default', () {
+      const plain = Contact(
+        id: 'p',
+        contactType: ContactType.person,
+        firstName: 'Wei',
+        lastName: 'Zhang',
+      );
+      final m = ContactCodec.toMap(plain);
+      expect(m.containsKey('nameOrder'), isFalse);
+      expect(m.containsKey('phoneticFamily'), isFalse);
+      expect(m.containsKey('phoneticGiven'), isFalse);
+
+      final set = ContactCodec.toMap(
+        plain.copyWith(
+          nameOrder: ContactNameOrder.familyFirst,
+          phoneticFamily: 'Zhāng',
+          phoneticGiven: 'Wei',
+        ),
+      );
+      expect(set['nameOrder'], 'familyFirst');
+      expect(set['phoneticFamily'], 'Zhāng');
+      expect(set['phoneticGiven'], 'Wei');
+      expect(set['displayName'], 'Zhang Wei');
+      final back = ContactCodec.fromMap(set);
+      expect(back.nameOrder, ContactNameOrder.familyFirst);
+      expect(back.phoneticFamily, 'Zhāng');
+      expect(jsonEncode(ContactCodec.toMap(back)), jsonEncode(set));
+    });
+
+    test('an unknown nameOrder reads as auto and is preserved', () {
+      for (final raw in <Object>['surnameLast', 'auto', 3]) {
+        final decoded = ContactCodec.fromMap({
+          'id': 'u',
+          'contactType': 'person',
+          'firstName': 'Wei',
+          'lastName': 'Zhang',
+          'nameOrder': raw,
+        });
+        expect(decoded.nameOrder, ContactNameOrder.auto, reason: '$raw');
+        expect(decoded.rawKnownValues['nameOrder'], raw);
+        expect(decoded.extraFields.containsKey('nameOrder'), isFalse);
+        expect(ContactCodec.toMap(decoded)['nameOrder'], raw);
+        // Still preserved after an unrelated edit...
+        expect(
+          ContactCodec.toMap(decoded.copyWith(notes: 'x'))['nameOrder'],
+          raw,
+        );
+        // ...and replaced once the user picks an order.
+        expect(
+          ContactCodec.toMap(
+            decoded.copyWith(nameOrder: ContactNameOrder.givenFirst),
+          )['nameOrder'],
+          'givenFirst',
+        );
+      }
+    });
+
+    test('a wrong-typed phonetic is kept verbatim until edited', () {
+      final decoded = ContactCodec.fromMap({
+        'id': 'w',
+        'contactType': 'person',
+        'firstName': '伟',
+        'phoneticGiven': 7,
+      });
+      expect(decoded.phoneticGiven, isNull);
+      expect(ContactCodec.toMap(decoded)['phoneticGiven'], 7);
+      expect(
+        ContactCodec.toMap(decoded.copyWith(phoneticGiven: 'Wei'))[
+            'phoneticGiven'],
+        'Wei',
+      );
+    });
+
+    test('a stored nameOrder round-trips byte-identical', () {
+      const stored =
+          '{"schemaVersion":1,"displayName":"Zhang Wei","id":"k",'
+          '"contactType":"person","firstName":"Wei","lastName":"Zhang",'
+          '"nameOrder":"familyFirst","phoneticFamily":"Zhang",'
+          '"phones":[],"emails":[],"addresses":[],'
+          '"relationship":{"category":"other"},"isSelf":false,'
+          '"isActivated":true}';
+      expect(roundTrip(stored), stored);
     });
   });
 }

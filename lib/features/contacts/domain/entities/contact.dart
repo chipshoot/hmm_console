@@ -108,6 +108,7 @@ class Contact {
     this.storedSchemaVersion = 1,
     this.rawKnownValues = const {},
     this.unreadableEntries = const {},
+    this.storedDisplayName,
     String? rawContactType,
   }) : _rawContactType = rawContactType;
 
@@ -163,6 +164,12 @@ class Contact {
   /// entries on save so they are not lost.
   final Map<String, List<dynamic>> unreadableEntries;
 
+  /// The `displayName` exactly as stored (any JSON type), or null for a
+  /// contact never decoded. `ContactCodec.toMap` writes it back instead of
+  /// the derived name while the contact is unchanged since decode, so an
+  /// untouched save is byte-identical. [copyWith] drops it on any change.
+  final Object? storedDisplayName;
+
   /// Raw enum string from storage (to preserve unknown values).
   final String? _rawContactType;
 
@@ -173,6 +180,9 @@ class Contact {
   /// Derived, never read back: see `ContactName.displayName`.
   String get displayName => ContactName.displayName(this);
 
+  /// [storedDisplayName] survives only a copy equal to this one (a no-op
+  /// edit, `copyWith(id: sameId)` in the repository, a normalized but
+  /// unchanged form). Any real change re-derives the name on save.
   Contact copyWith({
     String? id,
     ContactType? contactType,
@@ -190,36 +200,61 @@ class Contact {
     Object? notes = _kSentinel,
     bool? isActivated,
     Map<String, dynamic>? extraFields,
-  }) =>
-      Contact(
-        id: id ?? this.id,
-        contactType: contactType ?? this.contactType,
-        firstName:
-            identical(firstName, _kSentinel) ? this.firstName : firstName as String?,
-        lastName: identical(lastName, _kSentinel) ? this.lastName : lastName as String?,
-        organizationName: identical(organizationName, _kSentinel)
-            ? this.organizationName
-            : organizationName as String?,
-        nameOrder: nameOrder ?? this.nameOrder,
-        phoneticFamily: identical(phoneticFamily, _kSentinel)
-            ? this.phoneticFamily
-            : phoneticFamily as String?,
-        phoneticGiven: identical(phoneticGiven, _kSentinel)
-            ? this.phoneticGiven
-            : phoneticGiven as String?,
-        phones: phones ?? this.phones,
-        emails: emails ?? this.emails,
-        addresses: addresses ?? this.addresses,
-        relationship: relationship ?? this.relationship,
-        isSelf: isSelf ?? this.isSelf,
-        notes: identical(notes, _kSentinel) ? this.notes : notes as String?,
-        isActivated: isActivated ?? this.isActivated,
-        extraFields: extraFields ?? this.extraFields,
-        storedSchemaVersion: storedSchemaVersion,
-        rawKnownValues: rawKnownValues,
-        unreadableEntries: unreadableEntries,
-        rawContactType: contactType != null ? null : _rawContactType,
-      );
+  }) {
+    final next = Contact(
+      id: id ?? this.id,
+      contactType: contactType ?? this.contactType,
+      firstName:
+          identical(firstName, _kSentinel) ? this.firstName : firstName as String?,
+      lastName: identical(lastName, _kSentinel) ? this.lastName : lastName as String?,
+      organizationName: identical(organizationName, _kSentinel)
+          ? this.organizationName
+          : organizationName as String?,
+      nameOrder: nameOrder ?? this.nameOrder,
+      phoneticFamily: identical(phoneticFamily, _kSentinel)
+          ? this.phoneticFamily
+          : phoneticFamily as String?,
+      phoneticGiven: identical(phoneticGiven, _kSentinel)
+          ? this.phoneticGiven
+          : phoneticGiven as String?,
+      phones: phones ?? this.phones,
+      emails: emails ?? this.emails,
+      addresses: addresses ?? this.addresses,
+      relationship: relationship ?? this.relationship,
+      isSelf: isSelf ?? this.isSelf,
+      notes: identical(notes, _kSentinel) ? this.notes : notes as String?,
+      isActivated: isActivated ?? this.isActivated,
+      extraFields: extraFields ?? this.extraFields,
+      storedSchemaVersion: storedSchemaVersion,
+      rawKnownValues: rawKnownValues,
+      unreadableEntries: unreadableEntries,
+      rawContactType: contactType != null ? null : _rawContactType,
+    );
+    if (storedDisplayName == null || next != this) return next;
+    return Contact(
+      id: next.id,
+      contactType: next.contactType,
+      firstName: next.firstName,
+      lastName: next.lastName,
+      organizationName: next.organizationName,
+      nameOrder: next.nameOrder,
+      phoneticFamily: next.phoneticFamily,
+      phoneticGiven: next.phoneticGiven,
+      phones: next.phones,
+      emails: next.emails,
+      addresses: next.addresses,
+      relationship: next.relationship,
+      isSelf: next.isSelf,
+      notes: next.notes,
+      isActivated: next.isActivated,
+      extraFields: next.extraFields,
+      storedSchemaVersion: next.storedSchemaVersion,
+      rawKnownValues: next.rawKnownValues,
+      unreadableEntries: next.unreadableEntries,
+      storedDisplayName: storedDisplayName,
+      rawContactType: next._rawContactType,
+    );
+  }
 
   static bool _sameList<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;
