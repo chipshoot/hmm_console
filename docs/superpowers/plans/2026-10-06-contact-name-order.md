@@ -4387,9 +4387,9 @@ Do not push, merge or open a PR. Report the commit range (`git log --oneline mai
 
 _Filled in by Task 1 Step 6; Task 3 reads it._
 
-- Decision: (A `pinyin_pro_flutter` / B `pinyin` 3.3.0 + surname table)
-- Surnames (曾 单 解 区 仇 朴 查 盖 → actual): 
-- Synchronous, no init (欧阳 → ou yang): 
-- Toolchain (`flutter --version` line, pubspec `sdk:`): 
-- Release `Runner.app` KB before / after / delta: 
-- API names, if different from the plan's `ToneType.none`, `PinyinReturnType.array`, `SurnameMode.head/off`: 
+- Decision: **A** (`pinyin_pro_flutter` ^1.0.3, resolved 1.0.3). All 8 surname tests and the 欧阳 test pass, both iOS release builds succeeded.
+- Surnames (曾 单 解 区 仇 朴 查 盖 → actual): zeng, shan, xie, ou, qiu, piao, zha, ge (each a one-element list, matches expected).
+- Synchronous, no init (欧阳 → ou yang): passes; `['ou', 'yang']` from a cold synchronous call with no init or asset load.
+- Toolchain (`flutter --version` line, pubspec `sdk:`): `Flutter 3.41.9 • channel stable`; `sdk: ^3.11.5`.
+- Release `Runner.app` KB before / after / delta: 13736 / 14672 / +936 (du -sk, iOS release --no-codesign; Flutter-reported 13.9MB to 14.9MB).
+- API names, if different from the plan's `ToneType.none`, `PinyinReturnType.array`, `SurnameMode.head/off`: no differences. Verified in pinyin_pro_flutter-1.0.3 `lib/src/common/types.dart`: `ToneType {symbol,num,none}`, `PinyinReturnType {string,array,all}`, `SurnameMode {off,all,head}`. `pinyin(String, {PinyinOptions options})` returns `dynamic` (cast to `List` for `array`); `PinyinOptions` takes named `toneType`, `returnType`, `surname`. Import `package:pinyin_pro_flutter/pinyin_pro_flutter.dart`.
