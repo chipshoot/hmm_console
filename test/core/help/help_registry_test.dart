@@ -55,4 +55,13 @@ void main() {
     expect(entry.title, l.helpContactsSortTitle);
     expect(entry.body, contains('Settings'));
   });
+
+  test('contact edit help covers More name options with its icon', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final entry = helpFor(HelpId.contactEdit, l)
+        .entries
+        .singleWhere((e) => e.icon == Icons.translate);
+    expect(entry.title, l.helpContactEditNameOptionsTitle);
+    expect(entry.body, contains('pinyin'));
+  });
 }

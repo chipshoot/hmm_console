@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../domain/contact_name.dart';
 import '../domain/entities/contact.dart';
 import '../domain/entities/contact_field.dart';
 import '../presentation/widgets/labeled_field_editor.dart';
@@ -32,6 +33,12 @@ class ContactEditState extends Notifier<ContactEditData> {
   /// An edited address has a malformed postal code, so [save] will refuse.
   bool get addressesInvalid => _addressesInvalid;
 
+  /// A phonetic field holds something other than Latin letters, spaces and
+  /// apostrophes, so [save] will refuse.
+  bool get phoneticInvalid =>
+      !ContactName.isValidPhonetic(state.contact.phoneticFamily ?? '') ||
+      !ContactName.isValidPhonetic(state.contact.phoneticGiven ?? '');
+
   @override
   ContactEditData build() => ContactEditData(contact: initial);
 
@@ -48,6 +55,13 @@ class ContactEditState extends Notifier<ContactEditData> {
       _set(state.contact.copyWith(lastName: v), nameError: false);
   void setOrganizationName(String v) =>
       _set(state.contact.copyWith(organizationName: v), nameError: false);
+
+  void setNameOrder(ContactNameOrder o) =>
+      _set(state.contact.copyWith(nameOrder: o));
+  void setPhoneticFamily(String v) =>
+      _set(state.contact.copyWith(phoneticFamily: v));
+  void setPhoneticGiven(String v) =>
+      _set(state.contact.copyWith(phoneticGiven: v));
 
   void setPhones(List<LabeledFieldEntry> rows) => _set(
     state.contact.copyWith(
@@ -127,11 +141,21 @@ class ContactEditState extends Notifier<ContactEditData> {
     return t.isEmpty ? null : t;
   }
 
-  /// The contact as it will be stored: names trimmed, empty rows dropped. A
-  /// row whose stored value this version could not read shows empty but is
-  /// not empty: it is kept so the codec can write that value back.
+  /// [edited] trimmed (blank → null), unless its trimmed value equals the
+  /// trimmed [original]: then the stored value is kept verbatim, so opening
+  /// and saving without a real edit writes back exactly what was stored.
+  String? _part(String? edited, String? original) {
+    final t = _blankToNull(edited);
+    return t == _blankToNull(original) ? original : t;
+  }
+
+  /// The contact as it will be stored: edited names trimmed, empty rows
+  /// dropped. A row whose stored value this version could not read shows
+  /// empty but is not empty: it is kept so the codec can write that value
+  /// back.
   Contact _normalized() {
     final c = state.contact;
+    final o = initial;
     // The inactive type's names are nulled here, not on toggle, so toggling
     // back and forth before saving keeps the typed text but nothing hidden
     // is persisted.
@@ -140,20 +164,19 @@ class ContactEditState extends Notifier<ContactEditData> {
     // person nor organization here, so neither set of names may be dropped.
     final knownType =
         ContactType.values.any((t) => t.name == c.storedContactTypeName);
+    final dropPerson = knownType && isOrg;
     return c.copyWith(
-      firstName: !knownType
-          ? _blankToNull(c.firstName)
-          : isOrg
-              ? null
-              : _blankToNull(c.firstName),
-      lastName: !knownType
-          ? _blankToNull(c.lastName)
-          : isOrg
-              ? null
-              : _blankToNull(c.lastName),
+      firstName: dropPerson ? null : _part(c.firstName, o.firstName),
+      lastName: dropPerson ? null : _part(c.lastName, o.lastName),
       organizationName: !knownType || isOrg
-          ? _blankToNull(c.organizationName)
+          ? _part(c.organizationName, o.organizationName)
           : null,
+      // Person-only options, dropped with the person names.
+      nameOrder: dropPerson ? ContactNameOrder.auto : c.nameOrder,
+      phoneticFamily:
+          dropPerson ? null : _part(c.phoneticFamily, o.phoneticFamily),
+      phoneticGiven:
+          dropPerson ? null : _part(c.phoneticGiven, o.phoneticGiven),
       phones: c.phones
           .where((p) =>
               p.number.trim().isNotEmpty ||
@@ -177,7 +200,7 @@ class ContactEditState extends Notifier<ContactEditData> {
   /// duplicate call returns false; a repository failure rethrows after
   /// releasing the guard so the user can retry.
   Future<bool> save() async {
-    if (_inFlight || _addressesInvalid) return false;
+    if (_inFlight || _addressesInvalid || phoneticInvalid) return false;
     _inFlight = true;
     final contact = _normalized();
     if (contact.displayName.isEmpty) {

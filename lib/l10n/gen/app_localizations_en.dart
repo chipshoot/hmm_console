@@ -2363,4 +2363,45 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpContactsSortBody =>
       'Contacts are sorted by family name. To sort by given name instead, change Sort contacts by in Settings. Chinese names sort by their pinyin, next to Latin names.';
+
+  @override
+  String get contactNameOptions => 'More name options';
+
+  @override
+  String get contactNameOrder => 'Name order';
+
+  @override
+  String get contactNameOrderAuto => 'Auto';
+
+  @override
+  String get contactNameOrderGivenFirst => 'Given name first';
+
+  @override
+  String get contactNameOrderFamilyFirst => 'Family name first';
+
+  @override
+  String get contactPhoneticFamily => 'Family name phonetic';
+
+  @override
+  String get contactPhoneticGiven => 'Given name phonetic';
+
+  @override
+  String get contactPhoneticInvalid =>
+      'Use Latin letters, spaces and apostrophes only';
+
+  @override
+  String get contactPhoneticFixToSave =>
+      'Fix the highlighted phonetic name to save';
+
+  @override
+  String contactShownAs(String name) {
+    return 'Shown as: $name';
+  }
+
+  @override
+  String get helpContactEditNameOptionsTitle => 'More name options';
+
+  @override
+  String get helpContactEditNameOptionsBody =>
+      'Chinese names are shown family name first (张伟), other names given name first (John Smith). Name order changes this for one contact. The phonetic fields set how the name is sorted and searched; left empty, the pinyin shown in grey is used. This section opens by itself for Chinese names.';
 }

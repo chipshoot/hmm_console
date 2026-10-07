@@ -2301,4 +2301,43 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpContactsSortBody =>
       '联系人默认按姓氏排序。如需按名字排序，请在“设置”中更改“联系人排序方式”。中文姓名按拼音排序，与拉丁字母姓名排在一起。';
+
+  @override
+  String get contactNameOptions => '更多姓名选项';
+
+  @override
+  String get contactNameOrder => '姓名顺序';
+
+  @override
+  String get contactNameOrderAuto => '自动';
+
+  @override
+  String get contactNameOrderGivenFirst => '名在前';
+
+  @override
+  String get contactNameOrderFamilyFirst => '姓在前';
+
+  @override
+  String get contactPhoneticFamily => '姓氏拼音';
+
+  @override
+  String get contactPhoneticGiven => '名字拼音';
+
+  @override
+  String get contactPhoneticInvalid => '只能使用拉丁字母、空格和撇号';
+
+  @override
+  String get contactPhoneticFixToSave => '请修正标出的拼音后再保存';
+
+  @override
+  String contactShownAs(String name) {
+    return '显示为：$name';
+  }
+
+  @override
+  String get helpContactEditNameOptionsTitle => '更多姓名选项';
+
+  @override
+  String get helpContactEditNameOptionsBody =>
+      '中文姓名按姓在前显示（张伟），其他姓名按名在前显示（John Smith）。“姓名顺序”可为单个联系人更改此规则。拼音字段决定姓名的排序和搜索方式；留空时使用灰色显示的自动拼音。输入中文姓名时，此部分会自动展开。';
 }

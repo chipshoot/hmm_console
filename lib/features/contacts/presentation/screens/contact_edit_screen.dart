@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,9 +8,12 @@ import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../domain/contact_name.dart';
 import '../../domain/entities/contact.dart';
+import '../../domain/pinyin_transcriber.dart';
 import '../../states/contact_edit_state.dart';
 import '../../states/device_region_provider.dart';
+import '../../states/pinyin_transcriber_provider.dart';
 import '../contact_labels.dart';
 import '../widgets/address_editor.dart';
 import '../widgets/labeled_field_editor.dart';
@@ -73,7 +78,19 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
   late final TextEditingController _org;
   late final TextEditingController _custom;
   late final TextEditingController _notes;
+  late final TextEditingController _phoneticFamily;
+  late final TextEditingController _phoneticGiven;
   final _addresses = GlobalKey<AddressEditorState>();
+
+  /// "More name options": open for Chinese names or any option set; opens by
+  /// itself when Chinese is typed, until the user toggles it.
+  bool _nameOptionsOpen = false;
+  bool _nameOptionsToggled = false;
+
+  /// Automatic pinyin shown as grey hint text in empty phonetic fields.
+  String _hintFamily = '';
+  String _hintGiven = '';
+  Timer? _hintDebounce;
 
   @override
   void initState() {
@@ -84,16 +101,69 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
     _org = TextEditingController(text: c.organizationName ?? '');
     _custom = TextEditingController(text: c.relationship.customLabel ?? '');
     _notes = TextEditingController(text: c.notes ?? '');
+    _phoneticFamily = TextEditingController(text: c.phoneticFamily ?? '');
+    _phoneticGiven = TextEditingController(text: c.phoneticGiven ?? '');
+    _nameOptionsOpen =
+        ContactName.hasChinese(c.firstName) ||
+        ContactName.hasChinese(c.lastName) ||
+        c.nameOrder != ContactNameOrder.auto ||
+        (c.phoneticFamily ?? '').isNotEmpty ||
+        (c.phoneticGiven ?? '').isNotEmpty;
+    _recomputeHints();
   }
 
   @override
   void dispose() {
+    _hintDebounce?.cancel();
     _first.dispose();
     _last.dispose();
     _org.dispose();
     _custom.dispose();
     _notes.dispose();
+    _phoneticFamily.dispose();
+    _phoneticGiven.dispose();
     super.dispose();
+  }
+
+  PinyinTranscriber? _transcriber() {
+    try {
+      return ref.read(pinyinTranscriberProvider);
+    } catch (e) {
+      debugPrint('ContactEdit: pinyin unavailable (${e.runtimeType})');
+      return null;
+    }
+  }
+
+  /// Hints come from the same transcriber the list sorts with. A failure
+  /// leaves the hint empty; type only in the log.
+  void _recomputeHints() {
+    final t = _transcriber();
+    String hint(String part, {required bool family}) {
+      if (t == null || !ContactName.hasChinese(part)) return '';
+      try {
+        return (family ? t.family(part) : t.given(part)).join(' ');
+      } catch (e) {
+        debugPrint('ContactEdit: pinyin hint failed (${e.runtimeType})');
+        return '';
+      }
+    }
+
+    _hintFamily = hint(_last.text, family: true);
+    _hintGiven = hint(_first.text, family: false);
+  }
+
+  void _onNameChanged() {
+    if (!_nameOptionsToggled &&
+        !_nameOptionsOpen &&
+        (ContactName.hasChinese(_first.text) ||
+            ContactName.hasChinese(_last.text))) {
+      setState(() => _nameOptionsOpen = true);
+    }
+    _hintDebounce?.cancel();
+    _hintDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(_recomputeHints);
+    });
   }
 
   Future<void> _save() async {
@@ -105,6 +175,13 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     // Checked before any await, so the reveal and snackbar use live state.
+    if (notifier.phoneticInvalid) {
+      setState(() => _nameOptionsOpen = true);
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.contactPhoneticFixToSave)),
+      );
+      return;
+    }
     if (notifier.addressesInvalid) {
       messenger.showSnackBar(
         SnackBar(content: Text(l.contactAddressFixPostal)),
@@ -133,6 +210,43 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
     final isIos = Theme.of(context).platform == TargetPlatform.iOS;
     final nameError = data.nameError ? l.contactNameRequired : null;
     final isOrg = c.contactType == ContactType.organization;
+    final theme = Theme.of(context);
+    final chinese =
+        ContactName.hasChinese(c.firstName) ||
+        ContactName.hasChinese(c.lastName);
+    // Keyed slots: the two fields swap places as Chinese is typed, and the
+    // keys move the elements (focus, cursor) with them.
+    final givenSlot = KeyedSubtree(
+      key: const ValueKey('contact-given-slot'),
+      child: _pad(
+        TextField(
+          key: const Key('contact-first-name'),
+          controller: _first,
+          decoration: InputDecoration(
+            labelText: l.contactFirstName,
+            errorText: nameError,
+          ),
+          onChanged: (v) {
+            notifier.setFirstName(v);
+            _onNameChanged();
+          },
+        ),
+      ),
+    );
+    final familySlot = KeyedSubtree(
+      key: const ValueKey('contact-family-slot'),
+      child: _pad(
+        TextField(
+          key: const Key('contact-last-name'),
+          controller: _last,
+          decoration: InputDecoration(labelText: l.contactLastName),
+          onChanged: (v) {
+            notifier.setLastName(v);
+            _onNameChanged();
+          },
+        ),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -178,25 +292,88 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
                   ),
                 )
               else ...[
-                _pad(
-                  TextField(
-                    key: const Key('contact-first-name'),
-                    controller: _first,
-                    decoration: InputDecoration(
-                      labelText: l.contactFirstName,
-                      errorText: nameError,
+                // Same stored data either way; Chinese names read 姓 then 名.
+                ...(chinese
+                    ? [familySlot, givenSlot]
+                    : [givenSlot, familySlot]),
+                if (c.displayName.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+                    child: Text(
+                      l.contactShownAs(c.displayName),
+                      key: const Key('contact-name-preview'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                    onChanged: notifier.setFirstName,
                   ),
-                ),
-                _pad(
-                  TextField(
-                    key: const Key('contact-last-name'),
-                    controller: _last,
-                    decoration: InputDecoration(labelText: l.contactLastName),
-                    onChanged: notifier.setLastName,
+                ListTile(
+                  key: const Key('contact-name-options'),
+                  leading: const Icon(Icons.translate),
+                  title: Text(l.contactNameOptions),
+                  trailing: Icon(
+                    _nameOptionsOpen ? Icons.expand_less : Icons.expand_more,
                   ),
+                  onTap: () => setState(() {
+                    _nameOptionsToggled = true;
+                    _nameOptionsOpen = !_nameOptionsOpen;
+                  }),
                 ),
+                if (_nameOptionsOpen) ...[
+                  _pad(
+                    Text(
+                      l.contactNameOrder,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    child: _NameOrderToggle(
+                      isIos: isIos,
+                      value: c.nameOrder,
+                      onChanged: notifier.setNameOrder,
+                    ),
+                  ),
+                  _pad(
+                    TextField(
+                      key: const Key('contact-phonetic-family'),
+                      controller: _phoneticFamily,
+                      decoration: InputDecoration(
+                        labelText: l.contactPhoneticFamily,
+                        hintText: _hintFamily.isEmpty ? null : _hintFamily,
+                        floatingLabelBehavior: _hintFamily.isEmpty
+                            ? null
+                            : FloatingLabelBehavior.always,
+                        errorText:
+                            ContactName.isValidPhonetic(c.phoneticFamily ?? '')
+                            ? null
+                            : l.contactPhoneticInvalid,
+                      ),
+                      onChanged: notifier.setPhoneticFamily,
+                    ),
+                  ),
+                  _pad(
+                    TextField(
+                      key: const Key('contact-phonetic-given'),
+                      controller: _phoneticGiven,
+                      decoration: InputDecoration(
+                        labelText: l.contactPhoneticGiven,
+                        hintText: _hintGiven.isEmpty ? null : _hintGiven,
+                        floatingLabelBehavior: _hintGiven.isEmpty
+                            ? null
+                            : FloatingLabelBehavior.always,
+                        errorText:
+                            ContactName.isValidPhonetic(c.phoneticGiven ?? '')
+                            ? null
+                            : l.contactPhoneticInvalid,
+                      ),
+                      onChanged: notifier.setPhoneticGiven,
+                    ),
+                  ),
+                ],
               ],
               LabeledFieldEditor(
                 keyPrefix: 'phones',
@@ -350,6 +527,51 @@ class _TypeToggle extends StatelessWidget {
       segments: [
         for (final t in ContactType.values)
           ButtonSegment(value: t, label: Text(contactTypeLabel(t, l))),
+      ],
+      selected: {value},
+      onSelectionChanged: (s) => onChanged(s.first),
+    );
+  }
+}
+
+/// Auto / Given name first / Family name first: Cupertino sliding control on
+/// iOS, Material segmented button elsewhere (same pattern as [_TypeToggle]).
+class _NameOrderToggle extends StatelessWidget {
+  const _NameOrderToggle({
+    required this.isIos,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool isIos;
+  final ContactNameOrder value;
+  final ValueChanged<ContactNameOrder> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    if (isIos) {
+      return CupertinoSlidingSegmentedControl<ContactNameOrder>(
+        key: const Key('contact-name-order'),
+        groupValue: value,
+        children: {
+          for (final o in ContactNameOrder.values)
+            o: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Text(nameOrderLabel(o, l), textAlign: TextAlign.center),
+            ),
+        },
+        onValueChanged: (o) {
+          if (o != null) onChanged(o);
+        },
+      );
+    }
+    return SegmentedButton<ContactNameOrder>(
+      key: const Key('contact-name-order'),
+      showSelectedIcon: false,
+      segments: [
+        for (final o in ContactNameOrder.values)
+          ButtonSegment(value: o, label: Text(nameOrderLabel(o, l))),
       ],
       selected: {value},
       onSelectionChanged: (s) => onChanged(s.first),

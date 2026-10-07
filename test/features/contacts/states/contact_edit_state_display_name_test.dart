@@ -15,8 +15,8 @@ const _legacyZh =
     '"relationship":{"category":"family"},"isSelf":false,'
     '"isActivated":true}';
 
-// Only the stored displayName is padded: the editor's save trims padded name
-// parts (a real change), so padded parts are covered at the codec level.
+// Only the stored displayName is padded here; padded name parts are kept
+// verbatim on an unedited save too (contact_edit_state_name_options_test).
 const _paddedLatin =
     '{"schemaVersion":1,"displayName":"Ada  Lovelace ","id":"c-pad",'
     '"contactType":"person","firstName":"Ada","lastName":"Lovelace",'

@@ -53,3 +53,9 @@ bool isKnownFieldLabel(String stored) => _fieldLabelCopy.containsKey(stored);
 /// typed by the user, still reads as itself rather than disappearing.
 String fieldLabelText(String stored, AppLocalizations l) =>
     _fieldLabelCopy[stored]?.call(l) ?? stored;
+
+String nameOrderLabel(ContactNameOrder o, AppLocalizations l) => switch (o) {
+  ContactNameOrder.auto => l.contactNameOrderAuto,
+  ContactNameOrder.givenFirst => l.contactNameOrderGivenFirst,
+  ContactNameOrder.familyFirst => l.contactNameOrderFamilyFirst,
+};

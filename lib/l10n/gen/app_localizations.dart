@@ -4303,6 +4303,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contacts are sorted by family name. To sort by given name instead, change Sort contacts by in Settings. Chinese names sort by their pinyin, next to Latin names.'**
   String get helpContactsSortBody;
+
+  /// No description provided for @contactNameOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'More name options'**
+  String get contactNameOptions;
+
+  /// No description provided for @contactNameOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Name order'**
+  String get contactNameOrder;
+
+  /// No description provided for @contactNameOrderAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get contactNameOrderAuto;
+
+  /// No description provided for @contactNameOrderGivenFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Given name first'**
+  String get contactNameOrderGivenFirst;
+
+  /// No description provided for @contactNameOrderFamilyFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Family name first'**
+  String get contactNameOrderFamilyFirst;
+
+  /// No description provided for @contactPhoneticFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family name phonetic'**
+  String get contactPhoneticFamily;
+
+  /// No description provided for @contactPhoneticGiven.
+  ///
+  /// In en, this message translates to:
+  /// **'Given name phonetic'**
+  String get contactPhoneticGiven;
+
+  /// No description provided for @contactPhoneticInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Latin letters, spaces and apostrophes only'**
+  String get contactPhoneticInvalid;
+
+  /// No description provided for @contactPhoneticFixToSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix the highlighted phonetic name to save'**
+  String get contactPhoneticFixToSave;
+
+  /// No description provided for @contactShownAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown as: {name}'**
+  String contactShownAs(String name);
+
+  /// No description provided for @helpContactEditNameOptionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'More name options'**
+  String get helpContactEditNameOptionsTitle;
+
+  /// No description provided for @helpContactEditNameOptionsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Chinese names are shown family name first (张伟), other names given name first (John Smith). Name order changes this for one contact. The phonetic fields set how the name is sorted and searched; left empty, the pinyin shown in grey is used. This section opens by itself for Chinese names.'**
+  String get helpContactEditNameOptionsBody;
 }
 
 class _AppLocalizationsDelegate

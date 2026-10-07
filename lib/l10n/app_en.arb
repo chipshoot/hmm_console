@@ -1239,5 +1239,24 @@
   "settingsContactSortFamily": "Family name",
   "settingsContactSortGiven": "Given name",
   "helpContactsSortTitle": "Sort order",
-  "helpContactsSortBody": "Contacts are sorted by family name. To sort by given name instead, change Sort contacts by in Settings. Chinese names sort by their pinyin, next to Latin names."
+  "helpContactsSortBody": "Contacts are sorted by family name. To sort by given name instead, change Sort contacts by in Settings. Chinese names sort by their pinyin, next to Latin names.",
+  "contactNameOptions": "More name options",
+  "contactNameOrder": "Name order",
+  "contactNameOrderAuto": "Auto",
+  "contactNameOrderGivenFirst": "Given name first",
+  "contactNameOrderFamilyFirst": "Family name first",
+  "contactPhoneticFamily": "Family name phonetic",
+  "contactPhoneticGiven": "Given name phonetic",
+  "contactPhoneticInvalid": "Use Latin letters, spaces and apostrophes only",
+  "contactPhoneticFixToSave": "Fix the highlighted phonetic name to save",
+  "contactShownAs": "Shown as: {name}",
+  "@contactShownAs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "helpContactEditNameOptionsTitle": "More name options",
+  "helpContactEditNameOptionsBody": "Chinese names are shown family name first (张伟), other names given name first (John Smith). Name order changes this for one contact. The phonetic fields set how the name is sorted and searched; left empty, the pinyin shown in grey is used. This section opens by itself for Chinese names."
 }
