@@ -48,7 +48,7 @@ All name logic lives in one pure-Dart module; pinyin sits behind an interface. N
 | `Contact` entity + `ContactCodec` | New optional fields `nameOrder`, `phoneticFamily`, `phoneticGiven`; derived `displayName` via `contact_name`. | `contact_name` |
 | `lib/features/contacts/states/` | A provider pairing each contact with its precomputed sort key and search terms; the list sorts/filters on those. | `contact_sort`, transcriber provider, sort setting |
 | Settings | `SyncableSettings.contactSortBy` (`family` / `given`), one Settings row. | — |
-| Cheatsheet `DerivedFieldRegistry` | Resolver asks the registry before reading stored JSON for `field` rows; Contacts registers `Contact.displayName`. | Contacts registers at startup |
+| Cheatsheet `DerivedFieldRegistry` | Resolver asks the registry before reading stored JSON for `field` rows; Contacts registers `Contact.displayName`. | Contacts registers through `derivedFieldRegistryProvider` (Riverpod) |
 
 Display order needs no pinyin, so `Contact.displayName` stays synchronous and cheap. The transcriber (and its dictionary) loads only when the contacts list or search is used — never on the dashboard.
 
@@ -130,6 +130,7 @@ Chinese queries (张) match through the display-name term. Terms are built once 
 
 - `SyncableSettings.contactSortBy`: `family` | `given`. Absent in older bundles ⇒ `family`. Synced with the bundle (last-writer-wins, as today).
 - One Settings row "Sort contacts by" using the screen's existing platform picker pattern; en + zh label and help entry.
+- No help sheet exists on Settings; the sort-order help lives in the Contacts list help.
 
 ## Error handling
 
@@ -153,7 +154,7 @@ The plan records the outcome before any app code depends on the library.
 - `contact_sort`: keys and search terms with a fake transcriber — mixed-script ordering, both sort modes, "Me" first, organizations interleaved, tie-break, phonetic override, initials prefix-only.
 - Real transcriber: integration test pinning the eight surnames, so a dependency bump that breaks them fails CI.
 - Codec: untouched contact byte-identical; new keys only when non-default; unknown `nameOrder` preserved; edited contact's `displayName` follows the order.
-- Widgets: expander auto-opens for Chinese names; hint pinyin shown; preview updates; override changes list order; search finds 张伟 by `zw` and `zhangwei`; iOS and Android controls.
+- Widgets: expander auto-opens for Chinese names; hint pinyin shown; preview updates; the sort setting reorders the list; the per-contact override changes the shown name and saved displayName but never the sort position; search finds 张伟 by `zw` and `zhangwei`; iOS and Android controls.
 - Cheatsheet: `Contact.displayName` row shows 张伟 for an unsaved legacy contact whose stored `displayName` is "伟 张".
 - Settings: `contactSortBy` round-trips through the synced bundle; old bundles read as `family`.
 
