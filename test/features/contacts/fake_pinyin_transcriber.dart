@@ -15,6 +15,7 @@ class FakePinyinTranscriber implements PinyinTranscriber {
   static const _chars = {
     '张': ['zhang'],
     '伟': ['wei'],
+    '吕': ['lǚ'],
     '李': ['li'],
     '丽': ['li'],
     '王': ['wang'],

@@ -251,6 +251,15 @@ void main() {
   });
 
   group('searchTerms and matchesSearch', () {
+    test('ü is also searchable as v, as pinyin input methods type it', () {
+      final c = _p('lw', '吕', '伟');
+      final terms = searchTerms(c, t);
+      for (final q in ['lvwei', 'lv wei', 'luwei', 'lu wei', 'lw']) {
+        expect(matchesSearch(c, terms, q), isTrue, reason: q);
+      }
+      expect(terms.prefixes, ['lw']);
+    });
+
     bool m(Contact c, String q, [FakePinyinTranscriber? tr]) =>
         matchesSearch(c, searchTerms(c, tr ?? t), q);
 

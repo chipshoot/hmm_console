@@ -31,8 +31,15 @@ String normalizeForSearch(String s) {
   return b.toString().replaceAll(_ws, ' ').trim();
 }
 
-List<String> _words(String s) =>
-    normalizeForSearch(s).split(' ').where((w) => w.isNotEmpty).toList();
+List<String> _words(String s, {bool vForUmlaut = false}) =>
+    normalizeForSearch(vForUmlaut ? _umlautToV(s) : s)
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .toList();
+
+/// Pinyin input methods type ü as `v` (lü is `lv`).
+String _umlautToV(String s) =>
+    s.toLowerCase().replaceAll(RegExp('[üǖǘǚǜ]'), 'v');
 
 /// The part's romanized syllables: the phonetic field when set, else the
 /// transcriber's output when the part contains Chinese. Null when neither
@@ -42,14 +49,17 @@ List<String>? _syllables(
   String? phonetic,
   bool family,
   PinyinTranscriber? t,
-  void Function(Object error)? onError,
-) {
+  void Function(Object error)? onError, {
+  bool vForUmlaut = false,
+}) {
   final ph = phonetic?.trim() ?? '';
-  if (ph.isNotEmpty) return _words(ph.replaceAll(_apostrophes, ' '));
+  if (ph.isNotEmpty) {
+    return _words(ph.replaceAll(_apostrophes, ' '), vForUmlaut: vForUmlaut);
+  }
   if (t == null || !ContactName.hasChinese(part)) return null;
   try {
     return [
-      for (final s in family ? t.family(part) : t.given(part)) ..._words(s),
+      for (final s in family ? t.family(part) : t.given(part)) ..._words(s, vForUmlaut: vForUmlaut),
     ];
   } catch (e) {
     onError?.call(e);
@@ -157,7 +167,11 @@ ContactSearchTerms searchTerms(
   if (c.contactType == ContactType.organization) {
     final org = c.organizationName?.trim() ?? '';
     final syl = _syllables(org, null, false, t, onError);
-    if (syl != null) addRomanized(syl, syl);
+    if (syl != null) {
+      addRomanized(syl, syl);
+      final v = _syllables(org, null, false, t, onError, vForUmlaut: true);
+      if (v != null) addRomanized(v, v);
+    }
   } else {
     final given = c.firstName?.trim() ?? '';
     final family = c.lastName?.trim() ?? '';
@@ -169,6 +183,16 @@ ContactSearchTerms searchTerms(
       final f = fs ?? _words(family);
       final g = gs ?? _words(given);
       addRomanized([...f, ...g], [...g, ...f]);
+      // The same terms with ü spelled v, as pinyin input methods type it.
+      final fv =
+          _syllables(family, c.phoneticFamily, true, t, onError,
+              vForUmlaut: true) ??
+          _words(family, vForUmlaut: true);
+      final gv =
+          _syllables(given, c.phoneticGiven, false, t, onError,
+              vForUmlaut: true) ??
+          _words(given, vForUmlaut: true);
+      addRomanized([...fv, ...gv], [...gv, ...fv]);
     }
   }
   return ContactSearchTerms(
