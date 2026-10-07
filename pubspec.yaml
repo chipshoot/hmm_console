@@ -88,6 +88,8 @@ dependencies:
   cryptography: ^2.7.0   # AES-256-GCM + Argon2id for the sensitive vault (Phase 4a)
   local_auth: ^2.3.0   # biometric/passcode gate for the sensitive vault (Phase 4b)
   google_mlkit_barcode_scanning: ^0.14.2
+  # Contacts: pinyin for sort + search only (never persisted); see PinyinTranscriber.
+  pinyin_pro_flutter: ^1.0.3
 
 dev_dependencies:
   flutter_test:
