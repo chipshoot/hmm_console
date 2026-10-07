@@ -3701,13 +3701,13 @@ abstract class AppLocalizations {
   /// No description provided for @contactFirstName.
   ///
   /// In en, this message translates to:
-  /// **'First name'**
+  /// **'Given name'**
   String get contactFirstName;
 
   /// No description provided for @contactLastName.
   ///
   /// In en, this message translates to:
-  /// **'Last name'**
+  /// **'Family name'**
   String get contactLastName;
 
   /// No description provided for @contactOrganizationName.

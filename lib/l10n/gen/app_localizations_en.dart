@@ -2045,10 +2045,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactTypeOrganization => 'Organization';
 
   @override
-  String get contactFirstName => 'First name';
+  String get contactFirstName => 'Given name';
 
   @override
-  String get contactLastName => 'Last name';
+  String get contactLastName => 'Family name';
 
   @override
   String get contactOrganizationName => 'Organization name';
