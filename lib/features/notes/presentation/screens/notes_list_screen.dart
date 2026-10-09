@@ -106,10 +106,10 @@ class NotesListScreen extends ConsumerWidget {
           // one catalog, the sub-filter selection within it.
           final f = data.catalogFilter;
           final registry = ref.watch(noteDisplayRegistryProvider);
-          String titleOf(HmmNote n) => registry
-              .noteDisplay(n, data.catalogsById[n.catalogId]?.name, l)
-              .title;
+          String titleOf(HmmNote n) =>
+              registry.title(n, data.catalogsById[n.catalogId]?.name, l);
           final visible = data.visibleFor(titleOf: titleOf);
+          final notesById = {for (final n in data.all) n.id: n};
           final groups = groupByDomain(
             data.catalogsById.values,
             data.countsByCatalog,
@@ -178,7 +178,12 @@ class NotesListScreen extends ConsumerWidget {
                   final note = visible[i];
                   final domain = data.effectiveDomain(note);
                   final attached = data.parentDomainOf(note) != null;
-                  final parentSubject = data.contextSubjectOf(note);
+                  final parentNote = note.parentNoteId == null
+                      ? null
+                      : notesById[note.parentNoteId];
+                  final parentSubject = parentNote != null
+                      ? titleOf(parentNote)
+                      : data.contextSubjectOf(note);
                   // The parent's own words, capped so a long record name
                   // cannot swallow the row; an anchor has no subject, so it
                   // falls back to the domain's name.

@@ -18,6 +18,12 @@ class CheatsheetNoteDisplay implements NoteDisplayEntry {
   static const _prefix = 'Cheatsheet:';
 
   @override
+  String title(HmmNote note, AppLocalizations l) {
+    final t = _decode(note)?.title.trim() ?? '';
+    return t.isEmpty ? l.notesCheatsheetTitleFallback : t;
+  }
+
+  @override
   NoteDisplay display(HmmNote note, AppLocalizations l) {
     final c = _decode(note);
     if (c == null || c.title.trim().isEmpty) {

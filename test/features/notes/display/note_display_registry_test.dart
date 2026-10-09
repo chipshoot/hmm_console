@@ -5,7 +5,9 @@ import 'package:hmm_console/core/navigation/route_names.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
+import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/notes/rendering/note_display.dart';
+import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 import 'note_display_fixtures.dart';
@@ -112,4 +114,61 @@ void main() {
     expect(r.targetFor(brokenNote('Contact:', 2), _contact), isNull);
     expect(r.targetFor(brokenNote('Anything', 1), 'General'), isNull);
   });
+
+  test(
+    'title path: sort decodes each note once; General never touches entry',
+    () async {
+      final l = await AppLocalizations.delegate.load(en);
+      final counting = _CountingEntry();
+      final r = NoteDisplayRegistry({'X': counting});
+      final notes = [
+        for (var i = 0; i < 20; i++)
+          HmmNote(
+            id: i,
+            uuid: 'u$i',
+            subject: 's$i',
+            authorId: 1,
+            catalogId: i.isEven ? 1 : 2,
+            createDate: DateTime(2026, 1, 1),
+          ),
+      ];
+      final data = NotesListData(
+        all: notes,
+        catalogsById: const {1: generalCatalog, 2: xCatalog},
+        sort: NoteSort.subjectAZ,
+        query: 't',
+      );
+      final out = data.visibleFor(
+        titleOf: (n) => r.title(n, data.catalogsById[n.catalogId]?.name, l),
+      );
+      expect(out, hasLength(10));
+      expect(counting.calls, 10); // once per X note, not per comparison
+      expect(r.title(notes.first, 'General', l), 's0');
+      expect(counting.calls, 10);
+    },
+  );
+}
+
+const xCatalog = NoteCatalog(
+  id: 2,
+  name: 'X',
+  schema: '{}',
+  formatType: 0,
+  isDefault: false,
+);
+
+class _CountingEntry implements NoteDisplayEntry {
+  int calls = 0;
+  @override
+  String title(HmmNote note, AppLocalizations l) {
+    calls++;
+    return 't-${note.id}';
+  }
+
+  @override
+  NoteDisplay display(HmmNote note, AppLocalizations l) =>
+      (title: title(note, l), preview: '');
+
+  @override
+  NoteTarget? target(HmmNote note) => null;
 }

@@ -79,9 +79,7 @@ class AttachedNotesSection extends ConsumerWidget {
                     for (final n in notes)
                       ListTile(
                         title: Text(
-                            registry
-                                .noteDisplay(n, catalogNames[n.catalogId], l)
-                                .title,
+                            registry.title(n, catalogNames[n.catalogId], l),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                         onTap: () {
@@ -142,9 +140,7 @@ class AttachedNotesSection extends ConsumerWidget {
                 children: [
                   for (final n in candidates)
                     ListTile(
-                      title: Text(registry
-                          .noteDisplay(n, general.name, l)
-                          .title),
+                      title: Text(registry.title(n, general.name, l)),
                       onTap: () => Navigator.of(context).pop(n),
                     ),
                 ],

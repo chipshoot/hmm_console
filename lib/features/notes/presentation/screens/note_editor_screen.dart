@@ -33,7 +33,9 @@ import '../widgets/record_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../data/subsystem_anchor.dart';
+import '../../rendering/note_display.dart';
 import '../../states/mutate_note_state.dart';
+import '../../states/notes_list_state.dart';
 import '../screens/note_detail_screen.dart' show noteDetailProvider;
 import '../widgets/media_toolbar.dart';
 import '../widgets/note_media_card_list.dart';
@@ -431,7 +433,17 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Future<void> _addNoteLink() async {
     final note = await showNoteLinkPicker(context, ref, excludeNoteId: _noteId);
     if (note == null || !mounted) return;
-    setState(() => insertNoteLinkAtCursor(_bodyCtrl, note.uuid, note.subject));
+    // The link text is the title the picker showed, never an id subject
+    // such as `Contact:<id>`.
+    final catalogName = ref
+        .read(notesListStateProvider)
+        .value
+        ?.catalogsById[note.catalogId]
+        ?.name;
+    final title = ref
+        .read(noteDisplayRegistryProvider)
+        .title(note, catalogName, AppLocalizations.of(context));
+    setState(() => insertNoteLinkAtCursor(_bodyCtrl, note.uuid, title));
   }
 
   String get _stampText =>

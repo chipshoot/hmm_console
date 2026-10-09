@@ -115,7 +115,16 @@ class NotesListData {
   /// instead of the raw subject. The subject of a contact or cheatsheet note
   /// is an id, so searching it would hide the note behind text nobody sees.
   List<HmmNote> visibleFor({String Function(HmmNote)? titleOf}) {
-    String titleFor(HmmNote n) => titleOf?.call(n) ?? n.subject;
+    // Each title is computed once per call; the sort comparator and the
+    // search would otherwise recompute (and re-decode) it per comparison.
+    final titles = titleOf == null
+        ? null
+        : {for (final n in all) n.id: titleOf(n)};
+    String titleFor(HmmNote n) => titles?[n.id] ?? n.subject;
+    String? contextTitleOf(HmmNote n) {
+      final p = n.parentNoteId;
+      return (p == null ? null : titles?[p]) ?? contextSubjectOf(n);
+    }
     Iterable<HmmNote> items = all;
     final f = catalogFilter;
     if (f != null && f.isNotEmpty) {
@@ -148,7 +157,7 @@ class NotesListData {
       items = items.where(
         (n) =>
             titleFor(n).toLowerCase().contains(q) ||
-            (contextSubjectOf(n)?.toLowerCase().contains(q) ?? false),
+            (contextTitleOf(n)?.toLowerCase().contains(q) ?? false),
       );
     }
     final list = items.toList();

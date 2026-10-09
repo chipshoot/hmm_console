@@ -78,9 +78,8 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
     final registry = ref.watch(noteDisplayRegistryProvider);
     final catalogs = async.value?.catalogsById ?? const {};
     // The title the row shows; for a contact or card the raw subject is an id.
-    String titleOf(HmmNote n) => registry
-        .noteDisplay(n, catalogs[n.catalogId]?.name, l)
-        .title;
+    String titleOf(HmmNote n) =>
+        registry.title(n, catalogs[n.catalogId]?.name, l);
     final items = (async.value?.all ?? const <HmmNote>[])
         .where((n) => n.id != widget.excludeNoteId)
         .where((n) => q.isEmpty || titleOf(n).toLowerCase().contains(q))

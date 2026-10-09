@@ -51,7 +51,11 @@ final _overrides = [
   ),
 ];
 
-Widget _app(Widget home, {List<Override> overrides = const []}) {
+Widget _app(
+  Widget home, {
+  List<Override> overrides = const [],
+  NotesListState Function()? listState,
+}) {
   final router = GoRouter(
     routes: [
       GoRoute(path: '/', builder: (_, _) => home),
@@ -72,7 +76,14 @@ Widget _app(Widget home, {List<Override> overrides = const []}) {
     ],
   );
   return ProviderScope(
-    overrides: [..._overrides, ...overrides],
+    overrides: [
+      if (listState == null)
+        _overrides[0]
+      else
+        notesListStateProvider.overrideWith(listState),
+      _overrides[1],
+      ...overrides,
+    ],
     child: MaterialApp.router(
       routerConfig: router,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -228,4 +239,41 @@ void main() {
     // asserted: it must not be the id subject.
     expect(find.text('Contact:c-1'), findsNothing);
   });
+
+  testWidgets('a note attached to a contact names the contact, not the id', (
+    t,
+  ) async {
+    narrow(t);
+    final child = HmmNote(
+      id: 50,
+      uuid: 'child',
+      subject: 'Called about results',
+      authorId: 1,
+      catalogId: 1,
+      parentNoteId: 20,
+      createDate: DateTime(2026, 1, 1),
+    );
+    await t.pumpWidget(
+      _app(const NotesListScreen(), listState: () => _AttachedState(child)),
+    );
+    await t.pumpAndSettle();
+    expect(find.textContaining('张伟'), findsWidgets);
+    expect(find.textContaining('(张伟)'), findsOneWidget);
+    _noRawSubjects();
+    await t.enterText(find.byType(TextField), '张伟');
+    await t.pumpAndSettle();
+    expect(find.text('Called about results'), findsOneWidget);
+  });
+}
+
+class _AttachedState extends NotesListState {
+  _AttachedState(this.child);
+  final HmmNote child;
+  @override
+  Future<NotesListData> build() async => NotesListData(
+    all: [contactNote(zhangWei()), child],
+    catalogsById: {1: generalCatalog, 2: contactCatalog},
+    catalogDomainById: const {1: 'General', 2: 'ContactMan'},
+    targetsById: {20: (domain: 'ContactMan', subject: 'Contact:c-1')},
+  );
 }

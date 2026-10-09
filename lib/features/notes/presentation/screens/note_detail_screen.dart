@@ -122,9 +122,7 @@ class NoteDetailScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text(
-                      displayRegistry
-                          .noteDisplay(d.note, d.catalog?.name, l)
-                          .title,
+                      displayRegistry.title(d.note, d.catalog?.name, l),
                       style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 12),
                   if (atts.isNotEmpty)

@@ -14,6 +14,8 @@ import 'package:hmm_console/features/notes/presentation/screens/note_editor_scre
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 
+import '../display/note_display_fixtures.dart';
+
 class _FakeSource implements ImageByteSource {
   @override
   Future<PickedImageBytes?> pick(AttachmentPickSource source) async => null;
@@ -76,6 +78,7 @@ class _StubListState extends NotesListState {
   @override
   Future<NotesListData> build() async => NotesListData(
     all: [
+      contactNote(zhangWei()),
       HmmNote(
         id: 9,
         uuid: 'u9',
@@ -84,7 +87,7 @@ class _StubListState extends NotesListState {
         createDate: DateTime(2026, 1, 1),
       ),
     ],
-    catalogsById: const {},
+    catalogsById: const {2: contactCatalog},
   );
 }
 
@@ -139,4 +142,17 @@ void main() {
       expect(bodyText, contains('[Target](hmm-note://u9)'));
     },
   );
+
+  testWidgets('linking a contact writes its name, never the Contact: id',
+      (tester) async {
+    await _pump(tester, _FakeMutate());
+    await tester.tap(find.byIcon(Icons.link));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('张伟'));
+    await tester.pumpAndSettle();
+    final body = find.widgetWithText(TextField, 'Start writing…');
+    final text = tester.widget<TextField>(body).controller!.text;
+    expect(text, contains('[张伟](hmm-note://uuid-c-1)'));
+    expect(text, isNot(contains('Contact:')));
+  });
 }

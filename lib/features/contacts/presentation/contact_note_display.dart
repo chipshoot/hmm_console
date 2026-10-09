@@ -19,6 +19,13 @@ class ContactNoteDisplay implements NoteDisplayEntry {
   static const _prefix = 'Contact:';
 
   @override
+  String title(HmmNote note, AppLocalizations l) {
+    final c = _decode(note);
+    final name = c == null ? '' : ContactName.displayName(c).trim();
+    return name.isEmpty ? l.notesContactTitleFallback : name;
+  }
+
+  @override
   NoteDisplay display(HmmNote note, AppLocalizations l) {
     final c = _decode(note);
     final name = c == null ? '' : ContactName.displayName(c).trim();

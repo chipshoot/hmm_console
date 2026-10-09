@@ -21,6 +21,9 @@ typedef NoteTarget = ({RouterNames route, Map<String, String> params});
 abstract interface class NoteDisplayEntry {
   NoteDisplay display(HmmNote note, AppLocalizations l);
 
+  /// Just the title: no preview work.
+  String title(HmmNote note, AppLocalizations l);
+
   /// The screen that owns this note, or null when it cannot be determined.
   NoteTarget? target(HmmNote note);
 }
@@ -42,6 +45,13 @@ class NoteDisplayRegistry {
       return (title: note.subject, preview: notePreview(note.content));
     }
     return entry.display(note, l);
+  }
+
+  /// The title only. Zero work for a catalog without an entry, so the search
+  /// and sort paths can call it per note.
+  String title(HmmNote note, String? catalogName, AppLocalizations l) {
+    final entry = catalogName == null ? null : _byCatalog[catalogName];
+    return entry == null ? note.subject : entry.title(note, l);
   }
 
   NoteTarget? targetFor(HmmNote note, String? catalogName) =>
