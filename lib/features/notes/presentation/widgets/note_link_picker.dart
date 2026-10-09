@@ -4,6 +4,7 @@ import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/hmm_note.dart';
+import '../../rendering/note_display.dart';
 import '../../states/notes_list_state.dart';
 
 /// Modal note picker for inserting a link. Returns the chosen note, or null.
@@ -74,9 +75,15 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
       );
     }
     final q = _query.trim().toLowerCase();
+    final registry = ref.watch(noteDisplayRegistryProvider);
+    final catalogs = async.value?.catalogsById ?? const {};
+    // The title the row shows; for a contact or card the raw subject is an id.
+    String titleOf(HmmNote n) => registry
+        .noteDisplay(n, catalogs[n.catalogId]?.name, l)
+        .title;
     final items = (async.value?.all ?? const <HmmNote>[])
         .where((n) => n.id != widget.excludeNoteId)
-        .where((n) => q.isEmpty || n.subject.toLowerCase().contains(q))
+        .where((n) => q.isEmpty || titleOf(n).toLowerCase().contains(q))
         .toList();
     if (items.isEmpty) {
       return Padding(
@@ -91,7 +98,7 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
         final n = items[i];
         return ListTile(
           key: ValueKey(n.id),
-          title: Text(n.subject),
+          title: Text(titleOf(n)),
           onTap: () => Navigator.of(context).pop(n),
         );
       },

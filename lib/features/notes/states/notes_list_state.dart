@@ -109,7 +109,13 @@ class NotesListData {
     return p == null ? null : targetsById[p]?.subject;
   }
 
-  List<HmmNote> get visible {
+  List<HmmNote> get visible => visibleFor();
+
+  /// [visible], matching and sorting by [titleOf] (the title the row shows)
+  /// instead of the raw subject. The subject of a contact or cheatsheet note
+  /// is an id, so searching it would hide the note behind text nobody sees.
+  List<HmmNote> visibleFor({String Function(HmmNote)? titleOf}) {
+    String titleFor(HmmNote n) => titleOf?.call(n) ?? n.subject;
     Iterable<HmmNote> items = all;
     final f = catalogFilter;
     if (f != null && f.isNotEmpty) {
@@ -141,7 +147,7 @@ class NotesListData {
     if (q.isNotEmpty) {
       items = items.where(
         (n) =>
-            n.subject.toLowerCase().contains(q) ||
+            titleFor(n).toLowerCase().contains(q) ||
             (contextSubjectOf(n)?.toLowerCase().contains(q) ?? false),
       );
     }
@@ -159,7 +165,8 @@ class NotesListData {
         );
       case NoteSort.subjectAZ:
         list.sort(
-          (a, b) => a.subject.toLowerCase().compareTo(b.subject.toLowerCase()),
+          (a, b) =>
+              titleFor(a).toLowerCase().compareTo(titleFor(b).toLowerCase()),
         );
     }
     return list;

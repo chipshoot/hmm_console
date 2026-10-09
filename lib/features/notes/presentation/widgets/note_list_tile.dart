@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../catalog_labels.dart';
 
@@ -8,11 +9,11 @@ import '../../../../core/data/local/database.dart';
 import '../../../../core/notes/catalog_palette.dart';
 import '../../../../core/widgets/app_list_row.dart';
 import '../../data/models/hmm_note.dart';
-import '../util/note_preview.dart';
+import '../../rendering/note_display.dart';
 
 /// A single note row. Fills [AppListRow]: catalog dot leading, subject title,
 /// first content line as the bold primary line, and `catalog · date` secondary.
-class NoteListTile extends StatelessWidget {
+class NoteListTile extends ConsumerWidget {
   const NoteListTile({
     super.key,
     required this.note,
@@ -41,10 +42,13 @@ class NoteListTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final style = CatalogPalette.styleFor(catalog?.name);
-    final preview = notePreview(note.content);
+    final display = ref
+        .watch(noteDisplayRegistryProvider)
+        .noteDisplay(note, catalog?.name, l);
+    final preview = display.preview;
     final date = note.effectiveNoteDate.toLocal().toString().split(' ').first;
 
     return AppListRow(
@@ -59,11 +63,11 @@ class NoteListTile extends StatelessWidget {
         ),
       ),
       title: titleContext == null
-          ? Text(note.subject)
+          ? Text(display.title)
           : Row(
               children: [
                 Flexible(
-                  child: Text(note.subject, overflow: TextOverflow.ellipsis),
+                  child: Text(display.title, overflow: TextOverflow.ellipsis),
                 ),
                 Flexible(
                   child: Text(

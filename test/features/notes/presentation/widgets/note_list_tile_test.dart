@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/local/database.dart';
@@ -24,12 +25,14 @@ HmmNote _note({String? subject, String? content}) => HmmNote(
   content: content,
 );
 
-Widget _host(Widget child) => MaterialApp(
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
+Widget _host(Widget child) => ProviderScope(
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
 
-  theme: ThemeData(extensions: const [AppColors.light]),
-  home: Scaffold(body: child),
+    theme: ThemeData(extensions: const [AppColors.light]),
+    home: Scaffold(body: child),
+  ),
 );
 
 void main() {
@@ -117,26 +120,28 @@ void main() {
     'a long subject and context do not overflow at large Dynamic Type',
     (t) async {
       await t.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: ThemeData(extensions: const [AppColors.light]),
-          home: MediaQuery(
-            data: const MediaQueryData(textScaler: TextScaler.linear(2)),
-            child: Scaffold(
-              body: SizedBox(
-                width: 320,
-                child: NoteListTile(
-                  note: _note(
-                    subject:
-                        'Replaced the cabin air filter and both wiper '
-                        'blades plus the pollen filter behind the glovebox',
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: ThemeData(extensions: const [AppColors.light]),
+            home: MediaQuery(
+              data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+              child: Scaffold(
+                body: SizedBox(
+                  width: 320,
+                  child: NoteListTile(
+                    note: _note(
+                      subject:
+                          'Replaced the cabin air filter and both wiper '
+                          'blades plus the pollen filter behind the glovebox',
+                    ),
+                    catalog: _general,
+                    titleContext:
+                        'A very long parent subject that keeps going and going',
+                    contextLabel: 'Automobile',
+                    contextColor: Colors.blue,
                   ),
-                  catalog: _general,
-                  titleContext:
-                      'A very long parent subject that keeps going and going',
-                  contextLabel: 'Automobile',
-                  contextColor: Colors.blue,
                 ),
               ),
             ),

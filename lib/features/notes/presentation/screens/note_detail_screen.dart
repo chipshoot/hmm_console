@@ -15,6 +15,7 @@ import '../../../../core/data/repository_providers.dart';
 import '../../../../core/notes/editing/edit_dispatch.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../data/models/hmm_note.dart';
+import '../../rendering/note_display.dart';
 import '../../rendering/render_registry.dart';
 import '../../states/mutate_note_state.dart';
 import '../widgets/markdown_view.dart';
@@ -51,6 +52,7 @@ class NoteDetailScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final async = ref.watch(noteDetailProvider(noteId));
     final registry = ref.watch(noteRenderRegistryProvider);
+    final displayRegistry = ref.watch(noteDisplayRegistryProvider);
     final dispatch = ref.watch(editDispatchProvider);
 
     return AppScaffold(
@@ -119,7 +121,10 @@ class NoteDetailScreen extends ConsumerWidget {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  Text(d.note.subject,
+                  Text(
+                      displayRegistry
+                          .noteDisplay(d.note, d.catalog?.name, l)
+                          .title,
                       style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 12),
                   if (atts.isNotEmpty)

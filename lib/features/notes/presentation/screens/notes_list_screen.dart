@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:flutter/foundation.dart' show setEquals;
 
+import '../../data/models/hmm_note.dart';
+import '../../rendering/note_display.dart';
 import '../../states/filter_usage.dart';
 import '../../states/notes_list_state.dart';
 import '../../states/note_selection.dart'
@@ -103,7 +105,11 @@ class NotesListScreen extends ConsumerWidget {
           // Resolve the active domain (main filter) and, if it has more than
           // one catalog, the sub-filter selection within it.
           final f = data.catalogFilter;
-          final visible = data.visible;
+          final registry = ref.watch(noteDisplayRegistryProvider);
+          String titleOf(HmmNote n) => registry
+              .noteDisplay(n, data.catalogsById[n.catalogId]?.name, l)
+              .title;
+          final visible = data.visibleFor(titleOf: titleOf);
           final groups = groupByDomain(
             data.catalogsById.values,
             data.countsByCatalog,
@@ -196,6 +202,15 @@ class NotesListScreen extends ConsumerWidget {
                         ? CatalogPalette.domainStyle(domain).color
                         : null,
                     onTap: () {
+                      // Contacts and cheatsheet cards have their own screens;
+                      // the generic note screen would show raw JSON.
+                      if (registry.open(
+                        context,
+                        note,
+                        data.catalogsById[note.catalogId]?.name,
+                      )) {
+                        return;
+                      }
                       final isWide =
                           MediaQuery.of(context).size.width >=
                           kNotesWideBreakpoint;

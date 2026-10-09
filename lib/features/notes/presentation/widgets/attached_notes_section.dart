@@ -9,6 +9,7 @@ import '../../../../core/help/undoable_action.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../data/general_catalog.dart';
 import '../../data/models/hmm_note.dart';
+import '../../rendering/note_display.dart';
 import '../../states/attached_notes_state.dart';
 import '../../states/mutate_note_state.dart';
 
@@ -34,6 +35,8 @@ class AttachedNotesSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final async = ref.watch(attachedNotesProvider(parentId));
+    final registry = ref.watch(noteDisplayRegistryProvider);
+    final catalogNames = ref.watch(noteCatalogNamesProvider).value ?? const {};
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -75,9 +78,18 @@ class AttachedNotesSection extends ConsumerWidget {
                   children: [
                     for (final n in notes)
                       ListTile(
-                        title: Text(n.subject,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                        onTap: () => context.push('/notes/${n.id}'),
+                        title: Text(
+                            registry
+                                .noteDisplay(n, catalogNames[n.catalogId], l)
+                                .title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                        onTap: () {
+                          if (!registry.open(
+                              context, n, catalogNames[n.catalogId])) {
+                            context.push('/notes/${n.id}');
+                          }
+                        },
                         trailing: HmmIconButton(
                           tooltip: l.notesDetachTooltip,
                           icon: Icons.link_off,
@@ -112,6 +124,7 @@ class AttachedNotesSection extends ConsumerWidget {
 
   Future<void> _attachExisting(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
+    final registry = ref.read(noteDisplayRegistryProvider);
     final general = await ref.read(generalCatalogProvider.future);
     final candidates = await ref
         .read(hmmNoteRepositoryProvider)
@@ -129,7 +142,9 @@ class AttachedNotesSection extends ConsumerWidget {
                 children: [
                   for (final n in candidates)
                     ListTile(
-                      title: Text(n.subject),
+                      title: Text(registry
+                          .noteDisplay(n, general.name, l)
+                          .title),
                       onTap: () => Navigator.of(context).pop(n),
                     ),
                 ],
