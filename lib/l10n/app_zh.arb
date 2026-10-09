@@ -713,5 +713,8 @@
   "contactPhoneticFixToSave": "请修正标出的拼音后再保存",
   "contactShownAs": "显示为：{name}",
   "helpContactEditNameOptionsTitle": "更多姓名选项",
-  "helpContactEditNameOptionsBody": "中文姓名按姓在前显示（张伟），其他姓名按名在前显示（John Smith）。“姓名顺序”可为单个联系人更改此规则。拼音字段决定姓名的排序和搜索方式；留空时使用灰色显示的自动拼音。输入中文姓名时，此部分会自动展开。"
+  "helpContactEditNameOptionsBody": "中文姓名按姓在前显示（张伟），其他姓名按名在前显示（John Smith）。“姓名顺序”可为单个联系人更改此规则。拼音字段决定姓名的排序和搜索方式；留空时使用灰色显示的自动拼音。输入中文姓名时，此部分会自动展开。",
+  "notesContactTitleFallback": "联系人",
+  "notesCheatsheetTitleFallback": "速查卡",
+  "notesCheatsheetPreview": "{group} · {count} 行"
 }

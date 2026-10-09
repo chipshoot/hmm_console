@@ -4375,6 +4375,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chinese names are shown family name first (张伟), other names given name first (John Smith). Name order changes this for one contact. The phonetic fields set how the name is sorted and searched; left empty, the pinyin shown in grey is used. This section opens by itself for Chinese names.'**
   String get helpContactEditNameOptionsBody;
+
+  /// No description provided for @notesContactTitleFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get notesContactTitleFallback;
+
+  /// No description provided for @notesCheatsheetTitleFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheatsheet card'**
+  String get notesCheatsheetTitleFallback;
+
+  /// No description provided for @notesCheatsheetPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'{group} · {count, plural, =1{1 row} other{{count} rows}}'**
+  String notesCheatsheetPreview(String group, int count);
 }
 
 class _AppLocalizationsDelegate

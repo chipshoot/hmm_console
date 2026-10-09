@@ -2340,4 +2340,15 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpContactEditNameOptionsBody =>
       '中文姓名按姓在前显示（张伟），其他姓名按名在前显示（John Smith）。“姓名顺序”可为单个联系人更改此规则。拼音字段决定姓名的排序和搜索方式；留空时使用灰色显示的自动拼音。输入中文姓名时，此部分会自动展开。';
+
+  @override
+  String get notesContactTitleFallback => '联系人';
+
+  @override
+  String get notesCheatsheetTitleFallback => '速查卡';
+
+  @override
+  String notesCheatsheetPreview(String group, int count) {
+    return '$group · $count 行';
+  }
 }

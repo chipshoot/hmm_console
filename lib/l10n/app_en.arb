@@ -1258,5 +1258,9 @@
     }
   },
   "helpContactEditNameOptionsTitle": "More name options",
-  "helpContactEditNameOptionsBody": "Chinese names are shown family name first (张伟), other names given name first (John Smith). Name order changes this for one contact. The phonetic fields set how the name is sorted and searched; left empty, the pinyin shown in grey is used. This section opens by itself for Chinese names."
+  "helpContactEditNameOptionsBody": "Chinese names are shown family name first (张伟), other names given name first (John Smith). Name order changes this for one contact. The phonetic fields set how the name is sorted and searched; left empty, the pinyin shown in grey is used. This section opens by itself for Chinese names.",
+  "notesContactTitleFallback": "Contact",
+  "notesCheatsheetTitleFallback": "Cheatsheet card",
+  "notesCheatsheetPreview": "{group} · {count, plural, =1{1 row} other{{count} rows}}",
+  "@notesCheatsheetPreview": {"placeholders": {"group": {"type": "String"}, "count": {"type": "int"}}}
 }

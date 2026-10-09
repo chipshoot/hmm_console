@@ -2404,4 +2404,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpContactEditNameOptionsBody =>
       'Chinese names are shown family name first (张伟), other names given name first (John Smith). Name order changes this for one contact. The phonetic fields set how the name is sorted and searched; left empty, the pinyin shown in grey is used. This section opens by itself for Chinese names.';
+
+  @override
+  String get notesContactTitleFallback => 'Contact';
+
+  @override
+  String get notesCheatsheetTitleFallback => 'Cheatsheet card';
+
+  @override
+  String notesCheatsheetPreview(String group, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rows',
+      one: '1 row',
+    );
+    return '$group · $_temp0';
+  }
 }
