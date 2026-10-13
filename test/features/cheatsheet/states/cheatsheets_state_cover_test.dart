@@ -174,6 +174,22 @@ void main() {
     },
   );
 
+  test(
+    'a released ref that is still the kept cover is never deleted',
+    () async {
+      final c = container();
+      final state = c.read(cheatsheetsStateProvider.notifier);
+      await state.save(plain, newCover: pick());
+      final withCover = (await repo.getCard('c1'))!;
+
+      // A confused caller lists the cover it keeps as released.
+      await state.save(withCover, released: [withCover.cover!]);
+
+      expect(vault.files.keys, [withCover.cover!.path]);
+      expect((await repo.getCard('c1'))!.cover, withCover.cover);
+    },
+  );
+
   test('removing a card deletes its cover bytes', () async {
     final c = container();
     final state = c.read(cheatsheetsStateProvider.notifier);

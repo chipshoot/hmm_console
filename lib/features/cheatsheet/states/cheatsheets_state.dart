@@ -55,7 +55,12 @@ class CheatsheetsState extends AsyncNotifier<List<CheatsheetCard>> {
       next = card.withCover(cover);
     }
     await repo.saveCard(next);
-    await _release(released);
+    // Never delete the bytes the saved card still points at.
+    final kept = next.cover?.path;
+    await _release([
+      for (final r in released)
+        if (r.path != kept) r,
+    ]);
     ref.invalidateSelf();
   }
 

@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/gen/app_localizations.dart';
 
 import '../../../core/util/uuid.dart';
+import '../../../core/data/attachments/picker/image_byte_source.dart';
 import '../data/cheatsheet_templates.dart';
 import '../domain/entities/cheatsheet_card.dart';
 import '../domain/entities/cheatsheet_row.dart';
 import '../domain/entities/cheatsheet_source.dart';
+import '../domain/entities/card_style.dart';
+import 'cheatsheet_cover_draft.dart';
 import 'cheatsheets_state.dart';
 
 /// Card ids come from here so tests can pin them. Production is the real v4
@@ -45,6 +48,7 @@ class CheatsheetEditor extends Notifier<CheatsheetCard> {
   /// with no element tree, and the template's row labels are localized because
   /// they seed the card's editable content (see `cheatsheet_templates.dart`).
   void startFromTemplate(String templateId, AppLocalizations l) {
+    ref.read(cheatsheetCoverDraftProvider.notifier).clear();
     final templates = CheatsheetTemplates.all(l);
     final template = templates.firstWhere(
       (t) => t.id == templateId,
@@ -57,7 +61,11 @@ class CheatsheetEditor extends Notifier<CheatsheetCard> {
   }
 
   /// Begin editing an existing card, preserving its id.
-  void load(CheatsheetCard existing) => state = existing;
+  void load(CheatsheetCard existing) {
+    // A cover picked on an earlier, abandoned visit must not ride along.
+    ref.read(cheatsheetCoverDraftProvider.notifier).clear();
+    state = existing;
+  }
 
   void setTitle(String title) => state = state.copyWith(title: title);
 
@@ -67,8 +75,11 @@ class CheatsheetEditor extends Notifier<CheatsheetCard> {
   void setTags(List<String> tags) => state = state.copyWith(tags: tags);
 
   void addRow(String label) => state = state.copyWith(
-        rows: [...state.rows, CheatsheetRow(label: label, source: null)],
-      );
+    rows: [
+      ...state.rows,
+      CheatsheetRow(label: label, source: null),
+    ],
+  );
 
   void removeRow(int index) {
     if (!_inRange(index)) return;
@@ -87,8 +98,77 @@ class CheatsheetEditor extends Notifier<CheatsheetCard> {
   void setOpenSource(int index, bool open) =>
       _updateRow(index, (r) => r.copyWith(openSource: open));
 
-  Future<void> commit() =>
-      ref.read(cheatsheetsStateProvider.notifier).save(state);
+  void setTheme(CardThemeId theme) => state = state.copyWith(
+    style: state.style.withTheme(theme, templateId: state.templateId),
+  );
+
+  void setPattern(CardPattern pattern) =>
+      state = state.copyWith(style: state.style.withPattern(pattern));
+
+  /// Null or empty returns the card to its template icon.
+  void setIcon(String? icon) => state = state.copyWith(
+    style: state.style.withIcon(icon, templateId: state.templateId),
+  );
+
+  /// Row emoji are untouched: Facts hides them, it never deletes them.
+  void setLayout(CardLayout layout) => state = state.copyWith(
+    style: state.style.withLayout(layout, templateId: state.templateId),
+  );
+
+  /// Null or empty clears the row's emoji.
+  void setRowEmoji(int index, String? emoji) => _updateRow(
+    index,
+    (r) => emoji == null || emoji.isEmpty
+        ? r.copyWith(clearEmoji: true)
+        : r.copyWith(emoji: emoji),
+  );
+
+  /// Stages [pick] as the new cover; a stored cover is released on save.
+  void pickCover(PickedImageBytes pick) {
+    final draft = ref.read(cheatsheetCoverDraftProvider.notifier);
+    final old = state.cover;
+    if (old != null) draft.release(old);
+    state = state.withCover(null);
+    draft.stage(pick);
+  }
+
+  void removeCover() {
+    final draft = ref.read(cheatsheetCoverDraftProvider.notifier);
+    draft.dropPending();
+    final old = state.cover;
+    if (old != null) draft.release(old);
+    state = state.withCover(null);
+  }
+
+  /// Back to the template look: no style (including a preserved raw one), no
+  /// row emoji (including preserved raw ones), no cover.
+  void resetLook() {
+    removeCover();
+    state = state.copyWith(
+      style: CardStyle.empty,
+      extraFields: {
+        for (final e in state.extraFields.entries)
+          if (e.key != 'style') e.key: e.value,
+      },
+      rows: [
+        for (final r in state.rows)
+          r.copyWith(
+            clearEmoji: true,
+            extraFields: {
+              for (final e in r.extraFields.entries)
+                if (e.key != 'emoji') e.key: e.value,
+            },
+          ),
+      ],
+    );
+  }
+
+  Future<void> commit() {
+    final draft = ref.read(cheatsheetCoverDraftProvider);
+    return ref
+        .read(cheatsheetsStateProvider.notifier)
+        .save(state, newCover: draft.pending, released: draft.released);
+  }
 
   bool _inRange(int index) => index >= 0 && index < state.rows.length;
 
