@@ -41,18 +41,66 @@ class CheatsheetPalette {
   static CardColors of(CardThemeId id, Brightness brightness) {
     final dark = brightness == Brightness.dark;
     final (Color light, Color night, Color fg) = switch (id) {
-      CardThemeId.blue => (const Color(0xFF1258A8), const Color(0xFF0D47A1), _white),
-      CardThemeId.green => (const Color(0xFF1E6B24), const Color(0xFF1B5E20), _white),
-      CardThemeId.orange => (const Color(0xFFA8380A), const Color(0xFF8A2E0E), _white),
-      CardThemeId.red => (const Color(0xFFB71C1C), const Color(0xFF8E1B1B), _white),
-      CardThemeId.purple => (const Color(0xFF6A1B9A), const Color(0xFF4A148C), _white),
-      CardThemeId.teal => (const Color(0xFF00695C), const Color(0xFF004D40), _white),
-      CardThemeId.pink => (const Color(0xFFAD1457), const Color(0xFF880E4F), _white),
-      CardThemeId.amber => (const Color(0xFFFFC107), const Color(0xFFC79500), _black),
-      CardThemeId.slate => (const Color(0xFF475569), const Color(0xFF334155), _white),
-      CardThemeId.indigo => (const Color(0xFF3949AB), const Color(0xFF283593), _white),
-      CardThemeId.brown => (const Color(0xFF6D4C41), const Color(0xFF4E342E), _white),
-      CardThemeId.black => (const Color(0xFF212121), const Color(0xFF2A2A2A), _white),
+      CardThemeId.blue => (
+        const Color(0xFF1258A8),
+        const Color(0xFF0D47A1),
+        _white,
+      ),
+      CardThemeId.green => (
+        const Color(0xFF1E6B24),
+        const Color(0xFF1B5E20),
+        _white,
+      ),
+      CardThemeId.orange => (
+        const Color(0xFFA8380A),
+        const Color(0xFF8A2E0E),
+        _white,
+      ),
+      CardThemeId.red => (
+        const Color(0xFFB71C1C),
+        const Color(0xFF8E1B1B),
+        _white,
+      ),
+      CardThemeId.purple => (
+        const Color(0xFF6A1B9A),
+        const Color(0xFF4A148C),
+        _white,
+      ),
+      CardThemeId.teal => (
+        const Color(0xFF00695C),
+        const Color(0xFF004D40),
+        _white,
+      ),
+      CardThemeId.pink => (
+        const Color(0xFFAD1457),
+        const Color(0xFF880E4F),
+        _white,
+      ),
+      CardThemeId.amber => (
+        const Color(0xFFFFC107),
+        const Color(0xFFC79500),
+        _black,
+      ),
+      CardThemeId.slate => (
+        const Color(0xFF475569),
+        const Color(0xFF334155),
+        _white,
+      ),
+      CardThemeId.indigo => (
+        const Color(0xFF3949AB),
+        const Color(0xFF283593),
+        _white,
+      ),
+      CardThemeId.brown => (
+        const Color(0xFF6D4C41),
+        const Color(0xFF4E342E),
+        _white,
+      ),
+      CardThemeId.black => (
+        const Color(0xFF212121),
+        const Color(0xFF2A2A2A),
+        _white,
+      ),
     };
     return CardColors(background: dark ? night : light, foreground: fg);
   }

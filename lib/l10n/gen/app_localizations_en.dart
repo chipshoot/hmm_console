@@ -770,6 +770,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cheatsheetRowSection1 => 'Section 1';
 
   @override
+  String cheatsheetTileSubtitle(String group, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rows',
+      one: '1 row',
+    );
+    return '$group · $_temp0';
+  }
+
+  @override
+  String cheatsheetTileSemantics(String title, String group, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rows',
+      one: '1 row',
+    );
+    return '$title, $group, $_temp0';
+  }
+
+  @override
   String get launcherTitle => 'Launcher';
 
   @override

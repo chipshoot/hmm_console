@@ -745,6 +745,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cheatsheetRowSection1 => '第 1 节';
 
   @override
+  String cheatsheetTileSubtitle(String group, int count) {
+    return '$group · $count 行';
+  }
+
+  @override
+  String cheatsheetTileSemantics(String title, String group, int count) {
+    return '$title，$group，$count 行';
+  }
+
+  @override
   String get launcherTitle => '启动器';
 
   @override

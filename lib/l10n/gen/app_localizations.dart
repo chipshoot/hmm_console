@@ -1394,6 +1394,18 @@ abstract class AppLocalizations {
   /// **'Section 1'**
   String get cheatsheetRowSection1;
 
+  /// No description provided for @cheatsheetTileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{group} · {count, plural, =1{1 row} other{{count} rows}}'**
+  String cheatsheetTileSubtitle(String group, int count);
+
+  /// No description provided for @cheatsheetTileSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}, {group}, {count, plural, =1{1 row} other{{count} rows}}'**
+  String cheatsheetTileSemantics(String title, String group, int count);
+
   /// No description provided for @launcherTitle.
   ///
   /// In en, this message translates to:

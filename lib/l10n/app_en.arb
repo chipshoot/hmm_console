@@ -439,6 +439,10 @@
   "cheatsheetRowPharmacy": "Pharmacy",
   "cheatsheetRowPharmacyPhone": "Pharmacy phone",
   "cheatsheetRowSection1": "Section 1",
+  "cheatsheetTileSubtitle": "{group} · {count, plural, =1{1 row} other{{count} rows}}",
+  "@cheatsheetTileSubtitle": {"placeholders": {"group": {"type": "String"}, "count": {"type": "int"}}},
+  "cheatsheetTileSemantics": "{title}, {group}, {count, plural, =1{1 row} other{{count} rows}}",
+  "@cheatsheetTileSemantics": {"placeholders": {"title": {"type": "String"}, "group": {"type": "String"}, "count": {"type": "int"}}},
   "@_launcher": {
     "description": "Universal search launcher. Destination TITLES are translated (display only — favorites/aliases persist by destination id). SYNONYMS are search vocabulary, not copy: they are ADDED to rather than replaced, so a bilingual user can type either language whatever the UI locale is. See launcher_registry.dart."
   },
