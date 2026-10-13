@@ -101,4 +101,61 @@ void main() {
     expect(await CheatsheetApiRepository(_FakeRemote(null)).noteIdFor('c-1'),
         isNull);
   });
+
+  group('non-conforming values are preserved', () {
+    final base = CheatsheetApiMapper.toApi(styled);
+
+    test('a non-object Style round-trips verbatim', () {
+      for (final raw in <Object>['odd', 7, [1, 2], true]) {
+        final card = CheatsheetApiMapper.fromApi({...base, 'Style': raw});
+        expect(card.style.isEmpty, isTrue);
+        expect(CheatsheetApiMapper.toApi(card)['Style'], raw);
+      }
+    });
+
+    test('a non-string Emoji round-trips verbatim', () {
+      final rows = [
+        {'Label': 'x', 'Emoji': 5},
+      ];
+      final card = CheatsheetApiMapper.fromApi({...base, 'Rows': rows});
+      expect(card.rows.single.emoji, isNull);
+      expect(
+          (CheatsheetApiMapper.toApi(card)['Rows'] as List).single['Emoji'], 5);
+    });
+
+    test('a typed style replaces the raw one', () {
+      final card = CheatsheetApiMapper.fromApi({...base, 'Style': 'odd'})
+          .copyWith(style: const CardStyle({'theme': 'red'}));
+      expect(CheatsheetApiMapper.toApi(card)['Style'], {'theme': 'red'});
+    });
+
+    test('a typed emoji replaces the raw one', () {
+      final card = CheatsheetApiMapper.fromApi({
+        ...base,
+        'Rows': [
+          {'Label': 'x', 'Emoji': 5},
+        ],
+      });
+      final row = card.rows.single.copyWith(emoji: eyes);
+      expect(
+          (CheatsheetApiMapper.toApi(card.copyWith(rows: [row]))['Rows']
+                  as List)
+              .single['Emoji'],
+          eyes);
+    });
+
+    test('reset (typed style empty AND raw cleared) sends Style: null', () {
+      final card = CheatsheetApiMapper.fromApi({...base, 'Style': 'odd'})
+          .copyWith(style: CardStyle.empty, extraFields: const {});
+      final json = CheatsheetApiMapper.toApi(card);
+      expect(json.containsKey('Style'), isTrue);
+      expect(json['Style'], isNull);
+    });
+
+    test('an unstyled card with no raw still sends Style: null', () {
+      final json = CheatsheetApiMapper.toApi(
+          CheatsheetApiMapper.fromApi({...base, 'Style': null}));
+      expect(json['Style'], isNull);
+    });
+  });
 }

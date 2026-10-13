@@ -22,6 +22,9 @@ class CheatsheetApiMapper {
   const CheatsheetApiMapper._();
 
   static const _schemaVersion = 1;
+  // Same keys CheatsheetCodec uses for preserved non-conforming values.
+  static const _styleKey = 'style';
+  static const _emojiKey = 'emoji';
 
   static Map<String, dynamic> toApi(CheatsheetCard c) => {
         'Id': c.id,
@@ -39,7 +42,12 @@ class CheatsheetApiMapper {
         ],
         // Always present: null tells the server to clear its copy (Reset
         // look). A body WITHOUT the key - an older client - keeps it.
-        'Style': c.style.isEmpty ? null : c.style.toMap(),
+        //
+        // A non-object style from a newer client is held in extraFields['style']
+        // (same slot as CheatsheetCodec) and sent back verbatim while the typed
+        // style is empty. CONTRACT for Reset look: clear BOTH the typed style
+        // and extraFields['style'], otherwise the raw value is re-sent.
+        'Style': c.style.isEmpty ? c.extraFields[_styleKey] : c.style.toMap(),
       };
 
   static CheatsheetCard fromApi(Map<String, dynamic> m) {
@@ -74,6 +82,9 @@ class CheatsheetApiMapper {
       style: m['Style'] is Map
           ? CardStyle(_deepCopyMap(m['Style'] as Map))
           : CardStyle.empty,
+      extraFields: {
+        if (m['Style'] != null && m['Style'] is! Map) _styleKey: m['Style'],
+      },
     );
   }
 
@@ -100,7 +111,10 @@ class CheatsheetApiMapper {
         'ValueAction': r.valueAction.name,
         'OpenSource': r.openSource,
         if (r.source != null) 'Source': _srcToApi(r.source!),
-        if (r.emoji != null) 'Emoji': r.emoji,
+        if (r.emoji != null)
+          'Emoji': r.emoji
+        else if (r.extraFields.containsKey(_emojiKey))
+          'Emoji': r.extraFields[_emojiKey],
       };
 
   static CheatsheetRow _rowFromApi(Map<String, dynamic> m) => CheatsheetRow(
@@ -116,6 +130,10 @@ class CheatsheetApiMapper {
             : ValueAction.values.firstWhere((v) => v.name == m['ValueAction']),
         openSource: _bool(m['OpenSource']) ?? true,
         emoji: _str(m['Emoji']),
+        extraFields: {
+          if (m['Emoji'] != null && m['Emoji'] is! String)
+            _emojiKey: m['Emoji'],
+        },
       );
 
   static Map<String, dynamic> _srcToApi(CheatsheetSource s) => {
