@@ -154,6 +154,8 @@ class _LookBody extends ConsumerWidget {
     final ios = Theme.of(context).platform == TargetPlatform.iOS;
     final pending = draft.pending;
     final hasCover = pending != null || card.cover != null;
+    final thumbCacheWidth = (56 * MediaQuery.devicePixelRatioOf(context))
+        .ceil();
 
     final Widget layoutControl = ios
         ? CupertinoSlidingSegmentedControl<CardLayout>(
@@ -258,10 +260,16 @@ class _LookBody extends ConsumerWidget {
                   height: 56,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
+                    // Decode at thumbnail size, not the photo's full size.
                     child: pending != null
-                        ? Image.memory(pending.bytes, fit: BoxFit.cover)
+                        ? Image.memory(
+                            pending.bytes,
+                            fit: BoxFit.cover,
+                            cacheWidth: thumbCacheWidth,
+                          )
                         : CardSurface(
                             card: card,
+                            coverCacheWidth: thumbCacheWidth,
                             builder: (_, _) => const SizedBox.shrink(),
                           ),
                   ),

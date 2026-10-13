@@ -335,6 +335,24 @@ void main() {
     expect(_Capturing.covers.single!.bytes, _png);
   });
 
+  testWidgets('the cover thumbnail decodes at thumbnail size', (tester) async {
+    await mount(tester);
+    await start(tester, 'blank');
+    coverAnswers = [CoverAction.library];
+
+    await tapKey(tester, 'look-cover-add');
+
+    final image = tester.widget<Image>(
+      find.descendant(
+        of: find.byKey(const Key('look-cover-thumb')),
+        matching: find.byType(Image),
+      ),
+    );
+    final dpr = tester.view.devicePixelRatio;
+    expect(image.image, isA<ResizeImage>());
+    expect((image.image as ResizeImage).width, (56 * dpr).ceil());
+  });
+
   testWidgets('the scanner is offered only when available, and scans a cover', (
     tester,
   ) async {
