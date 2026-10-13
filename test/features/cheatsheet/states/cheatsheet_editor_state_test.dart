@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
+import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
@@ -12,12 +14,22 @@ import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
 /// WidgetRef is sealed and must never be faked.
 class _CapturingCheatsheets extends CheatsheetsState {
   static final saved = <CheatsheetCard>[];
+  static final covers = <PickedImageBytes?>[];
+  static final releases = <List<VaultRef>>[];
 
   @override
   Future<List<CheatsheetCard>> build() async => const [];
 
   @override
-  Future<void> save(CheatsheetCard card) async => saved.add(card);
+  Future<void> save(
+    CheatsheetCard card, {
+    PickedImageBytes? newCover,
+    List<VaultRef> released = const [],
+  }) async {
+    saved.add(card);
+    covers.add(newCover);
+    releases.add(released);
+  }
 }
 
 const _source = CheatsheetSource(

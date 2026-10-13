@@ -171,4 +171,16 @@ void main() {
 
     expect((await repo.getCards()).length, 1);
   });
+
+  test('a first load and a first save racing create the catalog once',
+      () async {
+    await setup();
+    addTearDown(db.close);
+
+    // The wallet's initial getCards and a save both start before the
+    // catalog exists; check-then-insert would insert it twice.
+    await Future.wait([repo.getCards(), repo.saveCard(sample('c1'))]);
+
+    expect((await repo.getCards()).single.id, 'c1');
+  });
 }

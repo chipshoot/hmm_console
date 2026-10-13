@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
+import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
@@ -27,7 +29,11 @@ class _CapturingCheatsheets extends CheatsheetsState {
   static Object? saveError;
 
   @override
-  Future<void> save(CheatsheetCard card) async {
+  Future<void> save(
+    CheatsheetCard card, {
+    PickedImageBytes? newCover,
+    List<VaultRef> released = const [],
+  }) async {
     if (saveError != null) throw saveError!;
     saved.add(card);
   }

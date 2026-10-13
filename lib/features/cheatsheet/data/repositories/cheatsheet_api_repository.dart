@@ -58,6 +58,12 @@ class CheatsheetApiRepository implements ICheatsheetRepository {
       rethrow;
     }
   }
+
+  /// `/v1/cheatsheets` exposes neither the backing note id nor its
+  /// attachments column, so covers are not available in cloudApi mode (the
+  /// designer hides them). A `style.cover` written elsewhere passes through.
+  @override
+  Future<int?> noteIdFor(String cardId) async => null;
 }
 
 final cheatsheetApiRepositoryProvider = Provider<ICheatsheetRepository>((ref) {

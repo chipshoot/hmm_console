@@ -34,6 +34,9 @@ class _FakeRepo implements ICheatsheetRepository {
 
   @override
   Future<void> deleteCard(String id) async => _cards.remove(id);
+
+  @override
+  Future<int?> noteIdFor(String cardId) async => null;
 }
 
 class _ThrowingRepo implements ICheatsheetRepository {

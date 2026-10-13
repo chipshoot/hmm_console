@@ -7,6 +7,7 @@ import '../../../features/cheatsheet/data/cheatsheet_codec.dart';
 import '../../../features/cheatsheet/data/i_cheatsheet_repository.dart';
 import '../../../features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import '../../../features/notes/data/models/hmm_note.dart';
+import '../attachments/attachment_ref.dart';
 import '../hmm_note_input.dart';
 import 'local_hmm_note_repository.dart';
 import 'local_note_catalog_repository.dart';
@@ -35,6 +36,18 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
         },
       });
 
+  /// The cover's bytes are referenced from the note's `attachments` column —
+  /// the only column `VaultGc` reads when deciding what is live — and content
+  /// records just its path (`style.cover`). The column belongs to the cover
+  /// alone, so writing it whole on every save also releases a replaced or
+  /// removed cover.
+  NoteAttachments _attachmentsFor(CheatsheetCard c) {
+    final cover = c.cover;
+    return cover == null
+        ? NoteAttachments.empty
+        : NoteAttachments(images: [cover]);
+  }
+
   CheatsheetCard? _deserialize(HmmNote? note) {
     final content = note?.content;
     if (content == null) return null;
@@ -42,7 +55,10 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
       final data =
           (jsonDecode(content) as Map)['note']?['content']?['Cheatsheet'];
       if (data is Map) {
-        return CheatsheetCodec.fromMap(data.cast<String, dynamic>());
+        return CheatsheetCodec.fromMap(
+          data.cast<String, dynamic>(),
+          attachments: note!.effectiveAttachments,
+        );
       }
       debugPrint('LocalCheatsheetRepository: note ${note!.id}/${note.uuid} '
           'has no Cheatsheet payload; omitted from the wallet.');
@@ -57,8 +73,23 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
     }
   }
 
-  Future<int> _catalogId() async =>
-      (await _catalogs.getOrCreateCatalog(cheatsheetCatalogName, '{}')).id;
+  Future<int>? _catalogIdFuture;
+
+  /// Shared by concurrent callers: `getOrCreateCatalog` is check-then-insert,
+  /// so two first calls racing (the wallet's initial load and a save) would
+  /// both insert and the second hits the catalog name's UNIQUE constraint.
+  /// A failed lookup is forgotten so the next call retries.
+  Future<int> _catalogId() => _catalogIdFuture ??= _loadCatalogId();
+
+  Future<int> _loadCatalogId() async {
+    try {
+      return (await _catalogs.getOrCreateCatalog(cheatsheetCatalogName, '{}'))
+          .id;
+    } catch (_) {
+      _catalogIdFuture = null;
+      rethrow;
+    }
+  }
 
   /// Pages until exhausted. A fixed ceiling here would silently hide cards —
   /// the user would simply never see them again.
@@ -106,16 +137,24 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
   Future<CheatsheetCard> saveCard(CheatsheetCard card) async {
     final subject = cheatsheetSubjectFor(card.id);
     final existing = await _noteForCard(card.id);
+    // `attachments` is passed on BOTH paths: omitting it on update leaves the
+    // previous set in place, so a replaced or removed cover would keep its
+    // bytes alive forever.
     if (existing == null) {
       await _notes.createNote(HmmNoteCreate(
         subject: subject,
         catalogId: await _catalogId(),
         content: _serialize(card),
+        attachments: _attachmentsFor(card),
       ));
     } else {
       await _notes.updateNote(
         existing.id,
-        HmmNoteUpdate(subject: subject, content: _serialize(card)),
+        HmmNoteUpdate(
+          subject: subject,
+          content: _serialize(card),
+          attachments: _attachmentsFor(card),
+        ),
       );
     }
     return card;
@@ -124,8 +163,22 @@ class LocalCheatsheetRepository implements ICheatsheetRepository {
   @override
   Future<void> deleteCard(String id) async {
     final n = await _noteForCard(id);
-    if (n != null) await _notes.deleteNote(n.id);
+    if (n == null) return;
+    // deleteNote is a soft delete, and VaultGc deliberately counts a
+    // tombstoned note's attachments as live. Release the cover first, or
+    // deleting a card would pin its photo in the vault forever.
+    if (n.effectiveAttachments.isNotEmpty) {
+      await _notes.updateNote(
+        n.id,
+        HmmNoteUpdate(attachments: NoteAttachments.empty),
+      );
+    }
+    await _notes.deleteNote(n.id);
   }
+
+  @override
+  Future<int?> noteIdFor(String cardId) async =>
+      (await _noteForCard(cardId))?.id;
 }
 
 final localCheatsheetRepositoryProvider = Provider<ICheatsheetRepository>(
