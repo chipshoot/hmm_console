@@ -211,6 +211,9 @@ class _CardSurfaceState extends ConsumerState<CardSurface> {
 
     if (cover.sensitive &&
         ref.watch(vaultSessionProvider) != VaultStatus.unlocked) {
+      // Drop the memo: decrypted bytes must not outlive a relock, and a
+      // cached "locked" read must not outlive the next unlock.
+      _forgetCover();
       return _themed(
         context,
         colors,
@@ -232,6 +235,9 @@ class _CardSurfaceState extends ConsumerState<CardSurface> {
         final bytes = result?.bytes;
         if (bytes != null) return _overCover(context, bytes);
         final locked = result?.locked ?? false;
+        // Relocked mid-read: forget it so the next build (the session
+        // catching up, then an unlock) reads again instead of reusing it.
+        if (locked) _forgetCover();
         return _themed(
           context,
           colors,
@@ -241,6 +247,11 @@ class _CardSurfaceState extends ConsumerState<CardSurface> {
         );
       },
     );
+  }
+
+  void _forgetCover() {
+    _cover = null;
+    _coverPath = null;
   }
 
   Widget _themed(

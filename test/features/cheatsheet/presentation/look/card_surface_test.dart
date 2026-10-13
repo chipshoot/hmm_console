@@ -10,6 +10,8 @@ import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/attachments/widgets/sensitive_attachment_image.dart';
+import 'package:hmm_console/core/data/vault/encrypted_vault_store.dart'
+    show VaultLockedException;
 import 'package:hmm_console/core/data/vault/vault_session.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/card_style.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
@@ -62,6 +64,24 @@ class _StubVault extends VaultSessionController {
     unlockAttempts++;
     return false;
   }
+}
+
+/// A vault whose status the test flips, as the app's lock/unlock would.
+class _FlippableVault extends VaultSessionController {
+  _FlippableVault(this.initial);
+  final VaultStatus initial;
+  static _FlippableVault? last;
+
+  @override
+  VaultStatus build() {
+    last = this;
+    return initial;
+  }
+
+  @override
+  Future<void> refresh() async {}
+
+  void set(VaultStatus status) => state = status;
 }
 
 const _cover = VaultRef(
@@ -442,6 +462,77 @@ void main() {
       covered.background,
       CheatsheetPalette.forCover(CardThemeId.blue, Brightness.light).background,
     );
+  });
+
+  group('relock', () {
+    Future<void> mountSecret(
+      WidgetTester tester,
+      _Resolver resolver,
+      VaultStatus initial,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            attachmentResolverProvider.overrideWith((ref) async => resolver),
+            vaultSessionProvider.overrideWith(() => _FlippableVault(initial)),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: SizedBox(
+                width: 200,
+                height: 160,
+                child: CardTile(card: _card.withCover(_secretCover)),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> flip(WidgetTester tester, VaultStatus status) async {
+      _FlippableVault.last!.set(status);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a cover that relocked mid-read shows once the vault '
+        'unlocks again', (tester) async {
+      var lockedRead = true;
+      final resolver = _Resolver(() async {
+        if (lockedRead) throw const VaultLockedException('x');
+        return _png;
+      });
+      await mountSecret(tester, resolver, VaultStatus.unlocked);
+      expect(find.byKey(const Key('card-surface-cover')), findsNothing);
+      expect(find.byKey(const Key('card-tile-cover-locked')), findsOneWidget);
+
+      lockedRead = false;
+      await flip(tester, VaultStatus.locked);
+      await flip(tester, VaultStatus.unlocked);
+
+      expect(find.byKey(const Key('card-surface-cover')), findsOneWidget);
+    });
+
+    testWidgets('locked -> unlock shows the cover; relock drops the '
+        'decrypted bytes so the next unlock re-reads', (tester) async {
+      final resolver = _Resolver(() async => _png);
+      await mountSecret(tester, resolver, VaultStatus.locked);
+      expect(find.byKey(const Key('card-surface-cover')), findsNothing);
+      expect(resolver.calls, 0);
+
+      await flip(tester, VaultStatus.unlocked);
+      expect(find.byKey(const Key('card-surface-cover')), findsOneWidget);
+      expect(resolver.calls, 1);
+
+      await flip(tester, VaultStatus.locked);
+      expect(find.byKey(const Key('card-surface-cover')), findsNothing);
+
+      await flip(tester, VaultStatus.unlocked);
+      expect(find.byKey(const Key('card-surface-cover')), findsOneWidget);
+      expect(resolver.calls, 2, reason: 'the cached bytes were dropped');
+    });
   });
 
   group('text over a cover', () {
