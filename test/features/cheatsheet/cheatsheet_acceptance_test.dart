@@ -15,7 +15,7 @@ import 'package:hmm_console/features/cheatsheet/data/cheatsheet_launcher.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart';
-import 'package:hmm_console/features/cheatsheet/presentation/widgets/look_section.dart';
+import 'package:hmm_console/features/cheatsheet/states/cheatsheet_covers_supported.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 
 /// End-to-end over **real** storage.

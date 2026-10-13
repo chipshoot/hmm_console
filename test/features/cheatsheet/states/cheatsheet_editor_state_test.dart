@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
+import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/features/cheatsheet/data/cheatsheet_codec.dart';
 import 'package:hmm_console/features/cheatsheet/data/mappers/cheatsheet_api_mapper.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/card_style.dart';
@@ -13,6 +14,7 @@ import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheet_cover_draft.dart';
+import 'package:hmm_console/features/cheatsheet/states/cheatsheet_covers_supported.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheet_editor_state.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
 
@@ -38,6 +40,13 @@ class _CapturingCheatsheets extends CheatsheetsState {
   }
 }
 
+class _Mode extends DataModeNotifier {
+  _Mode(this.mode);
+  final DataMode mode;
+  @override
+  DataMode build() => mode;
+}
+
 const _source = CheatsheetSource(
   noteUuid: 'auto1',
   kind: SourceGranularity.field,
@@ -51,10 +60,14 @@ void main() {
     en = await AppLocalizations.delegate.load(const Locale('en'));
   });
 
-  ProviderContainer containerWith({String Function()? idGen}) {
+  ProviderContainer containerWith({
+    String Function()? idGen,
+    DataMode mode = DataMode.local,
+  }) {
     final c = ProviderContainer(
       overrides: [
         if (idGen != null) cheatsheetIdGenProvider.overrideWithValue(idGen),
+        dataModeProvider.overrideWith(() => _Mode(mode)),
         cheatsheetsStateProvider.overrideWith(_CapturingCheatsheets.new),
       ],
     );
@@ -489,6 +502,69 @@ void main() {
       final raw = c.read(cheatsheetEditorProvider);
       expect(CheatsheetApiMapper.toApi(raw)['Style'], isNull);
       expect(CheatsheetCodec.toMap(raw).containsKey('style'), isFalse);
+    });
+
+    test('covers are supported everywhere but cloudApi', () {
+      expect(containerWith().read(cheatsheetCoversSupportedProvider), isTrue);
+      expect(
+        containerWith(
+          mode: DataMode.cloudStorage,
+        ).read(cheatsheetCoversSupportedProvider),
+        isTrue,
+      );
+      expect(
+        containerWith(
+          mode: DataMode.cloudApi,
+        ).read(cheatsheetCoversSupportedProvider),
+        isFalse,
+      );
+    });
+
+    test('in cloudApi, reset look keeps a cover set on another device but '
+        'clears everything else', () async {
+      final c = containerWith(mode: DataMode.cloudApi);
+      final editor = editorOf(c);
+      editor.load(
+        existing.copyWith(
+          style: const CardStyle({'theme': 'orange', 'cover': 'images/x.jpg'}),
+          rows: const [
+            CheatsheetRow(label: 'Motions', source: null, emoji: eyes),
+            CheatsheetRow(
+              label: 'Raw',
+              source: null,
+              extraFields: {'emoji': 42, 'hint': 1},
+            ),
+          ],
+        ),
+      );
+
+      editor.resetLook();
+      final card = c.read(cheatsheetEditorProvider);
+
+      final api = CheatsheetApiMapper.toApi(card);
+      expect(api['Style'], {'cover': 'images/x.jpg'});
+      expect(
+        (api['Rows'] as List).every((r) => !(r as Map).containsKey('Emoji')),
+        isTrue,
+      );
+      expect(card.rows.last.extraFields, {'hint': 1});
+      expect(c.read(cheatsheetCoverDraftProvider).released, isEmpty);
+
+      await editor.commit();
+      expect(_CapturingCheatsheets.releases.single, isEmpty);
+    });
+
+    test('in cloudApi, reset look without a cover sends Style null and drops '
+        'a preserved raw style', () {
+      final c = containerWith(mode: DataMode.cloudApi);
+      final editor = editorOf(c);
+      editor.load(existing.copyWith(extraFields: const {'style': 'odd'}));
+
+      editor.resetLook();
+
+      final api = CheatsheetApiMapper.toApi(c.read(cheatsheetEditorProvider));
+      expect(api.containsKey('Style'), isTrue);
+      expect(api['Style'], isNull);
     });
 
     test('loading a card discards a pending cover from an earlier visit', () {

@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/attachments/scanner/document_scanner.dart';
-import '../../../../core/data/data_mode.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/entities/card_style.dart';
 import '../../states/cheatsheet_cover_draft.dart';
+import '../../states/cheatsheet_covers_supported.dart';
 import '../../states/cheatsheet_editor_state.dart';
 import '../look/card_surface.dart';
 import '../look/card_tile.dart';
@@ -16,13 +16,6 @@ import '../look/cheatsheet_palette.dart';
 import '../look/cover_action_sheet.dart';
 import '../look/emoji_picker.dart';
 import '../look/look_labels.dart';
-
-/// A cover needs the card note's local id and attachments column, which
-/// `/v1/cheatsheets` does not expose, so cloudApi offers no cover. Overridden
-/// in tests.
-final cheatsheetCoversSupportedProvider = Provider<bool>(
-  (ref) => ref.watch(dataModeProvider) != DataMode.cloudApi,
-);
 
 /// The designer's "Look" section, with the real wallet tile scaled down as a
 /// live preview in its header. Expanded when creating a card (choosing the
@@ -135,6 +128,7 @@ class _LookBody extends ConsumerWidget {
         case CoverAction.scan:
           {
             final pages = await scanner.scan();
+            // A cover is one image: a multi-page scan uses page 1 only.
             if (pages.isNotEmpty) editor.pickCover(pages.first);
           }
       }

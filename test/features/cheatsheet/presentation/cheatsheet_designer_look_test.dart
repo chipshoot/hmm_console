@@ -20,7 +20,7 @@ import 'package:hmm_console/features/cheatsheet/presentation/look/cheatsheet_pal
 import 'package:hmm_console/features/cheatsheet/presentation/look/cover_action_sheet.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/look/emoji_picker.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart';
-import 'package:hmm_console/features/cheatsheet/presentation/widgets/look_section.dart';
+import 'package:hmm_console/features/cheatsheet/states/cheatsheet_covers_supported.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheet_editor_state.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -128,9 +128,12 @@ void main() {
     bool coversSupported = true,
     bool canScan = false,
     TargetPlatform platform = TargetPlatform.android,
+    Size physicalSize = const Size(800, 2400),
+    double devicePixelRatio = 1,
+    Locale? locale,
   }) async {
-    tester.view.physicalSize = const Size(800, 2400);
-    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = physicalSize;
+    tester.view.devicePixelRatio = devicePixelRatio;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(
@@ -158,6 +161,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: ThemeData(platform: platform),
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: CheatsheetDesignerScreen(cardId: cardId),
@@ -445,6 +449,31 @@ void main() {
     expect(saved.rows.single.emoji, isNull);
     expect(_Capturing.releases.single, [_cover]);
   });
+
+  for (final code in ['en', 'zh']) {
+    testWidgets('Look expanded fits a phone in $code without overflow', (
+      tester,
+    ) async {
+      // 390x844 logical at DPR 3: an iPhone-sized viewport.
+      await mount(
+        tester,
+        physicalSize: const Size(1170, 2532),
+        devicePixelRatio: 3,
+        locale: Locale(code),
+        canScan: true,
+      );
+      await start(tester, 'accidentClaim');
+
+      expect(find.byKey(const Key('look-reset')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // Key points adds a row emoji slot to each row header.
+      final keyPoints = code == 'en' ? 'Key points' : '要点';
+      await tester.tap(find.text(keyPoints));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('the designer has a help button that explains Look', (
     tester,

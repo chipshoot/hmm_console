@@ -10,6 +10,7 @@ import '../domain/entities/cheatsheet_row.dart';
 import '../domain/entities/cheatsheet_source.dart';
 import '../domain/entities/card_style.dart';
 import 'cheatsheet_cover_draft.dart';
+import 'cheatsheet_covers_supported.dart';
 import 'cheatsheets_state.dart';
 
 /// Card ids come from here so tests can pin them. Production is the real v4
@@ -142,10 +143,17 @@ class CheatsheetEditor extends Notifier<CheatsheetCard> {
 
   /// Back to the template look: no style (including a preserved raw one), no
   /// row emoji (including preserved raw ones), no cover.
+  ///
+  /// In cloudApi the designer offers no cover, so one set from a local or
+  /// cloudStorage device is kept: only its path stays in the style (sent as
+  /// `Style: {cover: …}`), and nothing is released.
   void resetLook() {
-    removeCover();
+    final coversSupported = ref.read(cheatsheetCoversSupportedProvider);
+    if (coversSupported) removeCover();
     state = state.copyWith(
-      style: CardStyle.empty,
+      style: coversSupported
+          ? CardStyle.empty
+          : CardStyle.empty.withCoverPath(state.style.coverPath),
       extraFields: {
         for (final e in state.extraFields.entries)
           if (e.key != 'style') e.key: e.value,

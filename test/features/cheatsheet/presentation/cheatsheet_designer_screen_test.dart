@@ -8,7 +8,7 @@ import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart';
-import 'package:hmm_console/features/cheatsheet/presentation/widgets/look_section.dart';
+import 'package:hmm_console/features/cheatsheet/states/cheatsheet_covers_supported.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheet_editor_state.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
 
