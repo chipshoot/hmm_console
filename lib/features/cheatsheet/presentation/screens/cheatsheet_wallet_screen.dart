@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -222,25 +224,34 @@ class _CheatsheetWalletScreenState
       });
 
     return LayoutBuilder(
-      builder: (context, constraints) => GridView.builder(
-        key: const Key('wallet-grid'),
-        padding: const EdgeInsets.all(12),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: walletColumnsFor(constraints.maxWidth),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.1,
-        ),
-        itemCount: sorted.length,
-        itemBuilder: (context, i) {
-          final c = sorted[i];
-          return CardTile(
-            key: Key('wallet-card-${c.id}'),
-            card: c,
-            onTap: () => ref.read(cheatsheetOpenCardProvider)(context, c.id),
-          );
-        },
-      ),
+      builder: (context, constraints) {
+        const gap = 12.0;
+        final columns = walletColumnsFor(constraints.maxWidth);
+        final tileWidth =
+            (constraints.maxWidth - 2 * gap - gap * (columns - 1)) / columns;
+        // The card shape (1.1:1) until large text needs more room: then the
+        // tile grows rather than overflowing.
+        final extent = math.max(tileWidth / 1.1, CardTile.minHeight(context));
+        return GridView.builder(
+          key: const Key('wallet-grid'),
+          padding: const EdgeInsets.all(gap),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: gap,
+            crossAxisSpacing: gap,
+            mainAxisExtent: extent,
+          ),
+          itemCount: sorted.length,
+          itemBuilder: (context, i) {
+            final c = sorted[i];
+            return CardTile(
+              key: Key('wallet-card-${c.id}'),
+              card: c,
+              onTap: () => ref.read(cheatsheetOpenCardProvider)(context, c.id),
+            );
+          },
+        );
+      },
     );
   }
 }

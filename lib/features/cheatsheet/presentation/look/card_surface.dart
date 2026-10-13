@@ -15,8 +15,17 @@ import '../../domain/entities/card_style.dart';
 import '../../domain/entities/cheatsheet_card.dart';
 import 'cheatsheet_palette.dart';
 
-const Color _coverText = Color(0xFFFFFFFF);
-const Color _coverSubtitle = Color(0xE6FFFFFF);
+/// Title ink over a cover photo.
+const Color kCoverTextColor = Color(0xFFFFFFFF);
+
+/// Subtitle ink over a cover photo (90% white).
+const Color kCoverSubtitleColor = Color(0xE6FFFFFF);
+
+/// The band drawn behind the title/subtitle block over a cover. A photo can
+/// be pure white exactly where the text sits, so the text never relies on
+/// the gradient scrim alone: 60% black keeps white text at 5.7:1 and the
+/// 90%-white subtitle at 5.0:1 even over white (`card_surface_test.dart`).
+const Color kCoverTextBand = Color(0x99000000);
 
 /// Text colours for whatever is drawn on a [CardSurface], and whether a
 /// sensitive cover is being withheld because the vault is locked.
@@ -26,10 +35,15 @@ class CardInk {
     required this.subtitle,
     required this.overCover,
     required this.coverLocked,
+    this.textBand = const Color(0x00000000),
   });
 
   final Color foreground;
   final Color subtitle;
+
+  /// Painted behind the title/subtitle block: [kCoverTextBand] over a cover,
+  /// transparent over a theme (the palette is already AA there).
+  final Color textBand;
   final bool overCover;
   final bool coverLocked;
 }
@@ -303,10 +317,11 @@ class _CardSurfaceState extends ConsumerState<CardSurface> {
       widget.builder(
         context,
         const CardInk(
-          foreground: _coverText,
-          subtitle: _coverSubtitle,
+          foreground: kCoverTextColor,
+          subtitle: kCoverSubtitleColor,
           overCover: true,
           coverLocked: false,
+          textBand: kCoverTextBand,
         ),
       ),
     ],

@@ -32,34 +32,54 @@ class CardHeader extends StatelessWidget {
       child: CardSurface(
         card: card,
         allowUnlock: true,
-        builder: (context, ink) => Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(
+        builder: (context, ink) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Text(
                 card.look.icon,
                 key: const Key('detail-header-icon'),
                 style: const TextStyle(fontSize: 40),
               ),
-              const SizedBox(height: 8),
-              Text(
-                card.title,
-                key: const Key('detail-header-title'),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: text.headlineSmall?.copyWith(color: ink.foreground),
+            ),
+            const SizedBox(height: 8),
+            // Over a cover the band keeps the text AA even on a white photo.
+            Flexible(
+              child: DecoratedBox(
+                key: const Key('detail-header-text-band'),
+                decoration: BoxDecoration(color: ink.textBand),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          card.title,
+                          key: const Key('detail-header-title'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.headlineSmall?.copyWith(
+                            color: ink.foreground,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        l.cheatsheetTileSubtitle(group, card.rows.length),
+                        key: const Key('detail-header-subtitle'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: text.bodyMedium?.copyWith(color: ink.subtitle),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              Text(
-                l.cheatsheetTileSubtitle(group, card.rows.length),
-                key: const Key('detail-header-subtitle'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: text.bodyMedium?.copyWith(color: ink.subtitle),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

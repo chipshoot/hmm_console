@@ -390,4 +390,38 @@ void main() {
     expect(find.text('Lock badge'), findsOneWidget);
     expect(find.byIcon(Icons.lock_outline), findsOneWidget);
   });
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets('phone-size tiles fit their content at text scale $scale', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      _SeededCheatsheets.seed = [
+        card(
+          'a',
+          title: 'A really long cheatsheet title ' * 4,
+        ).copyWith(protected: true),
+        card('b', title: 'Doctor', group: 'Reference'),
+      ];
+
+      await mount(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(CardTile), findsNWidgets(2));
+      // The tile is tall enough for its icon, two title lines and subtitle,
+      // so nothing is clipped mid-line either.
+      final tile = tester.getRect(find.byKey(const Key('wallet-card-a')));
+      final subtitle = tester.getRect(
+        find.descendant(
+          of: find.byKey(const Key('wallet-card-a')),
+          matching: find.byKey(const Key('card-tile-subtitle')),
+        ),
+      );
+      expect(subtitle.bottom, lessThanOrEqualTo(tile.bottom));
+    });
+  }
 }

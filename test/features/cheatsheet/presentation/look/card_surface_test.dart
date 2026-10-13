@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -441,6 +442,100 @@ void main() {
       covered.background,
       CheatsheetPalette.forCover(CardThemeId.blue, Brightness.light).background,
     );
+  });
+
+  group('text over a cover', () {
+    double channel(double c) => c <= 0.03928
+        ? c / 12.92
+        : math.pow((c + 0.055) / 1.055, 2.4).toDouble();
+    double luminance(Color c) =>
+        0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+    double contrast(Color a, Color b) {
+      final la = luminance(a);
+      final lb = luminance(b);
+      return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+    }
+
+    // Worst case: the photo is pure white right under the text block and the
+    // gradient scrim contributes nothing there - only the band darkens it.
+    final background = Color.alphaBlend(
+      kCoverTextBand,
+      const Color(0xFFFFFFFF),
+    );
+
+    test('the band is at least 55% black', () {
+      expect(kCoverTextBand.a, greaterThanOrEqualTo(0.55));
+    });
+
+    // All tile and header text is held to the normal-text AA bar (4.5:1),
+    // not the 3:1 large-text allowance: the subtitle is bodySmall/bodyMedium.
+    test('white title over a white photo is at least 4.5:1', () {
+      expect(contrast(kCoverTextColor, background), greaterThanOrEqualTo(4.5));
+    });
+
+    test('the 90%-white subtitle over a white photo is at least 4.5:1', () {
+      final subtitle = Color.alphaBlend(kCoverSubtitleColor, background);
+      expect(contrast(subtitle, background), greaterThanOrEqualTo(4.5));
+    });
+
+    Color bandColour(WidgetTester tester, String key) =>
+        ((tester.widget<DecoratedBox>(find.byKey(Key(key))).decoration)
+                as BoxDecoration)
+            .color!;
+
+    testWidgets('a tile over a cover puts the band behind its title and '
+        'subtitle', (tester) async {
+      await mountTile(tester, _card.withCover(_cover));
+
+      expect(bandColour(tester, 'card-tile-text-band'), kCoverTextBand);
+      for (final key in ['card-tile-title', 'card-tile-subtitle']) {
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('card-tile-text-band')),
+            matching: find.byKey(Key(key)),
+          ),
+          findsOneWidget,
+        );
+      }
+    });
+
+    testWidgets('a themed tile draws no band', (tester) async {
+      await mountTile(tester, _card);
+      expect(bandColour(tester, 'card-tile-text-band').a, 0);
+    });
+
+    testWidgets('the detail header over a cover puts the band behind its '
+        'title and subtitle', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            attachmentResolverProvider.overrideWith(
+              (ref) async => _Resolver(() async => _png),
+            ),
+            vaultSessionProvider.overrideWith(
+              () => _StubVault(VaultStatus.unlocked),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: CardHeader(card: _card.withCover(_cover))),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(bandColour(tester, 'detail-header-text-band'), kCoverTextBand);
+      for (final key in ['detail-header-title', 'detail-header-subtitle']) {
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('detail-header-text-band')),
+            matching: find.byKey(Key(key)),
+          ),
+          findsOneWidget,
+        );
+      }
+    });
   });
 
   group('CardPatternPainter', () {
