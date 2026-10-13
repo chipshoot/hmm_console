@@ -795,6 +795,156 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cheatsheetChipAll => 'All';
 
   @override
+  String get cheatsheetLookTitle => 'Look';
+
+  @override
+  String get cheatsheetLookTheme => 'Colour';
+
+  @override
+  String get cheatsheetLookPattern => 'Pattern';
+
+  @override
+  String get cheatsheetLookIcon => 'Icon';
+
+  @override
+  String get cheatsheetLookCover => 'Cover photo';
+
+  @override
+  String get cheatsheetLookLayout => 'Layout';
+
+  @override
+  String get cheatsheetLookReset => 'Reset look';
+
+  @override
+  String get cheatsheetLayoutFacts => 'Facts';
+
+  @override
+  String get cheatsheetLayoutKeyPoints => 'Key points';
+
+  @override
+  String get cheatsheetThemeBlue => 'Blue';
+
+  @override
+  String get cheatsheetThemeGreen => 'Green';
+
+  @override
+  String get cheatsheetThemeOrange => 'Orange';
+
+  @override
+  String get cheatsheetThemeRed => 'Red';
+
+  @override
+  String get cheatsheetThemePurple => 'Purple';
+
+  @override
+  String get cheatsheetThemeTeal => 'Teal';
+
+  @override
+  String get cheatsheetThemePink => 'Pink';
+
+  @override
+  String get cheatsheetThemeAmber => 'Amber';
+
+  @override
+  String get cheatsheetThemeSlate => 'Slate';
+
+  @override
+  String get cheatsheetThemeIndigo => 'Indigo';
+
+  @override
+  String get cheatsheetThemeBrown => 'Brown';
+
+  @override
+  String get cheatsheetThemeBlack => 'Black';
+
+  @override
+  String get cheatsheetPatternNone => 'Plain';
+
+  @override
+  String get cheatsheetPatternDots => 'Dots';
+
+  @override
+  String get cheatsheetPatternStripes => 'Stripes';
+
+  @override
+  String get cheatsheetPatternGrid => 'Grid';
+
+  @override
+  String get cheatsheetPatternWaves => 'Waves';
+
+  @override
+  String get cheatsheetIconChoose => 'Choose icon';
+
+  @override
+  String get cheatsheetCoverAdd => 'Add cover';
+
+  @override
+  String get cheatsheetCoverChange => 'Change cover';
+
+  @override
+  String get cheatsheetCoverRemove => 'Remove cover';
+
+  @override
+  String get cheatsheetCoverCamera => 'Take a photo';
+
+  @override
+  String get cheatsheetCoverLibrary => 'Choose from photos';
+
+  @override
+  String get cheatsheetCoverScan => 'Scan a document';
+
+  @override
+  String get cheatsheetCoverFailed => 'Could not add that photo.';
+
+  @override
+  String get cheatsheetEmojiPickerTitle => 'Choose an emoji';
+
+  @override
+  String get cheatsheetEmojiSearchHint => 'Search in English or Chinese';
+
+  @override
+  String get cheatsheetEmojiCustomLabel => 'Or type any emoji';
+
+  @override
+  String get cheatsheetEmojiUse => 'Use';
+
+  @override
+  String get cheatsheetEmojiInvalid => 'Enter one emoji.';
+
+  @override
+  String get cheatsheetEmojiClear => 'No emoji';
+
+  @override
+  String get cheatsheetEmojiNoMatches => 'No emoji match that search.';
+
+  @override
+  String get cheatsheetEmojiGroupVehicle => 'Vehicle';
+
+  @override
+  String get cheatsheetEmojiGroupHealth => 'Health';
+
+  @override
+  String get cheatsheetEmojiGroupHome => 'Home';
+
+  @override
+  String get cheatsheetEmojiGroupBooks => 'Books & learning';
+
+  @override
+  String get cheatsheetEmojiGroupWork => 'Work';
+
+  @override
+  String get cheatsheetEmojiGroupTravel => 'Travel';
+
+  @override
+  String get cheatsheetEmojiGroupMoney => 'Money';
+
+  @override
+  String get cheatsheetEmojiGroupMisc => 'Misc';
+
+  @override
+  String get cheatsheetRowEmojiTooltip => 'Row emoji';
+
+  @override
   String get cheatsheetTileProtectedSemantics => ', protected';
 
   @override
@@ -2442,6 +2592,55 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpCheatsheetDetailLockBody =>
       'When the cover photo is protected and the vault is locked, the header shows a lock tile instead. Tap it to unlock and see the photo.';
+
+  @override
+  String get helpCheatsheetDesignerTitle => 'Designing a cheatsheet';
+
+  @override
+  String get helpCheatsheetDesignerSummary =>
+      'Name the card, choose how it looks, then point each row at a piece of a note.';
+
+  @override
+  String get helpCheatsheetDesignerLookTitle => 'Look';
+
+  @override
+  String get helpCheatsheetDesignerLookBody =>
+      'Look holds the colour, pattern, icon, cover and layout. It starts open on a new card and folded on an existing one; tap its header to open or fold it. The small tile in the header previews the card as it will appear in the wallet.';
+
+  @override
+  String get helpCheatsheetDesignerIconTitle => 'Icon';
+
+  @override
+  String get helpCheatsheetDesignerIconBody =>
+      'Choose an emoji for the card. Search in English or Chinese, or type any emoji yourself.';
+
+  @override
+  String get helpCheatsheetDesignerCoverTitle => 'Cover photo';
+
+  @override
+  String get helpCheatsheetDesignerCoverBody =>
+      'Take a photo, choose one from your photos or scan a document to use as the card\'s background; the text gets a dark gradient so it stays readable. Remove it any time and the colour comes back. Covers are available in Local and Cloud Storage modes.';
+
+  @override
+  String get helpCheatsheetDesignerLayoutTitle => 'Layout';
+
+  @override
+  String get helpCheatsheetDesignerLayoutBody =>
+      'Facts shows each label beside its value. Key points numbers the rows and colours them with the card\'s theme, which suits books and documents.';
+
+  @override
+  String get helpCheatsheetDesignerRowEmojiTitle => 'Row emoji';
+
+  @override
+  String get helpCheatsheetDesignerRowEmojiBody =>
+      'In Key points, each row can carry its own emoji. Switching to Facts hides them without deleting them.';
+
+  @override
+  String get helpCheatsheetDesignerResetTitle => 'Reset look';
+
+  @override
+  String get helpCheatsheetDesignerResetBody =>
+      'Returns the colour, pattern, icon and layout to the template\'s defaults, removes the cover photo and clears every row emoji.';
 
   @override
   String get contactCustomRelationship => 'Describe the relationship';

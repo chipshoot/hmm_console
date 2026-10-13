@@ -758,6 +758,156 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cheatsheetChipAll => '全部';
 
   @override
+  String get cheatsheetLookTitle => '外观';
+
+  @override
+  String get cheatsheetLookTheme => '颜色';
+
+  @override
+  String get cheatsheetLookPattern => '图案';
+
+  @override
+  String get cheatsheetLookIcon => '图标';
+
+  @override
+  String get cheatsheetLookCover => '封面照片';
+
+  @override
+  String get cheatsheetLookLayout => '布局';
+
+  @override
+  String get cheatsheetLookReset => '重置外观';
+
+  @override
+  String get cheatsheetLayoutFacts => '信息';
+
+  @override
+  String get cheatsheetLayoutKeyPoints => '要点';
+
+  @override
+  String get cheatsheetThemeBlue => '蓝色';
+
+  @override
+  String get cheatsheetThemeGreen => '绿色';
+
+  @override
+  String get cheatsheetThemeOrange => '橙色';
+
+  @override
+  String get cheatsheetThemeRed => '红色';
+
+  @override
+  String get cheatsheetThemePurple => '紫色';
+
+  @override
+  String get cheatsheetThemeTeal => '青色';
+
+  @override
+  String get cheatsheetThemePink => '粉色';
+
+  @override
+  String get cheatsheetThemeAmber => '琥珀色';
+
+  @override
+  String get cheatsheetThemeSlate => '石板灰';
+
+  @override
+  String get cheatsheetThemeIndigo => '靛蓝';
+
+  @override
+  String get cheatsheetThemeBrown => '棕色';
+
+  @override
+  String get cheatsheetThemeBlack => '黑色';
+
+  @override
+  String get cheatsheetPatternNone => '纯色';
+
+  @override
+  String get cheatsheetPatternDots => '圆点';
+
+  @override
+  String get cheatsheetPatternStripes => '条纹';
+
+  @override
+  String get cheatsheetPatternGrid => '网格';
+
+  @override
+  String get cheatsheetPatternWaves => '波浪';
+
+  @override
+  String get cheatsheetIconChoose => '选择图标';
+
+  @override
+  String get cheatsheetCoverAdd => '添加封面';
+
+  @override
+  String get cheatsheetCoverChange => '更换封面';
+
+  @override
+  String get cheatsheetCoverRemove => '移除封面';
+
+  @override
+  String get cheatsheetCoverCamera => '拍照';
+
+  @override
+  String get cheatsheetCoverLibrary => '从相册选择';
+
+  @override
+  String get cheatsheetCoverScan => '扫描文档';
+
+  @override
+  String get cheatsheetCoverFailed => '无法添加该照片。';
+
+  @override
+  String get cheatsheetEmojiPickerTitle => '选择表情符号';
+
+  @override
+  String get cheatsheetEmojiSearchHint => '用中文或英文搜索';
+
+  @override
+  String get cheatsheetEmojiCustomLabel => '或输入任意表情符号';
+
+  @override
+  String get cheatsheetEmojiUse => '使用';
+
+  @override
+  String get cheatsheetEmojiInvalid => '请输入一个表情符号。';
+
+  @override
+  String get cheatsheetEmojiClear => '不使用表情符号';
+
+  @override
+  String get cheatsheetEmojiNoMatches => '没有匹配的表情符号。';
+
+  @override
+  String get cheatsheetEmojiGroupVehicle => '车辆';
+
+  @override
+  String get cheatsheetEmojiGroupHealth => '健康';
+
+  @override
+  String get cheatsheetEmojiGroupHome => '家居';
+
+  @override
+  String get cheatsheetEmojiGroupBooks => '书籍与学习';
+
+  @override
+  String get cheatsheetEmojiGroupWork => '工作';
+
+  @override
+  String get cheatsheetEmojiGroupTravel => '旅行';
+
+  @override
+  String get cheatsheetEmojiGroupMoney => '财务';
+
+  @override
+  String get cheatsheetEmojiGroupMisc => '其他';
+
+  @override
+  String get cheatsheetRowEmojiTooltip => '行表情符号';
+
+  @override
   String get cheatsheetTileProtectedSemantics => '，受保护';
 
   @override
@@ -2366,6 +2516,54 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpCheatsheetDetailLockBody =>
       '封面照片受保护且保险库已锁定时，标题区会改为显示锁定图块。点按即可解锁并查看照片。';
+
+  @override
+  String get helpCheatsheetDesignerTitle => '设计速查卡';
+
+  @override
+  String get helpCheatsheetDesignerSummary => '为卡片命名、选择外观，然后将每一行指向笔记中的某一部分。';
+
+  @override
+  String get helpCheatsheetDesignerLookTitle => '外观';
+
+  @override
+  String get helpCheatsheetDesignerLookBody =>
+      '“外观”包含颜色、图案、图标、封面和布局。新建卡片时默认展开，编辑已有卡片时默认收起；点按其标题栏即可展开或收起。标题栏中的小卡片会预览卡片在卡包中的样子。';
+
+  @override
+  String get helpCheatsheetDesignerIconTitle => '图标';
+
+  @override
+  String get helpCheatsheetDesignerIconBody =>
+      '为卡片选择一个表情符号。可用中文或英文搜索，也可以自己输入任意表情符号。';
+
+  @override
+  String get helpCheatsheetDesignerCoverTitle => '封面照片';
+
+  @override
+  String get helpCheatsheetDesignerCoverBody =>
+      '拍照、从相册选择或扫描文档作为卡片背景；文字下方会加深色渐变以保持清晰。随时可以移除，颜色会恢复。封面仅在本地和云存储模式下可用。';
+
+  @override
+  String get helpCheatsheetDesignerLayoutTitle => '布局';
+
+  @override
+  String get helpCheatsheetDesignerLayoutBody =>
+      '“信息”在每个标签旁显示其值。“要点”为各行编号并使用卡片主题颜色，适合书籍和文档。';
+
+  @override
+  String get helpCheatsheetDesignerRowEmojiTitle => '行表情符号';
+
+  @override
+  String get helpCheatsheetDesignerRowEmojiBody =>
+      '在“要点”布局中，每一行都可以有自己的表情符号。切换到“信息”会隐藏它们，但不会删除。';
+
+  @override
+  String get helpCheatsheetDesignerResetTitle => '重置外观';
+
+  @override
+  String get helpCheatsheetDesignerResetBody =>
+      '将颜色、图案、图标和布局恢复为模板默认值，移除封面照片并清除所有行表情符号。';
 
   @override
   String get contactCustomRelationship => '描述这层关系';

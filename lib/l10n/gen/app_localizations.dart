@@ -1412,6 +1412,306 @@ abstract class AppLocalizations {
   /// **'All'**
   String get cheatsheetChipAll;
 
+  /// No description provided for @cheatsheetLookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Look'**
+  String get cheatsheetLookTitle;
+
+  /// No description provided for @cheatsheetLookTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get cheatsheetLookTheme;
+
+  /// No description provided for @cheatsheetLookPattern.
+  ///
+  /// In en, this message translates to:
+  /// **'Pattern'**
+  String get cheatsheetLookPattern;
+
+  /// No description provided for @cheatsheetLookIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get cheatsheetLookIcon;
+
+  /// No description provided for @cheatsheetLookCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover photo'**
+  String get cheatsheetLookCover;
+
+  /// No description provided for @cheatsheetLookLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get cheatsheetLookLayout;
+
+  /// No description provided for @cheatsheetLookReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset look'**
+  String get cheatsheetLookReset;
+
+  /// No description provided for @cheatsheetLayoutFacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Facts'**
+  String get cheatsheetLayoutFacts;
+
+  /// No description provided for @cheatsheetLayoutKeyPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Key points'**
+  String get cheatsheetLayoutKeyPoints;
+
+  /// No description provided for @cheatsheetThemeBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get cheatsheetThemeBlue;
+
+  /// No description provided for @cheatsheetThemeGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get cheatsheetThemeGreen;
+
+  /// No description provided for @cheatsheetThemeOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get cheatsheetThemeOrange;
+
+  /// No description provided for @cheatsheetThemeRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get cheatsheetThemeRed;
+
+  /// No description provided for @cheatsheetThemePurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get cheatsheetThemePurple;
+
+  /// No description provided for @cheatsheetThemeTeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Teal'**
+  String get cheatsheetThemeTeal;
+
+  /// No description provided for @cheatsheetThemePink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get cheatsheetThemePink;
+
+  /// No description provided for @cheatsheetThemeAmber.
+  ///
+  /// In en, this message translates to:
+  /// **'Amber'**
+  String get cheatsheetThemeAmber;
+
+  /// No description provided for @cheatsheetThemeSlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Slate'**
+  String get cheatsheetThemeSlate;
+
+  /// No description provided for @cheatsheetThemeIndigo.
+  ///
+  /// In en, this message translates to:
+  /// **'Indigo'**
+  String get cheatsheetThemeIndigo;
+
+  /// No description provided for @cheatsheetThemeBrown.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get cheatsheetThemeBrown;
+
+  /// No description provided for @cheatsheetThemeBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get cheatsheetThemeBlack;
+
+  /// No description provided for @cheatsheetPatternNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Plain'**
+  String get cheatsheetPatternNone;
+
+  /// No description provided for @cheatsheetPatternDots.
+  ///
+  /// In en, this message translates to:
+  /// **'Dots'**
+  String get cheatsheetPatternDots;
+
+  /// No description provided for @cheatsheetPatternStripes.
+  ///
+  /// In en, this message translates to:
+  /// **'Stripes'**
+  String get cheatsheetPatternStripes;
+
+  /// No description provided for @cheatsheetPatternGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get cheatsheetPatternGrid;
+
+  /// No description provided for @cheatsheetPatternWaves.
+  ///
+  /// In en, this message translates to:
+  /// **'Waves'**
+  String get cheatsheetPatternWaves;
+
+  /// No description provided for @cheatsheetIconChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose icon'**
+  String get cheatsheetIconChoose;
+
+  /// No description provided for @cheatsheetCoverAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add cover'**
+  String get cheatsheetCoverAdd;
+
+  /// No description provided for @cheatsheetCoverChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change cover'**
+  String get cheatsheetCoverChange;
+
+  /// No description provided for @cheatsheetCoverRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove cover'**
+  String get cheatsheetCoverRemove;
+
+  /// No description provided for @cheatsheetCoverCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get cheatsheetCoverCamera;
+
+  /// No description provided for @cheatsheetCoverLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from photos'**
+  String get cheatsheetCoverLibrary;
+
+  /// No description provided for @cheatsheetCoverScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a document'**
+  String get cheatsheetCoverScan;
+
+  /// No description provided for @cheatsheetCoverFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not add that photo.'**
+  String get cheatsheetCoverFailed;
+
+  /// No description provided for @cheatsheetEmojiPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an emoji'**
+  String get cheatsheetEmojiPickerTitle;
+
+  /// No description provided for @cheatsheetEmojiSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in English or Chinese'**
+  String get cheatsheetEmojiSearchHint;
+
+  /// No description provided for @cheatsheetEmojiCustomLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Or type any emoji'**
+  String get cheatsheetEmojiCustomLabel;
+
+  /// No description provided for @cheatsheetEmojiUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use'**
+  String get cheatsheetEmojiUse;
+
+  /// No description provided for @cheatsheetEmojiInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter one emoji.'**
+  String get cheatsheetEmojiInvalid;
+
+  /// No description provided for @cheatsheetEmojiClear.
+  ///
+  /// In en, this message translates to:
+  /// **'No emoji'**
+  String get cheatsheetEmojiClear;
+
+  /// No description provided for @cheatsheetEmojiNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No emoji match that search.'**
+  String get cheatsheetEmojiNoMatches;
+
+  /// No description provided for @cheatsheetEmojiGroupVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle'**
+  String get cheatsheetEmojiGroupVehicle;
+
+  /// No description provided for @cheatsheetEmojiGroupHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Health'**
+  String get cheatsheetEmojiGroupHealth;
+
+  /// No description provided for @cheatsheetEmojiGroupHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get cheatsheetEmojiGroupHome;
+
+  /// No description provided for @cheatsheetEmojiGroupBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Books & learning'**
+  String get cheatsheetEmojiGroupBooks;
+
+  /// No description provided for @cheatsheetEmojiGroupWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get cheatsheetEmojiGroupWork;
+
+  /// No description provided for @cheatsheetEmojiGroupTravel.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel'**
+  String get cheatsheetEmojiGroupTravel;
+
+  /// No description provided for @cheatsheetEmojiGroupMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Money'**
+  String get cheatsheetEmojiGroupMoney;
+
+  /// No description provided for @cheatsheetEmojiGroupMisc.
+  ///
+  /// In en, this message translates to:
+  /// **'Misc'**
+  String get cheatsheetEmojiGroupMisc;
+
+  /// No description provided for @cheatsheetRowEmojiTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Row emoji'**
+  String get cheatsheetRowEmojiTooltip;
+
   /// No description provided for @cheatsheetTileProtectedSemantics.
   ///
   /// In en, this message translates to:
@@ -4411,6 +4711,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When the cover photo is protected and the vault is locked, the header shows a lock tile instead. Tap it to unlock and see the photo.'**
   String get helpCheatsheetDetailLockBody;
+
+  /// No description provided for @helpCheatsheetDesignerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Designing a cheatsheet'**
+  String get helpCheatsheetDesignerTitle;
+
+  /// No description provided for @helpCheatsheetDesignerSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Name the card, choose how it looks, then point each row at a piece of a note.'**
+  String get helpCheatsheetDesignerSummary;
+
+  /// No description provided for @helpCheatsheetDesignerLookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Look'**
+  String get helpCheatsheetDesignerLookTitle;
+
+  /// No description provided for @helpCheatsheetDesignerLookBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Look holds the colour, pattern, icon, cover and layout. It starts open on a new card and folded on an existing one; tap its header to open or fold it. The small tile in the header previews the card as it will appear in the wallet.'**
+  String get helpCheatsheetDesignerLookBody;
+
+  /// No description provided for @helpCheatsheetDesignerIconTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get helpCheatsheetDesignerIconTitle;
+
+  /// No description provided for @helpCheatsheetDesignerIconBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an emoji for the card. Search in English or Chinese, or type any emoji yourself.'**
+  String get helpCheatsheetDesignerIconBody;
+
+  /// No description provided for @helpCheatsheetDesignerCoverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover photo'**
+  String get helpCheatsheetDesignerCoverTitle;
+
+  /// No description provided for @helpCheatsheetDesignerCoverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo, choose one from your photos or scan a document to use as the card\'s background; the text gets a dark gradient so it stays readable. Remove it any time and the colour comes back. Covers are available in Local and Cloud Storage modes.'**
+  String get helpCheatsheetDesignerCoverBody;
+
+  /// No description provided for @helpCheatsheetDesignerLayoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Layout'**
+  String get helpCheatsheetDesignerLayoutTitle;
+
+  /// No description provided for @helpCheatsheetDesignerLayoutBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Facts shows each label beside its value. Key points numbers the rows and colours them with the card\'s theme, which suits books and documents.'**
+  String get helpCheatsheetDesignerLayoutBody;
+
+  /// No description provided for @helpCheatsheetDesignerRowEmojiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Row emoji'**
+  String get helpCheatsheetDesignerRowEmojiTitle;
+
+  /// No description provided for @helpCheatsheetDesignerRowEmojiBody.
+  ///
+  /// In en, this message translates to:
+  /// **'In Key points, each row can carry its own emoji. Switching to Facts hides them without deleting them.'**
+  String get helpCheatsheetDesignerRowEmojiBody;
+
+  /// No description provided for @helpCheatsheetDesignerResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset look'**
+  String get helpCheatsheetDesignerResetTitle;
+
+  /// No description provided for @helpCheatsheetDesignerResetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Returns the colour, pattern, icon and layout to the template\'s defaults, removes the cover photo and clears every row emoji.'**
+  String get helpCheatsheetDesignerResetBody;
 
   /// No description provided for @contactCustomRelationship.
   ///
