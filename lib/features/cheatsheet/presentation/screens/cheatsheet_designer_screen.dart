@@ -4,6 +4,13 @@ import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/cheatsheet_templates.dart';
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
+import '../../domain/entities/card_style.dart';
+import '../../domain/entities/cheatsheet_row.dart';
+import '../look/emoji_picker.dart';
+import '../widgets/look_section.dart';
 import '../../domain/entities/cheatsheet_card.dart';
 import '../../domain/entities/cheatsheet_source.dart';
 import '../../states/cheatsheet_editor_state.dart';
@@ -201,6 +208,7 @@ class _CheatsheetDesignerScreenState
       appBar: AppBar(
         title: Text(widget.cardId == null ? 'New cheatsheet' : 'Edit'),
         actions: [
+          const HelpButton(helpId: HelpId.cheatsheetDesigner),
           TextButton(
             key: const Key('designer-save'),
             onPressed: _saving ? null : _save,
@@ -217,6 +225,9 @@ class _CheatsheetDesignerScreenState
             decoration: InputDecoration(labelText: l.cheatsheetTitleLabel),
             onChanged: _editor.setTitle,
           ),
+          const SizedBox(height: 12),
+          // Q4: expanded when creating, collapsed (preview only) when editing.
+          LookSection(initiallyExpanded: widget.cardId == null),
           const SizedBox(height: 12),
           TextField(
             key: const Key('designer-wallet-group'),
@@ -269,6 +280,8 @@ class _CheatsheetDesignerScreenState
           children: [
             Row(
               children: [
+                if (card.look.layout == CardLayout.keyPoints)
+                  _emojiSlot(row, i),
                 Expanded(child: Text(row.label)),
                 IconButton(
                   key: Key('row-$i-remove'),
@@ -311,6 +324,38 @@ class _CheatsheetDesignerScreenState
         ),
       ),
     );
+  }
+
+  /// Shown only in Key points. An unset (or invalid stored) emoji shows the
+  /// add-reaction button; a set one shows itself, tappable to change.
+  Widget _emojiSlot(CheatsheetRow row, int i) {
+    final l = AppLocalizations.of(context);
+    final emoji = row.emoji;
+    if (emoji == null || !isSingleEmoji(emoji)) {
+      return HmmIconButton(
+        key: Key('row-$i-emoji'),
+        icon: Icons.add_reaction_outlined,
+        tooltip: l.cheatsheetRowEmojiTooltip,
+        onPressed: () => _chooseRowEmoji(i),
+      );
+    }
+    return Tooltip(
+      message: l.cheatsheetRowEmojiTooltip,
+      child: TextButton(
+        key: Key('row-$i-emoji'),
+        onPressed: () => _chooseRowEmoji(i),
+        child: Text(emoji, style: const TextStyle(fontSize: 22)),
+      ),
+    );
+  }
+
+  Future<void> _chooseRowEmoji(int i) async {
+    // Everything from ref is read before the await.
+    final editor = _editor;
+    final pick = ref.read(cheatsheetEmojiPickerProvider);
+    final chosen = await pick(context, allowClear: true);
+    if (chosen == null) return;
+    editor.setRowEmoji(i, chosen.isEmpty ? null : chosen);
   }
 
   static String _actionLabel(ValueAction a) => switch (a) {

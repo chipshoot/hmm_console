@@ -15,6 +15,7 @@ import 'package:hmm_console/features/cheatsheet/data/cheatsheet_launcher.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart';
+import 'package:hmm_console/features/cheatsheet/presentation/widgets/look_section.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 
 /// End-to-end over **real** storage.
@@ -64,8 +65,13 @@ void main() {
     final launched = <(ValueAction, String)>[];
     final openedSources = <String>[];
 
+    // The designer opens Look expanded on create; keep its rows built.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final container = ProviderContainer(
       overrides: [
+        cheatsheetCoversSupportedProvider.overrideWithValue(true),
         hmmNoteRepositoryProvider.overrideWithValue(noteRepo),
         cheatsheetRepositoryModeProvider.overrideWithValue(cheatRepo),
         launchActionProvider.overrideWithValue(

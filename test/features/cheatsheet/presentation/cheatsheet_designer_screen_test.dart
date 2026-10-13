@@ -8,6 +8,7 @@ import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart';
+import 'package:hmm_console/features/cheatsheet/presentation/widgets/look_section.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheet_editor_state.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
 
@@ -69,9 +70,14 @@ void main() {
     Locale? locale,
   }) async {
     lastPickerTemplateId = null;
+    // Tall enough that the rows stay built below the expanded Look section.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          cheatsheetCoversSupportedProvider.overrideWithValue(true),
           cheatsheetIdGenProvider.overrideWithValue(() => 'new-id'),
           cheatsheetsStateProvider.overrideWith(_CapturingCheatsheets.new),
           cheatsheetSourcePickerProvider.overrideWithValue((
@@ -253,6 +259,7 @@ void main() {
       var nextId = 0;
       final container = ProviderContainer(
         overrides: [
+          cheatsheetCoversSupportedProvider.overrideWithValue(true),
           cheatsheetIdGenProvider.overrideWithValue(() => 'id-${++nextId}'),
           cheatsheetsStateProvider.overrideWith(_CapturingCheatsheets.new),
           cheatsheetSourcePickerProvider.overrideWithValue(

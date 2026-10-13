@@ -140,4 +140,24 @@ void main() {
       expect(zh.entries[i].body, isNot(en.entries[i].body), reason: '$i');
     }
   });
+
+  test('designer help explains the Look controls with their own icons', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final icons = helpFor(
+      HelpId.cheatsheetDesigner,
+      l,
+    ).entries.map((e) => e.icon);
+    // look_section.dart and the designer's row slot draw these.
+    expect(
+      icons,
+      containsAll(<IconData>[
+        Icons.palette_outlined,
+        Icons.emoji_emotions_outlined,
+        Icons.add_photo_alternate_outlined,
+        Icons.format_list_numbered,
+        Icons.add_reaction_outlined,
+        Icons.format_color_reset_outlined,
+      ]),
+    );
+  });
 }

@@ -15,6 +15,7 @@ enum HelpId {
   contactEdit,
   cheatsheetWallet,
   cheatsheetDetail,
+  cheatsheetDesigner,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
@@ -212,6 +213,42 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.lock_outline,
         title: l.helpCheatsheetDetailLockTitle,
         body: l.helpCheatsheetDetailLockBody,
+      ),
+    ],
+  ),
+  HelpId.cheatsheetDesigner => ScreenHelp(
+    title: l.helpCheatsheetDesignerTitle,
+    summary: l.helpCheatsheetDesignerSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.palette_outlined,
+        title: l.helpCheatsheetDesignerLookTitle,
+        body: l.helpCheatsheetDesignerLookBody,
+      ),
+      HelpEntry(
+        icon: Icons.emoji_emotions_outlined,
+        title: l.helpCheatsheetDesignerIconTitle,
+        body: l.helpCheatsheetDesignerIconBody,
+      ),
+      HelpEntry(
+        icon: Icons.add_photo_alternate_outlined,
+        title: l.helpCheatsheetDesignerCoverTitle,
+        body: l.helpCheatsheetDesignerCoverBody,
+      ),
+      HelpEntry(
+        icon: Icons.format_list_numbered,
+        title: l.helpCheatsheetDesignerLayoutTitle,
+        body: l.helpCheatsheetDesignerLayoutBody,
+      ),
+      HelpEntry(
+        icon: Icons.add_reaction_outlined,
+        title: l.helpCheatsheetDesignerRowEmojiTitle,
+        body: l.helpCheatsheetDesignerRowEmojiBody,
+      ),
+      HelpEntry(
+        icon: Icons.format_color_reset_outlined,
+        title: l.helpCheatsheetDesignerResetTitle,
+        body: l.helpCheatsheetDesignerResetBody,
       ),
     ],
   ),
