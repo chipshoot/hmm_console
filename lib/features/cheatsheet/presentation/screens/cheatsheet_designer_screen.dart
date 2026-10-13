@@ -16,13 +16,13 @@ import '../widgets/source_picker.dart';
 /// domain — an Accident Claim offers the vehicle notes first. Without it the
 /// picker listed every note in every catalog, including the app's own
 /// bookkeeping notes, and finding the right one meant scrolling past them all.
-final cheatsheetSourcePickerProvider = Provider<
-    Future<CheatsheetSource?> Function(
-  BuildContext, {
-  required String templateId,
-})>(
-  (ref) => showSourcePicker,
-);
+final cheatsheetSourcePickerProvider =
+    Provider<
+      Future<CheatsheetSource?> Function(
+        BuildContext, {
+        required String templateId,
+      })
+    >((ref) => showSourcePicker);
 
 /// Create (`cardId == null`) or edit (`cardId` given) one card.
 ///
@@ -123,29 +123,29 @@ class _CheatsheetDesignerScreenState
   Widget _templateChooser() {
     final l = AppLocalizations.of(context);
     return Scaffold(
-        appBar: AppBar(title: Text(l.cheatsheetNew)),
-        body: ListView(
-          children: [
-            for (final t in CheatsheetTemplates.all(l))
-              ListTile(
-                key: Key('template-${t.id}'),
-                title: Text(t.title),
-                subtitle: Text(
-                  t.rowLabels.isEmpty
-                      ? 'Start empty'
-                      : t.rowLabels.take(4).join(' · '),
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // startFromTemplate mints a fresh id, replacing whatever the
-                  // editor held.
-                  _editor.startFromTemplate(t.id, l);
-                  setState(() => _started = true);
-                },
+      appBar: AppBar(title: Text(l.cheatsheetNew)),
+      body: ListView(
+        children: [
+          for (final t in CheatsheetTemplates.all(l))
+            ListTile(
+              key: Key('template-${t.id}'),
+              title: Text(t.title),
+              subtitle: Text(
+                t.rowLabels.isEmpty
+                    ? 'Start empty'
+                    : t.rowLabels.take(4).join(' · '),
               ),
-          ],
-        ),
-      );
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                // startFromTemplate mints a fresh id, replacing whatever the
+                // editor held.
+                _editor.startFromTemplate(t.id, l);
+                setState(() => _started = true);
+              },
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _bind(int index) async {
@@ -182,12 +182,14 @@ class _CheatsheetDesignerScreenState
     } catch (e) {
       // Losing a card the user just filled in must not look like success.
       // Type only: the error text can quote the card's values.
-      debugPrint('CheatsheetDesigner: saving card $cardId failed '
-          '(${e.runtimeType}); nothing was written.');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.cheatsheetSaveFailed)),
+      debugPrint(
+        'CheatsheetDesigner: saving card $cardId failed '
+        '(${e.runtimeType}); nothing was written.',
       );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.cheatsheetSaveFailed)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -196,60 +198,62 @@ class _CheatsheetDesignerScreenState
   Widget _form(CheatsheetCard card) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.cardId == null ? 'New cheatsheet' : 'Edit'),
-          actions: [
-            TextButton(
-              key: const Key('designer-save'),
-              onPressed: _saving ? null : _save,
-              child: Text(l.commonSave),
+      appBar: AppBar(
+        title: Text(widget.cardId == null ? 'New cheatsheet' : 'Edit'),
+        actions: [
+          TextButton(
+            key: const Key('designer-save'),
+            onPressed: _saving ? null : _save,
+            child: Text(l.commonSave),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          TextField(
+            key: const Key('designer-title'),
+            controller: _title,
+            decoration: InputDecoration(labelText: l.cheatsheetTitleLabel),
+            onChanged: _editor.setTitle,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('designer-wallet-group'),
+            controller: _walletGroup,
+            decoration: InputDecoration(
+              labelText: l.cheatsheetWalletGroupLabel,
             ),
-          ],
-        ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextField(
-              key: const Key('designer-title'),
-              controller: _title,
-              decoration: InputDecoration(labelText: l.cheatsheetTitleLabel),
-              onChanged: _editor.setTitle,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('designer-wallet-group'),
-              controller: _walletGroup,
-              decoration: InputDecoration(labelText: l.cheatsheetWalletGroupLabel),
-              onChanged: _editor.setWalletGroup,
-            ),
-            const SizedBox(height: 24),
-            for (var i = 0; i < card.rows.length; i++) _rowTile(card, i),
-            const Divider(height: 32),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('designer-new-row'),
-                    controller: _newRowLabel,
-                    decoration: InputDecoration(labelText: l.cheatsheetNewRow),
-                  ),
+            onChanged: _editor.setWalletGroup,
+          ),
+          const SizedBox(height: 24),
+          for (var i = 0; i < card.rows.length; i++) _rowTile(card, i),
+          const Divider(height: 32),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('designer-new-row'),
+                  controller: _newRowLabel,
+                  decoration: InputDecoration(labelText: l.cheatsheetNewRow),
                 ),
-                IconButton(
-                  key: const Key('designer-add-row'),
-                  icon: const Icon(Icons.add),
-                  tooltip: l.cheatsheetAddRow,
-                  onPressed: () {
-                    final label = _newRowLabel.text.trim();
-                    if (label.isEmpty) return;
-                    _editor.addRow(label);
-                    _newRowLabel.clear();
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
+              ),
+              IconButton(
+                key: const Key('designer-add-row'),
+                icon: const Icon(Icons.add),
+                tooltip: l.cheatsheetAddRow,
+                onPressed: () {
+                  final label = _newRowLabel.text.trim();
+                  if (label.isEmpty) return;
+                  _editor.addRow(label);
+                  _newRowLabel.clear();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _rowTile(CheatsheetCard card, int i) {
@@ -310,12 +314,13 @@ class _CheatsheetDesignerScreenState
   }
 
   static String _actionLabel(ValueAction a) => switch (a) {
-        ValueAction.none => 'No action',
-        ValueAction.call => 'Call',
-        ValueAction.map => 'Map',
-      };
+    ValueAction.none => 'No action',
+    ValueAction.call => 'Call',
+    ValueAction.map => 'Map',
+  };
 
-  static String _summarize(CheatsheetSource s, AppLocalizations l) => switch (s.kind) {
+  static String _summarize(CheatsheetSource s, AppLocalizations l) =>
+      switch (s.kind) {
         SourceGranularity.field => 'Field · ${s.locator}',
         SourceGranularity.section => 'Section · ${s.locator}',
         SourceGranularity.whole => 'Whole note',

@@ -29,8 +29,9 @@ import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 ///
 /// Every task above proves one seam. This proves they compose.
 void main() {
-  testWidgets('create, bind, save, reload, act, edit and delete a card',
-      (tester) async {
+  testWidgets('create, bind, save, reload, act, edit and delete a card', (
+    tester,
+  ) async {
     // ---- 1. a real database with a source note to reference ----------------
     final db = HmmDatabase(NativeDatabase.memory());
     addTearDown(db.close);
@@ -38,9 +39,9 @@ void main() {
     final authorId = await db
         .into(db.authors)
         .insert(AuthorsCompanion.insert(accountName: 'tester'));
-    final author = await (db.select(db.authors)
-          ..where((a) => a.id.equals(authorId)))
-        .getSingle();
+    final author = await (db.select(
+      db.authors,
+    )..where((a) => a.id.equals(authorId))).getSingle();
 
     final noteRepo = LocalHmmNoteRepository(db, () async => author);
     final catalogRepo = LocalNoteCatalogRepository(db);
@@ -50,12 +51,15 @@ void main() {
       'Hmm.AutomobileMan.AutomobileInfo',
       '{}',
     );
-    final sourceNote = await noteRepo.createNote(HmmNoteCreate(
-      subject: 'My Car',
-      catalogId: autoCatalog.id,
-      content: '{"note":{"content":{"AutomobileInfo":'
-          '{"plate":"ABC123","phone":"(555) 123-4567"}}}}',
-    ));
+    final sourceNote = await noteRepo.createNote(
+      HmmNoteCreate(
+        subject: 'My Car',
+        catalogId: autoCatalog.id,
+        content:
+            '{"note":{"content":{"AutomobileInfo":'
+            '{"plate":"ABC123","phone":"(555) 123-4567"}}}}',
+      ),
+    );
 
     final launched = <(ValueAction, String)>[];
     final openedSources = <String>[];
@@ -64,10 +68,12 @@ void main() {
       overrides: [
         hmmNoteRepositoryProvider.overrideWithValue(noteRepo),
         cheatsheetRepositoryModeProvider.overrideWithValue(cheatRepo),
-        launchActionProvider
-            .overrideWithValue((a, v) async => launched.add((a, v))),
-        cheatsheetOpenSourceProvider
-            .overrideWithValue((_, uuid) => openedSources.add(uuid)),
+        launchActionProvider.overrideWithValue(
+          (a, v) async => launched.add((a, v)),
+        ),
+        cheatsheetOpenSourceProvider.overrideWithValue(
+          (_, uuid) => openedSources.add(uuid),
+        ),
         // The picker binds row 0 to the seeded note's phone field.
         cheatsheetSourcePickerProvider.overrideWithValue(
           (_, {required templateId}) async => CheatsheetSource(
@@ -109,7 +115,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.byKey(const Key('designer-title')), 'Accident Claim');
+      find.byKey(const Key('designer-title')),
+      'Accident Claim',
+    );
     await tester.pumpAndSettle();
 
     // ---- 4. save: exactly one card, stored under a stable subject ----------
@@ -121,17 +129,24 @@ void main() {
     final cardId = storedAfterCreate.single.id;
     expect(cardId, isNotEmpty);
     expect(
-        storedAfterCreate.single.rows.first.source?.noteUuid, sourceNote.uuid);
-    expect(storedAfterCreate.single.rows.skip(1).every((r) => !r.isBound), isTrue,
-        reason: 'a partially bound card is savable');
+      storedAfterCreate.single.rows.first.source?.noteUuid,
+      sourceNote.uuid,
+    );
+    expect(
+      storedAfterCreate.single.rows.skip(1).every((r) => !r.isBound),
+      isTrue,
+      reason: 'a partially bound card is savable',
+    );
 
     final notes = await _cheatsheetNotes(noteRepo, catalogRepo);
     expect(notes.length, 1);
     expect(notes.single.subject, 'Cheatsheet:$cardId');
 
     // ---- 5. reload through a *fresh* repository — nothing cached -----------
-    final reloaded =
-        await LocalCheatsheetRepository(noteRepo, catalogRepo).getCard(cardId);
+    final reloaded = await LocalCheatsheetRepository(
+      noteRepo,
+      catalogRepo,
+    ).getCard(cardId);
     expect(reloaded, isNotNull);
     expect(reloaded!.title, 'Accident Claim');
 
@@ -149,8 +164,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CheatsheetDetailScreen), findsOneWidget);
-    expect(find.text('(555) 123-4567'), findsOneWidget,
-        reason: 'resolved live from the source note by uuid');
+    expect(
+      find.text('(555) 123-4567'),
+      findsOneWidget,
+      reason: 'resolved live from the source note by uuid',
+    );
     expect(find.byKey(const Key('row-1-unbound')), findsOneWidget);
 
     // ---- 8. acting on a value reaches the launcher ------------------------
@@ -171,9 +189,11 @@ void main() {
     expect(afterEdit.length, 1, reason: 'editing must not duplicate');
     expect(afterEdit.single.id, cardId, reason: 'identity survives an edit');
     expect(afterEdit.single.title, 'Renamed');
-    expect((await _cheatsheetNotes(noteRepo, catalogRepo)).single.subject,
-        'Cheatsheet:$cardId',
-        reason: 'the subject is an identity, not a label');
+    expect(
+      (await _cheatsheetNotes(noteRepo, catalogRepo)).single.subject,
+      'Cheatsheet:$cardId',
+      reason: 'the subject is an identity, not a label',
+    );
 
     // ---- 10. delete through the UI: gone from the wallet and the catalog --
     // Saving the edit popped back to the detail screen.
@@ -181,16 +201,22 @@ void main() {
 
     await tester.tap(find.byKey(const Key('detail-delete')));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget,
-        reason: 'deletion is confirmed, not immediate');
+    expect(
+      find.byType(AlertDialog),
+      findsOneWidget,
+      reason: 'deletion is confirmed, not immediate',
+    );
     await tester.tap(find.byKey(const Key('delete-confirm')));
     await tester.pumpAndSettle();
 
     // Asserted BEFORE any manual navigation below: the screen must leave on
     // its own, or the user is stranded on a card that no longer exists.
     // Navigating first would mask a missing pop entirely.
-    expect(find.byType(CheatsheetDetailScreen), findsNothing,
-        reason: 'deleting pops the detail screen');
+    expect(
+      find.byType(CheatsheetDetailScreen),
+      findsNothing,
+      reason: 'deleting pops the detail screen',
+    );
 
     expect(await cheatRepo.getCards(), isEmpty);
     expect(await _cheatsheetNotes(noteRepo, catalogRepo), isEmpty);
@@ -210,12 +236,18 @@ Future<List<HmmNote>> _cheatsheetNotes(
   LocalHmmNoteRepository notes,
   LocalNoteCatalogRepository catalogs,
 ) async {
-  final catalog = await catalogs.getOrCreateCatalog(cheatsheetCatalogName, '{}');
+  final catalog = await catalogs.getOrCreateCatalog(
+    cheatsheetCatalogName,
+    '{}',
+  );
   final out = <HmmNote>[];
   var page = 1;
   while (true) {
-    final res =
-        await notes.getNotes(catalogId: catalog.id, page: page, pageSize: 100);
+    final res = await notes.getNotes(
+      catalogId: catalog.id,
+      page: page,
+      pageSize: 100,
+    );
     out.addAll(res.items);
     if (res.items.isEmpty || page >= res.meta.totalPages) break;
     page++;

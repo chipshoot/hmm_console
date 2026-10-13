@@ -5,13 +5,13 @@ import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/data/subsystem_anchor.dart';
 
 HmmNote note(int id, {required String subject, int? catalogId}) => HmmNote(
-      id: id,
-      uuid: 'uuid-$id',
-      subject: subject,
-      authorId: 1,
-      createDate: DateTime(2026),
-      catalogId: catalogId,
-    );
+  id: id,
+  uuid: 'uuid-$id',
+  subject: subject,
+  authorId: 1,
+  createDate: DateTime(2026),
+  catalogId: catalogId,
+);
 
 /// Catalog ids as the app really lays them out: several automobile catalogs,
 /// a General one, plus the two infrastructure catalogs.
@@ -177,7 +177,10 @@ void main() {
 
     test('contact notes are preferred for health info', () {
       final result = scopeSourceNotes(
-        all: [car, note(9, subject: 'Dr Lee', catalogId: 7)],
+        all: [
+          car,
+          note(9, subject: 'Dr Lee', catalogId: 7),
+        ],
         catalogNames: {...catalogNames, 7: 'Hmm.ContactMan.Contact'},
         domain: sourceDomainFor('healthInfo'),
       );
@@ -207,7 +210,10 @@ void main() {
     });
 
     test('the subsystem anchor catalog name matches its definition', () {
-      expect(kInfrastructureCatalogNames, contains(kSubsystemAnchorCatalogName));
+      expect(
+        kInfrastructureCatalogNames,
+        contains(kSubsystemAnchorCatalogName),
+      );
     });
 
     test('nothing else has crept into the infrastructure set', () {

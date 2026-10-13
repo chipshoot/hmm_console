@@ -43,36 +43,45 @@ void main() {
       CheatsheetResolver(_FakeNotes({'auto1': auto, 'doc1': doc}));
 
   test('field hit', () async {
-    final v = await resolver().resolve(const CheatsheetRow(
-      label: 'Plate',
-      source: CheatsheetSource(
-        noteUuid: 'auto1',
-        kind: SourceGranularity.field,
-        locator: 'AutomobileInfo.plate',
+    final v = await resolver().resolve(
+      const CheatsheetRow(
+        label: 'Plate',
+        source: CheatsheetSource(
+          noteUuid: 'auto1',
+          kind: SourceGranularity.field,
+          locator: 'AutomobileInfo.plate',
+        ),
       ),
-    ));
+    );
     expect(v.text, 'ABC123');
     expect(v.missing, isFalse);
     expect(v.unbound, isFalse);
   });
 
   test('section hit', () async {
-    final v = await resolver().resolve(const CheatsheetRow(
-      label: 'Shortcuts',
-      source: CheatsheetSource(
-        noteUuid: 'doc1',
-        kind: SourceGranularity.section,
-        locator: 'Shortcuts',
+    final v = await resolver().resolve(
+      const CheatsheetRow(
+        label: 'Shortcuts',
+        source: CheatsheetSource(
+          noteUuid: 'doc1',
+          kind: SourceGranularity.section,
+          locator: 'Shortcuts',
+        ),
       ),
-    ));
+    );
     expect(v.text, contains('dd delete line'));
   });
 
   test('whole hit', () async {
-    final v = await resolver().resolve(const CheatsheetRow(
-      label: 'All',
-      source: CheatsheetSource(noteUuid: 'doc1', kind: SourceGranularity.whole),
-    ));
+    final v = await resolver().resolve(
+      const CheatsheetRow(
+        label: 'All',
+        source: CheatsheetSource(
+          noteUuid: 'doc1',
+          kind: SourceGranularity.whole,
+        ),
+      ),
+    );
     expect(v.text, contains('# Title'));
   });
 
@@ -88,54 +97,66 @@ void main() {
     );
     final r = CheatsheetResolver(_FakeNotes({'off1': off}));
     for (final kind in [SourceGranularity.field, SourceGranularity.whole]) {
-      final v = await r.resolve(CheatsheetRow(
-        label: 'x',
-        source: CheatsheetSource(
-          noteUuid: 'off1',
-          kind: kind,
-          locator: 'Thing.plate',
+      final v = await r.resolve(
+        CheatsheetRow(
+          label: 'x',
+          source: CheatsheetSource(
+            noteUuid: 'off1',
+            kind: kind,
+            locator: 'Thing.plate',
+          ),
         ),
-      ));
+      );
       expect(v.missing, isTrue, reason: '$kind');
     }
   });
 
   test('unbound row', () async {
-    final v =
-        await resolver().resolve(const CheatsheetRow(label: 'x', source: null));
+    final v = await resolver().resolve(
+      const CheatsheetRow(label: 'x', source: null),
+    );
     expect(v.unbound, isTrue);
     expect(v.text, isNull);
   });
 
   test('missing note', () async {
-    final v = await resolver().resolve(const CheatsheetRow(
-      label: 'x',
-      source: CheatsheetSource(noteUuid: 'nope', kind: SourceGranularity.whole),
-    ));
+    final v = await resolver().resolve(
+      const CheatsheetRow(
+        label: 'x',
+        source: CheatsheetSource(
+          noteUuid: 'nope',
+          kind: SourceGranularity.whole,
+        ),
+      ),
+    );
     expect(v.missing, isTrue);
   });
 
   test('missing field', () async {
-    final v = await resolver().resolve(const CheatsheetRow(
-      label: 'x',
-      source: CheatsheetSource(
-        noteUuid: 'auto1',
-        kind: SourceGranularity.field,
-        locator: 'AutomobileInfo.vin',
+    final v = await resolver().resolve(
+      const CheatsheetRow(
+        label: 'x',
+        source: CheatsheetSource(
+          noteUuid: 'auto1',
+          kind: SourceGranularity.field,
+          locator: 'AutomobileInfo.vin',
+        ),
       ),
-    ));
+    );
     expect(v.missing, isTrue);
   });
 
   test('missing section', () async {
-    final v = await resolver().resolve(const CheatsheetRow(
-      label: 'x',
-      source: CheatsheetSource(
-        noteUuid: 'doc1',
-        kind: SourceGranularity.section,
-        locator: 'Nope',
+    final v = await resolver().resolve(
+      const CheatsheetRow(
+        label: 'x',
+        source: CheatsheetSource(
+          noteUuid: 'doc1',
+          kind: SourceGranularity.section,
+          locator: 'Nope',
+        ),
       ),
-    ));
+    );
     expect(v.missing, isTrue);
   });
 
@@ -174,7 +195,8 @@ void main() {
       subject: 'Licence',
       authorId: 1,
       createDate: DateTime(2026),
-      content: '{"note":{"content":{"DriverLicence":'
+      content:
+          '{"note":{"content":{"DriverLicence":'
           '{"frontImagePath":"images/front.jpg"}}}}',
       attachments: NoteAttachments(images: const [front]),
     );
@@ -183,28 +205,32 @@ void main() {
         CheatsheetResolver(_FakeNotes({'lic1': licence}));
 
     test('resolves to the attachment, not its path text', () async {
-      final v = await imageResolver().resolve(const CheatsheetRow(
-        label: 'Licence (front)',
-        source: CheatsheetSource(
-          noteUuid: 'lic1',
-          kind: SourceGranularity.image,
-          locator: 'images/front.jpg',
+      final v = await imageResolver().resolve(
+        const CheatsheetRow(
+          label: 'Licence (front)',
+          source: CheatsheetSource(
+            noteUuid: 'lic1',
+            kind: SourceGranularity.image,
+            locator: 'images/front.jpg',
+          ),
         ),
-      ));
+      );
       expect(v.image, front);
       expect(v.text, isNull);
       expect(v.missing, isFalse);
     });
 
     test('an image no longer on the note is missing', () async {
-      final v = await imageResolver().resolve(const CheatsheetRow(
-        label: 'Licence (back)',
-        source: CheatsheetSource(
-          noteUuid: 'lic1',
-          kind: SourceGranularity.image,
-          locator: 'images/back.jpg',
+      final v = await imageResolver().resolve(
+        const CheatsheetRow(
+          label: 'Licence (back)',
+          source: CheatsheetSource(
+            noteUuid: 'lic1',
+            kind: SourceGranularity.image,
+            locator: 'images/back.jpg',
+          ),
         ),
-      ));
+      );
       expect(v.missing, isTrue);
       expect(v.image, isNull);
     });
@@ -216,19 +242,21 @@ void main() {
         subject: 'Licence',
         authorId: 1,
         createDate: DateTime(2026),
-        content: '{"note":{"content":{"DriverLicence":'
+        content:
+            '{"note":{"content":{"DriverLicence":'
             '{"frontImagePath":"images/front.jpg","isActivated":false}}}}',
         attachments: NoteAttachments(images: const [front]),
       );
-      final v = await CheatsheetResolver(_FakeNotes({'lic2': removed}))
-          .resolve(const CheatsheetRow(
-        label: 'Licence (front)',
-        source: CheatsheetSource(
-          noteUuid: 'lic2',
-          kind: SourceGranularity.image,
-          locator: 'images/front.jpg',
+      final v = await CheatsheetResolver(_FakeNotes({'lic2': removed})).resolve(
+        const CheatsheetRow(
+          label: 'Licence (front)',
+          source: CheatsheetSource(
+            noteUuid: 'lic2',
+            kind: SourceGranularity.image,
+            locator: 'images/front.jpg',
+          ),
         ),
-      ));
+      );
       expect(v.missing, isTrue);
       expect(v.image, isNull);
     });

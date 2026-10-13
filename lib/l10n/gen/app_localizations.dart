@@ -1406,6 +1406,24 @@ abstract class AppLocalizations {
   /// **'{title}, {group}, {count, plural, =1{1 row} other{{count} rows}}'**
   String cheatsheetTileSemantics(String title, String group, int count);
 
+  /// No description provided for @cheatsheetChipAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get cheatsheetChipAll;
+
+  /// No description provided for @cheatsheetTileProtectedSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **', protected'**
+  String get cheatsheetTileProtectedSemantics;
+
+  /// No description provided for @cheatsheetTileCoverLockedSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **', cover locked'**
+  String get cheatsheetTileCoverLockedSemantics;
+
   /// No description provided for @launcherTitle.
   ///
   /// In en, this message translates to:
@@ -4273,6 +4291,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marks this contact as yourself. Only one contact can be marked.'**
   String get helpContactEditSelfBody;
+
+  /// No description provided for @helpCheatsheetWalletTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheatsheets'**
+  String get helpCheatsheetWalletTitle;
+
+  /// No description provided for @helpCheatsheetWalletSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cards at a glance. Tap a card to open it; use search and the chips to narrow the wallet.'**
+  String get helpCheatsheetWalletSummary;
+
+  /// No description provided for @helpCheatsheetWalletTilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards'**
+  String get helpCheatsheetWalletTilesTitle;
+
+  /// No description provided for @helpCheatsheetWalletTilesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each card shows its colour or cover photo, its icon, its title, and its group with the number of rows. Tap a card to open it.'**
+  String get helpCheatsheetWalletTilesBody;
+
+  /// No description provided for @helpCheatsheetWalletGroupsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group chips'**
+  String get helpCheatsheetWalletGroupsTitle;
+
+  /// No description provided for @helpCheatsheetWalletGroupsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The first row of chips shows one wallet group at a time; All shows every card again. Search works within the chosen group.'**
+  String get helpCheatsheetWalletGroupsBody;
+
+  /// No description provided for @helpCheatsheetWalletTagsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag chips'**
+  String get helpCheatsheetWalletTagsTitle;
+
+  /// No description provided for @helpCheatsheetWalletTagsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag chips narrow the wallet to cards that carry every tag you select. Tap a tag again to drop it.'**
+  String get helpCheatsheetWalletTagsBody;
+
+  /// No description provided for @helpCheatsheetWalletLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock badge'**
+  String get helpCheatsheetWalletLockTitle;
+
+  /// No description provided for @helpCheatsheetWalletLockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A lock marks a protected card. A 🔒 means its cover photo is locked in the vault: the card shows its colour instead, and opening the card lets you unlock the photo.'**
+  String get helpCheatsheetWalletLockBody;
 
   /// No description provided for @contactCustomRelationship.
   ///

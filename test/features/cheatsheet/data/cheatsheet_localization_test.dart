@@ -30,8 +30,10 @@ void main() {
 
   group('row labels are translated — they seed a document', () {
     test('an accident claim instantiates Chinese row labels', () {
-      final card =
-          CheatsheetTemplates.instantiate(byId('accidentClaim', zh), 'c1');
+      final card = CheatsheetTemplates.instantiate(
+        byId('accidentClaim', zh),
+        'c1',
+      );
       final labels = card.rows.map((r) => r.label).toList();
 
       expect(labels, contains('车牌号'));
@@ -42,8 +44,10 @@ void main() {
     });
 
     test('the same template in English keeps the English labels', () {
-      final card =
-          CheatsheetTemplates.instantiate(byId('accidentClaim', en), 'c2');
+      final card = CheatsheetTemplates.instantiate(
+        byId('accidentClaim', en),
+        'c2',
+      );
       expect(card.rows.map((r) => r.label), contains('Plate'));
     });
 
@@ -66,15 +70,21 @@ void main() {
     });
 
     test('an instantiated card carries the English group', () {
-      final card =
-          CheatsheetTemplates.instantiate(byId('accidentClaim', zh), 'c3');
+      final card = CheatsheetTemplates.instantiate(
+        byId('accidentClaim', zh),
+        'c3',
+      );
       expect(card.walletGroup, 'Vehicle');
     });
 
     test('templateId is a key too and stays stable', () {
       for (final l in [en, zh]) {
-        expect(CheatsheetTemplates.all(l).map((t) => t.id),
-            ['accidentClaim', 'healthInfo', 'document', 'blank']);
+        expect(CheatsheetTemplates.all(l).map((t) => t.id), [
+          'accidentClaim',
+          'healthInfo',
+          'document',
+          'blank',
+        ]);
       }
     });
   });

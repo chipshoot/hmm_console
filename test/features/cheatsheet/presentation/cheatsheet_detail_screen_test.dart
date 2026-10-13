@@ -58,7 +58,8 @@ final autoNote = HmmNote(
   subject: 'My Car',
   authorId: 1,
   createDate: DateTime(2026),
-  content: '{"note":{"content":{"AutomobileInfo":{"plate":"ABC123",'
+  content:
+      '{"note":{"content":{"AutomobileInfo":{"plate":"ABC123",'
       '"phone":"(555) 123-4567","address":"1 Main St"}}}}',
 );
 
@@ -130,14 +131,13 @@ void main() {
   });
 
   Future<
-      ({
-        List<(ValueAction, String)> launched,
-        List<String> openedSources,
-        List<String> edited,
-      })> mount(
-    WidgetTester tester, {
-    bool launchFails = false,
-  }) async {
+    ({
+      List<(ValueAction, String)> launched,
+      List<String> openedSources,
+      List<String> edited,
+    })
+  >
+  mount(WidgetTester tester, {bool launchFails = false}) async {
     final launched = <(ValueAction, String)>[];
     final openedSources = <String>[];
     final edited = <String>[];
@@ -153,22 +153,27 @@ void main() {
             launched.add((action, value));
             if (launchFails) throw LaunchActionException(Uri.parse('tel:x'));
           }),
-          cheatsheetOpenSourceProvider
-              .overrideWithValue((_, uuid) => openedSources.add(uuid)),
-          cheatsheetEditCardProvider.overrideWithValue((_, id) => edited.add(id)),
+          cheatsheetOpenSourceProvider.overrideWithValue(
+            (_, uuid) => openedSources.add(uuid),
+          ),
+          cheatsheetEditCardProvider.overrideWithValue(
+            (_, id) => edited.add(id),
+          ),
         ],
         child: const MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: CheatsheetDetailScreen(cardId: 'c1')),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: CheatsheetDetailScreen(cardId: 'c1'),
+        ),
       ),
     );
     await tester.pumpAndSettle();
     return (launched: launched, openedSources: openedSources, edited: edited);
   }
 
-  testWidgets('renders resolved values, placeholders and section text',
-      (tester) async {
+  testWidgets('renders resolved values, placeholders and section text', (
+    tester,
+  ) async {
     await mount(tester);
 
     expect(find.text('ABC123'), findsOneWidget);
@@ -213,8 +218,9 @@ void main() {
     expect(r.openedSources, ['auto1']);
   });
 
-  testWidgets('a launch failure shows a message and does not crash',
-      (tester) async {
+  testWidgets('a launch failure shows a message and does not crash', (
+    tester,
+  ) async {
     await mount(tester, launchFails: true);
 
     await tester.tap(find.byKey(const Key('row-3-value')));
@@ -248,16 +254,20 @@ void main() {
   });
 
   group('delete', () {
-    testWidgets('asks for confirmation before deleting anything',
-        (tester) async {
+    testWidgets('asks for confirmation before deleting anything', (
+      tester,
+    ) async {
       await mount(tester);
 
       await tester.tap(find.byKey(const Key('detail-delete')));
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(_SeededCheatsheets.removed, isEmpty,
-          reason: 'nothing is deleted until confirmed');
+      expect(
+        _SeededCheatsheets.removed,
+        isEmpty,
+        reason: 'nothing is deleted until confirmed',
+      );
     });
 
     testWidgets('cancelling leaves the card alone', (tester) async {
@@ -272,8 +282,9 @@ void main() {
       expect(find.byType(AlertDialog), findsNothing);
     });
 
-    testWidgets('a failed delete says so without the exception text',
-        (tester) async {
+    testWidgets('a failed delete says so without the exception text', (
+      tester,
+    ) async {
       _SeededCheatsheets.removeError = StateError('/vault/secret-path');
       addTearDown(() => _SeededCheatsheets.removeError = null);
       await mount(tester);
@@ -304,8 +315,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the confirmation says source notes are NOT deleted',
-        (tester) async {
+    testWidgets('the confirmation says source notes are NOT deleted', (
+      tester,
+    ) async {
       // Deleting a card must not read as deleting the notes it points at.
       // Asserting merely that the word "notes" appears is useless: the
       // opposite message ("this will also delete the notes it references")
@@ -321,8 +333,10 @@ void main() {
   });
 
   group('image rows', () {
-    final png = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAA'
-        'DUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAA'
+      'DUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    );
     const front = VaultRef(
       path: 'images/front.png',
       contentType: 'image/png',
@@ -335,7 +349,8 @@ void main() {
       subject: 'Licence',
       authorId: 1,
       createDate: DateTime(2026),
-      content: '{"note":{"content":{"DriverLicence":'
+      content:
+          '{"note":{"content":{"DriverLicence":'
           '{"frontImagePath":"images/front.png"}}}}',
       attachments: NoteAttachments(images: const [front]),
     );
@@ -366,8 +381,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            hmmNoteRepositoryProvider
-                .overrideWithValue(_FakeNotes({'lic1': licenceNote})),
+            hmmNoteRepositoryProvider.overrideWithValue(
+              _FakeNotes({'lic1': licenceNote}),
+            ),
             cheatsheetsStateProvider.overrideWith(_SeededCheatsheets.new),
             attachmentResolverProvider.overrideWith(
               (ref) async => resolverFails
@@ -395,16 +411,18 @@ void main() {
       expect(find.byKey(const Key('row-0-missing')), findsNothing);
     });
 
-    testWidgets('a failed resolver shows a broken placeholder, not a spinner',
-        (tester) async {
+    testWidgets('a failed resolver shows a broken placeholder, not a spinner', (
+      tester,
+    ) async {
       await mountImage(tester, VaultStatus.unlocked, resolverFails: true);
 
       expect(find.byKey(const Key('row-0-image-error')), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('a locked vault shows the lock, not a broken image',
-        (tester) async {
+    testWidgets('a locked vault shows the lock, not a broken image', (
+      tester,
+    ) async {
       await mountImage(tester, VaultStatus.locked);
 
       expect(find.byKey(sensitiveLockedPlaceholderKey), findsOneWidget);

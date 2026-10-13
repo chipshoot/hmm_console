@@ -22,8 +22,11 @@ class _MemVault implements IVaultStore {
   final files = <String, Uint8List>{};
 
   @override
-  Future<void> putBytes(String relativePath, Uint8List bytes,
-      {String? contentType}) async {
+  Future<void> putBytes(
+    String relativePath,
+    Uint8List bytes, {
+    String? contentType,
+  }) async {
     files[relativePath] = bytes;
   }
 
@@ -45,10 +48,10 @@ class _MemVault implements IVaultStore {
 
   @override
   Future<List<VaultEntry>> list(String prefix) async => [
-        for (final e in files.entries)
-          if (e.key.startsWith(prefix))
-            VaultEntry(relativePath: e.key, byteSize: e.value.length),
-      ]..sort((a, b) => a.relativePath.compareTo(b.relativePath));
+    for (final e in files.entries)
+      if (e.key.startsWith(prefix))
+        VaultEntry(relativePath: e.key, byteSize: e.value.length),
+  ]..sort((a, b) => a.relativePath.compareTo(b.relativePath));
 }
 
 class _Mode extends DataModeNotifier {
@@ -71,8 +74,11 @@ void main() {
   late _MemVault vault;
 
   final png = Uint8List.fromList(List<int>.generate(64, (i) => i));
-  PickedImageBytes pick() =>
-      PickedImageBytes(bytes: png, originalName: 'c.png', contentType: 'image/png');
+  PickedImageBytes pick() => PickedImageBytes(
+    bytes: png,
+    originalName: 'c.png',
+    contentType: 'image/png',
+  );
 
   const plain = CheatsheetCard(
     id: 'c1',
@@ -88,8 +94,9 @@ void main() {
     final aid = await db
         .into(db.authors)
         .insert(AuthorsCompanion.insert(accountName: 'state-cover'));
-    final author = await (db.select(db.authors)..where((a) => a.id.equals(aid)))
-        .getSingle();
+    final author = await (db.select(
+      db.authors,
+    )..where((a) => a.id.equals(aid))).getSingle();
     final notes = LocalHmmNoteRepository(db, () async => author);
     repo = LocalCheatsheetRepository(notes, LocalNoteCatalogRepository(db));
     vault = _MemVault();
@@ -102,30 +109,37 @@ void main() {
     IVaultStore? store,
   }) {
     final s = store ?? vault;
-    final c = ProviderContainer(overrides: [
-      cheatsheetRepositoryModeProvider.overrideWithValue(repo),
-      dataModeProvider.overrideWith(() => _Mode(mode)),
-      vaultStoreProvider.overrideWith((ref) async => s),
-      imageAttachmentPickerProvider.overrideWith(
-          (ref) async => VaultImageAttachmentPicker(vaultStore: s)),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        cheatsheetRepositoryModeProvider.overrideWithValue(repo),
+        dataModeProvider.overrideWith(() => _Mode(mode)),
+        vaultStoreProvider.overrideWith((ref) async => s),
+        imageAttachmentPickerProvider.overrideWith(
+          (ref) async => VaultImageAttachmentPicker(vaultStore: s),
+        ),
+      ],
+    );
     addTearDown(c.dispose);
     return c;
   }
 
-  test('a new card with a cover: bytes in the vault, ref in the column',
-      () async {
-    final c = container();
-    await c.read(cheatsheetsStateProvider.notifier).save(plain, newCover: pick());
+  test(
+    'a new card with a cover: bytes in the vault, ref in the column',
+    () async {
+      final c = container();
+      await c
+          .read(cheatsheetsStateProvider.notifier)
+          .save(plain, newCover: pick());
 
-    final saved = (await repo.getCard('c1'))!;
-    final ref = saved.cover!;
-    expect(ref.path, startsWith('attachments/note-'));
-    expect(ref.sensitive, isFalse);
-    expect(vault.files.keys, [ref.path]);
-    expect(await collectReferencedVaultPaths(db), {ref.path});
-    expect(saved.style.coverPath, ref.path);
-  });
+      final saved = (await repo.getCard('c1'))!;
+      final ref = saved.cover!;
+      expect(ref.path, startsWith('attachments/note-'));
+      expect(ref.sensitive, isFalse);
+      expect(vault.files.keys, [ref.path]);
+      expect(await collectReferencedVaultPaths(db), {ref.path});
+      expect(saved.style.coverPath, ref.path);
+    },
+  );
 
   test('replacing a cover deletes the old bytes after the save', () async {
     final c = container();
@@ -133,8 +147,11 @@ void main() {
     await state.save(plain, newCover: pick());
     final first = (await repo.getCard('c1'))!;
 
-    await state.save(first.withCover(null),
-        newCover: pick(), released: [first.cover!]);
+    await state.save(
+      first.withCover(null),
+      newCover: pick(),
+      released: [first.cover!],
+    );
 
     final second = (await repo.getCard('c1'))!.cover!;
     expect(second.path, isNot(first.cover!.path));
@@ -142,18 +159,20 @@ void main() {
     expect(await collectReferencedVaultPaths(db), {second.path});
   });
 
-  test('removing a cover releases the attachment and deletes its bytes',
-      () async {
-    final c = container();
-    final state = c.read(cheatsheetsStateProvider.notifier);
-    await state.save(plain, newCover: pick());
-    final withCover = (await repo.getCard('c1'))!;
+  test(
+    'removing a cover releases the attachment and deletes its bytes',
+    () async {
+      final c = container();
+      final state = c.read(cheatsheetsStateProvider.notifier);
+      await state.save(plain, newCover: pick());
+      final withCover = (await repo.getCard('c1'))!;
 
-    await state.save(withCover.withCover(null), released: [withCover.cover!]);
+      await state.save(withCover.withCover(null), released: [withCover.cover!]);
 
-    expect(vault.files, isEmpty);
-    expect(await collectReferencedVaultPaths(db), isEmpty);
-  });
+      expect(vault.files, isEmpty);
+      expect(await collectReferencedVaultPaths(db), isEmpty);
+    },
+  );
 
   test('removing a card deletes its cover bytes', () async {
     final c = container();

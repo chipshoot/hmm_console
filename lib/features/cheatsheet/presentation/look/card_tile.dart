@@ -28,70 +28,78 @@ class CardTile extends StatelessWidget {
     final group = cheatsheetGroupLabel(card.walletGroup, l);
     final count = card.rows.length;
     final text = Theme.of(context).textTheme;
-    return Semantics(
-      button: onTap != null,
-      label: l.cheatsheetTileSemantics(card.title, group, count),
-      onTap: onTap,
-      excludeSemantics: true,
-      child: ClipRRect(
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) => ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: CardSurface(
           card: card,
           pendingCoverBytes: pendingCoverBytes,
-          builder: (context, ink) => Material(
-            type: MaterialType.transparency,
-            child: InkWell(
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          card.look.icon,
-                          key: const Key('card-tile-icon'),
-                          style: const TextStyle(fontSize: 28),
-                        ),
-                        const Spacer(),
-                        if (card.protected)
-                          Icon(
-                            Icons.lock_outline,
-                            key: const Key('card-tile-protected'),
-                            size: 18,
-                            color: ink.foreground,
+          // Decode at tile size: a full-resolution photo per tile is wasted
+          // memory in a scrolling grid.
+          coverCacheWidth: constraints.hasBoundedWidth
+              ? (constraints.maxWidth * dpr).ceil()
+              : null,
+          builder: (context, ink) => Semantics(
+            button: onTap != null,
+            label: _semanticsLabel(l, group, count, ink),
+            onTap: onTap,
+            excludeSemantics: true,
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            card.look.icon,
+                            key: const Key('card-tile-icon'),
+                            style: const TextStyle(fontSize: 28),
                           ),
-                        if (ink.coverLocked)
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4),
-                            child: Text(
-                              '\u{1F512}',
-                              key: Key('card-tile-cover-locked'),
-                              style: TextStyle(fontSize: 16),
+                          const Spacer(),
+                          if (card.protected)
+                            Icon(
+                              Icons.lock_outline,
+                              key: const Key('card-tile-protected'),
+                              size: 18,
+                              color: ink.foreground,
                             ),
-                          ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
-                      card.title,
-                      key: const Key('card-tile-title'),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: text.titleMedium?.copyWith(
-                        color: ink.foreground,
-                        fontWeight: FontWeight.w600,
+                          if (ink.coverLocked)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 4),
+                              child: Text(
+                                '\u{1F512}',
+                                key: Key('card-tile-cover-locked'),
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l.cheatsheetTileSubtitle(group, count),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: text.bodySmall?.copyWith(color: ink.subtitle),
-                    ),
-                  ],
+                      const Spacer(),
+                      Text(
+                        card.title,
+                        key: const Key('card-tile-title'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: text.titleMedium?.copyWith(
+                          color: ink.foreground,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l.cheatsheetTileSubtitle(group, count),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: text.bodySmall?.copyWith(color: ink.subtitle),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -99,5 +107,18 @@ class CardTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Lock state is spoken, never left to the badge's colour or glyph.
+  String _semanticsLabel(
+    AppLocalizations l,
+    String group,
+    int count,
+    CardInk ink,
+  ) {
+    final b = StringBuffer(l.cheatsheetTileSemantics(card.title, group, count));
+    if (card.protected) b.write(l.cheatsheetTileProtectedSemantics);
+    if (ink.coverLocked) b.write(l.cheatsheetTileCoverLockedSemantics);
+    return b.toString();
   }
 }

@@ -8,10 +8,14 @@ import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 
 /// decode -> encode -> the exact same JSON text.
-String _roundTrip(String json, {NoteAttachments? attachments}) =>
-    jsonEncode(CheatsheetCodec.toMap(CheatsheetCodec.fromMap(
-        (jsonDecode(json) as Map).cast<String, dynamic>(),
-        attachments: attachments)));
+String _roundTrip(String json, {NoteAttachments? attachments}) => jsonEncode(
+  CheatsheetCodec.toMap(
+    CheatsheetCodec.fromMap(
+      (jsonDecode(json) as Map).cast<String, dynamic>(),
+      attachments: attachments,
+    ),
+  ),
+);
 
 void main() {
   const cover = VaultRef(
@@ -23,7 +27,8 @@ void main() {
   group('byte identity', () {
     test('a card written before this feature round-trips byte-identical', () {
       // Exactly what the pre-feature codec wrote: no style, no emoji.
-      const before = '{"schemaVersion":1,"id":"c1","title":"Claim",'
+      const before =
+          '{"schemaVersion":1,"id":"c1","title":"Claim",'
           '"walletGroup":"Vehicle","tags":["legal"],'
           '"templateId":"accidentClaim","protected":false,"rows":['
           '{"label":"Plate","valueAction":"call","openSource":true,'
@@ -33,32 +38,39 @@ void main() {
       expect(_roundTrip(before), before);
     });
 
-    test('a styled card with unknown keys everywhere round-trips byte-identical',
-        () {
-      const styled = '{"schemaVersion":1,"id":"c1","title":"Vim",'
-          '"walletGroup":"Reference","tags":[],"templateId":"document",'
-          '"protected":false,"rows":['
-          '{"label":"Motions","valueAction":"none","openSource":true,'
-          '"emoji":"\u{1F440}","hint":{"x":1}}],'
-          '"style":{"theme":"turquoise","pattern":"dots","sparkle":[1,2]},'
-          '"future":42}';
-      expect(_roundTrip(styled), styled);
-    });
+    test(
+      'a styled card with unknown keys everywhere round-trips byte-identical',
+      () {
+        const styled =
+            '{"schemaVersion":1,"id":"c1","title":"Vim",'
+            '"walletGroup":"Reference","tags":[],"templateId":"document",'
+            '"protected":false,"rows":['
+            '{"label":"Motions","valueAction":"none","openSource":true,'
+            '"emoji":"\u{1F440}","hint":{"x":1}}],'
+            '"style":{"theme":"turquoise","pattern":"dots","sparkle":[1,2]},'
+            '"future":42}';
+        expect(_roundTrip(styled), styled);
+      },
+    );
 
-    test('a card with a cover round-trips byte-identical and projects the ref',
-        () {
-      const withCover = '{"schemaVersion":1,"id":"c1","title":"T",'
-          '"walletGroup":"Ungrouped","tags":[],"templateId":"blank",'
-          '"protected":false,"rows":[],'
-          '"style":{"cover":"attachments/note-7/cover.jpg"}}';
-      final attachments = NoteAttachments(images: const [cover]);
-      expect(_roundTrip(withCover, attachments: attachments), withCover);
+    test(
+      'a card with a cover round-trips byte-identical and projects the ref',
+      () {
+        const withCover =
+            '{"schemaVersion":1,"id":"c1","title":"T",'
+            '"walletGroup":"Ungrouped","tags":[],"templateId":"blank",'
+            '"protected":false,"rows":[],'
+            '"style":{"cover":"attachments/note-7/cover.jpg"}}';
+        final attachments = NoteAttachments(images: const [cover]);
+        expect(_roundTrip(withCover, attachments: attachments), withCover);
 
-      final card = CheatsheetCodec.fromMap(
+        final card = CheatsheetCodec.fromMap(
           (jsonDecode(withCover) as Map).cast<String, dynamic>(),
-          attachments: attachments);
-      expect(card.cover, cover);
-    });
+          attachments: attachments,
+        );
+        expect(card.cover, cover);
+      },
+    );
   });
 
   group('style', () {
@@ -75,19 +87,23 @@ void main() {
     });
 
     test('a style that differs from the template is written', () {
-      final c = const CheatsheetCard(
-        id: 'c1',
-        title: 'T',
-        walletGroup: 'Ungrouped',
-        tags: [],
-        templateId: 'blank',
-        rows: [],
-      ).copyWith(
-          style: CardStyle.empty
-              .withTheme(CardThemeId.red, templateId: 'blank')
-              .withPattern(CardPattern.waves));
-      expect(CheatsheetCodec.toMap(c)['style'],
-          {'theme': 'red', 'pattern': 'waves'});
+      final c =
+          const CheatsheetCard(
+            id: 'c1',
+            title: 'T',
+            walletGroup: 'Ungrouped',
+            tags: [],
+            templateId: 'blank',
+            rows: [],
+          ).copyWith(
+            style: CardStyle.empty
+                .withTheme(CardThemeId.red, templateId: 'blank')
+                .withPattern(CardPattern.waves),
+          );
+      expect(CheatsheetCodec.toMap(c)['style'], {
+        'theme': 'red',
+        'pattern': 'waves',
+      });
     });
 
     test('unknown theme, pattern, layout and style keys are preserved', () {
@@ -117,12 +133,15 @@ void main() {
       });
     });
 
-    test('mutating the source map after decode does not change the style',
-        () {
+    test('mutating the source map after decode does not change the style', () {
       final nested = <String, dynamic>{'a': 1};
       final rawStyle = <String, dynamic>{'theme': 'red', 'sparkle': nested};
-      final decoded = CheatsheetCodec.fromMap(
-          {'id': 'x', 'templateId': 'blank', 'rows': [], 'style': rawStyle});
+      final decoded = CheatsheetCodec.fromMap({
+        'id': 'x',
+        'templateId': 'blank',
+        'rows': [],
+        'style': rawStyle,
+      });
       rawStyle['theme'] = 'blue';
       rawStyle['pattern'] = 'dots';
       nested['a'] = 2;
@@ -135,17 +154,24 @@ void main() {
     });
 
     test('a non-map style is kept verbatim as an unknown key', () {
-      final decoded = CheatsheetCodec.fromMap(
-          {'id': 'x', 'rows': [], 'style': 'from-the-future'});
+      final decoded = CheatsheetCodec.fromMap({
+        'id': 'x',
+        'rows': [],
+        'style': 'from-the-future',
+      });
       expect(decoded.style.isEmpty, isTrue);
       expect(CheatsheetCodec.toMap(decoded)['style'], 'from-the-future');
     });
 
     test('setting a style replaces a preserved non-map style', () {
-      final decoded = CheatsheetCodec.fromMap(
-          {'id': 'x', 'rows': [], 'style': 'from-the-future'});
+      final decoded = CheatsheetCodec.fromMap({
+        'id': 'x',
+        'rows': [],
+        'style': 'from-the-future',
+      });
       final edited = decoded.copyWith(
-          style: decoded.style.withPattern(CardPattern.grid));
+        style: decoded.style.withPattern(CardPattern.grid),
+      );
       expect(CheatsheetCodec.toMap(edited)['style'], {'pattern': 'grid'});
     });
 
@@ -157,8 +183,9 @@ void main() {
         'style': {'cover': 'attachments/note-9/gone.jpg'},
       }, attachments: NoteAttachments.empty);
       expect(decoded.cover, isNull);
-      expect(CheatsheetCodec.toMap(decoded)['style'],
-          {'cover': 'attachments/note-9/gone.jpg'});
+      expect(CheatsheetCodec.toMap(decoded)['style'], {
+        'cover': 'attachments/note-9/gone.jpg',
+      });
     });
 
     test('content records the cover PATH, never the ref', () {
@@ -226,9 +253,7 @@ void main() {
       });
       final reset = decoded.copyWith(
         style: CardStyle.empty,
-        rows: [
-          for (final r in decoded.rows) r.copyWith(clearEmoji: true),
-        ],
+        rows: [for (final r in decoded.rows) r.copyWith(clearEmoji: true)],
       );
       final map = CheatsheetCodec.toMap(reset);
       expect(map.containsKey('style'), isFalse);
@@ -260,13 +285,16 @@ void main() {
     );
 
     test('style, cover, extras and row emoji are part of the value', () {
-      expect(base.copyWith(style: const CardStyle({'theme': 'red'})),
-          isNot(base));
+      expect(
+        base.copyWith(style: const CardStyle({'theme': 'red'})),
+        isNot(base),
+      );
       expect(base.withCover(cover), isNot(base));
       expect(base.copyWith(extraFields: const {'x': 1}), isNot(base));
       expect(
-          base.copyWith(rows: [base.rows.single.copyWith(emoji: '⭐')]),
-          isNot(base));
+        base.copyWith(rows: [base.rows.single.copyWith(emoji: '⭐')]),
+        isNot(base),
+      );
       expect(base.copyWith(), base);
       expect(base.copyWith().hashCode, base.hashCode);
     });

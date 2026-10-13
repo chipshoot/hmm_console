@@ -49,21 +49,18 @@ class _ThrowingRepo implements ICheatsheetRepository {
 }
 
 CheatsheetCard card(String id, {String title = 'Claim'}) => CheatsheetCard(
-      id: id,
-      title: title,
-      walletGroup: 'Vehicle',
-      tags: const [],
-      templateId: 'blank',
-      rows: const [
-        CheatsheetRow(
-          label: 'Plate',
-          source: CheatsheetSource(
-            noteUuid: 'n',
-            kind: SourceGranularity.whole,
-          ),
-        ),
-      ],
-    );
+  id: id,
+  title: title,
+  walletGroup: 'Vehicle',
+  tags: const [],
+  templateId: 'blank',
+  rows: const [
+    CheatsheetRow(
+      label: 'Plate',
+      source: CheatsheetSource(noteUuid: 'n', kind: SourceGranularity.whole),
+    ),
+  ],
+);
 
 void main() {
   ProviderContainer containerWith(ICheatsheetRepository repo) {
@@ -82,11 +79,13 @@ void main() {
     expect(cards.map((c) => c.id), containsAll(['c1', 'c2']));
   });
 
-  test('build on an empty repository yields an empty list, not an error',
-      () async {
-    final container = containerWith(_FakeRepo());
-    expect(await container.read(cheatsheetsStateProvider.future), isEmpty);
-  });
+  test(
+    'build on an empty repository yields an empty list, not an error',
+    () async {
+      final container = containerWith(_FakeRepo());
+      expect(await container.read(cheatsheetsStateProvider.future), isEmpty);
+    },
+  );
 
   test('save adds a card and the next read sees it', () async {
     final container = containerWith(_FakeRepo());
@@ -98,20 +97,22 @@ void main() {
     expect(cards.map((c) => c.id), ['c1']);
   });
 
-  test('saving an existing id updates in place, it does not duplicate',
-      () async {
-    final container = containerWith(_FakeRepo([card('c1')]));
-    await container.read(cheatsheetsStateProvider.future);
+  test(
+    'saving an existing id updates in place, it does not duplicate',
+    () async {
+      final container = containerWith(_FakeRepo([card('c1')]));
+      await container.read(cheatsheetsStateProvider.future);
 
-    await container
-        .read(cheatsheetsStateProvider.notifier)
-        .save(card('c1', title: 'Renamed'));
+      await container
+          .read(cheatsheetsStateProvider.notifier)
+          .save(card('c1', title: 'Renamed'));
 
-    final cards = await container.read(cheatsheetsStateProvider.future);
-    expect(cards.length, 1);
-    expect(cards.single.title, 'Renamed');
-    expect(cards.single.id, 'c1');
-  });
+      final cards = await container.read(cheatsheetsStateProvider.future);
+      expect(cards.length, 1);
+      expect(cards.single.title, 'Renamed');
+      expect(cards.single.id, 'c1');
+    },
+  );
 
   test('remove deletes the card', () async {
     final container = containerWith(_FakeRepo([card('c1'), card('c2')]));

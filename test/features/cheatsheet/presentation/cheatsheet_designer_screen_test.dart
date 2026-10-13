@@ -74,26 +74,29 @@ void main() {
         overrides: [
           cheatsheetIdGenProvider.overrideWithValue(() => 'new-id'),
           cheatsheetsStateProvider.overrideWith(_CapturingCheatsheets.new),
-          cheatsheetSourcePickerProvider.overrideWithValue(
-            (_, {required templateId}) async {
-              lastPickerTemplateId = templateId;
-              return pickerResult;
-            },
-          ),
+          cheatsheetSourcePickerProvider.overrideWithValue((
+            _, {
+            required templateId,
+          }) async {
+            lastPickerTemplateId = templateId;
+            return pickerResult;
+          }),
         ],
         child: MaterialApp(
-      locale: locale,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: CheatsheetDesignerScreen(cardId: cardId)),
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: CheatsheetDesignerScreen(cardId: cardId),
+        ),
       ),
     );
     await tester.pumpAndSettle();
   }
 
   group('create', () {
-    testWidgets('offers the templates, then shows unbound labelled rows',
-        (tester) async {
+    testWidgets('offers the templates, then shows unbound labelled rows', (
+      tester,
+    ) async {
       await mount(tester);
 
       expect(find.byKey(const Key('template-accidentClaim')), findsOneWidget);
@@ -105,8 +108,9 @@ void main() {
       expect(find.text('Tap to bind'), findsWidgets);
     });
 
-    testWidgets('binds a row through the picker and saves partially bound',
-        (tester) async {
+    testWidgets('binds a row through the picker and saves partially bound', (
+      tester,
+    ) async {
       await mount(tester, pickerResult: _source);
       await tester.tap(find.byKey(const Key('template-accidentClaim')));
       await tester.pumpAndSettle();
@@ -120,12 +124,16 @@ void main() {
       final saved = _CapturingCheatsheets.saved.single;
       expect(saved.id, 'new-id');
       expect(saved.rows[0].source, _source);
-      expect(saved.rows.skip(1).every((r) => !r.isBound), isTrue,
-          reason: 'a partially bound card is savable');
+      expect(
+        saved.rows.skip(1).every((r) => !r.isBound),
+        isTrue,
+        reason: 'a partially bound card is savable',
+      );
     });
 
-    testWidgets('the picker is told which template it is binding for',
-        (tester) async {
+    testWidgets('the picker is told which template it is binding for', (
+      tester,
+    ) async {
       // The seam the "picker shows every note in the app" bug lived in. The
       // picker cannot rank vehicle notes first unless the screen tells it what
       // card this is, and every assertion above passes whether it does or not.
@@ -139,15 +147,19 @@ void main() {
       expect(lastPickerTemplateId, 'accidentClaim');
     });
 
-    testWidgets('a different template reaches the picker as itself',
-        (tester) async {
+    testWidgets('a different template reaches the picker as itself', (
+      tester,
+    ) async {
       // Pins it to the card rather than to a constant: hardcoding
       // 'accidentClaim' at the call site would satisfy the test above.
       await mount(tester, pickerResult: _source);
       await tester.tap(find.byKey(const Key('template-blank')));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('designer-new-row')), 'Plate');
+      await tester.enterText(
+        find.byKey(const Key('designer-new-row')),
+        'Plate',
+      );
       await tester.tap(find.byKey(const Key('designer-add-row')));
       await tester.pumpAndSettle();
 
@@ -167,8 +179,10 @@ void main() {
       await tester.tap(find.byKey(const Key('designer-save')));
       await tester.pumpAndSettle();
 
-      expect(_CapturingCheatsheets.saved.single.rows[0].valueAction,
-          ValueAction.call);
+      expect(
+        _CapturingCheatsheets.saved.single.rows[0].valueAction,
+        ValueAction.call,
+      );
     });
 
     testWidgets('title and wallet group are editable', (tester) async {
@@ -176,9 +190,14 @@ void main() {
       await tester.tap(find.byKey(const Key('template-blank')));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('designer-title')), 'My Card');
       await tester.enterText(
-          find.byKey(const Key('designer-wallet-group')), 'Health');
+        find.byKey(const Key('designer-title')),
+        'My Card',
+      );
+      await tester.enterText(
+        find.byKey(const Key('designer-wallet-group')),
+        'Health',
+      );
       await tester.tap(find.byKey(const Key('designer-save')));
       await tester.pumpAndSettle();
 
@@ -192,7 +211,10 @@ void main() {
       await tester.tap(find.byKey(const Key('template-blank')));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('designer-new-row')), 'Plate');
+      await tester.enterText(
+        find.byKey(const Key('designer-new-row')),
+        'Plate',
+      );
       await tester.tap(find.byKey(const Key('designer-add-row')));
       await tester.pumpAndSettle();
       expect(find.text('Plate'), findsOneWidget);
@@ -202,8 +224,9 @@ void main() {
       expect(find.text('Plate'), findsNothing);
     });
 
-    testWidgets('no quick-access switch and no reorder handle in v1',
-        (tester) async {
+    testWidgets('no quick-access switch and no reorder handle in v1', (
+      tester,
+    ) async {
       await mount(tester);
       await tester.tap(find.byKey(const Key('template-accidentClaim')));
       await tester.pumpAndSettle();
@@ -224,15 +247,17 @@ void main() {
     // `reset()`-after-commit also masked the bug; that call has since been
     // removed (it read `ref` after an await and blanked the outgoing frame),
     // which left this test sharp again.
-    testWidgets('starting a second new card does not reuse the first',
-        (tester) async {
+    testWidgets('starting a second new card does not reuse the first', (
+      tester,
+    ) async {
       var nextId = 0;
       final container = ProviderContainer(
         overrides: [
           cheatsheetIdGenProvider.overrideWithValue(() => 'id-${++nextId}'),
           cheatsheetsStateProvider.overrideWith(_CapturingCheatsheets.new),
-          cheatsheetSourcePickerProvider
-              .overrideWithValue((_, {required templateId}) async => null),
+          cheatsheetSourcePickerProvider.overrideWithValue(
+            (_, {required templateId}) async => null,
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -246,9 +271,10 @@ void main() {
           UncontrolledProviderScope(
             container: container,
             child: const MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: SizedBox.shrink()),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: SizedBox.shrink(),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -256,9 +282,10 @@ void main() {
           UncontrolledProviderScope(
             container: container,
             child: const MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: CheatsheetDesignerScreen()),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: CheatsheetDesignerScreen(),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -275,8 +302,11 @@ void main() {
       // Second card, same session.
       await openDesigner();
 
-      expect(find.byKey(const Key('template-accidentClaim')), findsOneWidget,
-          reason: 'a new card starts at the template chooser, not mid-edit');
+      expect(
+        find.byKey(const Key('template-accidentClaim')),
+        findsOneWidget,
+        reason: 'a new card starts at the template chooser, not mid-edit',
+      );
 
       await tester.tap(find.byKey(const Key('template-blank')));
       await tester.pumpAndSettle();
@@ -286,16 +316,22 @@ void main() {
 
       expect(_CapturingCheatsheets.saved.length, 2);
       final ids = _CapturingCheatsheets.saved.map((c) => c.id).toList();
-      expect(ids.toSet().length, 2,
-          reason: 'the second card must not overwrite the first');
       expect(
-          _CapturingCheatsheets.saved.map((c) => c.title), ['First', 'Second']);
+        ids.toSet().length,
+        2,
+        reason: 'the second card must not overwrite the first',
+      );
+      expect(_CapturingCheatsheets.saved.map((c) => c.title), [
+        'First',
+        'Second',
+      ]);
     });
   });
 
   group('edit', () {
-    testWidgets('loads the existing card without a template chooser',
-        (tester) async {
+    testWidgets('loads the existing card without a template chooser', (
+      tester,
+    ) async {
       _CapturingCheatsheets.seed = const [existingCard];
       await mount(tester, cardId: 'existing-id');
 
@@ -304,12 +340,16 @@ void main() {
       expect(find.text('VIN'), findsOneWidget);
     });
 
-    testWidgets('renaming and saving keeps the id — no duplicate card',
-        (tester) async {
+    testWidgets('renaming and saving keeps the id — no duplicate card', (
+      tester,
+    ) async {
       _CapturingCheatsheets.seed = const [existingCard];
       await mount(tester, cardId: 'existing-id');
 
-      await tester.enterText(find.byKey(const Key('designer-title')), 'Renamed');
+      await tester.enterText(
+        find.byKey(const Key('designer-title')),
+        'Renamed',
+      );
       await tester.tap(find.byKey(const Key('designer-save')));
       await tester.pumpAndSettle();
 
@@ -319,8 +359,9 @@ void main() {
       expect(saved.title, 'Renamed');
     });
 
-    testWidgets('an existing binding is shown rather than "Tap to bind"',
-        (tester) async {
+    testWidgets('an existing binding is shown rather than "Tap to bind"', (
+      tester,
+    ) async {
       _CapturingCheatsheets.seed = const [existingCard];
       await mount(tester, cardId: 'existing-id');
 
@@ -328,8 +369,9 @@ void main() {
       expect(find.text('Tap to bind'), findsOneWidget); // only the VIN row
     });
 
-    testWidgets('an image binding is summarised in the active language',
-        (tester) async {
+    testWidgets('an image binding is summarised in the active language', (
+      tester,
+    ) async {
       _CapturingCheatsheets.seed = const [
         CheatsheetCard(
           id: 'img',
@@ -355,8 +397,9 @@ void main() {
       expect(find.text('Photo'), findsNothing);
     });
 
-    testWidgets('the loaded card\'s template reaches the picker',
-        (tester) async {
+    testWidgets('the loaded card\'s template reaches the picker', (
+      tester,
+    ) async {
       // Distinct wiring from the create flow: there the template comes from
       // startFromTemplate, here from load(existing). If the editor had not
       // taken the loaded card by the time a row is bound, the picker would
@@ -378,8 +421,9 @@ void main() {
     });
   });
 
-  testWidgets('a failed save says so without the exception text',
-      (tester) async {
+  testWidgets('a failed save says so without the exception text', (
+    tester,
+  ) async {
     _CapturingCheatsheets.saveError = StateError('{"plate":"SECRET1"}');
     addTearDown(() => _CapturingCheatsheets.saveError = null);
     await mount(tester);

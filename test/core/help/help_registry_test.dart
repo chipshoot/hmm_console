@@ -42,26 +42,67 @@ void main() {
     final en = lookupAppLocalizations(const Locale('en'));
     final zh = lookupAppLocalizations(const Locale('zh'));
     for (final id in HelpId.values) {
-      expect(helpFor(id, zh).summary, isNot(helpFor(id, en).summary),
-          reason: '$id');
+      expect(
+        helpFor(id, zh).summary,
+        isNot(helpFor(id, en).summary),
+        reason: '$id',
+      );
     }
   });
 
   test('contacts help explains the sort setting with its icon', () {
     final l = lookupAppLocalizations(const Locale('en'));
-    final entry = helpFor(HelpId.contacts, l)
-        .entries
-        .singleWhere((e) => e.icon == Icons.sort_by_alpha);
+    final entry = helpFor(
+      HelpId.contacts,
+      l,
+    ).entries.singleWhere((e) => e.icon == Icons.sort_by_alpha);
     expect(entry.title, l.helpContactsSortTitle);
     expect(entry.body, contains('Settings'));
   });
 
   test('contact edit help covers More name options with its icon', () {
     final l = lookupAppLocalizations(const Locale('en'));
-    final entry = helpFor(HelpId.contactEdit, l)
-        .entries
-        .singleWhere((e) => e.icon == Icons.translate);
+    final entry = helpFor(
+      HelpId.contactEdit,
+      l,
+    ).entries.singleWhere((e) => e.icon == Icons.translate);
     expect(entry.title, l.helpContactEditNameOptionsTitle);
     expect(entry.body, contains('pinyin'));
+  });
+
+  test('wallet help explains tiles, both chip rows and the lock badge', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final entries = helpFor(HelpId.cheatsheetWallet, l).entries;
+    // card_tile.dart draws Icons.lock_outline on a protected card. Tiles and
+    // chips draw no Material icon, so they use the closest stand-in (the
+    // vehicleNotes "Open" entry's precedent).
+    expect(entries.map((e) => e.icon), [
+      Icons.touch_app_outlined,
+      Icons.filter_list,
+      Icons.label_outline,
+      Icons.lock_outline,
+    ]);
+    expect(entries.map((e) => e.title), [
+      l.helpCheatsheetWalletTilesTitle,
+      l.helpCheatsheetWalletGroupsTitle,
+      l.helpCheatsheetWalletTagsTitle,
+      l.helpCheatsheetWalletLockTitle,
+    ]);
+  });
+
+  test('wallet help is translated entry by entry in zh', () {
+    final en = helpFor(
+      HelpId.cheatsheetWallet,
+      lookupAppLocalizations(const Locale('en')),
+    );
+    final zh = helpFor(
+      HelpId.cheatsheetWallet,
+      lookupAppLocalizations(const Locale('zh')),
+    );
+    expect(zh.entries.length, en.entries.length);
+    for (var i = 0; i < en.entries.length; i++) {
+      expect(zh.entries[i].title, isNot(en.entries[i].title), reason: '$i');
+      expect(zh.entries[i].body, isNot(en.entries[i].body), reason: '$i');
+    }
   });
 }

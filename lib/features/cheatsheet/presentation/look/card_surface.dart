@@ -110,6 +110,7 @@ class CardSurface extends ConsumerStatefulWidget {
     required this.builder,
     this.pendingCoverBytes,
     this.allowUnlock = false,
+    this.coverCacheWidth,
   });
 
   final CheatsheetCard card;
@@ -119,6 +120,10 @@ class CardSurface extends ConsumerStatefulWidget {
   final Uint8List? pendingCoverBytes;
 
   final bool allowUnlock;
+
+  /// Decode the cover no wider than this many device pixels (tiles only; the
+  /// detail header decodes at full size).
+  final int? coverCacheWidth;
 
   @override
   ConsumerState<CardSurface> createState() => _CardSurfaceState();
@@ -280,6 +285,7 @@ class _CardSurfaceState extends ConsumerState<CardSurface> {
         bytes,
         key: const Key('card-surface-cover'),
         fit: BoxFit.cover,
+        cacheWidth: widget.coverCacheWidth,
         gaplessPlayback: true,
         excludeFromSemantics: true,
       ),

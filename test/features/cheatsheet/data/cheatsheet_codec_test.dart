@@ -33,12 +33,14 @@ void main() {
 
   test('round-trips every granularity', () {
     for (final kind in SourceGranularity.values) {
-      final c = card.copyWith(rows: [
-        CheatsheetRow(
-          label: kind.name,
-          source: CheatsheetSource(noteUuid: 'n', kind: kind, locator: 'x'),
-        ),
-      ]);
+      final c = card.copyWith(
+        rows: [
+          CheatsheetRow(
+            label: kind.name,
+            source: CheatsheetSource(noteUuid: 'n', kind: kind, locator: 'x'),
+          ),
+        ],
+      );
       expect(CheatsheetCodec.fromMap(CheatsheetCodec.toMap(c)), equals(c));
     }
   });
@@ -196,7 +198,11 @@ void main() {
   });
 
   test('a rows value of the wrong type yields no rows, not a throw', () {
-    final c = CheatsheetCodec.fromMap({'id': 'x', 'title': 'T', 'rows': 'nope'});
+    final c = CheatsheetCodec.fromMap({
+      'id': 'x',
+      'title': 'T',
+      'rows': 'nope',
+    });
     expect(c.rows, isEmpty);
     expect(c.id, 'x');
   });

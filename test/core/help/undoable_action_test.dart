@@ -16,39 +16,41 @@ class _Probe {
 /// button triggers the undoable action. Lets a test leave the screen before
 /// tapping Undo.
 Widget _app(_Probe p) => MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Builder(
-        builder: (home) => Scaffold(
-          body: TextButton(
-            onPressed: () => Navigator.of(home).push(MaterialPageRoute(
-              builder: (ctx) => Scaffold(
-                body: TextButton(
-                  onPressed: () => showUndoableAction(
-                    ctx,
-                    run: () async {
-                      p.calls.add('run');
-                      if (p.failRun) throw StateError('offline');
-                    },
-                    undo: () async {
-                      p.calls.add('undo');
-                      if (p.failUndo) throw StateError('offline');
-                    },
-                    done: 'Moved',
-                    failed: 'Move failed',
-                    undone: 'Restored',
-                    undoFailed: 'Restore failed',
-                    onChanged: () => p.changed++,
-                  ),
-                  child: const Text('act'),
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: Builder(
+    builder: (home) => Scaffold(
+      body: TextButton(
+        onPressed: () => Navigator.of(home).push(
+          MaterialPageRoute(
+            builder: (ctx) => Scaffold(
+              body: TextButton(
+                onPressed: () => showUndoableAction(
+                  ctx,
+                  run: () async {
+                    p.calls.add('run');
+                    if (p.failRun) throw StateError('offline');
+                  },
+                  undo: () async {
+                    p.calls.add('undo');
+                    if (p.failUndo) throw StateError('offline');
+                  },
+                  done: 'Moved',
+                  failed: 'Move failed',
+                  undone: 'Restored',
+                  undoFailed: 'Restore failed',
+                  onChanged: () => p.changed++,
                 ),
+                child: const Text('act'),
               ),
-            )),
-            child: const Text('go'),
+            ),
           ),
         ),
+        child: const Text('go'),
       ),
-    );
+    ),
+  ),
+);
 
 Future<void> _act(WidgetTester tester, _Probe p) async {
   await tester.pumpWidget(_app(p));
@@ -106,34 +108,37 @@ void main() {
     expect(find.text('Restored'), findsOneWidget);
   });
 
-  testWidgets('a second tap while the first is running is ignored',
-      (tester) async {
+  testWidgets('a second tap while the first is running is ignored', (
+    tester,
+  ) async {
     final gate = Completer<void>();
     var runs = 0;
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: Builder(
-          builder: (ctx) => TextButton(
-            onPressed: () => showUndoableAction(
-              ctx,
-              busyKey: 'detach 1',
-              run: () {
-                runs++;
-                return gate.future;
-              },
-              undo: () async {},
-              done: 'Moved',
-              failed: 'Move failed',
-              undone: 'Restored',
-              undoFailed: 'Restore failed',
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Builder(
+            builder: (ctx) => TextButton(
+              onPressed: () => showUndoableAction(
+                ctx,
+                busyKey: 'detach 1',
+                run: () {
+                  runs++;
+                  return gate.future;
+                },
+                undo: () async {},
+                done: 'Moved',
+                failed: 'Move failed',
+                undone: 'Restored',
+                undoFailed: 'Restore failed',
+              ),
+              child: const Text('act'),
             ),
-            child: const Text('act'),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('act'));
     await tester.tap(find.text('act'));
     gate.complete();

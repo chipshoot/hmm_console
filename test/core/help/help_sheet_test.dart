@@ -6,13 +6,13 @@ import 'package:hmm_console/core/help/help_registry.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 Widget _app({Locale locale = const Locale('en')}) => MaterialApp(
-      locale: locale,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        appBar: AppBar(actions: const [HelpButton(helpId: HelpId.vehicleNotes)]),
-      ),
-    );
+  locale: locale,
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: Scaffold(
+    appBar: AppBar(actions: const [HelpButton(helpId: HelpId.vehicleNotes)]),
+  ),
+);
 
 void main() {
   testWidgets('the ? button opens that screen\'s help', (tester) async {
@@ -24,29 +24,41 @@ void main() {
     expect(find.byIcon(Icons.link_off), findsOneWidget);
   });
 
-  testWidgets('Material bottom sheet on Android', (tester) async {
-    await tester.pumpWidget(_app());
-    await tester.tap(find.byTooltip('Help'));
-    await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsOneWidget);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  testWidgets(
+    'Material bottom sheet on Android',
+    (tester) async {
+      await tester.pumpWidget(_app());
+      await tester.tap(find.byTooltip('Help'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.android),
+  );
 
-  testWidgets('Cupertino popup on iOS', (tester) async {
-    await tester.pumpWidget(_app());
-    await tester.tap(find.byTooltip('Help'));
-    await tester.pumpAndSettle();
-    expect(find.byType(CupertinoPopupSurface), findsOneWidget);
-    expect(find.byType(BottomSheet), findsNothing);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+  testWidgets(
+    'Cupertino popup on iOS',
+    (tester) async {
+      await tester.pumpWidget(_app());
+      await tester.tap(find.byTooltip('Help'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CupertinoPopupSurface), findsOneWidget);
+      expect(find.byType(BottomSheet), findsNothing);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
 
-  testWidgets('Close dismisses the sheet on both platforms', (tester) async {
-    await tester.pumpWidget(_app());
-    await tester.tap(find.byTooltip('Help'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Close'));
-    await tester.pumpAndSettle();
-    expect(find.text('Car notes'), findsNothing);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+  testWidgets(
+    'Close dismisses the sheet on both platforms',
+    (tester) async {
+      await tester.pumpWidget(_app());
+      await tester.tap(find.byTooltip('Help'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(find.text('Car notes'), findsNothing);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
 
   testWidgets('Close dismisses the Android sheet too', (tester) async {
     await tester.pumpWidget(_app());

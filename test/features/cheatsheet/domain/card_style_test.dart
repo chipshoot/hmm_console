@@ -46,12 +46,20 @@ void main() {
     });
 
     test('wrong-typed values render the default and are kept raw', () {
-      const s = CardStyle({'theme': 5, 'layout': ['x'], 'icon': 7});
+      const s = CardStyle({
+        'theme': 5,
+        'layout': ['x'],
+        'icon': 7,
+      });
       final look = s.resolve('blank');
       expect(look.theme, CardThemeId.slate);
       expect(look.layout, CardLayout.facts);
       expect(look.icon, '\u{1F5C2}️');
-      expect(s.toMap(), {'theme': 5, 'layout': ['x'], 'icon': 7});
+      expect(s.toMap(), {
+        'theme': 5,
+        'layout': ['x'],
+        'icon': 7,
+      });
     });
 
     test('a non-emoji icon renders the template icon and is kept raw', () {
@@ -64,47 +72,67 @@ void main() {
 
   group('edits write only what differs from the template', () {
     test('choosing the template theme removes the key', () {
-      final s = const CardStyle({'theme': 'red'})
-          .withTheme(CardThemeId.blue, templateId: 'accidentClaim');
+      final s = const CardStyle({
+        'theme': 'red',
+      }).withTheme(CardThemeId.blue, templateId: 'accidentClaim');
       expect(s.isEmpty, isTrue);
     });
 
     test('choosing another theme stores its name', () {
-      final s = CardStyle.empty
-          .withTheme(CardThemeId.purple, templateId: 'accidentClaim');
+      final s = CardStyle.empty.withTheme(
+        CardThemeId.purple,
+        templateId: 'accidentClaim',
+      );
       expect(s.toMap(), {'theme': 'purple'});
       expect(s.resolve('accidentClaim').theme, CardThemeId.purple);
     });
 
     test('pattern none is never stored', () {
-      expect(const CardStyle({'pattern': 'dots'})
-          .withPattern(CardPattern.none)
-          .isEmpty, isTrue);
-      expect(CardStyle.empty.withPattern(CardPattern.waves).toMap(),
-          {'pattern': 'waves'});
+      expect(
+        const CardStyle({
+          'pattern': 'dots',
+        }).withPattern(CardPattern.none).isEmpty,
+        isTrue,
+      );
+      expect(CardStyle.empty.withPattern(CardPattern.waves).toMap(), {
+        'pattern': 'waves',
+      });
     });
 
     test('the template icon and a cleared icon are not stored', () {
-      expect(CardStyle.empty
-          .withIcon('\u{1F4D6}', templateId: 'document')
-          .isEmpty, isTrue);
-      expect(const CardStyle({'icon': '\u{1F984}'})
-          .withIcon(null, templateId: 'document')
-          .isEmpty, isTrue);
-      expect(CardStyle.empty.withIcon('', templateId: 'document').isEmpty,
-          isTrue);
-      expect(CardStyle.empty
-          .withIcon('\u{1F984}', templateId: 'document')
-          .toMap(), {'icon': '\u{1F984}'});
+      expect(
+        CardStyle.empty.withIcon('\u{1F4D6}', templateId: 'document').isEmpty,
+        isTrue,
+      );
+      expect(
+        const CardStyle({
+          'icon': '\u{1F984}',
+        }).withIcon(null, templateId: 'document').isEmpty,
+        isTrue,
+      );
+      expect(
+        CardStyle.empty.withIcon('', templateId: 'document').isEmpty,
+        isTrue,
+      );
+      expect(
+        CardStyle.empty.withIcon('\u{1F984}', templateId: 'document').toMap(),
+        {'icon': '\u{1F984}'},
+      );
     });
 
     test('the template layout is not stored', () {
-      expect(CardStyle.empty
-          .withLayout(CardLayout.keyPoints, templateId: 'document')
-          .isEmpty, isTrue);
-      expect(CardStyle.empty
-          .withLayout(CardLayout.facts, templateId: 'document')
-          .toMap(), {'layout': 'facts'});
+      expect(
+        CardStyle.empty
+            .withLayout(CardLayout.keyPoints, templateId: 'document')
+            .isEmpty,
+        isTrue,
+      );
+      expect(
+        CardStyle.empty
+            .withLayout(CardLayout.facts, templateId: 'document')
+            .toMap(),
+        {'layout': 'facts'},
+      );
     });
 
     test('cover path is set and cleared', () {
@@ -114,15 +142,23 @@ void main() {
       expect(s.withCoverPath('').isEmpty, isTrue);
     });
 
-    test('an edit keeps unknown keys and replaces in place, preserving order',
-        () {
-      const s = CardStyle({'sparkle': {'a': 1}, 'theme': 'red', 'z': true});
-      final edited =
-          s.withTheme(CardThemeId.teal, templateId: 'accidentClaim');
-      expect(edited.toMap().keys.toList(), ['sparkle', 'theme', 'z']);
-      expect(edited.toMap()['theme'], 'teal');
-      expect(edited.toMap()['sparkle'], {'a': 1});
-    });
+    test(
+      'an edit keeps unknown keys and replaces in place, preserving order',
+      () {
+        const s = CardStyle({
+          'sparkle': {'a': 1},
+          'theme': 'red',
+          'z': true,
+        });
+        final edited = s.withTheme(
+          CardThemeId.teal,
+          templateId: 'accidentClaim',
+        );
+        expect(edited.toMap().keys.toList(), ['sparkle', 'theme', 'z']);
+        expect(edited.toMap()['theme'], 'teal');
+        expect(edited.toMap()['sparkle'], {'a': 1});
+      },
+    );
 
     test('toMap is a copy; the style cannot be mutated through it', () {
       const s = CardStyle({'theme': 'red'});
@@ -161,13 +197,29 @@ void main() {
   });
 
   test('equality is structural and key-order sensitive', () {
-    expect(const CardStyle({'theme': 'red', 'pattern': 'dots'}),
-        const CardStyle({'theme': 'red', 'pattern': 'dots'}));
-    expect(const CardStyle({'theme': 'red', 'pattern': 'dots'}).hashCode,
-        const CardStyle({'theme': 'red', 'pattern': 'dots'}).hashCode);
-    expect(const CardStyle({'theme': 'red', 'pattern': 'dots'}),
-        isNot(const CardStyle({'pattern': 'dots', 'theme': 'red'})));
-    expect(const CardStyle({'x': {'a': [1, 2]}}),
-        const CardStyle({'x': {'a': [1, 2]}}));
+    expect(
+      const CardStyle({'theme': 'red', 'pattern': 'dots'}),
+      const CardStyle({'theme': 'red', 'pattern': 'dots'}),
+    );
+    expect(
+      const CardStyle({'theme': 'red', 'pattern': 'dots'}).hashCode,
+      const CardStyle({'theme': 'red', 'pattern': 'dots'}).hashCode,
+    );
+    expect(
+      const CardStyle({'theme': 'red', 'pattern': 'dots'}),
+      isNot(const CardStyle({'pattern': 'dots', 'theme': 'red'})),
+    );
+    expect(
+      const CardStyle({
+        'x': {
+          'a': [1, 2],
+        },
+      }),
+      const CardStyle({
+        'x': {
+          'a': [1, 2],
+        },
+      }),
+    );
   });
 }

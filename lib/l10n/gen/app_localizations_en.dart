@@ -792,6 +792,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get cheatsheetChipAll => 'All';
+
+  @override
+  String get cheatsheetTileProtectedSemantics => ', protected';
+
+  @override
+  String get cheatsheetTileCoverLockedSemantics => ', cover locked';
+
+  @override
   String get launcherTitle => 'Launcher';
 
   @override
@@ -2363,6 +2372,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpContactEditSelfBody =>
       'Marks this contact as yourself. Only one contact can be marked.';
+
+  @override
+  String get helpCheatsheetWalletTitle => 'Cheatsheets';
+
+  @override
+  String get helpCheatsheetWalletSummary =>
+      'Your cards at a glance. Tap a card to open it; use search and the chips to narrow the wallet.';
+
+  @override
+  String get helpCheatsheetWalletTilesTitle => 'Cards';
+
+  @override
+  String get helpCheatsheetWalletTilesBody =>
+      'Each card shows its colour or cover photo, its icon, its title, and its group with the number of rows. Tap a card to open it.';
+
+  @override
+  String get helpCheatsheetWalletGroupsTitle => 'Group chips';
+
+  @override
+  String get helpCheatsheetWalletGroupsBody =>
+      'The first row of chips shows one wallet group at a time; All shows every card again. Search works within the chosen group.';
+
+  @override
+  String get helpCheatsheetWalletTagsTitle => 'Tag chips';
+
+  @override
+  String get helpCheatsheetWalletTagsBody =>
+      'Tag chips narrow the wallet to cards that carry every tag you select. Tap a tag again to drop it.';
+
+  @override
+  String get helpCheatsheetWalletLockTitle => 'Lock badge';
+
+  @override
+  String get helpCheatsheetWalletLockBody =>
+      'A lock marks a protected card. A 🔒 means its cover photo is locked in the vault: the card shows its colour instead, and opening the card lets you unlock the photo.';
 
   @override
   String get contactCustomRelationship => 'Describe the relationship';

@@ -55,15 +55,15 @@ class _FakeNotes implements IHmmNoteRepository {
 class _FakeCatalogs implements INoteCatalogRepository {
   @override
   Future<List<NoteCatalog>> getCatalogs() async => [
-        for (final e in catalogNames.entries)
-          NoteCatalog(
-            id: e.key,
-            name: e.value,
-            schema: '{}',
-            formatType: 0,
-            isDefault: false,
-          ),
-      ];
+    for (final e in catalogNames.entries)
+      NoteCatalog(
+        id: e.key,
+        name: e.value,
+        schema: '{}',
+        formatType: 0,
+        isDefault: false,
+      ),
+  ];
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -85,23 +85,23 @@ HmmNote note(
   String? content,
   String? description,
   int? catalogId,
-}) =>
-    HmmNote(
-      id: id,
-      uuid: 'uuid-$id',
-      subject: subject,
-      authorId: 1,
-      createDate: DateTime(2026),
-      content: content,
-      description: description,
-      catalogId: catalogId,
-    );
+}) => HmmNote(
+  id: id,
+  uuid: 'uuid-$id',
+  subject: subject,
+  authorId: 1,
+  createDate: DateTime(2026),
+  content: content,
+  description: description,
+  catalogId: catalogId,
+);
 
 final autoNote = note(
   1,
   subject: 'My Car',
   catalogId: 1,
-  content: '{"note":{"content":{"AutomobileInfo":{"plate":"ABC123",'
+  content:
+      '{"note":{"content":{"AutomobileInfo":{"plate":"ABC123",'
       '"vin":"1HG","id":7,"createdDate":"2026-01-01"}}}}',
 );
 
@@ -131,9 +131,9 @@ void main() {
           noteCatalogRepositoryProvider.overrideWithValue(_FakeCatalogs()),
         ],
         child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+
           home: Scaffold(
             body: SourcePicker(
               templateId: templateId,
@@ -157,26 +157,32 @@ void main() {
   testWidgets('search filters notes case-insensitively', (tester) async {
     await mount(tester, [autoNote, docNote]);
 
-    await tester.enterText(find.byKey(const Key('source-picker-search')), 'vim');
+    await tester.enterText(
+      find.byKey(const Key('source-picker-search')),
+      'vim',
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Vim Notes'), findsOneWidget);
     expect(find.text('My Car'), findsNothing);
   });
 
-  testWidgets('notes past the first page are reachable — no silent cap',
-      (tester) async {
+  testWidgets('notes past the first page are reachable — no silent cap', (
+    tester,
+  ) async {
     // 250 notes against the picker's 100-per-page fetch: three real pages, so
     // a picker that took only the first would lose 150 of them.
     final many = [
-      for (var i = 1; i <= 250; i++) note(i, subject: 'Note $i', catalogId: 4)
+      for (var i = 1; i <= 250; i++) note(i, subject: 'Note $i', catalogId: 4),
     ];
     await mount(tester, many);
 
     // Search by key, not by text: the search field itself renders the query,
     // so find.text would match the field as well as the row.
     await tester.enterText(
-        find.byKey(const Key('source-picker-search')), 'Note 250');
+      find.byKey(const Key('source-picker-search')),
+      'Note 250',
+    );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('source-note-uuid-250')), findsOneWidget);
@@ -196,8 +202,9 @@ void main() {
     expect(picked()!.locator, 'AutomobileInfo.plate');
   });
 
-  testWidgets('internal and audit keys are not offered as fields',
-      (tester) async {
+  testWidgets('internal and audit keys are not offered as fields', (
+    tester,
+  ) async {
     await mount(tester, [autoNote]);
 
     await tester.tap(find.text('My Car'));
@@ -221,10 +228,12 @@ void main() {
     expect(picked()!.noteUuid, 'uuid-2');
   });
 
-  testWidgets('whole note is always offered, even with no fields or sections',
-      (tester) async {
-    final picked =
-        await mount(tester, [note(3, subject: 'Plain', catalogId: 4)]);
+  testWidgets('whole note is always offered, even with no fields or sections', (
+    tester,
+  ) async {
+    final picked = await mount(tester, [
+      note(3, subject: 'Plain', catalogId: 4),
+    ]);
 
     await tester.tap(find.text('Plain'));
     await tester.pumpAndSettle();
@@ -235,46 +244,53 @@ void main() {
     expect(picked()!.locator, isNull);
   });
 
-  testWidgets('an empty note list shows an empty state, not a blank sheet',
-      (tester) async {
+  testWidgets('an empty note list shows an empty state, not a blank sheet', (
+    tester,
+  ) async {
     await mount(tester, []);
 
     expect(find.byKey(const Key('source-picker-empty')), findsOneWidget);
   });
 
   group('what the picker offers is scoped to the card', () {
-    testWidgets('an accident claim shows vehicle notes under their own heading',
-        (tester) async {
-      await mount(
-        tester,
-        [contactNote, autoNote, policyNote],
-        templateId: 'accidentClaim',
-      );
+    testWidgets(
+      'an accident claim shows vehicle notes under their own heading',
+      (tester) async {
+        await mount(tester, [
+          contactNote,
+          autoNote,
+          policyNote,
+        ], templateId: 'accidentClaim');
 
-      expect(find.text('VEHICLE'), findsOneWidget);
-      expect(find.text('OTHER NOTES'), findsOneWidget);
+        expect(find.text('VEHICLE'), findsOneWidget);
+        expect(find.text('OTHER NOTES'), findsOneWidget);
 
-      // Ranked, not just labelled: both vehicle notes must sit above the
-      // contact note, which is the entire point of the change.
-      final vehicleHeading = tester.getTopLeft(find.text('VEHICLE')).dy;
-      final otherHeading = tester.getTopLeft(find.text('OTHER NOTES')).dy;
-      expect(
-          tester.getTopLeft(find.text('My Car')).dy, greaterThan(vehicleHeading));
-      expect(tester.getTopLeft(find.text('State Farm 4471')).dy,
-          lessThan(otherHeading));
-      expect(tester.getTopLeft(find.text("Dad's contact info")).dy,
-          greaterThan(otherHeading));
-    });
+        // Ranked, not just labelled: both vehicle notes must sit above the
+        // contact note, which is the entire point of the change.
+        final vehicleHeading = tester.getTopLeft(find.text('VEHICLE')).dy;
+        final otherHeading = tester.getTopLeft(find.text('OTHER NOTES')).dy;
+        expect(
+          tester.getTopLeft(find.text('My Car')).dy,
+          greaterThan(vehicleHeading),
+        );
+        expect(
+          tester.getTopLeft(find.text('State Farm 4471')).dy,
+          lessThan(otherHeading),
+        );
+        expect(
+          tester.getTopLeft(find.text("Dad's contact info")).dy,
+          greaterThan(otherHeading),
+        );
+      },
+    );
 
-    testWidgets('out-of-domain notes stay bindable, not hidden', (tester) async {
+    testWidgets('out-of-domain notes stay bindable, not hidden', (
+      tester,
+    ) async {
       // The Accident Claim template asks for Driver, Phone and Address, which
       // live in a General note. Hiding them would trade one annoyance for
       // three rows that can never be filled.
-      await mount(
-        tester,
-        [autoNote, contactNote],
-        templateId: 'accidentClaim',
-      );
+      await mount(tester, [autoNote, contactNote], templateId: 'accidentClaim');
 
       expect(find.text("Dad's contact info"), findsOneWidget);
 
@@ -283,22 +299,20 @@ void main() {
       expect(find.byKey(const Key('granularity-whole')), findsOneWidget);
     });
 
-    testWidgets('saved cheatsheet cards are never offered as sources',
-        (tester) async {
+    testWidgets('saved cheatsheet cards are never offered as sources', (
+      tester,
+    ) async {
       // Cards are stored as notes under Hmm.CheatsheetMan.Cheatsheet. Before
       // this, every card you saved came back here as something to reference.
-      await mount(
-        tester,
-        [autoNote, savedCard],
-        templateId: 'accidentClaim',
-      );
+      await mount(tester, [autoNote, savedCard], templateId: 'accidentClaim');
 
       expect(find.text('Cheatsheet:abc-123'), findsNothing);
       expect(find.text('My Car'), findsOneWidget);
     });
 
-    testWidgets('subsystem anchor notes are never offered as sources',
-        (tester) async {
+    testWidgets('subsystem anchor notes are never offered as sources', (
+      tester,
+    ) async {
       await mount(tester, [docNote, anchorNote], templateId: 'accidentClaim');
 
       // The anchor's subject is 'Automobile' — indistinguishable from a real
@@ -308,15 +322,20 @@ void main() {
     });
 
     testWidgets(
-        'a card with nothing but infrastructure notes shows the empty state',
-        (tester) async {
-      await mount(tester, [savedCard, anchorNote], templateId: 'accidentClaim');
+      'a card with nothing but infrastructure notes shows the empty state',
+      (tester) async {
+        await mount(tester, [
+          savedCard,
+          anchorNote,
+        ], templateId: 'accidentClaim');
 
-      expect(find.byKey(const Key('source-picker-empty')), findsOneWidget);
-    });
+        expect(find.byKey(const Key('source-picker-empty')), findsOneWidget);
+      },
+    );
 
-    testWidgets('a template with no domain shows one plain list, no headings',
-        (tester) async {
+    testWidgets('a template with no domain shows one plain list, no headings', (
+      tester,
+    ) async {
       await mount(tester, [autoNote, docNote], templateId: 'blank');
 
       expect(find.text('VEHICLE'), findsNothing);
@@ -325,16 +344,15 @@ void main() {
       expect(find.text('Vim Notes'), findsOneWidget);
     });
 
-    testWidgets('headings disappear when a search empties one group',
-        (tester) async {
-      await mount(
-        tester,
-        [autoNote, contactNote],
-        templateId: 'accidentClaim',
-      );
+    testWidgets('headings disappear when a search empties one group', (
+      tester,
+    ) async {
+      await mount(tester, [autoNote, contactNote], templateId: 'accidentClaim');
 
       await tester.enterText(
-          find.byKey(const Key('source-picker-search')), 'car');
+        find.byKey(const Key('source-picker-search')),
+        'car',
+      );
       await tester.pumpAndSettle();
 
       // Only the vehicle note matches, so 'Other notes' would sit over nothing.
@@ -342,16 +360,15 @@ void main() {
       expect(find.text('OTHER NOTES'), findsNothing);
     });
 
-    testWidgets('a search matching nothing shows the no-matches state',
-        (tester) async {
-      await mount(
-        tester,
-        [autoNote, contactNote],
-        templateId: 'accidentClaim',
-      );
+    testWidgets('a search matching nothing shows the no-matches state', (
+      tester,
+    ) async {
+      await mount(tester, [autoNote, contactNote], templateId: 'accidentClaim');
 
       await tester.enterText(
-          find.byKey(const Key('source-picker-search')), 'zzz');
+        find.byKey(const Key('source-picker-search')),
+        'zzz',
+      );
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('source-picker-no-matches')), findsOneWidget);
@@ -359,8 +376,9 @@ void main() {
     });
   });
 
-  testWidgets('a photo ID is offered as an image, not as its path',
-      (tester) async {
+  testWidgets('a photo ID is offered as an image, not as its path', (
+    tester,
+  ) async {
     const front = VaultRef(
       path: 'images/front.jpg',
       contentType: 'image/jpeg',
@@ -374,7 +392,8 @@ void main() {
       authorId: 1,
       createDate: DateTime(2026),
       catalogId: 1,
-      content: '{"note":{"content":{"DriverLicence":'
+      content:
+          '{"note":{"content":{"DriverLicence":'
           '{"number":"D123","frontImagePath":"images/front.jpg"}}}}',
       attachments: NoteAttachments(images: const [front]),
     );
@@ -384,7 +403,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('DriverLicence.frontImagePath'), findsNothing);
-    await tester.tap(find.byKey(const Key('granularity-image-images/front.jpg')));
+    await tester.tap(
+      find.byKey(const Key('granularity-image-images/front.jpg')),
+    );
     await tester.pumpAndSettle();
 
     expect(picked()!.kind, SourceGranularity.image);

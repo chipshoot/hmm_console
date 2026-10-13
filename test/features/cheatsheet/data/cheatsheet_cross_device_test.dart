@@ -33,13 +33,17 @@ class _Device {
     final aid = await db
         .into(db.authors)
         .insert(AuthorsCompanion.insert(accountName: 'tester'));
-    final author =
-        await (db.select(db.authors)..where((a) => a.id.equals(aid)))
-            .getSingle();
+    final author = await (db.select(
+      db.authors,
+    )..where((a) => a.id.equals(aid))).getSingle();
     final notes = LocalHmmNoteRepository(db, () async => author);
     final catalogs = LocalNoteCatalogRepository(db);
     return _Device(
-        db, notes, catalogs, LocalCheatsheetRepository(notes, catalogs));
+      db,
+      notes,
+      catalogs,
+      LocalCheatsheetRepository(notes, catalogs),
+    );
   }
 
   Future<int> autoCatalogId() async =>
@@ -55,13 +59,15 @@ class _Device {
 /// Replays one note onto another device the way a sync provider does: subject,
 /// content and the stable uuid cross the wire; the local int id does not.
 Future<HmmNote> _replay(HmmNote source, _Device target, int catalogId) =>
-    target.notes.createNote(HmmNoteCreate(
-      subject: source.subject,
-      catalogId: catalogId,
-      content: source.content,
-      description: source.description,
-      uuid: source.uuid,
-    ));
+    target.notes.createNote(
+      HmmNoteCreate(
+        subject: source.subject,
+        catalogId: catalogId,
+        content: source.content,
+        description: source.description,
+        uuid: source.uuid,
+      ),
+    );
 
 void main() {
   // Drift warns when it sees two HmmDatabase instances, because sharing one
@@ -69,60 +75,70 @@ void main() {
   // NativeDatabase.memory() — two independent databases is the whole point.
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
-  test('a reference resolves on a fresh device where the int id differs',
-      () async {
-    final a = await _Device.create();
-    final b = await _Device.create();
-    addTearDown(a.db.close);
-    addTearDown(b.db.close);
+  test(
+    'a reference resolves on a fresh device where the int id differs',
+    () async {
+      final a = await _Device.create();
+      final b = await _Device.create();
+      addTearDown(a.db.close);
+      addTearDown(b.db.close);
 
-    // Filler notes first, so the source note on A is NOT id 1.
-    final aAutoCatalog = await a.autoCatalogId();
-    for (var i = 0; i < 3; i++) {
-      await a.notes.createNote(
-          HmmNoteCreate(subject: 'filler$i', catalogId: aAutoCatalog));
-    }
-    final srcA = await a.notes.createNote(HmmNoteCreate(
-      subject: 'Auto',
-      catalogId: aAutoCatalog,
-      content: _plateContent,
-    ));
-    expect(srcA.id, greaterThan(1), reason: 'guards the premise of the test');
-
-    await a.cheatsheets.saveCard(CheatsheetCard(
-      id: 'c1',
-      title: 'Claim',
-      walletGroup: 'Vehicle',
-      tags: const [],
-      templateId: 'blank',
-      rows: [
-        CheatsheetRow(
-          label: 'Plate',
-          source: CheatsheetSource(
-            noteUuid: srcA.uuid,
-            kind: SourceGranularity.field,
-            locator: 'AutomobileInfo.plate',
-          ),
+      // Filler notes first, so the source note on A is NOT id 1.
+      final aAutoCatalog = await a.autoCatalogId();
+      for (var i = 0; i < 3; i++) {
+        await a.notes.createNote(
+          HmmNoteCreate(subject: 'filler$i', catalogId: aAutoCatalog),
+        );
+      }
+      final srcA = await a.notes.createNote(
+        HmmNoteCreate(
+          subject: 'Auto',
+          catalogId: aAutoCatalog,
+          content: _plateContent,
         ),
-      ],
-    ));
+      );
+      expect(srcA.id, greaterThan(1), reason: 'guards the premise of the test');
 
-    // Transfer to B in the opposite order, so int ids cannot line up: the
-    // cheatsheet note lands first, its source second.
-    final cardNoteA = (await a.notesIn(await a.cheatsheetCatalogId())).single;
-    await _replay(cardNoteA, b, await b.cheatsheetCatalogId());
-    final srcB = await _replay(srcA, b, await b.autoCatalogId());
+      await a.cheatsheets.saveCard(
+        CheatsheetCard(
+          id: 'c1',
+          title: 'Claim',
+          walletGroup: 'Vehicle',
+          tags: const [],
+          templateId: 'blank',
+          rows: [
+            CheatsheetRow(
+              label: 'Plate',
+              source: CheatsheetSource(
+                noteUuid: srcA.uuid,
+                kind: SourceGranularity.field,
+                locator: 'AutomobileInfo.plate',
+              ),
+            ),
+          ],
+        ),
+      );
 
-    expect(srcB.id, isNot(srcA.id),
-        reason: 'different local identity, same uuid');
-    expect(srcB.uuid, srcA.uuid);
+      // Transfer to B in the opposite order, so int ids cannot line up: the
+      // cheatsheet note lands first, its source second.
+      final cardNoteA = (await a.notesIn(await a.cheatsheetCatalogId())).single;
+      await _replay(cardNoteA, b, await b.cheatsheetCatalogId());
+      final srcB = await _replay(srcA, b, await b.autoCatalogId());
 
-    final reloaded = await b.cheatsheets.getCard('c1');
-    expect(reloaded, isNotNull);
+      expect(
+        srcB.id,
+        isNot(srcA.id),
+        reason: 'different local identity, same uuid',
+      );
+      expect(srcB.uuid, srcA.uuid);
 
-    final v = await CheatsheetResolver(b.notes).resolve(reloaded!.rows.first);
-    expect(v.text, 'ABC123', reason: 'resolved by uuid, not by int id');
-  });
+      final reloaded = await b.cheatsheets.getCard('c1');
+      expect(reloaded, isNotNull);
+
+      final v = await CheatsheetResolver(b.notes).resolve(reloaded!.rows.first);
+      expect(v.text, 'ABC123', reason: 'resolved by uuid, not by int id');
+    },
+  );
 
   test('a late-arriving source resolves once it lands', () async {
     final b = await _Device.create();
@@ -138,28 +154,41 @@ void main() {
     );
     final resolver = CheatsheetResolver(b.notes);
 
-    expect((await resolver.resolve(row)).missing, isTrue,
-        reason: 'before the source syncs');
+    expect(
+      (await resolver.resolve(row)).missing,
+      isTrue,
+      reason: 'before the source syncs',
+    );
 
-    await b.notes.createNote(HmmNoteCreate(
-      subject: 'Auto',
-      catalogId: await b.autoCatalogId(),
-      uuid: 'not-here-yet',
-      content: '{"note":{"content":{"AutomobileInfo":{"plate":"XYZ789"}}}}',
-    ));
+    await b.notes.createNote(
+      HmmNoteCreate(
+        subject: 'Auto',
+        catalogId: await b.autoCatalogId(),
+        uuid: 'not-here-yet',
+        content: '{"note":{"content":{"AutomobileInfo":{"plate":"XYZ789"}}}}',
+      ),
+    );
 
-    expect((await resolver.resolve(row)).text, 'XYZ789',
-        reason: 'after the source syncs');
+    expect(
+      (await resolver.resolve(row)).text,
+      'XYZ789',
+      reason: 'after the source syncs',
+    );
   });
 
   test('a permanently missing source degrades, never throws', () async {
     final b = await _Device.create();
     addTearDown(b.db.close);
 
-    final v = await CheatsheetResolver(b.notes).resolve(const CheatsheetRow(
-      label: 'x',
-      source: CheatsheetSource(noteUuid: 'gone', kind: SourceGranularity.whole),
-    ));
+    final v = await CheatsheetResolver(b.notes).resolve(
+      const CheatsheetRow(
+        label: 'x',
+        source: CheatsheetSource(
+          noteUuid: 'gone',
+          kind: SourceGranularity.whole,
+        ),
+      ),
+    );
     expect(v.missing, isTrue);
   });
 }

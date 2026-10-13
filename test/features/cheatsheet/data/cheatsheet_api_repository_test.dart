@@ -110,20 +110,27 @@ void main() {
     expect(() => repo.deleteCard('c-1'), throwsA(isA<DioException>()));
   });
 
-  test('an unreadable row survives an unrelated edit through saveCard', () async {
-    final fake = _FakeDataSource(existing: {
-      'Id': 'c-1',
-      'Title': 'Passport',
-      'Rows': [
-        {'Label': 'Broken', 'Source': 42},
-      ],
-    });
-    final repo = CheatsheetApiRepository(fake);
+  test(
+    'an unreadable row survives an unrelated edit through saveCard',
+    () async {
+      final fake = _FakeDataSource(
+        existing: {
+          'Id': 'c-1',
+          'Title': 'Passport',
+          'Rows': [
+            {'Label': 'Broken', 'Source': 42},
+          ],
+        },
+      );
+      final repo = CheatsheetApiRepository(fake);
 
-    final loaded = await repo.getCard('c-1');
-    await repo.saveCard(loaded!.copyWith(title: 'Renamed'));
+      final loaded = await repo.getCard('c-1');
+      await repo.saveCard(loaded!.copyWith(title: 'Renamed'));
 
-    expect((fake.lastBody!['Rows'] as List).single,
-        {'Label': 'Broken', 'Source': 42});
-  });
+      expect((fake.lastBody!['Rows'] as List).single, {
+        'Label': 'Broken',
+        'Source': 42,
+      });
+    },
+  );
 }

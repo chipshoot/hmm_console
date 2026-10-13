@@ -110,6 +110,7 @@ void main() {
     Brightness brightness = Brightness.light,
     Size size = const Size(200, 160),
     Uint8List? pending,
+    Locale? locale,
   }) async {
     final taps = <String>[];
     await tester.pumpWidget(
@@ -122,6 +123,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: ThemeData(brightness: brightness),
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
@@ -336,6 +338,63 @@ void main() {
     expect(data.flagsCollection.isButton, isTrue);
     expect(data.hasAction(SemanticsAction.tap), isTrue);
     handle.dispose();
+  });
+
+  testWidgets('semantics name a protected card without relying on the badge', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await mountTile(tester, _card.copyWith(protected: true));
+
+    expect(
+      find.bySemanticsLabel('Claim, Vehicle, 2 rows, protected'),
+      findsOneWidget,
+    );
+    handle.dispose();
+  });
+
+  testWidgets('semantics name a hidden sensitive cover', (tester) async {
+    final handle = tester.ensureSemantics();
+    await mountTile(
+      tester,
+      _card.withCover(_secretCover),
+      vault: VaultStatus.locked,
+    );
+
+    expect(
+      find.bySemanticsLabel('Claim, Vehicle, 2 rows, cover locked'),
+      findsOneWidget,
+    );
+    handle.dispose();
+  });
+
+  testWidgets('semantics list protected before cover locked in zh', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await mountTile(
+      tester,
+      _card.copyWith(protected: true).withCover(_secretCover),
+      vault: VaultStatus.locked,
+      locale: const Locale('zh'),
+    );
+
+    expect(find.bySemanticsLabel('Claim，车辆，2 行，受保护，封面已锁定'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('a tile decodes its cover at tile size, not full size', (
+    tester,
+  ) async {
+    await mountTile(tester, _card.withCover(_cover));
+    await tester.pumpAndSettle();
+
+    final image = tester.widget<Image>(
+      find.byKey(const Key('card-surface-cover')),
+    );
+    final provider = image.image as ResizeImage;
+    expect(provider.width, isNotNull);
+    expect(provider.width, lessThanOrEqualTo(200 * 3));
   });
 
   testWidgets('a protected card shows a lock badge', (tester) async {

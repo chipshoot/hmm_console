@@ -9,24 +9,32 @@ void main() {
   CheatsheetCard card({
     List<CheatsheetRow> rows = const [],
     List<Map<String, dynamic>> unreadable = const [],
-  }) =>
-      CheatsheetCard(
-        id: 'c-1',
-        title: 'Passport',
-        walletGroup: 'Travel',
-        tags: const ['trip'],
-        templateId: 'blank',
-        rows: rows,
-        unreadableRows: unreadable,
-      );
+  }) => CheatsheetCard(
+    id: 'c-1',
+    title: 'Passport',
+    walletGroup: 'Travel',
+    tags: const ['trip'],
+    templateId: 'blank',
+    rows: rows,
+    unreadableRows: unreadable,
+  );
 
   group('wire format', () {
     test('writes PascalCase keys, not the camelCase used by note content', () {
       final json = CheatsheetApiMapper.toApi(card());
 
-      expect(json.keys, containsAll(<String>[
-        'Id', 'Title', 'WalletGroup', 'Tags', 'TemplateId', 'Protected', 'Rows',
-      ]));
+      expect(
+        json.keys,
+        containsAll(<String>[
+          'Id',
+          'Title',
+          'WalletGroup',
+          'Tags',
+          'TemplateId',
+          'Protected',
+          'Rows',
+        ]),
+      );
       expect(json.containsKey('title'), isFalse);
       expect(json.containsKey('walletGroup'), isFalse);
     });
@@ -61,18 +69,20 @@ void main() {
     });
 
     test('round-trips a fully populated card', () {
-      final original = card(rows: [
-        const CheatsheetRow(
-          label: 'Number',
-          valueAction: ValueAction.call,
-          openSource: false,
-          source: CheatsheetSource(
-            noteUuid: 'note-1',
-            kind: SourceGranularity.field,
-            locator: 'passport.number',
+      final original = card(
+        rows: [
+          const CheatsheetRow(
+            label: 'Number',
+            valueAction: ValueAction.call,
+            openSource: false,
+            source: CheatsheetSource(
+              noteUuid: 'note-1',
+              kind: SourceGranularity.field,
+              locator: 'passport.number',
+            ),
           ),
-        ),
-      ]);
+        ],
+      );
 
       final result = CheatsheetApiMapper.fromApi(
         CheatsheetApiMapper.toApi(original),
@@ -112,36 +122,44 @@ void main() {
       );
 
       expect(resent['Rows'], hasLength(1));
-      expect((resent['Rows'] as List).single, {'Label': 'Broken', 'Source': 42});
+      expect((resent['Rows'] as List).single, {
+        'Label': 'Broken',
+        'Source': 42,
+      });
     });
 
     test('a non-list Rows does not take the card down', () {
-      final decoded = CheatsheetApiMapper.fromApi({'Id': 'c-1', 'Rows': 'nope'});
+      final decoded = CheatsheetApiMapper.fromApi({
+        'Id': 'c-1',
+        'Rows': 'nope',
+      });
 
       expect(decoded.id, 'c-1');
       expect(decoded.rows, isEmpty);
     });
 
-    test('an unknown ValueAction or Kind is preserved as an unreadable row',
-        () {
-      const bad1 = {
-        'Label': 'Row',
-        'ValueAction': 'teleport',
-        'Source': {'NoteUuid': 'n-1', 'Kind': 'field'},
-      };
-      const bad2 = {
-        'Label': 'Row2',
-        'Source': {'NoteUuid': 'n-1', 'Kind': 'quantum'},
-      };
-      final decoded = CheatsheetApiMapper.fromApi({
-        'Id': 'c-1',
-        'Rows': [bad1, bad2],
-      });
+    test(
+      'an unknown ValueAction or Kind is preserved as an unreadable row',
+      () {
+        const bad1 = {
+          'Label': 'Row',
+          'ValueAction': 'teleport',
+          'Source': {'NoteUuid': 'n-1', 'Kind': 'field'},
+        };
+        const bad2 = {
+          'Label': 'Row2',
+          'Source': {'NoteUuid': 'n-1', 'Kind': 'quantum'},
+        };
+        final decoded = CheatsheetApiMapper.fromApi({
+          'Id': 'c-1',
+          'Rows': [bad1, bad2],
+        });
 
-      expect(decoded.rows, isEmpty);
-      expect(decoded.unreadableRows, [bad1, bad2]);
-      expect(CheatsheetApiMapper.toApi(decoded)['Rows'], [bad1, bad2]);
-    });
+        expect(decoded.rows, isEmpty);
+        expect(decoded.unreadableRows, [bad1, bad2]);
+        expect(CheatsheetApiMapper.toApi(decoded)['Rows'], [bad1, bad2]);
+      },
+    );
 
     test('an absent ValueAction still defaults to none', () {
       final decoded = CheatsheetApiMapper.fromApi({

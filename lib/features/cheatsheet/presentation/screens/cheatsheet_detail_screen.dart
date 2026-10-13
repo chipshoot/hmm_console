@@ -36,38 +36,41 @@ final cheatsheetResolverProvider = Provider<CheatsheetResolver>(
 /// navigating somewhere wrong.
 final cheatsheetOpenSourceProvider =
     Provider<void Function(BuildContext, String)>(
-  (ref) => (context, noteUuid) async {
-    final note =
-        await ref.read(hmmNoteRepositoryProvider).getNoteByUuid(noteUuid);
-    if (note == null || !context.mounted) return;
-    context.pushNamed(
-      RouterNames.noteDetail.name,
-      pathParameters: {'id': '${note.id}'},
+      (ref) => (context, noteUuid) async {
+        final note = await ref
+            .read(hmmNoteRepositoryProvider)
+            .getNoteByUuid(noteUuid);
+        if (note == null || !context.mounted) return;
+        context.pushNamed(
+          RouterNames.noteDetail.name,
+          pathParameters: {'id': '${note.id}'},
+        );
+      },
     );
-  },
-);
 
-final cheatsheetEditCardProvider = Provider<void Function(BuildContext, String)>(
-  (ref) => (context, cardId) => context.pushNamed(
-        RouterNames.cheatsheetEdit.name,
-        pathParameters: {'id': cardId},
-      ),
-);
+final cheatsheetEditCardProvider =
+    Provider<void Function(BuildContext, String)>(
+      (ref) =>
+          (context, cardId) => context.pushNamed(
+            RouterNames.cheatsheetEdit.name,
+            pathParameters: {'id': cardId},
+          ),
+    );
 
 /// Resolves every row of a card, in order.
 final cheatsheetResolvedRowsProvider = FutureProvider.autoDispose
     .family<List<ResolvedValue>, String>((ref, cardId) async {
-  final cards = await ref.watch(cheatsheetsStateProvider.future);
-  final card = _findCard(cards, cardId);
-  if (card == null) return const [];
+      final cards = await ref.watch(cheatsheetsStateProvider.future);
+      final card = _findCard(cards, cardId);
+      if (card == null) return const [];
 
-  final resolver = ref.watch(cheatsheetResolverProvider);
-  final out = <ResolvedValue>[];
-  for (final row in card.rows) {
-    out.add(await resolver.resolve(row));
-  }
-  return out;
-});
+      final resolver = ref.watch(cheatsheetResolverProvider);
+      final out = <ResolvedValue>[];
+      for (final row in card.rows) {
+        out.add(await resolver.resolve(row));
+      }
+      return out;
+    });
 
 CheatsheetCard? _findCard(List<CheatsheetCard> cards, String id) {
   for (final c in cards) {
@@ -120,12 +123,14 @@ class CheatsheetDetailScreen extends ConsumerWidget {
       // A delete that silently didn't happen is worse than one that failed
       // loudly — the user walks away believing the card is gone.
       // Type only: the error text can quote stored values.
-      debugPrint('CheatsheetDetail: deleting card $cardId failed '
-          '(${e.runtimeType}); the card is still stored.');
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.cheatsheetDeleteFailed)),
+      debugPrint(
+        'CheatsheetDetail: deleting card $cardId failed '
+        '(${e.runtimeType}); the card is still stored.',
       );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.cheatsheetDeleteFailed)));
       return;
     }
     // The card this screen shows no longer exists; staying would strand the
@@ -191,11 +196,7 @@ class CheatsheetDetailScreen extends ConsumerWidget {
 }
 
 class _RowTile extends ConsumerWidget {
-  const _RowTile({
-    required this.index,
-    required this.row,
-    required this.value,
-  });
+  const _RowTile({required this.index, required this.row, required this.value});
 
   final int index;
   final CheatsheetRow row;
@@ -210,12 +211,14 @@ class _RowTile extends ConsumerWidget {
       // outcome worth reporting; an Error is a defect, and showing it as
       // "could not open that" would disguise a bug as a normal failure.
       // Type only: the error can quote the value (a number or address).
-      debugPrint('CheatsheetDetail: launching ${row.valueAction.name} failed '
-          '(${e.runtimeType}); showed the user a message.');
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.cheatsheetOpenFailed)),
+      debugPrint(
+        'CheatsheetDetail: launching ${row.valueAction.name} failed '
+        '(${e.runtimeType}); showed the user a message.',
       );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.cheatsheetOpenFailed)));
     }
   }
 
@@ -224,9 +227,9 @@ class _RowTile extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final CheatsheetSource? source = row.source;
     final muted = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Theme.of(context).disabledColor,
-          fontStyle: FontStyle.italic,
-        );
+      color: Theme.of(context).disabledColor,
+      fontStyle: FontStyle.italic,
+    );
 
     final Widget valueWidget;
     if (value.unbound) {
@@ -311,7 +314,8 @@ class _ImageValueState extends ConsumerState<_ImageValue> {
   Widget build(BuildContext context) {
     final resolverAsync = ref.watch(attachmentResolverProvider);
     final resolver = resolverAsync.value;
-    final unlocked = !widget.image.sensitive ||
+    final unlocked =
+        !widget.image.sensitive ||
         ref.watch(vaultSessionProvider) == VaultStatus.unlocked;
 
     final Widget image;
@@ -319,7 +323,9 @@ class _ImageValueState extends ConsumerState<_ImageValue> {
       // A resolver that failed to build will never produce one; a spinner
       // would wait forever on a card someone is showing at a roadside.
       image = Center(
-        key: Key('${widget.key is ValueKey ? (widget.key as ValueKey).value : 'image'}-error'),
+        key: Key(
+          '${widget.key is ValueKey ? (widget.key as ValueKey).value : 'image'}-error',
+        ),
         child: const Icon(Icons.broken_image_outlined),
       );
     } else if (resolver == null) {

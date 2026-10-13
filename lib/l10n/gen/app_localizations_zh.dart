@@ -755,6 +755,15 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get cheatsheetChipAll => '全部';
+
+  @override
+  String get cheatsheetTileProtectedSemantics => '，受保护';
+
+  @override
+  String get cheatsheetTileCoverLockedSemantics => '，封面已锁定';
+
+  @override
   String get launcherTitle => '启动器';
 
   @override
@@ -2289,6 +2298,40 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpContactEditSelfBody => '将此联系人标记为你本人。只能标记一个联系人。';
+
+  @override
+  String get helpCheatsheetWalletTitle => '速查卡';
+
+  @override
+  String get helpCheatsheetWalletSummary =>
+      '一目了然地查看所有卡片。点按卡片即可打开；用搜索和筛选标签缩小范围。';
+
+  @override
+  String get helpCheatsheetWalletTilesTitle => '卡片';
+
+  @override
+  String get helpCheatsheetWalletTilesBody =>
+      '每张卡片显示其颜色或封面照片、图标、标题，以及所属分组和行数。点按卡片即可打开。';
+
+  @override
+  String get helpCheatsheetWalletGroupsTitle => '分组标签';
+
+  @override
+  String get helpCheatsheetWalletGroupsBody =>
+      '第一排标签一次只显示一个卡包分组；点“全部”可重新显示所有卡片。搜索只在所选分组内进行。';
+
+  @override
+  String get helpCheatsheetWalletTagsTitle => '标签筛选';
+
+  @override
+  String get helpCheatsheetWalletTagsBody => '标签筛选只显示带有全部已选标签的卡片。再次点按标签即可取消。';
+
+  @override
+  String get helpCheatsheetWalletLockTitle => '锁定标记';
+
+  @override
+  String get helpCheatsheetWalletLockBody =>
+      '锁形图标表示受保护的卡片。🔒 表示其封面照片已在保险库中锁定：卡片会改为显示颜色，打开卡片后可解锁照片。';
 
   @override
   String get contactCustomRelationship => '描述这层关系';

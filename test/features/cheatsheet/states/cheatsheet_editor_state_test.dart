@@ -140,12 +140,16 @@ void main() {
       final editor = editorOf(container);
       editor.startFromTemplate('accidentClaim', en);
 
-      expect(container.read(cheatsheetEditorProvider).rows[0].valueAction,
-          ValueAction.none);
+      expect(
+        container.read(cheatsheetEditorProvider).rows[0].valueAction,
+        ValueAction.none,
+      );
 
       editor.setValueAction(0, ValueAction.call);
-      expect(container.read(cheatsheetEditorProvider).rows[0].valueAction,
-          ValueAction.call);
+      expect(
+        container.read(cheatsheetEditorProvider).rows[0].valueAction,
+        ValueAction.call,
+      );
     });
 
     test('setOpenSource toggles the affordance', () {
@@ -155,7 +159,9 @@ void main() {
 
       editor.setOpenSource(0, false);
       expect(
-          container.read(cheatsheetEditorProvider).rows[0].openSource, isFalse);
+        container.read(cheatsheetEditorProvider).rows[0].openSource,
+        isFalse,
+      );
     });
 
     test('out-of-range row indexes are ignored, not thrown', () {
@@ -203,8 +209,7 @@ void main() {
       expect(container.read(cheatsheetEditorProvider), equals(existing));
     });
 
-    test('editing a loaded card keeps its id — no duplicate on save',
-        () async {
+    test('editing a loaded card keeps its id — no duplicate on save', () async {
       final container = containerWith(idGen: () => 'fixed');
       final editor = editorOf(container);
 
@@ -229,8 +234,11 @@ void main() {
       final saved = _CapturingCheatsheets.saved.single;
       expect(saved.id, 'fixed');
       expect(saved.rows[0].source, _source);
-      expect(saved.rows.skip(1).every((r) => !r.isBound), isTrue,
-          reason: 'a partially bound card is savable');
+      expect(
+        saved.rows.skip(1).every((r) => !r.isBound),
+        isTrue,
+        reason: 'a partially bound card is savable',
+      );
     });
   });
 }

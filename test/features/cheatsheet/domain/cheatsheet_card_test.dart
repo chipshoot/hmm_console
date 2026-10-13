@@ -53,18 +53,23 @@ void main() {
   });
 
   test('row copyWith replaces a binding', () {
-    const other = CheatsheetSource(noteUuid: 'n2', kind: SourceGranularity.whole);
+    const other = CheatsheetSource(
+      noteUuid: 'n2',
+      kind: SourceGranularity.whole,
+    );
     expect(row.copyWith(source: other).source, other);
   });
 
   test('source value-equality', () {
     expect(
       source,
-      equals(const CheatsheetSource(
-        noteUuid: 'n1',
-        kind: SourceGranularity.field,
-        locator: 'GasLog.station',
-      )),
+      equals(
+        const CheatsheetSource(
+          noteUuid: 'n1',
+          kind: SourceGranularity.field,
+          locator: 'GasLog.station',
+        ),
+      ),
     );
     expect(source, isNot(equals(source.copyWith(noteUuid: 'n2'))));
   });
