@@ -108,4 +108,11 @@ void main() {
     expect(en.helpCheatsheetDesignerResetBody, contains('Cloud API'));
     expect(zh.helpCheatsheetDesignerResetBody, contains('云端 API'));
   });
+
+  test('Cover help describes the dark band behind the title', () {
+    expect(en.helpCheatsheetDesignerCoverBody, contains('dark band'));
+    expect(en.helpCheatsheetDesignerCoverBody, isNot(contains('gradient')));
+    expect(zh.helpCheatsheetDesignerCoverBody, contains('深色条'));
+    expect(zh.helpCheatsheetDesignerCoverBody, isNot(contains('渐变')));
+  });
 }

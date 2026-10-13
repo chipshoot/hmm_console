@@ -4,6 +4,7 @@ import 'dart:ui' show Tristate;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
@@ -202,6 +203,29 @@ void main() {
     expect(find.byKey(const Key('look-layout')), findsOneWidget);
     expect(find.byKey(const Key('look-reset')), findsOneWidget);
   });
+
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('the mini-tile preview never clips its title at text scale '
+        '$scale', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      _Capturing.seed = [_existing.copyWith(title: 'Claim notes')];
+      await mount(tester, cardId: 'e1');
+
+      final title = tester.renderObject<RenderParagraph>(
+        find.descendant(
+          of: find.byKey(const Key('look-preview')),
+          matching: find.byKey(const Key('card-tile-title')),
+        ),
+      );
+      expect(
+        title.size.height,
+        greaterThanOrEqualTo(
+          title.getMaxIntrinsicHeight(title.size.width) - 0.01,
+        ),
+      );
+    });
+  }
 
   testWidgets('theme and pattern swatches have a 48x48 tap target', (
     tester,

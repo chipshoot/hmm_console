@@ -24,16 +24,23 @@ class CardHeader extends StatelessWidget {
 
   static const TextStyle _iconStyle = TextStyle(fontSize: 40);
 
-  /// 168 at normal text; taller when large text needs the room for padding
-  /// 16 + icon + 8 + band 4 + a title line + subtitle + 16 (+ emoji slack).
-  /// A second title line takes what is left and otherwise ellipsizes.
-  static double _height(BuildContext context, TextTheme text) {
+  /// Sized from its content, never below 168: padding 16 + icon + 8 +
+  /// band 4 + the title as it actually wraps at [width] (up to two lines) +
+  /// subtitle + 16, plus slack for emoji fonts. So a two-line title is never
+  /// clipped, and a one-line title keeps the 168px banner at normal text.
+  double _height(BuildContext context, TextTheme text, double width) {
     final needed =
         16 +
         lookTextHeight(context, _iconStyle) +
         8 +
         4 +
-        lookTextHeight(context, text.headlineSmall) +
+        lookTextHeight(
+          context,
+          text.headlineSmall,
+          lines: 2,
+          text: card.title,
+          maxWidth: width - 32,
+        ) +
         lookTextHeight(context, text.bodyMedium) +
         16 +
         4;
@@ -45,59 +52,61 @@ class CardHeader extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
     final group = cheatsheetGroupLabel(card.walletGroup, l);
-    return SizedBox(
-      height: _height(context, text),
-      child: CardSurface(
-        card: card,
-        allowUnlock: true,
-        builder: (context, ink) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Text(
-                card.look.icon,
-                key: const Key('detail-header-icon'),
-                style: _iconStyle,
+    return LayoutBuilder(
+      builder: (context, constraints) => SizedBox(
+        height: _height(context, text, constraints.maxWidth),
+        child: CardSurface(
+          card: card,
+          allowUnlock: true,
+          builder: (context, ink) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Text(
+                  card.look.icon,
+                  key: const Key('detail-header-icon'),
+                  style: _iconStyle,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            // Over a cover the band keeps the text AA even on a white photo.
-            Flexible(
-              child: DecoratedBox(
-                key: const Key('detail-header-text-band'),
-                decoration: BoxDecoration(color: ink.textBand),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          card.title,
-                          key: const Key('detail-header-title'),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.headlineSmall?.copyWith(
-                            color: ink.foreground,
+              const SizedBox(height: 8),
+              // Over a cover the band keeps the text AA even on a white photo.
+              Flexible(
+                child: DecoratedBox(
+                  key: const Key('detail-header-text-band'),
+                  decoration: BoxDecoration(color: ink.textBand),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            card.title,
+                            key: const Key('detail-header-title'),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: text.headlineSmall?.copyWith(
+                              color: ink.foreground,
+                            ),
                           ),
                         ),
-                      ),
-                      Text(
-                        l.cheatsheetTileSubtitle(group, card.rows.length),
-                        key: const Key('detail-header-subtitle'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: text.bodyMedium?.copyWith(color: ink.subtitle),
-                      ),
-                    ],
+                        Text(
+                          l.cheatsheetTileSubtitle(group, card.rows.length),
+                          key: const Key('detail-header-subtitle'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.bodyMedium?.copyWith(color: ink.subtitle),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

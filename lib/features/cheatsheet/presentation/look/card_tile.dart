@@ -89,6 +89,7 @@ class CardTile extends StatelessWidget {
                 onTap: onTap,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
@@ -119,11 +120,11 @@ class CardTile extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Spacer(),
-                    // Flexible: at a large text scale the text gives way
-                    // (ellipsis) instead of overflowing the tile. The grid
-                    // sizes tiles with [CardTile.minHeight] so this is the
-                    // last resort, not the layout.
+                    // The band takes its natural height and spaceBetween
+                    // pins it to the bottom; a Spacer here would split the
+                    // free space with it and clip the title. Flexible is
+                    // only an overflow guard: the grid sizes tiles with
+                    // [CardTile.minHeight] so the band always fits.
                     Flexible(
                       child: DecoratedBox(
                         key: const Key('card-tile-text-band'),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -463,6 +464,65 @@ void main() {
       CheatsheetPalette.forCover(CardThemeId.blue, Brightness.light).background,
     );
   });
+
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('a two-line header title is not clipped at text scale $scale', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            attachmentResolverProvider.overrideWith(
+              (ref) async => _Resolver(() async => _png),
+            ),
+            vaultSessionProvider.overrideWith(
+              () => _StubVault(VaultStatus.unlocked),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: ListView(
+                children: [
+                  CardHeader(
+                    card: _card.copyWith(title: 'Insurance claim notes'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final title = tester.renderObject<RenderParagraph>(
+        find.byKey(const Key('detail-header-title')),
+      );
+      expect(
+        title.getMaxIntrinsicHeight(title.size.width),
+        greaterThan(title.getMaxIntrinsicHeight(double.infinity)),
+        reason: 'the title really wraps to two lines',
+      );
+      expect(
+        title.size.height,
+        greaterThanOrEqualTo(
+          title.getMaxIntrinsicHeight(title.size.width) - 0.01,
+        ),
+      );
+      final header = tester.getRect(find.byType(CardHeader));
+      final subtitle = tester.getRect(
+        find.byKey(const Key('detail-header-subtitle')),
+      );
+      expect(subtitle.bottom, lessThanOrEqualTo(header.bottom));
+    });
+  }
 
   group('relock', () {
     Future<void> mountSecret(

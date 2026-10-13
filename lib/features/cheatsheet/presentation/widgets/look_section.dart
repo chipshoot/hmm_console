@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,9 +45,11 @@ class LookSection extends ConsumerWidget {
         width: 75,
         height: 56,
         child: FittedBox(
+          // Taller at large text, like a wallet tile, then scaled down to
+          // fit: the title is never clipped.
           child: SizedBox(
             width: 200,
-            height: 150,
+            height: math.max(150, CardTile.minHeight(context)),
             child: CardTile(
               card: card,
               pendingCoverBytes: draft.pending?.bytes,

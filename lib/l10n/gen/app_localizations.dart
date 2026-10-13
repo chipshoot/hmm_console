@@ -4757,7 +4757,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpCheatsheetDesignerCoverBody.
   ///
   /// In en, this message translates to:
-  /// **'Take a photo, choose one from your photos or scan a document to use as the card\'s background; the text gets a dark gradient so it stays readable. Remove it any time and the colour comes back. Covers are available in Local and Cloud Storage modes.'**
+  /// **'Take a photo, choose one from your photos or scan a document to use as the card\'s background; a dark band behind the title keeps the text readable. Remove it any time and the colour comes back. Covers are available in Local and Cloud Storage modes.'**
   String get helpCheatsheetDesignerCoverBody;
 
   /// No description provided for @helpCheatsheetDesignerLayoutTitle.

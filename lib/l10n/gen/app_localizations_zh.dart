@@ -2542,7 +2542,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpCheatsheetDesignerCoverBody =>
-      '拍照、从相册选择或扫描文档作为卡片背景；文字下方会加深色渐变以保持清晰。随时可以移除，颜色会恢复。封面仅在本地和云存储模式下可用。';
+      '拍照、从相册选择或扫描文档作为卡片背景；标题下方会加一条深色条以保持文字清晰。随时可以移除，颜色会恢复。封面仅在本地和云存储模式下可用。';
 
   @override
   String get helpCheatsheetDesignerLayoutTitle => '布局';

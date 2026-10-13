@@ -777,7 +777,7 @@
   "helpCheatsheetDesignerIconTitle": "图标",
   "helpCheatsheetDesignerIconBody": "为卡片选择一个表情符号。可用中文或英文搜索，也可以自己输入任意表情符号。",
   "helpCheatsheetDesignerCoverTitle": "封面照片",
-  "helpCheatsheetDesignerCoverBody": "拍照、从相册选择或扫描文档作为卡片背景；文字下方会加深色渐变以保持清晰。随时可以移除，颜色会恢复。封面仅在本地和云存储模式下可用。",
+  "helpCheatsheetDesignerCoverBody": "拍照、从相册选择或扫描文档作为卡片背景；标题下方会加一条深色条以保持文字清晰。随时可以移除，颜色会恢复。封面仅在本地和云存储模式下可用。",
   "helpCheatsheetDesignerLayoutTitle": "布局",
   "helpCheatsheetDesignerLayoutBody": "“信息”在每个标签旁显示其值。“要点”为各行编号并使用卡片主题颜色，适合书籍和文档。",
   "helpCheatsheetDesignerRowEmojiTitle": "行表情符号",

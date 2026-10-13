@@ -29,17 +29,25 @@ const Color kCoverTextBand = Color(0x99000000);
 
 /// The laid-out height of [lines] lines of [style] at the ambient text scale,
 /// so a tile or header can grow with large accessibility text instead of
-/// overflowing.
-double lookTextHeight(BuildContext context, TextStyle? style, {int lines = 1}) {
+/// overflowing. With [text] and [maxWidth], measures that text as it wraps
+/// at that width instead, still capped at [lines] lines.
+double lookTextHeight(
+  BuildContext context,
+  TextStyle? style, {
+  int lines = 1,
+  String? text,
+  double maxWidth = double.infinity,
+}) {
   final painter = TextPainter(
     text: TextSpan(
-      text: List.filled(lines, 'Ag').join('\n'),
+      text: text ?? List.filled(lines, 'Ag').join('\n'),
       style: DefaultTextStyle.of(context).style.merge(style),
     ),
     textDirection: TextDirection.ltr,
     textScaler: MediaQuery.textScalerOf(context),
     maxLines: lines,
-  )..layout();
+    ellipsis: text == null ? null : '\u2026',
+  )..layout(maxWidth: maxWidth);
   final height = painter.height;
   painter.dispose();
   return height;

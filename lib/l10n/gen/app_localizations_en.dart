@@ -2619,7 +2619,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpCheatsheetDesignerCoverBody =>
-      'Take a photo, choose one from your photos or scan a document to use as the card\'s background; the text gets a dark gradient so it stays readable. Remove it any time and the colour comes back. Covers are available in Local and Cloud Storage modes.';
+      'Take a photo, choose one from your photos or scan a document to use as the card\'s background; a dark band behind the title keeps the text readable. Remove it any time and the colour comes back. Covers are available in Local and Cloud Storage modes.';
 
   @override
   String get helpCheatsheetDesignerLayoutTitle => 'Layout';

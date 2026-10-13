@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -392,36 +393,62 @@ void main() {
   });
 
   for (final scale in [1.0, 1.5, 2.0]) {
-    testWidgets('phone-size tiles fit their content at text scale $scale', (
-      tester,
-    ) async {
+    testWidgets('phone-size tiles show their whole title and subtitle at text '
+        'scale $scale', (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       addTearDown(tester.view.reset);
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       _SeededCheatsheets.seed = [
+        // One line, two lines, and longer than two lines (ellipsized).
+        card('a', title: 'Doc'),
+        card('b', title: 'Claim notes', group: 'Reference'),
         card(
-          'a',
+          'c',
           title: 'A really long cheatsheet title ' * 4,
         ).copyWith(protected: true),
-        card('b', title: 'Doctor', group: 'Reference'),
       ];
 
       await mount(tester);
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(CardTile), findsNWidgets(2));
-      // The tile is tall enough for its icon, two title lines and subtitle,
-      // so nothing is clipped mid-line either.
-      final tile = tester.getRect(find.byKey(const Key('wallet-card-a')));
-      final subtitle = tester.getRect(
-        find.descendant(
-          of: find.byKey(const Key('wallet-card-a')),
-          matching: find.byKey(const Key('card-tile-subtitle')),
-        ),
-      );
-      expect(subtitle.bottom, lessThanOrEqualTo(tile.bottom));
+      for (final id in ['a', 'b', 'c']) {
+        final tileFinder = find.byKey(Key('wallet-card-$id'));
+        await tester.scrollUntilVisible(
+          tileFinder,
+          100,
+          scrollable: find.descendant(
+            of: find.byKey(const Key('wallet-grid')),
+            matching: find.byType(Scrollable),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final tile = tester.getRect(tileFinder);
+        final title = tester.renderObject<RenderParagraph>(
+          find.descendant(
+            of: tileFinder,
+            matching: find.byKey(const Key('card-tile-title')),
+          ),
+        );
+        // Not clipped: the box is as tall as the (max 2) lines it lays out.
+        expect(
+          title.size.height,
+          greaterThanOrEqualTo(
+            title.getMaxIntrinsicHeight(title.size.width) - 0.01,
+          ),
+          reason: 'title of $id is clipped',
+        );
+        final subtitle = tester.getRect(
+          find.descendant(
+            of: tileFinder,
+            matching: find.byKey(const Key('card-tile-subtitle')),
+          ),
+        );
+        expect(subtitle.bottom, lessThanOrEqualTo(tile.bottom), reason: id);
+        expect(subtitle.top, greaterThanOrEqualTo(tile.top), reason: id);
+      }
+      expect(tester.takeException(), isNull);
     });
   }
 }
