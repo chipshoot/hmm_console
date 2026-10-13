@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../domain/entities/card_style.dart';
 import '../../domain/entities/cheatsheet_card.dart';
 import '../../domain/entities/cheatsheet_row.dart';
 import '../../domain/entities/cheatsheet_source.dart';
@@ -36,6 +37,9 @@ class CheatsheetApiMapper {
           ...c.rows.map(_rowToApi),
           ...c.unreadableRows,
         ],
+        // Always present: null tells the server to clear its copy (Reset
+        // look). A body WITHOUT the key - an older client - keeps it.
+        'Style': c.style.isEmpty ? null : c.style.toMap(),
       };
 
   static CheatsheetCard fromApi(Map<String, dynamic> m) {
@@ -67,11 +71,24 @@ class CheatsheetApiMapper {
       protected: _bool(m['Protected']) ?? false,
       rows: rows,
       unreadableRows: unreadable,
+      style: m['Style'] is Map
+          ? CardStyle(_deepCopyMap(m['Style'] as Map))
+          : CardStyle.empty,
     );
   }
 
   /// `as List?` would throw on a non-list; a server on a newer schema may send
   /// anything, and a type error here would take out the whole wallet.
+  static Map<String, dynamic> _deepCopyMap(Map<dynamic, dynamic> m) => {
+        for (final e in m.entries) e.key as String: _deepCopy(e.value),
+      };
+
+  static Object? _deepCopy(Object? v) => switch (v) {
+        Map() => _deepCopyMap(v),
+        List() => [for (final x in v) _deepCopy(x)],
+        _ => v,
+      };
+
   static List<Object?> _list(Object? v) => v is List ? v : const [];
 
   static String? _str(Object? v) => v is String ? v : null;
@@ -83,6 +100,7 @@ class CheatsheetApiMapper {
         'ValueAction': r.valueAction.name,
         'OpenSource': r.openSource,
         if (r.source != null) 'Source': _srcToApi(r.source!),
+        if (r.emoji != null) 'Emoji': r.emoji,
       };
 
   static CheatsheetRow _rowFromApi(Map<String, dynamic> m) => CheatsheetRow(
@@ -97,6 +115,7 @@ class CheatsheetApiMapper {
             // An unrecognised value throws, so the row is preserved verbatim.
             : ValueAction.values.firstWhere((v) => v.name == m['ValueAction']),
         openSource: _bool(m['OpenSource']) ?? true,
+        emoji: _str(m['Emoji']),
       );
 
   static Map<String, dynamic> _srcToApi(CheatsheetSource s) => {
