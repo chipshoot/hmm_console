@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
+import 'package:hmm_console/core/help/help_button.dart';
+import 'package:hmm_console/features/cheatsheet/domain/entities/card_style.dart';
+import 'package:hmm_console/features/cheatsheet/presentation/look/cheatsheet_palette.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
@@ -426,6 +429,220 @@ void main() {
       await mountImage(tester, VaultStatus.locked);
 
       expect(find.byKey(sensitiveLockedPlaceholderKey), findsOneWidget);
+    });
+  });
+  group('look', () {
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAA'
+      'DUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    );
+
+    final keyPointsCard = card.copyWith(
+      style: const CardStyle({'layout': 'keyPoints'}),
+      rows: [
+        card.rows[0].copyWith(emoji: '\u{1F440}'),
+        card.rows[1],
+        card.rows[2].copyWith(emoji: 'not an emoji'),
+        ...card.rows.sublist(3),
+      ],
+    );
+
+    Future<List<(ValueAction, String)>> mountLook(
+      WidgetTester tester,
+      CheatsheetCard c, {
+      VaultStatus vault = VaultStatus.unlocked,
+      Map<String, HmmNote>? notes,
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final launched = <(ValueAction, String)>[];
+      _SeededCheatsheets.seed = [c];
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            hmmNoteRepositoryProvider.overrideWithValue(
+              _FakeNotes(notes ?? {'auto1': autoNote, 'doc1': docNote}),
+            ),
+            cheatsheetsStateProvider.overrideWith(_SeededCheatsheets.new),
+            launchActionProvider.overrideWithValue((action, value) async {
+              launched.add((action, value));
+            }),
+            attachmentResolverProvider.overrideWith(
+              (ref) async => _BytesResolver(png),
+            ),
+            vaultSessionProvider.overrideWith(() => _StubVault(vault)),
+          ],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: CheatsheetDetailScreen(cardId: 'c1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return launched;
+    }
+
+    String textOf(WidgetTester tester, String key) =>
+        tester.widget<Text>(find.byKey(Key(key))).data!;
+
+    testWidgets('the header shows the icon, title and group · rows', (
+      tester,
+    ) async {
+      await mountLook(tester, card);
+
+      expect(find.byKey(const Key('detail-header')), findsOneWidget);
+      expect(textOf(tester, 'detail-header-icon'), CardLookDefaults.dividers);
+      expect(textOf(tester, 'detail-header-title'), 'Claim');
+      expect(textOf(tester, 'detail-header-subtitle'), 'Vehicle · 6 rows');
+    });
+
+    testWidgets('Facts stays the default and renders rows as before', (
+      tester,
+    ) async {
+      await mountLook(tester, card);
+
+      expect(find.byKey(const Key('keypoint-0')), findsNothing);
+      expect(find.text('ABC123'), findsOneWidget);
+      expect(find.byKey(const Key('row-2-unbound')), findsOneWidget);
+      expect(find.byKey(const Key('row-1-missing')), findsOneWidget);
+    });
+
+    testWidgets('Key points numbers rows, shows valid row emoji and a theme '
+        'border', (tester) async {
+      await mountLook(tester, keyPointsCard);
+
+      String number(int i) => tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(Key('keypoint-$i-number')),
+              matching: find.byType(Text),
+            ),
+          )
+          .data!;
+      expect(number(0), '1');
+      expect(number(3), '4');
+      expect(find.byKey(const Key('keypoint-0-emoji')), findsOneWidget);
+      expect(
+        find.byKey(const Key('keypoint-2-emoji')),
+        findsNothing,
+        reason: 'an invalid stored emoji is not shown',
+      );
+
+      final slate = CheatsheetPalette.of(CardThemeId.slate, Brightness.light);
+      final box =
+          tester
+                  .widget<Container>(find.byKey(const Key('keypoint-0')))
+                  .decoration!
+              as BoxDecoration;
+      expect((box.border! as Border).left.color, slate.background);
+    });
+
+    testWidgets('Key points keeps unbound, missing, section text and actions', (
+      tester,
+    ) async {
+      final launched = await mountLook(tester, keyPointsCard);
+
+      expect(find.byKey(const Key('row-2-unbound')), findsOneWidget);
+      expect(find.byKey(const Key('row-1-missing')), findsOneWidget);
+      expect(find.textContaining('dd delete line'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('row-3-value')));
+      await tester.pumpAndSettle();
+      expect(launched, [(ValueAction.call, '(555) 123-4567')]);
+    });
+
+    testWidgets('an image row renders in Key points', (tester) async {
+      const front = VaultRef(
+        path: 'images/front.png',
+        contentType: 'image/png',
+        byteSize: 70,
+      );
+      final licence = HmmNote(
+        id: 3,
+        uuid: 'lic1',
+        subject: 'Licence',
+        authorId: 1,
+        createDate: DateTime(2026),
+        content:
+            '{"note":{"content":{"DriverLicence":'
+            '{"frontImagePath":"images/front.png"}}}}',
+        attachments: NoteAttachments(images: const [front]),
+      );
+      final imageCard = card.copyWith(
+        style: const CardStyle({'layout': 'keyPoints'}),
+        rows: const [
+          CheatsheetRow(
+            label: 'Licence (front)',
+            source: CheatsheetSource(
+              noteUuid: 'lic1',
+              kind: SourceGranularity.image,
+              locator: 'images/front.png',
+            ),
+          ),
+        ],
+      );
+      await mountLook(tester, imageCard, notes: {'lic1': licence});
+
+      expect(find.byKey(const Key('keypoint-0')), findsOneWidget);
+      expect(find.byKey(const Key('row-0-image')), findsOneWidget);
+    });
+
+    testWidgets('a locked sensitive cover shows the tap-to-unlock tile in the '
+        'header', (tester) async {
+      const secret = VaultRef(
+        path: 'attachments/note-9/sensitive/c.png',
+        contentType: 'image/png',
+        byteSize: 70,
+        sensitive: true,
+      );
+      await mountLook(
+        tester,
+        card.withCover(secret),
+        vault: VaultStatus.locked,
+      );
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('detail-header')),
+          matching: find.byKey(sensitiveLockedPlaceholderKey),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a cover card colours the app bar dark with white actions', (
+      tester,
+    ) async {
+      const cover = VaultRef(
+        path: 'attachments/note-9/c.png',
+        contentType: 'image/png',
+        byteSize: 70,
+      );
+      await mountLook(tester, card.withCover(cover));
+
+      final bar = tester.widget<AppBar>(find.byType(AppBar));
+      final expected = CheatsheetPalette.forCover(
+        CardThemeId.slate,
+        Brightness.light,
+      );
+      expect(bar.backgroundColor, expected.background);
+      expect(bar.foregroundColor, expected.foreground);
+      expect(find.byKey(const Key('card-surface-cover')), findsOneWidget);
+    });
+
+    testWidgets('the detail has a help button that explains both layouts, '
+        'the header and the lock tile', (tester) async {
+      await mountLook(tester, card);
+
+      await tester.tap(find.byType(HelpButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Facts layout'), findsOneWidget);
+      expect(find.text('Key points layout'), findsOneWidget);
+      expect(find.text('Cover header'), findsOneWidget);
+      expect(find.text('Locked cover'), findsOneWidget);
     });
   });
 }

@@ -25,8 +25,6 @@ const _allowed = <String, int>{
       1,
   'lib/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart':
       2,
-  'lib/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart':
-      3,
   'lib/features/cheatsheet/presentation/widgets/source_picker.dart': 1,
   'lib/features/driver_licence/presentation/screens/driver_licence_screen.dart':
       2,

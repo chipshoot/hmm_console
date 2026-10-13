@@ -105,4 +105,39 @@ void main() {
       expect(zh.entries[i].body, isNot(en.entries[i].body), reason: '$i');
     }
   });
+
+  test('detail help covers both layouts, the header and the lock tile', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final entries = helpFor(HelpId.cheatsheetDetail, l).entries;
+    // The designer's layout control draws list_alt / format_list_numbered;
+    // sensitive_attachment_image.dart's lock tile draws lock_outline.
+    expect(entries.map((e) => e.icon), [
+      Icons.list_alt,
+      Icons.format_list_numbered,
+      Icons.image_outlined,
+      Icons.lock_outline,
+    ]);
+    expect(entries.map((e) => e.title), [
+      l.helpCheatsheetDetailFactsTitle,
+      l.helpCheatsheetDetailKeyPointsTitle,
+      l.helpCheatsheetDetailHeaderTitle,
+      l.helpCheatsheetDetailLockTitle,
+    ]);
+  });
+
+  test('detail help is translated entry by entry in zh', () {
+    final en = helpFor(
+      HelpId.cheatsheetDetail,
+      lookupAppLocalizations(const Locale('en')),
+    );
+    final zh = helpFor(
+      HelpId.cheatsheetDetail,
+      lookupAppLocalizations(const Locale('zh')),
+    );
+    expect(zh.entries.length, en.entries.length);
+    for (var i = 0; i < en.entries.length; i++) {
+      expect(zh.entries[i].title, isNot(en.entries[i].title), reason: '$i');
+      expect(zh.entries[i].body, isNot(en.entries[i].body), reason: '$i');
+    }
+  });
 }

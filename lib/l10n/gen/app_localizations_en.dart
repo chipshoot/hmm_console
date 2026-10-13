@@ -2409,6 +2409,41 @@ class AppLocalizationsEn extends AppLocalizations {
       'A lock marks a protected card. A 🔒 means its cover photo is locked in the vault: the card shows its colour instead, and opening the card lets you unlock the photo.';
 
   @override
+  String get helpCheatsheetDetailTitle => 'Cheatsheet';
+
+  @override
+  String get helpCheatsheetDetailSummary =>
+      'One card, its rows filled from your notes. Edit or delete it from the top bar.';
+
+  @override
+  String get helpCheatsheetDetailFactsTitle => 'Facts layout';
+
+  @override
+  String get helpCheatsheetDetailFactsBody =>
+      'Each row shows its label with the value from your note underneath. A dash means the row is not linked yet; \"source removed\" means its note was deleted. Tap a phone number or an address to call or map it.';
+
+  @override
+  String get helpCheatsheetDetailKeyPointsTitle => 'Key points layout';
+
+  @override
+  String get helpCheatsheetDetailKeyPointsBody =>
+      'Rows are numbered on the card\'s colour, each with its emoji if one was chosen, the label in bold and the value below. Values, actions and photos work as in Facts.';
+
+  @override
+  String get helpCheatsheetDetailHeaderTitle => 'Cover header';
+
+  @override
+  String get helpCheatsheetDetailHeaderBody =>
+      'The top of the card shows its colour and pattern or its cover photo, its icon, its title, and its group with the number of rows. Change the look in the designer.';
+
+  @override
+  String get helpCheatsheetDetailLockTitle => 'Locked cover';
+
+  @override
+  String get helpCheatsheetDetailLockBody =>
+      'When the cover photo is protected and the vault is locked, the header shows a lock tile instead. Tap it to unlock and see the photo.';
+
+  @override
   String get contactCustomRelationship => 'Describe the relationship';
 
   @override

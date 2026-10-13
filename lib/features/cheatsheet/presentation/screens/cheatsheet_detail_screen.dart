@@ -11,14 +11,20 @@ import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/data/vault/vault_session.dart';
 import '../../../../core/data/attachments/widgets/sensitive_attachment_image.dart';
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
 import '../../../../core/navigation/route_names.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../data/cheatsheet_launcher.dart';
 import '../../data/cheatsheet_resolver.dart';
+import '../../domain/entities/card_style.dart';
 import '../../domain/entities/cheatsheet_card.dart';
 import '../../domain/entities/cheatsheet_row.dart';
 import '../../domain/entities/cheatsheet_source.dart';
 import '../../states/cheatsheets_state.dart';
 import '../../states/derived_field_registry_provider.dart';
+import '../look/card_header.dart';
+import '../look/cheatsheet_palette.dart';
 
 final cheatsheetResolverProvider = Provider<CheatsheetResolver>(
   (ref) => CheatsheetResolver(
@@ -157,50 +163,80 @@ class CheatsheetDetailScreen extends ConsumerWidget {
     }
 
     final resolved = ref.watch(cheatsheetResolvedRowsProvider(cardId));
+    final brightness = Theme.of(context).brightness;
+    final bar = headerBarColors(card, brightness);
+    final look = card.look;
+    final palette = CheatsheetPalette.of(look.theme, brightness);
 
     return Scaffold(
       appBar: AppBar(
+        // The bar carries the card's colour so edit/delete stay legible
+        // against it; a cover card gets the darkened theme with white.
+        backgroundColor: bar.background,
+        foregroundColor: bar.foreground,
         title: Text(card.title),
         actions: [
-          IconButton(
+          const HelpButton(helpId: HelpId.cheatsheetDetail),
+          HmmIconButton(
             key: const Key('detail-edit'),
-            icon: const Icon(Icons.edit_outlined),
+            icon: Icons.edit_outlined,
             tooltip: l.cheatsheetEditTooltip,
             onPressed: () =>
                 ref.read(cheatsheetEditCardProvider)(context, cardId),
           ),
-          IconButton(
+          HmmIconButton(
             key: const Key('detail-delete'),
-            icon: const Icon(Icons.delete_outline),
+            icon: Icons.delete_outline,
             tooltip: l.cheatsheetDeleteTooltip,
             onPressed: () => _confirmDelete(context, ref),
           ),
         ],
       ),
-      body: resolved.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
-        data: (values) => ListView(
-          children: [
-            for (var i = 0; i < card.rows.length; i++)
-              _RowTile(
-                index: i,
-                row: card.rows[i],
-                value: i < values.length ? values[i] : const ResolvedValue(),
+      body: ListView(
+        children: [
+          CardHeader(key: const Key('detail-header'), card: card),
+          ...resolved.when<List<Widget>>(
+            loading: () => const [
+              Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
               ),
-          ],
-        ),
+            ],
+            error: (e, _) => [Center(child: Text('$e'))],
+            data: (values) => [
+              for (var i = 0; i < card.rows.length; i++)
+                _RowTile(
+                  index: i,
+                  row: card.rows[i],
+                  value: i < values.length ? values[i] : const ResolvedValue(),
+                  layout: look.layout,
+                  colors: palette,
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
+/// One row in either layout. The value widget — and with it every state
+/// (unbound "—", "source removed", an image, a tappable call/map value) — is
+/// built once and placed by [layout], so both layouts behave identically.
 class _RowTile extends ConsumerWidget {
-  const _RowTile({required this.index, required this.row, required this.value});
+  const _RowTile({
+    required this.index,
+    required this.row,
+    required this.value,
+    required this.layout,
+    required this.colors,
+  });
 
   final int index;
   final CheatsheetRow row;
   final ResolvedValue value;
+  final CardLayout layout;
+  final CardColors colors;
 
   Future<void> _launch(BuildContext context, WidgetRef ref, String text) async {
     final l = AppLocalizations.of(context);
@@ -222,61 +258,130 @@ class _RowTile extends ConsumerWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final CheatsheetSource? source = row.source;
+  Widget _valueWidget(BuildContext context, WidgetRef ref) {
     final muted = Theme.of(context).textTheme.bodyMedium?.copyWith(
       color: Theme.of(context).disabledColor,
       fontStyle: FontStyle.italic,
     );
-
-    final Widget valueWidget;
     if (value.unbound) {
-      valueWidget = Text('—', key: Key('row-$index-unbound'), style: muted);
-    } else if (value.missing) {
-      valueWidget = Text(
+      return Text('—', key: Key('row-$index-unbound'), style: muted);
+    }
+    if (value.missing) {
+      return Text(
         'source removed',
         key: Key('row-$index-missing'),
         style: muted,
       );
-    } else if (value.image != null) {
-      valueWidget = _ImageValue(
+    }
+    if (value.image != null) {
+      return _ImageValue(
         key: Key('row-$index-image'),
         image: value.image!,
         label: row.label,
       );
-    } else {
-      final text = value.text ?? '';
-      final action = row.valueAction;
-      valueWidget = InkWell(
-        key: Key('row-$index-value'),
-        onTap: action == ValueAction.none
+    }
+    final text = value.text ?? '';
+    final action = row.valueAction;
+    return InkWell(
+      key: Key('row-$index-value'),
+      onTap: action == ValueAction.none
+          ? null
+          : () => _launch(context, ref, text),
+      child: Text(
+        text,
+        style: action == ValueAction.none
             ? null
-            : () => _launch(context, ref, text),
-        child: Text(
-          text,
-          style: action == ValueAction.none
-              ? null
-              : TextStyle(color: Theme.of(context).colorScheme.primary),
-        ),
+            : TextStyle(color: Theme.of(context).colorScheme.primary),
+      ),
+    );
+  }
+
+  Widget? _openSourceButton(BuildContext context, WidgetRef ref) {
+    final CheatsheetSource? source = row.source;
+    if (!row.openSource || source == null) return null;
+    final l = AppLocalizations.of(context);
+    return HmmIconButton(
+      key: Key('row-$index-open-source'),
+      icon: Icons.open_in_new,
+      tooltip: l.cheatsheetOpenSourceTooltip,
+      onPressed: () =>
+          ref.read(cheatsheetOpenSourceProvider)(context, source.noteUuid),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final valueWidget = _valueWidget(context, ref);
+    final trailing = _openSourceButton(context, ref);
+
+    if (layout == CardLayout.facts) {
+      return ListTile(
+        title: Text(row.label),
+        subtitle: valueWidget,
+        trailing: trailing,
       );
     }
 
-    return ListTile(
-      title: Text(row.label),
-      subtitle: valueWidget,
-      trailing: row.openSource && source != null
-          ? IconButton(
-              key: Key('row-$index-open-source'),
-              icon: const Icon(Icons.open_in_new),
-              tooltip: l.cheatsheetOpenSourceTooltip,
-              onPressed: () => ref.read(cheatsheetOpenSourceProvider)(
-                context,
-                source.noteUuid,
+    final emoji = row.emoji;
+    return Container(
+      key: Key('keypoint-$index'),
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      padding: const EdgeInsets.fromLTRB(12, 8, 0, 8),
+      decoration: BoxDecoration(
+        border: Border(left: BorderSide(color: colors.background, width: 4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Number on the theme colour in its own text colour, so the pair
+          // is covered by the palette's AA test.
+          Container(
+            key: Key('keypoint-$index-number'),
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colors.background,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '${index + 1}',
+              style: TextStyle(
+                color: colors.foreground,
+                fontWeight: FontWeight.w600,
               ),
-            )
-          : null,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (emoji != null && isSingleEmoji(emoji))
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Text(emoji, key: Key('keypoint-$index-emoji')),
+                      ),
+                    Expanded(
+                      child: Text(
+                        row.label,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                valueWidget,
+              ],
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
     );
   }
 }

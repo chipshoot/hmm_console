@@ -2334,6 +2334,40 @@ class AppLocalizationsZh extends AppLocalizations {
       '锁形图标表示受保护的卡片。🔒 表示其封面照片已在保险库中锁定：卡片会改为显示颜色，打开卡片后可解锁照片。';
 
   @override
+  String get helpCheatsheetDetailTitle => '速查卡详情';
+
+  @override
+  String get helpCheatsheetDetailSummary => '一张卡片，各行内容取自你的笔记。可在顶部栏编辑或删除。';
+
+  @override
+  String get helpCheatsheetDetailFactsTitle => '“信息”布局';
+
+  @override
+  String get helpCheatsheetDetailFactsBody =>
+      '每一行显示标签，下方是取自笔记的值。短横线表示该行尚未关联；“source removed”表示其笔记已被删除。点按电话号码或地址可拨打或在地图中查看。';
+
+  @override
+  String get helpCheatsheetDetailKeyPointsTitle => '“要点”布局';
+
+  @override
+  String get helpCheatsheetDetailKeyPointsBody =>
+      '各行在卡片颜色上编号，若已选择表情符号则一并显示，标签加粗，值显示在下方。值、操作和照片与“信息”布局相同。';
+
+  @override
+  String get helpCheatsheetDetailHeaderTitle => '封面标题区';
+
+  @override
+  String get helpCheatsheetDetailHeaderBody =>
+      '卡片顶部显示其颜色和图案或封面照片、图标、标题，以及所属分组和行数。可在设计器中更改外观。';
+
+  @override
+  String get helpCheatsheetDetailLockTitle => '已锁定的封面';
+
+  @override
+  String get helpCheatsheetDetailLockBody =>
+      '封面照片受保护且保险库已锁定时，标题区会改为显示锁定图块。点按即可解锁并查看照片。';
+
+  @override
   String get contactCustomRelationship => '描述这层关系';
 
   @override

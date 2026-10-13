@@ -4352,6 +4352,66 @@ abstract class AppLocalizations {
   /// **'A lock marks a protected card. A 🔒 means its cover photo is locked in the vault: the card shows its colour instead, and opening the card lets you unlock the photo.'**
   String get helpCheatsheetWalletLockBody;
 
+  /// No description provided for @helpCheatsheetDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheatsheet'**
+  String get helpCheatsheetDetailTitle;
+
+  /// No description provided for @helpCheatsheetDetailSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'One card, its rows filled from your notes. Edit or delete it from the top bar.'**
+  String get helpCheatsheetDetailSummary;
+
+  /// No description provided for @helpCheatsheetDetailFactsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Facts layout'**
+  String get helpCheatsheetDetailFactsTitle;
+
+  /// No description provided for @helpCheatsheetDetailFactsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each row shows its label with the value from your note underneath. A dash means the row is not linked yet; \"source removed\" means its note was deleted. Tap a phone number or an address to call or map it.'**
+  String get helpCheatsheetDetailFactsBody;
+
+  /// No description provided for @helpCheatsheetDetailKeyPointsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Key points layout'**
+  String get helpCheatsheetDetailKeyPointsTitle;
+
+  /// No description provided for @helpCheatsheetDetailKeyPointsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows are numbered on the card\'s colour, each with its emoji if one was chosen, the label in bold and the value below. Values, actions and photos work as in Facts.'**
+  String get helpCheatsheetDetailKeyPointsBody;
+
+  /// No description provided for @helpCheatsheetDetailHeaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover header'**
+  String get helpCheatsheetDetailHeaderTitle;
+
+  /// No description provided for @helpCheatsheetDetailHeaderBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The top of the card shows its colour and pattern or its cover photo, its icon, its title, and its group with the number of rows. Change the look in the designer.'**
+  String get helpCheatsheetDetailHeaderBody;
+
+  /// No description provided for @helpCheatsheetDetailLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked cover'**
+  String get helpCheatsheetDetailLockTitle;
+
+  /// No description provided for @helpCheatsheetDetailLockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When the cover photo is protected and the vault is locked, the header shows a lock tile instead. Tap it to unlock and see the photo.'**
+  String get helpCheatsheetDetailLockBody;
+
   /// No description provided for @contactCustomRelationship.
   ///
   /// In en, this message translates to:
