@@ -61,6 +61,16 @@ class _Mode extends DataModeNotifier {
   DataMode build() => mode;
 }
 
+/// A vault whose writes fail, e.g. a full disk.
+class _FailingWriteVault extends _MemVault {
+  @override
+  Future<void> putBytes(
+    String relativePath,
+    Uint8List bytes, {
+    String? contentType,
+  }) async => throw VaultStoreException('disk full', relativePath);
+}
+
 /// A vault store that must never be touched.
 class _NoVault implements IVaultStore {
   @override
@@ -122,6 +132,25 @@ void main() {
     addTearDown(c.dispose);
     return c;
   }
+
+  test(
+    'a new card whose cover write fails still shows in the wallet',
+    () async {
+      final c = container(store: _FailingWriteVault());
+      expect(await c.read(cheatsheetsStateProvider.future), isEmpty);
+
+      await expectLater(
+        c.read(cheatsheetsStateProvider.notifier).save(plain, newCover: pick()),
+        throwsA(isA<VaultStoreException>()),
+      );
+
+      // The first write landed (the note had to exist to key the cover), so
+      // the wallet must re-read and show the card rather than a stale list.
+      final cards = await c.read(cheatsheetsStateProvider.future);
+      expect(cards.map((x) => x.id), ['c1']);
+      expect(cards.single.cover, isNull);
+    },
+  );
 
   test(
     'a new card with a cover: bytes in the vault, ref in the column',

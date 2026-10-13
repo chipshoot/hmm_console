@@ -31,45 +31,54 @@ class CheatsheetsState extends AsyncNotifier<List<CheatsheetCard>> {
     PickedImageBytes? newCover,
     List<VaultRef> released = const [],
   }) async {
-    final repo = ref.read(cheatsheetRepositoryModeProvider);
-    var next = card;
-    if (newCover != null) {
-      // Vault paths are keyed by note id, so a brand-new card's note has to
-      // exist before its cover can be written.
-      var noteId = await repo.noteIdFor(card.id);
-      if (noteId == null) {
-        await repo.saveCard(card);
-        noteId = await repo.noteIdFor(card.id);
+    // finally: a new card's first write can land before a later step (the
+    // vault write, the second save) throws; the list must still re-read so
+    // the wallet shows what storage now holds.
+    try {
+      final repo = ref.read(cheatsheetRepositoryModeProvider);
+      var next = card;
+      if (newCover != null) {
+        // Vault paths are keyed by note id, so a brand-new card's note has to
+        // exist before its cover can be written.
+        var noteId = await repo.noteIdFor(card.id);
+        if (noteId == null) {
+          await repo.saveCard(card);
+          noteId = await repo.noteIdFor(card.id);
+        }
+        if (noteId == null) {
+          throw StateError('card ${card.id} has no note to hold a cover');
+        }
+        final picker = await ref.read(imageAttachmentPickerProvider.future);
+        final cover = await picker.persistToVault(
+          noteId: noteId,
+          bytes: newCover.bytes,
+          originalName: newCover.originalName,
+          contentTypeHint: newCover.contentType,
+          sensitive: card.protected,
+        );
+        next = card.withCover(cover);
       }
-      if (noteId == null) {
-        throw StateError('card ${card.id} has no note to hold a cover');
-      }
-      final picker = await ref.read(imageAttachmentPickerProvider.future);
-      final cover = await picker.persistToVault(
-        noteId: noteId,
-        bytes: newCover.bytes,
-        originalName: newCover.originalName,
-        contentTypeHint: newCover.contentType,
-        sensitive: card.protected,
-      );
-      next = card.withCover(cover);
+      await repo.saveCard(next);
+      // Never delete the bytes the saved card still points at.
+      final kept = next.cover?.path;
+      await _release([
+        for (final r in released)
+          if (r.path != kept) r,
+      ]);
+    } finally {
+      ref.invalidateSelf();
     }
-    await repo.saveCard(next);
-    // Never delete the bytes the saved card still points at.
-    final kept = next.cover?.path;
-    await _release([
-      for (final r in released)
-        if (r.path != kept) r,
-    ]);
-    ref.invalidateSelf();
   }
 
   Future<void> remove(String id) async {
-    final repo = ref.read(cheatsheetRepositoryModeProvider);
-    final cover = (await repo.getCard(id))?.cover;
-    await repo.deleteCard(id);
-    if (cover != null) await _release([cover]);
-    ref.invalidateSelf();
+    try {
+      final repo = ref.read(cheatsheetRepositoryModeProvider);
+      final cover = (await repo.getCard(id))?.cover;
+      await repo.deleteCard(id);
+      if (cover != null) await _release([cover]);
+    } finally {
+      ref.invalidateSelf();
+    }
   }
 
   void refresh() => ref.invalidateSelf();
@@ -87,13 +96,15 @@ class CheatsheetsState extends AsyncNotifier<List<CheatsheetCard>> {
       }
     } catch (e) {
       // Type only: the error can quote the vault path.
-      debugPrint('CheatsheetsState: releasing ${refs.length} cover file(s) '
-          'failed (${e.runtimeType}); VaultGc will reclaim them.');
+      debugPrint(
+        'CheatsheetsState: releasing ${refs.length} cover file(s) '
+        'failed (${e.runtimeType}); VaultGc will reclaim them.',
+      );
     }
   }
 }
 
 final cheatsheetsStateProvider =
     AsyncNotifierProvider<CheatsheetsState, List<CheatsheetCard>>(
-  () => CheatsheetsState(),
-);
+      () => CheatsheetsState(),
+    );
