@@ -203,6 +203,19 @@ void main() {
     expect(find.byKey(const Key('look-reset')), findsOneWidget);
   });
 
+  testWidgets('theme and pattern swatches have a 48x48 tap target', (
+    tester,
+  ) async {
+    await mount(tester);
+    await start(tester, 'blank');
+
+    for (final key in ['look-theme-red', 'look-pattern-dots']) {
+      final size = tester.getSize(find.byKey(Key(key)));
+      expect(size.width, greaterThanOrEqualTo(48), reason: key);
+      expect(size.height, greaterThanOrEqualTo(48), reason: key);
+    }
+  });
+
   testWidgets('editing a card starts with Look collapsed, the preview in its '
       'header, and a tap expands it', (tester) async {
     _Capturing.seed = [

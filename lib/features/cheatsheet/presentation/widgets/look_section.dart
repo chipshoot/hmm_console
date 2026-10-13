@@ -325,27 +325,33 @@ class _ThemeSwatch extends StatelessWidget {
       key: Key('look-theme-${theme.name}'),
       onTap: onTap,
       customBorder: const CircleBorder(),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: colors.background,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: selected
-                ? Theme.of(context).colorScheme.onSurface
-                : Colors.transparent,
-            width: 2,
+      // 48x48 tap target (platform minimum) around the 40px visual.
+      child: SizedBox.square(
+        dimension: 48,
+        child: Center(
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colors.background,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: selected
+                ? Icon(
+                    Icons.check,
+                    key: Key('look-theme-${theme.name}-selected'),
+                    size: 20,
+                    color: colors.foreground,
+                  )
+                : null,
           ),
         ),
-        child: selected
-            ? Icon(
-                Icons.check,
-                key: Key('look-theme-${theme.name}-selected'),
-                size: 20,
-                color: colors.foreground,
-              )
-            : null,
       ),
     ),
   );
@@ -377,25 +383,32 @@ class _PatternSwatch extends StatelessWidget {
       key: Key('look-pattern-${pattern.name}'),
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
-      child: Container(
+      // 48px-tall tap target around the 36px visual.
+      child: SizedBox(
         width: 52,
-        height: 36,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: colors.background,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected
-                ? Theme.of(context).colorScheme.onSurface
-                : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        // Stronger ink than on a card, so the swatch reads at this size.
-        child: CustomPaint(
-          painter: CardPatternPainter(
-            pattern: pattern,
-            ink: colors.foreground.withValues(alpha: 0.35),
+        height: 48,
+        child: Center(
+          child: Container(
+            width: 52,
+            height: 36,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: colors.background,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: selected
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            // Stronger ink than on a card, so the swatch reads at this size.
+            child: CustomPaint(
+              painter: CardPatternPainter(
+                pattern: pattern,
+                ink: colors.foreground.withValues(alpha: 0.35),
+              ),
+            ),
           ),
         ),
       ),
