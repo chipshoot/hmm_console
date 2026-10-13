@@ -335,14 +335,16 @@ class _RowTile extends ConsumerWidget {
         children: [
           // Number on the theme colour in its own text colour, so the pair
           // is covered by the palette's AA test.
+          // At least a 28px circle; two digits or large text grow it into a
+          // pill instead of clipping the number.
           Container(
             key: Key('keypoint-$index-number'),
-            width: 28,
-            height: 28,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: colors.background,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               '${index + 1}',

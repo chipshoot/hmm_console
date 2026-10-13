@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -537,6 +538,41 @@ void main() {
                   .decoration!
               as BoxDecoration;
       expect((box.border! as Border).left.color, slate.background);
+    });
+
+    testWidgets('a two-digit Key points number fits its circle at text '
+        'scale 2.0', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final twelve = card.copyWith(
+        style: const CardStyle({'layout': 'keyPoints'}),
+        rows: [
+          for (var i = 0; i < 12; i++)
+            CheatsheetRow(label: 'Row $i', source: null),
+        ],
+      );
+      await mountLook(tester, twelve);
+
+      final circle = find.byKey(const Key('keypoint-11-number'));
+      await tester.scrollUntilVisible(circle, 200);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final number = find.descendant(of: circle, matching: find.text('12'));
+      final paragraph = tester.renderObject<RenderParagraph>(number);
+      final box = tester.getSize(circle);
+      expect(box.width, greaterThanOrEqualTo(28));
+      expect(box.height, greaterThanOrEqualTo(28));
+      expect(
+        paragraph.getMaxIntrinsicWidth(double.infinity),
+        lessThanOrEqualTo(box.width),
+        reason: '"12" is not clipped horizontally',
+      );
+      expect(
+        paragraph.getMaxIntrinsicHeight(double.infinity),
+        lessThanOrEqualTo(box.height),
+        reason: '"12" is not clipped vertically',
+      );
     });
 
     testWidgets('Key points keeps unbound, missing, section text and actions', (

@@ -39,23 +39,9 @@ class CardTile extends StatelessWidget {
   /// shorter than this, so large accessibility text grows the tile instead
   /// of clipping or overflowing it.
   static double minHeight(BuildContext context) {
-    final scaler = MediaQuery.textScalerOf(context);
-    final base = DefaultTextStyle.of(context).style;
     final text = Theme.of(context).textTheme;
-    double measure(TextStyle? style, {int lines = 1}) {
-      final painter = TextPainter(
-        text: TextSpan(
-          text: List.filled(lines, 'Ag').join('\n'),
-          style: base.merge(style),
-        ),
-        textDirection: TextDirection.ltr,
-        textScaler: scaler,
-        maxLines: lines,
-      )..layout();
-      final height = painter.height;
-      painter.dispose();
-      return height;
-    }
+    double measure(TextStyle? style, {int lines = 1}) =>
+        lookTextHeight(context, style, lines: lines);
 
     final iconRow = [
       measure(_iconStyle),

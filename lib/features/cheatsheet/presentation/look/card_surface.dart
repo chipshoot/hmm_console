@@ -27,6 +27,24 @@ const Color kCoverSubtitleColor = Color(0xE6FFFFFF);
 /// 90%-white subtitle at 5.0:1 even over white (`card_surface_test.dart`).
 const Color kCoverTextBand = Color(0x99000000);
 
+/// The laid-out height of [lines] lines of [style] at the ambient text scale,
+/// so a tile or header can grow with large accessibility text instead of
+/// overflowing.
+double lookTextHeight(BuildContext context, TextStyle? style, {int lines = 1}) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: List.filled(lines, 'Ag').join('\n'),
+      style: DefaultTextStyle.of(context).style.merge(style),
+    ),
+    textDirection: TextDirection.ltr,
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: lines,
+  )..layout();
+  final height = painter.height;
+  painter.dispose();
+  return height;
+}
+
 /// Text colours for whatever is drawn on a [CardSurface], and whether a
 /// sensitive cover is being withheld because the vault is locked.
 class CardInk {

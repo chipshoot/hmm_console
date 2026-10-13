@@ -22,13 +22,31 @@ class CardHeader extends StatelessWidget {
 
   final CheatsheetCard card;
 
+  static const TextStyle _iconStyle = TextStyle(fontSize: 40);
+
+  /// 168 at normal text; taller when large text needs the room for padding
+  /// 16 + icon + 8 + band 4 + a title line + subtitle + 16 (+ emoji slack).
+  /// A second title line takes what is left and otherwise ellipsizes.
+  static double _height(BuildContext context, TextTheme text) {
+    final needed =
+        16 +
+        lookTextHeight(context, _iconStyle) +
+        8 +
+        4 +
+        lookTextHeight(context, text.headlineSmall) +
+        lookTextHeight(context, text.bodyMedium) +
+        16 +
+        4;
+    return needed > 168 ? needed : 168;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
     final group = cheatsheetGroupLabel(card.walletGroup, l);
     return SizedBox(
-      height: 168,
+      height: _height(context, text),
       child: CardSurface(
         card: card,
         allowUnlock: true,
@@ -41,7 +59,7 @@ class CardHeader extends StatelessWidget {
               child: Text(
                 card.look.icon,
                 key: const Key('detail-header-icon'),
-                style: const TextStyle(fontSize: 40),
+                style: _iconStyle,
               ),
             ),
             const SizedBox(height: 8),
