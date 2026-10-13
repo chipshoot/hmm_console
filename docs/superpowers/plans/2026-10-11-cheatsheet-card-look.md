@@ -20,6 +20,7 @@
 - Every theme's title and subtitle colours meet **WCAG AA (≥ 4.5:1)** against its light **and** dark background, including the background with the pattern ink composited over it, and for the cover header bar.
 - Rendering a wallet tile **never prompts for an unlock**; only the detail header offers the shared tap-to-unlock tile.
 - Icon buttons are `HmmIconButton` with a localized tooltip only; `test/core/help/icon_button_guard_test.dart` stays green and its allow-list only shrinks.
+- In-app help on **three** screens, each with a `HelpId`, a registry case in `lib/core/help/help_registry.dart`, a `HelpButton` in its top bar and en + zh ARB keys (`help<Screen>Title`, `help<Screen>Summary`, `help<Screen><Control>Title/Body`): wallet `HelpId.cheatsheetWallet` (Task 7), detail `HelpId.cheatsheetDetail` (Task 8), designer `HelpId.cheatsheetDesigner` (Task 9). Each entry's icon is the control's own `Icons.*` constant; a control that draws no Material icon (a tile, a chip, the header) uses the closest stand-in, as `vehicleNotes`' "Open" entry does.
 - Platform controls branch on `Theme.of(context).platform` (`CupertinoSlidingSegmentedControl` / `CupertinoActionSheet` / `showCupertinoModalPopup` on iOS, `SegmentedButton` / `showModalBottomSheet` elsewhere). `flutter_platform_widgets` is not a dependency.
 - Every new user-visible string goes into both `app_en.arb` and `app_zh.arb` (key parity). Run `flutter gen-l10n` after every ARB edit and commit `lib/l10n/gen/`.
 - Logs carry ids and error **types** only (`${e.runtimeType}`) — never paths, titles, values or JSON.
@@ -41,14 +42,14 @@
 
 ### Deviations from the spec (forced by the code)
 
-- **Covers are local/cloudStorage only for now.** `/v1/cheatsheets` exposes neither the backing note id (`ApiVaultStore` paths are `/v1/notes/{noteId}/vault/...`) nor the note's `attachments` column, so the client cannot attach a cover in Cloud API mode. The designer hides Cover when `dataMode == cloudApi` (`cheatsheetCoversSupportedProvider`), `ICheatsheetRepository.noteIdFor` answers `null` there, and a `style.cover` written on another device passes through verbatim and renders the theme. Everything else in the look works in all three modes.
-- **Who marks a cover sensitive is unspecified.** The cover is stored `sensitive: card.protected` (the existing flag). Any sensitive cover — including one synced from elsewhere — follows the spec's lock rules.
+- **Covers are local/cloudStorage only for now** (confirmed in plan review 2026-10-12, Q1 a). `/v1/cheatsheets` exposes neither the backing note id (`ApiVaultStore` paths are `/v1/notes/{noteId}/vault/...`) nor the note's `attachments` column, so the client cannot attach a cover in Cloud API mode. The designer hides Cover when `dataMode == cloudApi` (`cheatsheetCoversSupportedProvider`), `ICheatsheetRepository.noteIdFor` answers `null` there, and a `style.cover` written on another device passes through verbatim and renders the theme. Everything else in the look works in all three modes.
+- **Who marks a cover sensitive is unspecified.** The cover is stored `sensitive: card.protected` (the existing flag; confirmed in plan review, Q2 a). Any sensitive cover — including one synced from elsewhere — follows the spec's lock rules.
 - **`CardTheme` would collide with Material's `CardTheme`.** The enum is `CardThemeId` and the colour table is `CheatsheetPalette`.
 - **Delete must release explicitly.** Soft delete keeps a note's attachments live for `VaultGc`, so `LocalCheatsheetRepository.deleteCard` clears the column before deleting and `CheatsheetsState.remove` deletes the bytes.
-- **The detail and wallet screens have no help today.** "Existing edit/delete/help actions remain" — there is no help action to keep there. Help is added to the designer only (`HelpId.cheatsheetDesigner`), which is the spec's explicit requirement.
-- **Backend PUT semantics for `Style`.** The update map runs onto the stored card (`MergeExtras` precedent), so `ApiCheatsheetForUpdate` records whether `Style` was present: absent ⇒ keep the stored style (older clients), explicit `null` ⇒ clear it (Reset look). The current client always sends the key.
+- **The detail and wallet screens have no help today.** "Existing edit/delete/help actions remain" — there was no help action to keep there. Per plan review (2026-10-12, Q6 b) help is added to all three screens: the wallet (`HelpId.cheatsheetWallet`: tiles, group chips, tag chips, lock badge — Task 7), the detail (`HelpId.cheatsheetDetail`: Facts layout, Key points layout, cover header, lock tile — Task 8) and the designer (`HelpId.cheatsheetDesigner` — Task 9).
+- **Backend PUT semantics for `Style`** (confirmed in plan review, Q3 a). The update map runs onto the stored card (`MergeExtras` precedent), so `ApiCheatsheetForUpdate` records whether `Style` was present: absent ⇒ keep the stored style (older clients), explicit `null` ⇒ clear it (Reset look). The current client always sends the key.
 - **Byte-identity is for canonical order.** Both this codec and the backend serializer write the canonical order, so every card they wrote round-trips byte-identical. A card whose *unreadable* rows sit between readable rows is still reordered (unreadable rows are appended — pre-existing behaviour, out of scope).
-- **The Look section is a collapsed `ExpansionTile` whose leading is the live mini-tile.** Expanded inline it would push the rows out of the first viewport (existing designer tests tap `row-0-*`), and a collapsed section is also the calmer default.
+- **The Look section is an `ExpansionTile` whose leading is the live mini-tile, expanded when creating a card and collapsed when editing one** (plan review 2026-10-12, Q4 b). On create the look is part of making the card; on edit the preview alone shows the current look and the rows stay in the first viewport. Because the expanded section pushes the rows below the default test view, the existing create-path tests (`cheatsheet_designer_screen_test.dart`, `cheatsheet_acceptance_test.dart`) get a tall view and a `cheatsheetCoversSupportedProvider` override (Task 9 Step 23).
 - **Group chips are single-select `ChoiceChip`s**; the existing tag `FilterChip`s stay below them.
 
 ---
@@ -2230,7 +2231,7 @@ EOF
 
 ### Task 4: Backend pass-through for `Style` and row `Emoji` (Hmm repo)
 
-All paths in this task are under `/Users/fchy/Projects/hmm`. Before any change, create and switch to a feature branch: `git -C /Users/fchy/Projects/hmm switch -c feat/cheatsheet-style-passthrough` (from `main`; if the branch already exists, `git -C /Users/fchy/Projects/hmm switch feat/cheatsheet-style-passthrough`). Never commit on `main`. Switching branches carries the unrelated uncommitted `CLAUDE.md` change along untouched — leave it unstaged. The repo has an unrelated uncommitted `CLAUDE.md` change — do not stage it.
+All paths in this task are under `/Users/fchy/Projects/hmm`. Before any change, create and switch to the feature branch from `main`: `git -C /Users/fchy/Projects/hmm switch -c feat/cheatsheet-style-passthrough main` (if the branch already exists, `git -C /Users/fchy/Projects/hmm switch feat/cheatsheet-style-passthrough`), then confirm `git -C /Users/fchy/Projects/hmm branch --show-current` prints `feat/cheatsheet-style-passthrough`. Every test run and the commit in this task happen on that branch — never commit on `main`. Switching branches carries the repo's unrelated uncommitted `CLAUDE.md` change along untouched — leave it unstaged and never stage it.
 
 **Files:**
 - Modify: `src/Hmm.Cheatsheet/DomainEntity/CheatsheetCard.cs` (add `Style` after `Rows`, line 42)
@@ -2908,7 +2909,7 @@ In `src/Hmm.ServiceApi/Areas/CheatsheetService/Infrastructure/CheatsheetMappingP
                     (src, dest) => MergeExtras(dest.ExtraFields, src.ExtraFields)));
 ```
 
-- [ ] **Step 10: Run both backend test projects**
+- [ ] **Step 10: Run both backend test projects (on `feat/cheatsheet-style-passthrough`)**
 
 Run: `dotnet test /Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/Hmm.ServiceApi.Core.Tests.csproj`
 Expected: `Passed!  - Failed: 0, Passed: 429` (420 + 9).
@@ -2916,11 +2917,11 @@ Expected: `Passed!  - Failed: 0, Passed: 429` (420 + 9).
 Run: `dotnet test /Users/fchy/Projects/hmm/src/Hmm.Cheatsheet.Tests/Hmm.Cheatsheet.Tests.csproj`
 Expected: `Passed!  - Failed: 0, Passed: 103`.
 
-- [ ] **Step 11: Commit (hmm repo, current branch)**
+- [ ] **Step 11: Commit (hmm repo, branch `feat/cheatsheet-style-passthrough`)**
 
 ```bash
 cd /Users/fchy/Projects/hmm
-git branch --show-current   # expect: main
+git branch --show-current   # expect: feat/cheatsheet-style-passthrough (stop if it prints main)
 git add src/Hmm.Cheatsheet/DomainEntity/CheatsheetCard.cs \
   src/Hmm.Cheatsheet/DomainEntity/CheatsheetRow.cs \
   src/Hmm.Cheatsheet/NoteSerialize/CheatsheetJsonNoteSerialize.cs \
@@ -4033,17 +4034,20 @@ EOF
 **Files:**
 - Modify: `lib/features/cheatsheet/presentation/screens/cheatsheet_wallet_screen.dart` (whole file, 208 lines → replaced)
 - Modify: `test/core/help/icon_button_guard_test.dart` (remove the `cheatsheet_wallet_screen.dart: 1` entry, line 22 — the add button becomes an `HmmIconButton`)
-- Modify: `lib/l10n/app_en.arb`, `lib/l10n/app_zh.arb` (one key, after the Task 6 keys), regenerate `lib/l10n/gen/`
+- Modify: `lib/l10n/app_en.arb`, `lib/l10n/app_zh.arb` (one chip key after the Task 6 keys; ten wallet help keys after `"helpContactEditSelfBody": ...,` — en line 1235, zh line 697 before this plan's edits), regenerate `lib/l10n/gen/`
+- Modify: `lib/core/help/help_registry.dart` (enum line 10; new case after the `HelpId.contactEdit` case, before the closing `};`, line 135)
 - Test: `test/features/cheatsheet/presentation/cheatsheet_wallet_screen_test.dart` (whole file, 210 lines → replaced)
+- Test: `test/core/help/help_registry_test.dart` (append two tests)
 
 **Interfaces:**
-- Consumes: `CardTile` (Task 6), `cheatsheetGroupLabel`, `HmmIconButton` (`lib/core/widgets/hmm_icon_button.dart`), `cheatsheetsStateProvider`.
+- Consumes: `CardTile` (Task 6), `cheatsheetGroupLabel`, `HmmIconButton` (`lib/core/widgets/hmm_icon_button.dart`), `cheatsheetsStateProvider`, `HelpButton`, `helpFor`, `HelpEntry` (`lib/core/help/`).
 - Produces:
   - `int walletColumnsFor(double width)` — 2 below 600, 3 from 600, 4 from 900
   - Keys: `wallet-add`, `wallet-search`, `wallet-group-all`, `wallet-group-<storedGroup>` (ChoiceChip), `wallet-tag-<tag>` (FilterChip, unchanged), `wallet-grid`, `wallet-card-<id>` (the `CardTile`), `wallet-empty`, `wallet-error`, `wallet-no-matches`
-  - ARB: `cheatsheetChipAll`
+  - ARB: `cheatsheetChipAll`; `helpCheatsheetWalletTitle`, `helpCheatsheetWalletSummary`, `helpCheatsheetWallet{Tiles,Groups,Tags,Lock}{Title,Body}`
+  - `HelpId.cheatsheetWallet` (entries in this order: tiles `Icons.touch_app_outlined`, group chips `Icons.filter_list`, tag chips `Icons.label_outline`, lock badge `Icons.lock_outline`)
 
-- [ ] **Step 1: Add the ARB string and regenerate**
+- [ ] **Step 1: Add the ARB strings and regenerate**
 
 In `lib/l10n/app_en.arb`, after the `"@cheatsheetTileSemantics": {...},` line added in Task 6, insert:
 
@@ -4057,7 +4061,38 @@ In `lib/l10n/app_zh.arb`, after `"cheatsheetTileSemantics": "{title}，{group}�
   "cheatsheetChipAll": "全部",
 ```
 
+In `lib/l10n/app_en.arb`, after `"helpContactEditSelfBody": "Marks this contact as yourself. Only one contact can be marked.",` insert:
+
+```json
+  "helpCheatsheetWalletTitle": "Cheatsheets",
+  "helpCheatsheetWalletSummary": "Your cards at a glance. Tap a card to open it; use search and the chips to narrow the wallet.",
+  "helpCheatsheetWalletTilesTitle": "Cards",
+  "helpCheatsheetWalletTilesBody": "Each card shows its colour or cover photo, its icon, its title, and its group with the number of rows. Tap a card to open it.",
+  "helpCheatsheetWalletGroupsTitle": "Group chips",
+  "helpCheatsheetWalletGroupsBody": "The first row of chips shows one wallet group at a time; All shows every card again. Search works within the chosen group.",
+  "helpCheatsheetWalletTagsTitle": "Tag chips",
+  "helpCheatsheetWalletTagsBody": "Tag chips narrow the wallet to cards that carry every tag you select. Tap a tag again to drop it.",
+  "helpCheatsheetWalletLockTitle": "Lock badge",
+  "helpCheatsheetWalletLockBody": "A lock marks a protected card. A 🔒 means its cover photo is locked in the vault: the card shows its colour instead, and opening the card lets you unlock the photo.",
+```
+
+In `lib/l10n/app_zh.arb`, after `"helpContactEditSelfBody": "将此联系人标记为你本人。只能标记一个联系人。",` insert:
+
+```json
+  "helpCheatsheetWalletTitle": "速查卡",
+  "helpCheatsheetWalletSummary": "一目了然地查看所有卡片。点按卡片即可打开；用搜索和筛选标签缩小范围。",
+  "helpCheatsheetWalletTilesTitle": "卡片",
+  "helpCheatsheetWalletTilesBody": "每张卡片显示其颜色或封面照片、图标、标题，以及所属分组和行数。点按卡片即可打开。",
+  "helpCheatsheetWalletGroupsTitle": "分组标签",
+  "helpCheatsheetWalletGroupsBody": "第一排标签一次只显示一个卡包分组；点“全部”可重新显示所有卡片。搜索只在所选分组内进行。",
+  "helpCheatsheetWalletTagsTitle": "标签筛选",
+  "helpCheatsheetWalletTagsBody": "标签筛选只显示带有全部已选标签的卡片。再次点按标签即可取消。",
+  "helpCheatsheetWalletLockTitle": "锁定标记",
+  "helpCheatsheetWalletLockBody": "锁形图标表示受保护的卡片。🔒 表示其封面照片已在保险库中锁定：卡片会改为显示颜色，打开卡片后可解锁照片。",
+```
+
 Run: `flutter gen-l10n`
+Expected: no errors.
 
 - [ ] **Step 2: Replace the wallet test with the tile-grid version**
 
@@ -4075,6 +4110,7 @@ import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/attachments/widgets/sensitive_attachment_image.dart';
 import 'package:hmm_console/core/data/vault/vault_session.dart';
+import 'package:hmm_console/core/help/help_button.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/look/card_tile.dart';
@@ -4418,15 +4454,108 @@ void main() {
     expect(find.text('Could not load your cheatsheets.'), findsOneWidget);
     expect(find.textContaining('boom'), findsNothing);
   });
+
+  testWidgets('the wallet has a help button that explains tiles, chips and '
+      'the lock badge', (tester) async {
+    // An empty wallet: the only lock icon on screen is the help sheet's.
+    await mount(tester);
+
+    await tester.tap(find.byType(HelpButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cards'), findsOneWidget);
+    expect(find.text('Group chips'), findsOneWidget);
+    expect(find.text('Tag chips'), findsOneWidget);
+    expect(find.text('Lock badge'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+  });
 }
 ```
 
-- [ ] **Step 3: Run it to see it fail**
+In `test/core/help/help_registry_test.dart`, append inside `main()`:
 
-Run: `flutter test test/features/cheatsheet/presentation/cheatsheet_wallet_screen_test.dart`
-Expected: compilation fails — `The function 'walletColumnsFor' isn't defined`.
+```dart
+  test('wallet help explains tiles, both chip rows and the lock badge', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final entries = helpFor(HelpId.cheatsheetWallet, l).entries;
+    // card_tile.dart draws Icons.lock_outline on a protected card. Tiles and
+    // chips draw no Material icon, so they use the closest stand-in (the
+    // vehicleNotes "Open" entry's precedent).
+    expect(entries.map((e) => e.icon), [
+      Icons.touch_app_outlined,
+      Icons.filter_list,
+      Icons.label_outline,
+      Icons.lock_outline,
+    ]);
+    expect(entries.map((e) => e.title), [
+      l.helpCheatsheetWalletTilesTitle,
+      l.helpCheatsheetWalletGroupsTitle,
+      l.helpCheatsheetWalletTagsTitle,
+      l.helpCheatsheetWalletLockTitle,
+    ]);
+  });
 
-- [ ] **Step 4: Replace the wallet screen**
+  test('wallet help is translated entry by entry in zh', () {
+    final en =
+        helpFor(HelpId.cheatsheetWallet, lookupAppLocalizations(const Locale('en')));
+    final zh =
+        helpFor(HelpId.cheatsheetWallet, lookupAppLocalizations(const Locale('zh')));
+    expect(zh.entries.length, en.entries.length);
+    for (var i = 0; i < en.entries.length; i++) {
+      expect(zh.entries[i].title, isNot(en.entries[i].title), reason: '$i');
+      expect(zh.entries[i].body, isNot(en.entries[i].body), reason: '$i');
+    }
+  });
+```
+
+- [ ] **Step 3: Run them to see them fail**
+
+Run: `flutter test test/features/cheatsheet/presentation/cheatsheet_wallet_screen_test.dart test/core/help/help_registry_test.dart`
+Expected: compilation fails — `The function 'walletColumnsFor' isn't defined`; `There's no constant named 'cheatsheetWallet' in 'HelpId'`.
+
+- [ ] **Step 4: Register the wallet help**
+
+In `lib/core/help/help_registry.dart`, change the enum (line 10) to:
+
+```dart
+enum HelpId {
+  automobileHub,
+  vehicleNotes,
+  contacts,
+  contactDetail,
+  contactEdit,
+  cheatsheetWallet,
+}
+```
+
+and add this case after the `HelpId.contactEdit => ScreenHelp(...)` case (before the closing `};`, line 135):
+
+```dart
+      HelpId.cheatsheetWallet => ScreenHelp(
+          title: l.helpCheatsheetWalletTitle,
+          summary: l.helpCheatsheetWalletSummary,
+          entries: [
+            HelpEntry(
+                icon: Icons.touch_app_outlined,
+                title: l.helpCheatsheetWalletTilesTitle,
+                body: l.helpCheatsheetWalletTilesBody),
+            HelpEntry(
+                icon: Icons.filter_list,
+                title: l.helpCheatsheetWalletGroupsTitle,
+                body: l.helpCheatsheetWalletGroupsBody),
+            HelpEntry(
+                icon: Icons.label_outline,
+                title: l.helpCheatsheetWalletTagsTitle,
+                body: l.helpCheatsheetWalletTagsBody),
+            HelpEntry(
+                icon: Icons.lock_outline,
+                title: l.helpCheatsheetWalletLockTitle,
+                body: l.helpCheatsheetWalletLockBody),
+          ],
+        ),
+```
+
+- [ ] **Step 5: Replace the wallet screen**
 
 Replace the whole of `lib/features/cheatsheet/presentation/screens/cheatsheet_wallet_screen.dart` with:
 
@@ -4435,6 +4564,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
 import '../../../../core/navigation/route_names.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
@@ -4494,6 +4625,7 @@ class _CheatsheetWalletScreenState
       appBar: AppBar(
         title: Text(l.cheatsheetWalletTitle),
         actions: [
+          const HelpButton(helpId: HelpId.cheatsheetWallet),
           HmmIconButton(
             key: const Key('wallet-add'),
             icon: Icons.add,
@@ -4674,7 +4806,7 @@ class _CheatsheetWalletScreenState
 }
 ```
 
-- [ ] **Step 5: Lower the icon-button allow-list**
+- [ ] **Step 6: Lower the icon-button allow-list**
 
 In `test/core/help/icon_button_guard_test.dart`, delete the line (line 22):
 
@@ -4682,25 +4814,28 @@ In `test/core/help/icon_button_guard_test.dart`, delete the line (line 22):
   'lib/features/cheatsheet/presentation/screens/cheatsheet_wallet_screen.dart': 1,
 ```
 
-- [ ] **Step 6: Run the wallet, guard and route tests**
+- [ ] **Step 7: Run the wallet, help, guard and route tests**
 
-Run: `flutter test test/features/cheatsheet/presentation/cheatsheet_wallet_screen_test.dart test/core/help/icon_button_guard_test.dart test/core/navigation/cheatsheet_routes_test.dart test/features/dashboard`
-Expected: `All tests passed!`
+Run: `flutter test test/features/cheatsheet/presentation/cheatsheet_wallet_screen_test.dart test/core/help test/core/navigation/cheatsheet_routes_test.dart test/features/dashboard`
+Expected: `All tests passed!` (the existing `every HelpId has complete help in en/zh` and `zh help is translated` tests now cover `cheatsheetWallet` too).
 
-- [ ] **Step 7: Analyze and commit**
+- [ ] **Step 8: Analyze and commit**
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-flutter analyze lib/features/cheatsheet test/features/cheatsheet test/core/help
+flutter analyze lib/features/cheatsheet lib/core/help test/features/cheatsheet test/core/help
 git add lib/features/cheatsheet/presentation/screens/cheatsheet_wallet_screen.dart \
+  lib/core/help/help_registry.dart \
   test/features/cheatsheet/presentation/cheatsheet_wallet_screen_test.dart \
+  test/core/help/help_registry_test.dart \
   test/core/help/icon_button_guard_test.dart \
   lib/l10n/app_en.arb lib/l10n/app_zh.arb lib/l10n/gen/
 git commit -m "$(cat <<'EOF'
-feat(cheatsheet): wallet as a tile grid with group chips
+feat(cheatsheet): wallet as a tile grid with group chips, and its help
 
 2/3/4 columns by width; wallet groups become single-select chips beside
 the existing search and tag filters; the add button is an HmmIconButton.
+A help sheet explains tiles, group and tag chips and the lock badge.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -4714,17 +4849,58 @@ EOF
 **Files:**
 - Modify: `lib/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart` (imports lines 1-21; `CheatsheetDetailScreen.build` through the end of `_RowTile`, lines 136-279)
 - Modify: `test/core/help/icon_button_guard_test.dart` (remove the `cheatsheet_detail_screen.dart: 3` entry, line 21 — all three become `HmmIconButton`s)
+- Modify: `lib/l10n/app_en.arb`, `lib/l10n/app_zh.arb` (ten detail help keys after the Task 7 `"helpCheatsheetWalletLockBody": ...,` line), regenerate `lib/l10n/gen/`
+- Modify: `lib/core/help/help_registry.dart` (enum; new case after the Task 7 `HelpId.cheatsheetWallet` case)
 - Test: `test/features/cheatsheet/presentation/cheatsheet_detail_screen_test.dart` (imports; append a `look` group inside `main()`, before its closing brace on line 422)
+- Test: `test/core/help/help_registry_test.dart` (append two tests)
 
 **Interfaces:**
-- Consumes: `CardHeader`, `headerBarColors` (Task 6), `CheatsheetPalette.of` (Task 1), `CardLayout`, `isSingleEmoji` (Task 1), `CheatsheetRow.emoji` (Task 2), existing `ResolvedValue`, `launchActionProvider`, `_ImageValue` (unchanged, lines 281-362).
+- Consumes: `CardHeader`, `headerBarColors` (Task 6), `CheatsheetPalette.of` (Task 1), `CardLayout`, `isSingleEmoji` (Task 1), `CheatsheetRow.emoji` (Task 2), existing `ResolvedValue`, `launchActionProvider`, `_ImageValue` (unchanged, lines 281-362), `HelpButton`, `helpFor`, `HelpEntry` (`lib/core/help/`), `HelpId.cheatsheetWallet` (Task 7).
 - Produces: keys `detail-header` (the `CardHeader`), `keypoint-<i>`, `keypoint-<i>-number`, `keypoint-<i>-emoji`; the existing `row-<i>-unbound|missing|image|value|open-source` and `detail-edit|delete` keys work in both layouts.
+  - ARB: `helpCheatsheetDetailTitle`, `helpCheatsheetDetailSummary`, `helpCheatsheetDetail{Facts,KeyPoints,Header,Lock}{Title,Body}`
+  - `HelpId.cheatsheetDetail` (entries in this order: Facts layout `Icons.list_alt`, Key points layout `Icons.format_list_numbered` — the icons the Task 9 layout control draws — cover header `Icons.image_outlined`, lock tile `Icons.lock_outline` as drawn by `sensitive_attachment_image.dart` line 213)
 
-- [ ] **Step 1: Write the failing detail tests**
+- [ ] **Step 1: Add the detail help strings and regenerate**
+
+In `lib/l10n/app_en.arb`, after the `"helpCheatsheetWalletLockBody": ...,` line added in Task 7, insert:
+
+```json
+  "helpCheatsheetDetailTitle": "Cheatsheet",
+  "helpCheatsheetDetailSummary": "One card, its rows filled from your notes. Edit or delete it from the top bar.",
+  "helpCheatsheetDetailFactsTitle": "Facts layout",
+  "helpCheatsheetDetailFactsBody": "Each row shows its label with the value from your note underneath. A dash means the row is not linked yet; \"source removed\" means its note was deleted. Tap a phone number or an address to call or map it.",
+  "helpCheatsheetDetailKeyPointsTitle": "Key points layout",
+  "helpCheatsheetDetailKeyPointsBody": "Rows are numbered on the card's colour, each with its emoji if one was chosen, the label in bold and the value below. Values, actions and photos work as in Facts.",
+  "helpCheatsheetDetailHeaderTitle": "Cover header",
+  "helpCheatsheetDetailHeaderBody": "The top of the card shows its colour and pattern or its cover photo, its icon, its title, and its group with the number of rows. Change the look in the designer.",
+  "helpCheatsheetDetailLockTitle": "Locked cover",
+  "helpCheatsheetDetailLockBody": "When the cover photo is protected and the vault is locked, the header shows a lock tile instead. Tap it to unlock and see the photo.",
+```
+
+In `lib/l10n/app_zh.arb`, after the `"helpCheatsheetWalletLockBody": ...,` line added in Task 7, insert:
+
+```json
+  "helpCheatsheetDetailTitle": "速查卡详情",
+  "helpCheatsheetDetailSummary": "一张卡片，各行内容取自你的笔记。可在顶部栏编辑或删除。",
+  "helpCheatsheetDetailFactsTitle": "“信息”布局",
+  "helpCheatsheetDetailFactsBody": "每一行显示标签，下方是取自笔记的值。短横线表示该行尚未关联；“source removed”表示其笔记已被删除。点按电话号码或地址可拨打或在地图中查看。",
+  "helpCheatsheetDetailKeyPointsTitle": "“要点”布局",
+  "helpCheatsheetDetailKeyPointsBody": "各行在卡片颜色上编号，若已选择表情符号则一并显示，标签加粗，值显示在下方。值、操作和照片与“信息”布局相同。",
+  "helpCheatsheetDetailHeaderTitle": "封面标题区",
+  "helpCheatsheetDetailHeaderBody": "卡片顶部显示其颜色和图案或封面照片、图标、标题，以及所属分组和行数。可在设计器中更改外观。",
+  "helpCheatsheetDetailLockTitle": "已锁定的封面",
+  "helpCheatsheetDetailLockBody": "封面照片受保护且保险库已锁定时，标题区会改为显示锁定图块。点按即可解锁并查看照片。",
+```
+
+Run: `flutter gen-l10n`
+Expected: no errors.
+
+- [ ] **Step 2: Write the failing detail and help tests**
 
 In `test/features/cheatsheet/presentation/cheatsheet_detail_screen_test.dart`, add to the imports:
 
 ```dart
+import 'package:hmm_console/core/help/help_button.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/card_style.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/look/cheatsheet_palette.dart';
 ```
@@ -4908,17 +5084,115 @@ and add this group as the last statement inside `main()` (just before the `}` th
       expect(bar.foregroundColor, expected.foreground);
       expect(find.byKey(const Key('card-surface-cover')), findsOneWidget);
     });
+
+    testWidgets('the detail has a help button that explains both layouts, '
+        'the header and the lock tile', (tester) async {
+      await mountLook(tester, card);
+
+      await tester.tap(find.byType(HelpButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Facts layout'), findsOneWidget);
+      expect(find.text('Key points layout'), findsOneWidget);
+      expect(find.text('Cover header'), findsOneWidget);
+      expect(find.text('Locked cover'), findsOneWidget);
+    });
   });
 ```
 
-- [ ] **Step 2: Run it to see it fail**
+In `test/core/help/help_registry_test.dart`, append inside `main()`:
 
-Run: `flutter test test/features/cheatsheet/presentation/cheatsheet_detail_screen_test.dart`
-Expected: the existing tests pass; every test in `look` fails — e.g. `Expected: exactly one matching candidate, Actual: _KeyWidgetFinder:<Found 0 widgets with key [<'detail-header'>]>`.
+```dart
+  test('detail help covers both layouts, the header and the lock tile', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final entries = helpFor(HelpId.cheatsheetDetail, l).entries;
+    // The designer's layout control draws list_alt / format_list_numbered;
+    // sensitive_attachment_image.dart's lock tile draws lock_outline.
+    expect(entries.map((e) => e.icon), [
+      Icons.list_alt,
+      Icons.format_list_numbered,
+      Icons.image_outlined,
+      Icons.lock_outline,
+    ]);
+    expect(entries.map((e) => e.title), [
+      l.helpCheatsheetDetailFactsTitle,
+      l.helpCheatsheetDetailKeyPointsTitle,
+      l.helpCheatsheetDetailHeaderTitle,
+      l.helpCheatsheetDetailLockTitle,
+    ]);
+  });
 
-- [ ] **Step 3: Update the detail screen imports**
+  test('detail help is translated entry by entry in zh', () {
+    final en =
+        helpFor(HelpId.cheatsheetDetail, lookupAppLocalizations(const Locale('en')));
+    final zh =
+        helpFor(HelpId.cheatsheetDetail, lookupAppLocalizations(const Locale('zh')));
+    expect(zh.entries.length, en.entries.length);
+    for (var i = 0; i < en.entries.length; i++) {
+      expect(zh.entries[i].title, isNot(en.entries[i].title), reason: '$i');
+      expect(zh.entries[i].body, isNot(en.entries[i].body), reason: '$i');
+    }
+  });
+```
 
-In `lib/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart`, add after `import '../../../../core/navigation/route_names.dart';` (line 14):
+- [ ] **Step 3: Run them to see them fail**
+
+Run: `flutter test test/features/cheatsheet/presentation/cheatsheet_detail_screen_test.dart test/core/help/help_registry_test.dart`
+Expected: in the detail file the existing tests pass and every test in `look` fails — e.g. `Expected: exactly one matching candidate, Actual: _KeyWidgetFinder:<Found 0 widgets with key [<'detail-header'>]>` (the help test: `Found 0 widgets with type "HelpButton"`); `help_registry_test.dart` fails to compile — `There's no constant named 'cheatsheetDetail' in 'HelpId'`.
+
+- [ ] **Step 4: Register the detail help**
+
+In `lib/core/help/help_registry.dart`, change the enum (as left by Task 7) to:
+
+```dart
+enum HelpId {
+  automobileHub,
+  vehicleNotes,
+  contacts,
+  contactDetail,
+  contactEdit,
+  cheatsheetWallet,
+  cheatsheetDetail,
+}
+```
+
+and add this case after the `HelpId.cheatsheetWallet => ScreenHelp(...)` case (before the closing `};`):
+
+```dart
+      HelpId.cheatsheetDetail => ScreenHelp(
+          title: l.helpCheatsheetDetailTitle,
+          summary: l.helpCheatsheetDetailSummary,
+          entries: [
+            HelpEntry(
+                icon: Icons.list_alt,
+                title: l.helpCheatsheetDetailFactsTitle,
+                body: l.helpCheatsheetDetailFactsBody),
+            HelpEntry(
+                icon: Icons.format_list_numbered,
+                title: l.helpCheatsheetDetailKeyPointsTitle,
+                body: l.helpCheatsheetDetailKeyPointsBody),
+            HelpEntry(
+                icon: Icons.image_outlined,
+                title: l.helpCheatsheetDetailHeaderTitle,
+                body: l.helpCheatsheetDetailHeaderBody),
+            HelpEntry(
+                icon: Icons.lock_outline,
+                title: l.helpCheatsheetDetailLockTitle,
+                body: l.helpCheatsheetDetailLockBody),
+          ],
+        ),
+```
+
+- [ ] **Step 5: Update the detail screen imports**
+
+In `lib/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart`, add before `import '../../../../core/navigation/route_names.dart';` (line 14):
+
+```dart
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
+```
+
+and after it:
 
 ```dart
 import '../../../../core/widgets/hmm_icon_button.dart';
@@ -4937,7 +5211,7 @@ import '../look/card_header.dart';
 import '../look/cheatsheet_palette.dart';
 ```
 
-- [ ] **Step 4: Replace the screen's `build` and `_RowTile`**
+- [ ] **Step 6: Replace the screen's `build` and `_RowTile`**
 
 Replace everything from `  @override\n  Widget build(BuildContext context, WidgetRef ref) {\n    final l = AppLocalizations.of(context);\n    final cards = ref.watch(cheatsheetsStateProvider);` (line 136) through the `}` that closes `class _RowTile` (line 279, the line before `/// An image row: a photo ID or insurance card, ...`) with:
 
@@ -4974,6 +5248,7 @@ Replace everything from `  @override\n  Widget build(BuildContext context, Widge
         foregroundColor: bar.foreground,
         title: Text(card.title),
         actions: [
+          const HelpButton(helpId: HelpId.cheatsheetDetail),
           HmmIconButton(
             key: const Key('detail-edit'),
             icon: Icons.edit_outlined,
@@ -5183,7 +5458,7 @@ class _RowTile extends ConsumerWidget {
 }
 ```
 
-- [ ] **Step 5: Lower the icon-button allow-list**
+- [ ] **Step 7: Lower the icon-button allow-list**
 
 In `test/core/help/icon_button_guard_test.dart`, delete the line (line 21):
 
@@ -5191,25 +5466,29 @@ In `test/core/help/icon_button_guard_test.dart`, delete the line (line 21):
   'lib/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart': 3,
 ```
 
-- [ ] **Step 6: Run the detail, guard, acceptance and route tests**
+- [ ] **Step 8: Run the detail, help, guard, acceptance and route tests**
 
-Run: `flutter test test/features/cheatsheet/presentation/cheatsheet_detail_screen_test.dart test/core/help/icon_button_guard_test.dart test/features/cheatsheet/cheatsheet_acceptance_test.dart test/core/navigation/cheatsheet_routes_test.dart`
+Run: `flutter test test/features/cheatsheet/presentation/cheatsheet_detail_screen_test.dart test/core/help test/features/cheatsheet/cheatsheet_acceptance_test.dart test/core/navigation/cheatsheet_routes_test.dart`
 Expected: `All tests passed!`
 
-- [ ] **Step 7: Analyze and commit**
+- [ ] **Step 9: Analyze and commit**
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-flutter analyze lib/features/cheatsheet test/features/cheatsheet test/core/help
+flutter analyze lib/features/cheatsheet lib/core/help test/features/cheatsheet test/core/help
 git add lib/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart \
+  lib/core/help/help_registry.dart \
   test/features/cheatsheet/presentation/cheatsheet_detail_screen_test.dart \
-  test/core/help/icon_button_guard_test.dart
+  test/core/help/help_registry_test.dart \
+  test/core/help/icon_button_guard_test.dart \
+  lib/l10n/app_en.arb lib/l10n/app_zh.arb lib/l10n/gen/
 git commit -m "$(cat <<'EOF'
-feat(cheatsheet): detail header and Key points layout
+feat(cheatsheet): detail header, Key points layout, and its help
 
 A themed header leads the card; Key points numbers rows on the theme
 colour with optional row emoji. Both layouts share one value widget, so
-unbound, missing, image and call/map rows behave as before.
+unbound, missing, image and call/map rows behave as before. A help sheet
+explains both layouts, the cover header and the locked-cover tile.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -5223,7 +5502,7 @@ EOF
 This task has four TDD cycles (editor state → emoji catalog → sheets → designer). Commit after each.
 
 **Files:**
-- Modify: `lib/l10n/app_en.arb` (after `"cheatsheetChipAll": "All",` from Task 7; help keys after `"helpContactEditSelfBody": ...,` line 1235), `lib/l10n/app_zh.arb` (after `"cheatsheetChipAll": "全部",`; help keys after `"helpContactEditSelfBody": ...,` line 697), regenerate `lib/l10n/gen/`
+- Modify: `lib/l10n/app_en.arb` (after `"cheatsheetChipAll": "All",` from Task 7; help keys after the Task 8 `"helpCheatsheetDetailLockBody": ...,` line), `lib/l10n/app_zh.arb` (after `"cheatsheetChipAll": "全部",`; help keys after the Task 8 `"helpCheatsheetDetailLockBody": ...,` line), regenerate `lib/l10n/gen/`
 - Create: `lib/features/cheatsheet/states/cheatsheet_cover_draft.dart`
 - Modify: `lib/features/cheatsheet/states/cheatsheet_editor_state.dart` (imports lines 1-10; `startFromTemplate` lines 47-57; `load` line 60; `commit` lines 90-91; new look methods)
 - Create: `lib/features/cheatsheet/presentation/look/emoji_catalog.dart`
@@ -5232,7 +5511,9 @@ This task has four TDD cycles (editor state → emoji catalog → sheets → des
 - Create: `lib/features/cheatsheet/presentation/look/cover_action_sheet.dart`
 - Create: `lib/features/cheatsheet/presentation/widgets/look_section.dart`
 - Modify: `lib/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart` (imports after line 6; app-bar actions lines 201-207; form children after line 217; `_rowTile` row header lines 266-276; new `_emojiSlot` / `_chooseRowEmoji` before `_actionLabel`, line 312)
-- Modify: `lib/core/help/help_registry.dart` (enum line 10; new case before the closing `};`, line 135)
+- Modify: `lib/core/help/help_registry.dart` (enum; new case after the Task 8 `HelpId.cheatsheetDetail` case)
+- Modify: `test/features/cheatsheet/presentation/cheatsheet_designer_screen_test.dart` (`mount` and the two-cards container: tall view + `cheatsheetCoversSupportedProvider` override — Look now opens expanded on create)
+- Modify: `test/features/cheatsheet/cheatsheet_acceptance_test.dart` (same tall view + override, for its create step)
 - Test: `test/features/cheatsheet/states/cheatsheet_editor_state_test.dart` (append a `look` group inside `main()`)
 - Test: `test/features/cheatsheet/presentation/look/emoji_catalog_test.dart` (new)
 - Test: `test/features/cheatsheet/presentation/look/look_sheets_test.dart` (new)
@@ -5248,8 +5529,8 @@ This task has four TDD cycles (editor state → emoji catalog → sheets → des
   - `cheatsheetThemeLabel(CardThemeId, AppLocalizations)`, `cheatsheetPatternLabel(CardPattern, …)`, `cheatsheetLayoutLabel(CardLayout, …)`, `emojiGroupLabel(EmojiGroup, …)`
   - `Future<String?> showEmojiPicker(BuildContext, {bool allowClear = false})` (`''` = "No emoji"), `class EmojiPickerSheet`, `cheatsheetEmojiPickerProvider`
   - `enum CoverAction { camera, library, scan, remove }`, `Future<CoverAction?> showCoverActionSheet(BuildContext, {required bool hasCover, required bool canScan})`, `cheatsheetCoverActionProvider`
-  - `cheatsheetCoversSupportedProvider : Provider<bool>` (false in cloudApi), `class LookSection`
-  - `HelpId.cheatsheetDesigner`
+  - `cheatsheetCoversSupportedProvider : Provider<bool>` (false in cloudApi), `class LookSection({Key? key, required bool initiallyExpanded})` — the designer passes `widget.cardId == null`: expanded when creating, collapsed (mini-tile preview in its header) when editing
+  - `HelpId.cheatsheetDesigner` (Tasks 7 and 8 already added `HelpId.cheatsheetWallet` and `HelpId.cheatsheetDetail`)
 
 #### 9a — strings
 
@@ -5310,13 +5591,13 @@ In `lib/l10n/app_en.arb`, after `"cheatsheetChipAll": "All",` insert:
   "cheatsheetRowEmojiTooltip": "Row emoji",
 ```
 
-and after `"helpContactEditSelfBody": "Marks this contact as yourself. Only one contact can be marked.",` (line 1235) insert:
+and after the `"helpCheatsheetDetailLockBody": ...,` line added in Task 8 insert:
 
 ```json
   "helpCheatsheetDesignerTitle": "Designing a cheatsheet",
   "helpCheatsheetDesignerSummary": "Name the card, choose how it looks, then point each row at a piece of a note.",
   "helpCheatsheetDesignerLookTitle": "Look",
-  "helpCheatsheetDesignerLookBody": "Open Look to pick a colour and a pattern. The small tile beside it previews the card as it will appear in the wallet.",
+  "helpCheatsheetDesignerLookBody": "Look holds the colour, pattern, icon, cover and layout. It starts open on a new card and folded on an existing one; tap its header to open or fold it. The small tile in the header previews the card as it will appear in the wallet.",
   "helpCheatsheetDesignerIconTitle": "Icon",
   "helpCheatsheetDesignerIconBody": "Choose an emoji for the card. Search in English or Chinese, or type any emoji yourself.",
   "helpCheatsheetDesignerCoverTitle": "Cover photo",
@@ -5384,13 +5665,13 @@ In `lib/l10n/app_zh.arb`, after `"cheatsheetChipAll": "全部",` insert:
   "cheatsheetRowEmojiTooltip": "行表情符号",
 ```
 
-and after `"helpContactEditSelfBody": "将此联系人标记为你本人。只能标记一个联系人。",` (line 697) insert:
+and after the `"helpCheatsheetDetailLockBody": ...,` line added in Task 8 insert:
 
 ```json
   "helpCheatsheetDesignerTitle": "设计速查卡",
   "helpCheatsheetDesignerSummary": "为卡片命名、选择外观，然后将每一行指向笔记中的某一部分。",
   "helpCheatsheetDesignerLookTitle": "外观",
-  "helpCheatsheetDesignerLookBody": "展开“外观”以选择颜色和图案。旁边的小卡片会预览它在卡包中的样子。",
+  "helpCheatsheetDesignerLookBody": "“外观”包含颜色、图案、图标、封面和布局。新建卡片时默认展开，编辑已有卡片时默认收起；点按其标题栏即可展开或收起。标题栏中的小卡片会预览卡片在卡包中的样子。",
   "helpCheatsheetDesignerIconTitle": "图标",
   "helpCheatsheetDesignerIconBody": "为卡片选择一个表情符号。可用中文或英文搜索，也可以自己输入任意表情符号。",
   "helpCheatsheetDesignerCoverTitle": "封面照片",
@@ -6755,10 +7036,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> startAndExpand(WidgetTester tester, String templateId) async {
-    await tapKey(tester, 'template-$templateId');
-    await tapKey(tester, 'designer-look');
-  }
+  /// Creating a card: picking a template opens the form with Look already
+  /// expanded, so no tap on `designer-look` (that would fold it).
+  Future<void> start(WidgetTester tester, String templateId) =>
+      tapKey(tester, 'template-$templateId');
 
   Color previewColour(WidgetTester tester) => ((tester
               .widget<DecoratedBox>(find.descendant(
@@ -6768,9 +7049,39 @@ void main() {
               .decoration) as BoxDecoration)
       .color!;
 
+  testWidgets('creating a card opens Look expanded', (tester) async {
+    await mount(tester);
+    await start(tester, 'blank');
+
+    expect(find.byKey(const Key('look-preview')), findsOneWidget);
+    expect(find.byKey(const Key('look-theme-red')), findsOneWidget);
+    expect(find.byKey(const Key('look-layout')), findsOneWidget);
+    expect(find.byKey(const Key('look-reset')), findsOneWidget);
+  });
+
+  testWidgets('editing a card starts with Look collapsed, the preview in its '
+      'header, and a tap expands it', (tester) async {
+    _Capturing.seed = [
+      _existing.copyWith(style: const CardStyle({'theme': 'red'})),
+    ];
+    await mount(tester, cardId: 'e1');
+
+    expect(find.byKey(const Key('look-preview')), findsOneWidget);
+    expect(previewColour(tester),
+        CheatsheetPalette.of(CardThemeId.red, Brightness.light).background);
+    expect(find.byKey(const Key('look-theme-red')), findsNothing,
+        reason: 'collapsed: the body is not built');
+    expect(find.byKey(const Key('look-reset')), findsNothing);
+
+    await tapKey(tester, 'designer-look');
+
+    expect(find.byKey(const Key('look-theme-red')), findsOneWidget);
+    expect(find.byKey(const Key('look-theme-red-selected')), findsOneWidget);
+  });
+
   testWidgets('the mini-tile preview follows the chosen theme', (tester) async {
     await mount(tester);
-    await startAndExpand(tester, 'accidentClaim');
+    await start(tester, 'accidentClaim');
 
     expect(previewColour(tester),
         CheatsheetPalette.of(CardThemeId.blue, Brightness.light).background);
@@ -6788,7 +7099,7 @@ void main() {
       (tester) async {
     final handle = tester.ensureSemantics();
     await mount(tester);
-    await startAndExpand(tester, 'accidentClaim');
+    await start(tester, 'accidentClaim');
 
     expect(find.bySemanticsLabel('Red'), findsOneWidget);
     expect(tester.getSemantics(find.bySemanticsLabel('Blue')),
@@ -6800,7 +7111,7 @@ void main() {
   testWidgets('saving writes only what differs from the template',
       (tester) async {
     await mount(tester);
-    await startAndExpand(tester, 'accidentClaim');
+    await start(tester, 'accidentClaim');
 
     await tapKey(tester, 'look-theme-blue'); // the template default
     await tapKey(tester, 'look-pattern-dots');
@@ -6811,7 +7122,7 @@ void main() {
 
   testWidgets('the icon picker sets the card icon', (tester) async {
     await mount(tester);
-    await startAndExpand(tester, 'blank');
+    await start(tester, 'blank');
     emojiAnswers = ['\u{1F984}'];
 
     await tapKey(tester, 'look-icon-choose');
@@ -6825,7 +7136,7 @@ void main() {
   testWidgets('adding a cover from the library stages it and previews it',
       (tester) async {
     await mount(tester);
-    await startAndExpand(tester, 'blank');
+    await start(tester, 'blank');
     coverAnswers = [CoverAction.library];
 
     await tapKey(tester, 'look-cover-add');
@@ -6846,7 +7157,7 @@ void main() {
   testWidgets('the scanner is offered only when available, and scans a cover',
       (tester) async {
     await mount(tester, canScan: true);
-    await startAndExpand(tester, 'blank');
+    await start(tester, 'blank');
     coverAnswers = [CoverAction.scan];
 
     await tapKey(tester, 'look-cover-add');
@@ -6857,7 +7168,7 @@ void main() {
 
   testWidgets('without a scanner the sheet is told so', (tester) async {
     await mount(tester);
-    await startAndExpand(tester, 'blank');
+    await start(tester, 'blank');
     coverAnswers = [null];
 
     await tapKey(tester, 'look-cover-add');
@@ -6882,7 +7193,7 @@ void main() {
 
   testWidgets('covers are hidden in cloudApi mode', (tester) async {
     await mount(tester, coversSupported: false);
-    await startAndExpand(tester, 'blank');
+    await start(tester, 'blank');
 
     expect(find.byKey(const Key('look-cover-add')), findsNothing);
     expect(find.byKey(const Key('look-theme-red')), findsOneWidget);
@@ -6891,14 +7202,14 @@ void main() {
   testWidgets('Android picks the layout with a SegmentedButton',
       (tester) async {
     await mount(tester);
-    await startAndExpand(tester, 'accidentClaim');
+    await start(tester, 'accidentClaim');
     expect(find.byType(SegmentedButton<CardLayout>), findsOneWidget);
   });
 
   testWidgets('iOS picks the layout with a CupertinoSlidingSegmentedControl',
       (tester) async {
     await mount(tester, platform: TargetPlatform.iOS);
-    await startAndExpand(tester, 'accidentClaim');
+    await start(tester, 'accidentClaim');
 
     expect(find.byType(CupertinoSlidingSegmentedControl<CardLayout>),
         findsOneWidget);
@@ -6909,7 +7220,7 @@ void main() {
 
   testWidgets('row emoji slots appear only in Key points', (tester) async {
     await mount(tester);
-    await startAndExpand(tester, 'accidentClaim');
+    await start(tester, 'accidentClaim');
     expect(find.byKey(const Key('row-0-emoji')), findsNothing);
 
     await tester.tap(find.text('Key points'));
@@ -6921,7 +7232,7 @@ void main() {
   testWidgets('row emoji survive Key points -> Facts -> Key points and are '
       'saved', (tester) async {
     await mount(tester);
-    await startAndExpand(tester, 'document');
+    await start(tester, 'document');
     emojiAnswers = [_eyes];
 
     await tapKey(tester, 'row-0-emoji');
@@ -6973,7 +7284,7 @@ void main() {
     await tester.tap(find.byType(HelpButton));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Open Look to pick'), findsOneWidget);
+    expect(find.textContaining('starts open on a new card'), findsOneWidget);
   });
 }
 ```
@@ -7006,7 +7317,7 @@ Expected: compilation fails — `look_section.dart` does not exist; `There's no 
 
 - [ ] **Step 20: Register the designer help**
 
-In `lib/core/help/help_registry.dart`, change the enum (line 10) to:
+In `lib/core/help/help_registry.dart`, change the enum (as left by Task 8) to:
 
 ```dart
 enum HelpId {
@@ -7015,11 +7326,13 @@ enum HelpId {
   contacts,
   contactDetail,
   contactEdit,
+  cheatsheetWallet,
+  cheatsheetDetail,
   cheatsheetDesigner,
 }
 ```
 
-and add this case after the `HelpId.contactEdit => ScreenHelp(...)` case (before the closing `};`, line 135):
+and add this case after the `HelpId.cheatsheetDetail => ScreenHelp(...)` case (before the closing `};`):
 
 ```dart
       HelpId.cheatsheetDesigner => ScreenHelp(
@@ -7085,10 +7398,15 @@ final cheatsheetCoversSupportedProvider = Provider<bool>(
   (ref) => ref.watch(dataModeProvider) != DataMode.cloudApi,
 );
 
-/// The designer's "Look" section: collapsed by default, with the real wallet
-/// tile scaled down as a live preview in its header.
+/// The designer's "Look" section, with the real wallet tile scaled down as a
+/// live preview in its header. Expanded when creating a card (choosing the
+/// look is part of making it); collapsed when editing one, where the preview
+/// alone shows the current look and the rows stay in the first viewport.
 class LookSection extends ConsumerWidget {
-  const LookSection({super.key});
+  const LookSection({super.key, required this.initiallyExpanded});
+
+  /// The designer passes `cardId == null`: true on create, false on edit.
+  final bool initiallyExpanded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -7097,6 +7415,7 @@ class LookSection extends ConsumerWidget {
     final draft = ref.watch(cheatsheetCoverDraftProvider);
     return ExpansionTile(
       key: const Key('designer-look'),
+      initiallyExpanded: initiallyExpanded,
       tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsets.only(bottom: 12),
       expandedCrossAxisAlignment: CrossAxisAlignment.start,
@@ -7122,8 +7441,8 @@ class LookSection extends ConsumerWidget {
           Text(l.cheatsheetLookTitle),
         ],
       ),
-      // Built only when expanded, so a collapsed section reads no providers
-      // beyond the editor.
+      // Built only when expanded (maintainState is false), so a collapsed
+      // section reads no providers beyond the editor and the cover draft.
       children: const [_LookBody()],
     );
   }
@@ -7494,7 +7813,8 @@ In `_form`, directly after the title field (the `TextField(key: const Key('desig
 
 ```dart
             const SizedBox(height: 12),
-            const LookSection(),
+            // Q4: expanded when creating, collapsed (preview only) when editing.
+            LookSection(initiallyExpanded: widget.cardId == null),
 ```
 
 In `_rowTile`, change the header `Row(children: [ Expanded(child: Text(row.label)), IconButton(...remove...) ])` (lines 266-276) so its `children` start with the emoji slot:
@@ -7552,12 +7872,91 @@ Add these two methods directly before `static String _actionLabel(ValueAction a)
 
 (The two raw `IconButton`s in this file — add-row and remove-row — are unchanged, so its allow-list count of 2 still holds.)
 
-- [ ] **Step 23: Run the designer, help and existing cheatsheet tests**
+- [ ] **Step 23: Keep the existing create-path tests working with Look expanded**
+
+On create, the expanded Look section (about 600 dp) pushes the rows below the default 800×600 test view, past the `ListView`'s build extent, so taps on `row-0-bind` / `row-0-action-call` would find nothing; and the expanded body reads `cheatsheetCoversSupportedProvider`, whose real value watches `dataModeProvider` → `settingsProvider` (SharedPreferences). Both create-path suites get a tall view and a fixed override; the edit-path tests are unaffected (collapsed).
+
+In `test/features/cheatsheet/presentation/cheatsheet_designer_screen_test.dart`, add to the imports:
+
+```dart
+import 'package:hmm_console/features/cheatsheet/presentation/widgets/look_section.dart';
+```
+
+In `mount`, replace
+
+```dart
+    lastPickerTemplateId = null;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          cheatsheetIdGenProvider.overrideWithValue(() => 'new-id'),
+```
+
+with
+
+```dart
+    lastPickerTemplateId = null;
+    // Tall enough that the rows stay built below the expanded Look section.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          cheatsheetCoversSupportedProvider.overrideWithValue(true),
+          cheatsheetIdGenProvider.overrideWithValue(() => 'new-id'),
+```
+
+and in `starting a second new card does not reuse the first`, replace
+
+```dart
+      final container = ProviderContainer(
+        overrides: [
+          cheatsheetIdGenProvider.overrideWithValue(() => 'id-${++nextId}'),
+```
+
+with
+
+```dart
+      final container = ProviderContainer(
+        overrides: [
+          cheatsheetCoversSupportedProvider.overrideWithValue(true),
+          cheatsheetIdGenProvider.overrideWithValue(() => 'id-${++nextId}'),
+```
+
+In `test/features/cheatsheet/cheatsheet_acceptance_test.dart`, add to the imports:
+
+```dart
+import 'package:hmm_console/features/cheatsheet/presentation/widgets/look_section.dart';
+```
+
+and replace
+
+```dart
+    final container = ProviderContainer(
+      overrides: [
+        hmmNoteRepositoryProvider.overrideWithValue(noteRepo),
+```
+
+with
+
+```dart
+    // The designer opens Look expanded on create; keep its rows built.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final container = ProviderContainer(
+      overrides: [
+        cheatsheetCoversSupportedProvider.overrideWithValue(true),
+        hmmNoteRepositoryProvider.overrideWithValue(noteRepo),
+```
+
+- [ ] **Step 24: Run the designer, help and existing cheatsheet tests**
 
 Run: `flutter test test/features/cheatsheet test/core/help test/core/navigation/cheatsheet_routes_test.dart`
-Expected: `All tests passed!` — the existing designer tests still find `row-0-*` in the first viewport because the Look section is collapsed, and they never expand it, so `cheatsheetCoversSupportedProvider` (and with it `dataModeProvider`) is never read there.
+Expected: `All tests passed!` — the create-path tests (`binds a row through the picker…`, `value actions are chosen explicitly`, `rows can be added and removed`, the acceptance flow) find `row-0-*` below the expanded Look section in the tall view; the edit-path tests (`renaming and saving keeps the id`, `the loaded card's template reaches the picker`, the acceptance edit step) see Look collapsed and never read `cheatsheetCoversSupportedProvider`.
 
-- [ ] **Step 24: Analyze and commit**
+- [ ] **Step 25: Analyze and commit**
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
@@ -7566,13 +7965,16 @@ git add lib/features/cheatsheet/presentation/widgets/look_section.dart \
   lib/features/cheatsheet/presentation/screens/cheatsheet_designer_screen.dart \
   lib/core/help/help_registry.dart \
   test/features/cheatsheet/presentation/cheatsheet_designer_look_test.dart \
+  test/features/cheatsheet/presentation/cheatsheet_designer_screen_test.dart \
+  test/features/cheatsheet/cheatsheet_acceptance_test.dart \
   test/core/help/help_registry_test.dart
 git commit -m "$(cat <<'EOF'
 feat(cheatsheet): designer Look section with live tile preview
 
 Theme and pattern swatches, emoji icon, cover from camera/library/scanner
 (local modes), Facts/Key points control per platform, row emoji slots in
-Key points, Reset look, and a designer help sheet.
+Key points, Reset look, and a designer help sheet. Look opens expanded
+when creating a card and collapsed, preview only, when editing one.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -7588,7 +7990,7 @@ EOF
 
 **Interfaces:**
 - Consumes: everything above.
-- Produces: a green branch (client) and a green `main` commit (backend), the manual results recorded in the ledger, and the deploy-order note.
+- Produces: a green client branch (`feat/contacts-client`) and a green backend commit on hmm branch `feat/cheatsheet-style-passthrough` (not merged to `main`), the manual results recorded in the ledger, and the deploy-order note.
 
 - [ ] **Step 1: Analyze**
 
@@ -7618,6 +8020,7 @@ Expected: both lists empty, and no uncommitted changes in `lib/l10n/gen`.
 - [ ] **Step 4: Backend tests**
 
 ```bash
+git -C /Users/fchy/Projects/hmm branch --show-current   # expect: feat/cheatsheet-style-passthrough
 dotnet test /Users/fchy/Projects/hmm/src/Hmm.Cheatsheet.Tests/Hmm.Cheatsheet.Tests.csproj 2>&1 | tail -2
 dotnet test /Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/Hmm.ServiceApi.Core.Tests.csproj 2>&1 | tail -2
 dotnet test /Users/fchy/Projects/hmm/Hmm.sln 2>&1 | grep -E "^(Passed|Failed)!"
@@ -7643,7 +8046,7 @@ Run on the iOS simulator (macOS dev host, per CLAUDE.md) with `flutter run`, the
 
 1. Open an existing pre-feature card and save it without edits: the wallet tile shows its template look; in cloudStorage mode no sync push is triggered by a content change (sync status card), because the content is byte-identical.
 2. Wallet: 2 columns on an iPhone, 3 on an iPad portrait (≥ 600 pt), 4 on an iPad landscape (≥ 900 pt). The group chips filter; search still works; VoiceOver/TalkBack reads "<title>, <group>, <N> rows, button".
-3. Designer → Look: each swatch updates the mini-tile live; the selected swatch shows a check; VoiceOver reads the colour name. iOS shows the Cupertino sliding control, Android the Material segmented button; labels fit at 320 pt (iPhone SE) in en and zh.
+3. Designer → Look: on a new card the section opens expanded; on an existing card it opens collapsed with the mini-tile in its header and a tap expands it. Each swatch updates the mini-tile live; the selected swatch shows a check; VoiceOver reads the colour name. iOS shows the Cupertino sliding control, Android the Material segmented button; labels fit at 320 pt (iPhone SE) in en and zh.
 4. Emoji picker: search `book` and `书` both find 📖; type 🦄 in the free field and use it; type `abc` and see the error.
 5. Cover: add from camera, from photos, and (iOS device only) via the document scanner; the tile shows the photo under a dark gradient with readable text; replace it and remove it. In Settings → Vault GC dry run, the replaced photo is reclaimable and the current one is not.
 6. Mark a card protected (dev build / data edit) and add a cover: it is stored sensitive. Lock the vault: the wallet tile shows the theme with a 🔒 badge and opening the wallet prompts for nothing; the detail header shows the tap-to-unlock tile, and unlocking reveals the cover.
@@ -7651,18 +8054,19 @@ Run on the iOS simulator (macOS dev host, per CLAUDE.md) with `flutter run`, the
 8. Dark mode: every theme with every pattern is legible on tiles and the header (spot-check amber, slate and black).
 9. Reset look: the card returns to its template look, the cover disappears and its bytes become reclaimable.
 10. Delete a card with a cover: the Vault GC dry run no longer counts its photo.
-11. Cloud API mode against the local backend (`../hmm/docker/test-env.sh` with the Task 4 build): change theme/pattern/icon/layout and row emoji, reload — they persist; Cover is not offered; Reset look clears the server copy.
+11. Help: the wallet, the detail and the designer each show a "?" in the top bar; each sheet lists its entries (wallet: cards, group chips, tag chips, lock badge; detail: Facts layout, Key points layout, cover header, locked cover; designer: Look … Reset look) in en and in zh, and on iOS it opens as the Cupertino popup.
+12. Cloud API mode against the local backend (`../hmm/docker/test-env.sh` with the Task 4 build): change theme/pattern/icon/layout and row emoji, reload — they persist; Cover is not offered; Reset look clears the server copy.
 
 - [ ] **Step 7: Stop**
 
-Do not push, merge, deploy or open a PR. Report the client commit range (`git log --oneline main..HEAD` in hmm_console), the backend commit (`git -C /Users/fchy/Projects/hmm log --oneline -1`), the manual results, and the deploy-order rule: **the Hmm server pass-through (Task 4) must be deployed before or together with the client release; until then a Cloud API save stores `Style` as an unknown PascalCase extra and the next server-side read will not see it as `style`.**
+Do not push, merge, deploy or open a PR. Report the client commit range (`git log --oneline main..HEAD` in hmm_console), the backend branch and commit (`git -C /Users/fchy/Projects/hmm branch --show-current` — expect `feat/cheatsheet-style-passthrough` — and `git -C /Users/fchy/Projects/hmm log --oneline main..feat/cheatsheet-style-passthrough`), the manual results, and the deploy-order rule: **the Hmm server pass-through (Task 4) must be deployed before or together with the client release; until then a Cloud API save stores `Style` as an unknown PascalCase extra and the next server-side read will not see it as `style`.**
 
 ---
 
 ## Self-review
 
-- **Spec coverage.** D1 presets + cover → Tasks 1, 3, 9. D2 wallet tiles 2/3/4 + chips → Tasks 6, 7. D3 cover header + Facts / Key points → Tasks 6, 8. D4 `style` in the card JSON, written only when non-default, byte-identical, unknown values raw, top-level and row unknown keys, reset → Tasks 1, 2, 9. D5 server pass-through + client mapper → Tasks 4, 5. Themes AA light+dark (with pattern ink) → Task 1. Template defaults table → Task 1. Cover in the attachments column, released on replace/remove/delete/reset → Tasks 3, 9. Sensitive cover: badge on tile without prompt, tap-to-unlock in header → Task 6 (and Task 7 wallet test). Error handling: silent fallback, type-only logs, invalid icon → Tasks 1, 6. Designer: swatches with names, patterns, emoji picker (curated groups, en/zh search, free typing), cover add/replace/remove via camera/library/scanner with thumbnail, platform layout control, row emoji only in Key points, reset, live preview, help en+zh, `HmmIconButton` → Task 9. Cloud API tests (server round trip, client mapper, unknown style keys end to end) → Tasks 4, 5. Large photos → the existing downsizer in `persistToVault` (Task 3). Deploy ordering → Global Constraints, Task 4 Step 11, Task 10 Step 7.
-- **Not mapped (deliberately, see Deviations):** covers in Cloud API mode.
+- **Spec coverage.** D1 presets + cover → Tasks 1, 3, 9. D2 wallet tiles 2/3/4 + chips → Tasks 6, 7. D3 cover header + Facts / Key points → Tasks 6, 8. D4 `style` in the card JSON, written only when non-default, byte-identical, unknown values raw, top-level and row unknown keys, reset → Tasks 1, 2, 9. D5 server pass-through + client mapper → Tasks 4, 5. Themes AA light+dark (with pattern ink) → Task 1. Template defaults table → Task 1. Cover in the attachments column, released on replace/remove/delete/reset → Tasks 3, 9. Sensitive cover: badge on tile without prompt, tap-to-unlock in header → Task 6 (and Task 7 wallet test). Wallet help (tiles, group chips, tag chips, lock badge) → Task 7; detail help (Facts, Key points, cover header, lock tile) → Task 8. Error handling: silent fallback, type-only logs, invalid icon → Tasks 1, 6. Designer: swatches with names, patterns, emoji picker (curated groups, en/zh search, free typing), cover add/replace/remove via camera/library/scanner with thumbnail, platform layout control, row emoji only in Key points, reset, live preview, Look expanded on create / collapsed on edit, help en+zh, `HmmIconButton` → Task 9. Cloud API tests (server round trip, client mapper, unknown style keys end to end) → Tasks 4, 5. Large photos → the existing downsizer in `persistToVault` (Task 3). Deploy ordering → Global Constraints, Task 4 Step 11, Task 10 Step 7.
+- **Not mapped (deliberately, see Deviations and the spec's "Decisions from plan review"):** covers in Cloud API mode.
 - **Placeholders:** none — every code step carries full code; every run step names the command and the expected result.
-- **Type consistency:** `CardStyle`/`CardLook`/`CardThemeId`/`CardPattern`/`CardLayout` (Task 1) are used unchanged in Tasks 2, 5, 6, 8, 9; `CheatsheetsState.save(card, {newCover, released})` (Task 3) matches the editor's `commit` (Task 9) and every test fake (Tasks 3, 9); `noteIdFor` exists on the interface, both repositories and `_FakeRepo`; `CardColors`/`CheatsheetPalette` (Task 1) are what `CardSurface`, `headerBarColors`, `_RowTile` and the swatches consume; the generated l10n signatures `cheatsheetTileSubtitle(String group, int count)` and `cheatsheetTileSemantics(String title, String group, int count)` match their placeholder order.
+- **Type consistency:** `CardStyle`/`CardLook`/`CardThemeId`/`CardPattern`/`CardLayout` (Task 1) are used unchanged in Tasks 2, 5, 6, 8, 9; `CheatsheetsState.save(card, {newCover, released})` (Task 3) matches the editor's `commit` (Task 9) and every test fake (Tasks 3, 9); `noteIdFor` exists on the interface, both repositories and `_FakeRepo`; `CardColors`/`CheatsheetPalette` (Task 1) are what `CardSurface`, `headerBarColors`, `_RowTile` and the swatches consume; the generated l10n signatures `cheatsheetTileSubtitle(String group, int count)` and `cheatsheetTileSemantics(String title, String group, int count)` match their placeholder order; `HelpId.cheatsheetWallet` (Task 7) → `cheatsheetDetail` (Task 8) → `cheatsheetDesigner` (Task 9) are added in that order, each task's enum listing includes the earlier ones, each registry case goes after the previous task's case, and each task's help ARB keys go after the previous task's last help key (`helpContactEditSelfBody` → `helpCheatsheetWalletLockBody` → `helpCheatsheetDetailLockBody`); `LookSection(initiallyExpanded:)` (Task 9 Step 21) matches its only call site (Step 22).
 - **Review Focus owners:** 1 → Task 6 tests; 2 → Task 3 and Task 4 tests; 3 → Task 9 editor and designer tests; 4 → Task 3 repository and state tests; 5 → Task 1 and Task 6 tests.
