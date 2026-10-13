@@ -4793,7 +4793,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpCheatsheetDesignerResetBody.
   ///
   /// In en, this message translates to:
-  /// **'Returns the colour, pattern, icon and layout to the template\'s defaults, removes the cover photo and clears every row emoji.'**
+  /// **'Returns the colour, pattern, icon and layout to the template\'s defaults, removes the cover photo (in Cloud API mode the cover is kept) and clears every row emoji.'**
   String get helpCheatsheetDesignerResetBody;
 
   /// No description provided for @contactCustomRelationship.

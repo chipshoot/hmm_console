@@ -103,4 +103,9 @@ void main() {
       expect(cheatsheetGroupLabel('Boat stuff', zh), 'Boat stuff');
     });
   });
+
+  test('Reset look help says Cloud API mode keeps the cover', () {
+    expect(en.helpCheatsheetDesignerResetBody, contains('Cloud API'));
+    expect(zh.helpCheatsheetDesignerResetBody, contains('云端 API'));
+  });
 }

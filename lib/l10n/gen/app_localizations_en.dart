@@ -2640,7 +2640,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpCheatsheetDesignerResetBody =>
-      'Returns the colour, pattern, icon and layout to the template\'s defaults, removes the cover photo and clears every row emoji.';
+      'Returns the colour, pattern, icon and layout to the template\'s defaults, removes the cover photo (in Cloud API mode the cover is kept) and clears every row emoji.';
 
   @override
   String get contactCustomRelationship => 'Describe the relationship';

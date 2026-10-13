@@ -783,7 +783,7 @@
   "helpCheatsheetDesignerRowEmojiTitle": "行表情符号",
   "helpCheatsheetDesignerRowEmojiBody": "在“要点”布局中，每一行都可以有自己的表情符号。切换到“信息”会隐藏它们，但不会删除。",
   "helpCheatsheetDesignerResetTitle": "重置外观",
-  "helpCheatsheetDesignerResetBody": "将颜色、图案、图标和布局恢复为模板默认值，移除封面照片并清除所有行表情符号。",
+  "helpCheatsheetDesignerResetBody": "将颜色、图案、图标和布局恢复为模板默认值，移除封面照片（云端 API 模式下保留封面）并清除所有行表情符号。",
   "contactCustomRelationship": "描述这层关系",
   "contactSaveFailed": "无法保存联系人",
   "settingsContactSortBy": "联系人排序方式",

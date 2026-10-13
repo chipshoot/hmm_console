@@ -2563,7 +2563,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpCheatsheetDesignerResetBody =>
-      '将颜色、图案、图标和布局恢复为模板默认值，移除封面照片并清除所有行表情符号。';
+      '将颜色、图案、图标和布局恢复为模板默认值，移除封面照片（云端 API 模式下保留封面）并清除所有行表情符号。';
 
   @override
   String get contactCustomRelationship => '描述这层关系';

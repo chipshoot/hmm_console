@@ -1323,7 +1323,7 @@
   "helpCheatsheetDesignerRowEmojiTitle": "Row emoji",
   "helpCheatsheetDesignerRowEmojiBody": "In Key points, each row can carry its own emoji. Switching to Facts hides them without deleting them.",
   "helpCheatsheetDesignerResetTitle": "Reset look",
-  "helpCheatsheetDesignerResetBody": "Returns the colour, pattern, icon and layout to the template's defaults, removes the cover photo and clears every row emoji.",
+  "helpCheatsheetDesignerResetBody": "Returns the colour, pattern, icon and layout to the template's defaults, removes the cover photo (in Cloud API mode the cover is kept) and clears every row emoji.",
   "contactCustomRelationship": "Describe the relationship",
   "contactSaveFailed": "Could not save the contact",
   "settingsContactSortBy": "Sort contacts by",
