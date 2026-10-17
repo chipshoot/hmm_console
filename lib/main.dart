@@ -20,10 +20,12 @@ Future<void> main() async {
   // }
 
   final db = await createHmmDatabase();
+  final appearance = await loadStoredAppearance();
 
   runApp(ProviderScope(
     overrides: [
       hmmDatabaseProvider.overrideWithValue(db),
+      initialAppearanceProvider.overrideWithValue(appearance),
     ],
     child: const MainApp(),
   ));

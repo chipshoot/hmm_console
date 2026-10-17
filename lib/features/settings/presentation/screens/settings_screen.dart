@@ -838,7 +838,10 @@ class _AppearanceRow extends StatelessWidget {
       key: const Key('settings-appearance'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l.settingsAppearance, style: Theme.of(context).textTheme.bodyMedium),
+        Text(
+          l.settingsAppearance,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
         GapWidgets.h8,
         SizedBox(width: double.infinity, child: control),
       ],

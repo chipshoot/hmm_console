@@ -24,29 +24,29 @@ enum AppearanceMode {
   }
 }
 
+const _appearanceKey = 'appearance';
+
+/// Reads the stored mode (missing/unknown => system) without rewriting it.
+/// Called in main() before runApp so the first frame is already correct.
+Future<AppearanceMode> loadStoredAppearance() async {
+  final prefs = await SharedPreferences.getInstance();
+  return AppearanceMode.parse(prefs.getString(_appearanceKey));
+}
+
+/// The mode known before the first frame. Overridden in main(); defaults to
+/// system (tests).
+final initialAppearanceProvider = Provider<AppearanceMode>(
+  (ref) => AppearanceMode.system,
+);
+
 class AppearanceNotifier extends Notifier<AppearanceMode> {
-  static const _key = 'appearance';
-
-  // Set once the user picks, so a slow initial prefs load can't overwrite it.
-  bool _picked = false;
-
   @override
-  AppearanceMode build() {
-    _load();
-    return AppearanceMode.system;
-  }
-
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!ref.mounted || _picked) return;
-    state = AppearanceMode.parse(prefs.getString(_key));
-  }
+  AppearanceMode build() => ref.read(initialAppearanceProvider);
 
   Future<void> set(AppearanceMode mode) async {
-    _picked = true;
     state = mode;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, mode.name);
+    await prefs.setString(_appearanceKey, mode.name);
   }
 }
 

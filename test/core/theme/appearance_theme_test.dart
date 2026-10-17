@@ -78,4 +78,20 @@ void main() {
     final (_, m, _) = await pump(t, Brightness.dark, null);
     expect(m.last, Brightness.dark);
   });
+
+  testWidgets('initial Dark resolves dark on the very first frame', (t) async {
+    SharedPreferences.setMockInitialValues({});
+    t.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(t.platformDispatcher.clearPlatformBrightnessTestValue);
+    final seen = <Brightness>[];
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialAppearanceProvider.overrideWithValue(AppearanceMode.dark),
+        ],
+        child: _App(onBuild: (c) => seen.add(Theme.of(c).brightness)),
+      ),
+    );
+    expect(seen.first, Brightness.dark);
+  });
 }

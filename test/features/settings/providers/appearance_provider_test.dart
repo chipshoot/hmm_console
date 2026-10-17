@@ -6,12 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 Future<ProviderContainer> _container(Map<String, Object> initial) async {
   SharedPreferences.setMockInitialValues(initial);
-  final c = ProviderContainer();
+  // Mirrors main(): load before the first frame, inject as the initial value.
+  final loaded = await loadStoredAppearance();
+  final c = ProviderContainer(
+    overrides: [initialAppearanceProvider.overrideWithValue(loaded)],
+  );
   addTearDown(c.dispose);
-  c.listen(appearanceProvider, (_, _) {}); // keep alive
-  // Let the async prefs load complete.
-  await Future<void>.delayed(Duration.zero);
-  await Future<void>.delayed(Duration.zero);
   return c;
 }
 
