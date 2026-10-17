@@ -27,6 +27,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLanguageChinese => '中文';
 
   @override
+  String get settingsAppearance => '外观';
+
+  @override
+  String get settingsAppearanceSystem => '跟随系统';
+
+  @override
+  String get settingsAppearanceLight => '浅色';
+
+  @override
+  String get settingsAppearanceDark => '深色';
+
+  @override
   String get settingsDataStorage => '数据存储';
 
   @override

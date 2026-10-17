@@ -6,6 +6,7 @@ import 'package:hmm_console/core/i18n/locale_provider.dart';
 import 'package:hmm_console/core/navigation/router.dart';
 import 'package:hmm_console/core/theme/theme.dart';
 import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
+import 'package:hmm_console/features/settings/providers/appearance_provider.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'firebase_options.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +82,7 @@ class _MainAppState extends ConsumerState<MainApp> {
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
       theme: AppTheme.lightThemeData,
       darkTheme: AppTheme.darkThemeData,
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(appearanceProvider).themeMode,
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,

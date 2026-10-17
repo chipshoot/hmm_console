@@ -9,6 +9,10 @@
   "settingsLanguageFollowSystem": "Follow system",
   "settingsLanguageEnglish": "English",
   "settingsLanguageChinese": "中文",
+  "settingsAppearance": "Appearance",
+  "settingsAppearanceSystem": "System",
+  "settingsAppearanceLight": "Light",
+  "settingsAppearanceDark": "Dark",
   "@settingsLanguageChinese": {
     "description": "Always rendered in the native script so Chinese users recognize it regardless of current locale"
   },

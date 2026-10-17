@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,6 +33,7 @@ import '../../providers/geo_capture_provider.dart';
 import '../../providers/sync_settings_provider.dart';
 import '../../../contacts/domain/contact_sort_by.dart';
 import '../../providers/contact_sort_provider.dart';
+import '../../providers/appearance_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -305,6 +307,12 @@ class SettingsScreen extends ConsumerWidget {
                       code == null ? null : Locale(code),
                     );
               },
+            ),
+            GapWidgets.h16,
+            _AppearanceRow(
+              mode: ref.watch(appearanceProvider),
+              onChanged: (m) =>
+                  ref.read(appearanceProvider.notifier).set(m),
             ),
             GapWidgets.h16,
             // Same picker as the rest of this screen (Material dropdown on
@@ -779,6 +787,60 @@ class _SyncNetworkPolicySection extends ConsumerWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Per-device System / Light / Dark picker (not synced).
+class _AppearanceRow extends StatelessWidget {
+  const _AppearanceRow({required this.mode, required this.onChanged});
+
+  final AppearanceMode mode;
+  final ValueChanged<AppearanceMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final ios = Theme.of(context).platform == TargetPlatform.iOS;
+    String label(AppearanceMode m) => switch (m) {
+          AppearanceMode.system => l.settingsAppearanceSystem,
+          AppearanceMode.light => l.settingsAppearanceLight,
+          AppearanceMode.dark => l.settingsAppearanceDark,
+        };
+
+    final Widget control = ios
+        ? CupertinoSlidingSegmentedControl<AppearanceMode>(
+            groupValue: mode,
+            children: {
+              for (final m in AppearanceMode.values)
+                m: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Text(label(m)),
+                ),
+            },
+            onValueChanged: (v) {
+              if (v != null) onChanged(v);
+            },
+          )
+        : SegmentedButton<AppearanceMode>(
+            showSelectedIcon: false,
+            segments: [
+              for (final m in AppearanceMode.values)
+                ButtonSegment(value: m, label: Text(label(m))),
+            ],
+            selected: {mode},
+            onSelectionChanged: (s) => onChanged(s.first),
+          );
+
+    return Column(
+      key: const Key('settings-appearance'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l.settingsAppearance, style: Theme.of(context).textTheme.bodyMedium),
+        GapWidgets.h8,
+        SizedBox(width: double.infinity, child: control),
       ],
     );
   }
