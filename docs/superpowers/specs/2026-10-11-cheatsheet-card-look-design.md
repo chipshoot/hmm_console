@@ -59,7 +59,7 @@ Per row (Key points layout): `"emoji": "👀"` on the row map.
 | `cover` | vault path of an image attachment on the card's own note | none |
 | row `emoji` | one emoji | none |
 
-**Themes** are hand-picked, each with a light and a dark variant whose title/subtitle text meets **WCAG AA** contrast. Text colour is derived from the variant, never user-chosen. Covers always get a darkening gradient behind text.
+**Themes** are hand-picked, each with a light and a dark variant whose title/subtitle text meets **WCAG AA** contrast. Text colour is derived from the variant, never user-chosen. Covers always get a darkening gradient (35% black at the top, clear at 40%, 65% black at the bottom) **plus a 60% black band** (`#99000000`) directly behind the title and subtitle, so white text stays readable even on a pure-white photo (title 5.7:1, 90%-white subtitle 5.0:1). Signed off by the user 2026-10-18 over gradient-only, a softer 35% band with text shadow, and a frosted-glass band.
 
 **Template defaults:**
 
@@ -83,7 +83,7 @@ Per row (Key points layout): `"emoji": "👀"` on the row map.
 ## Wallet (tiles)
 
 - Grid: 2 columns on phones, 3 at ≥ 600 dp, 4 at ≥ 900 dp. Search stays above the grid; a chip row (All + each wallet group in use, translated via `cheatsheetGroupLabel`) filters below it.
-- Tile: theme colour + pattern, or the cover photo with a darkening gradient; the emoji icon; title (max 2 lines); subtitle "group · N rows".
+- Tile: theme colour + pattern, or the cover photo with the darkening gradient and the 60% black text band (see Themes above); the emoji icon; title (max 2 lines); subtitle "group · N rows".
 - Protected cards show a lock badge (existing `protected` flag).
 - Help (Q6 b): a "?" in the top bar opens the wallet help — entries for the tiles, the group chips, the tag chips and the lock badge (en + zh).
 - A sensitive cover while the vault is locked: the tile shows the theme colour with a 🔒 badge — **never** an unlock prompt from merely rendering.
