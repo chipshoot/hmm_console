@@ -38,7 +38,7 @@ Turn the Notes list from a flat list with a title-only search into an Outlook / 
 | `flagColor` | int? | `null` | null = unflagged; 0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple, 6 grey |
 
 - Additive migration with defaults; existing notes are untouched.
-- Pin/flag changes are real edits: they bump `lastModifiedDate` and sync like any edit (whole-note last-writer-wins in cloudStorage; normal update via API).
+- Pin/flag changes are real edits: they bump `lastModifiedDate`. **They do not sync automatically** — neither the cloudStorage note blob nor the API note body carries arbitrary columns today. Slice 1 adds `isPinned`/`flagColor` keys to the OneDrive note blob (absent key on pull ⇒ keep the local value) and to the API note DTOs.
 - **Preservation:** the note mapper preserves fields it does not know; an API update that omits `IsPinned`/`FlagColor` keeps the stored value. An unknown `flagColor` value (from a newer client) is kept and shown as a grey flag.
 - **Server (`hmm`):** EF migration adds `IsPinned` (bool, default false) and `FlagColor` (int, nullable) to the note table; note DTOs carry them; list endpoint gains `?pinned=` and `?flag=` filters. **Deployed before the client release** that writes them.
 
@@ -48,12 +48,12 @@ Turn the Notes list from a flat list with a title-only search into an Outlook / 
 - Delete → sets `deletedAt` (with Undo). Restore → clears it.
 - The Recently Deleted source lists notes with `deletedAt` within the last 30 days.
 - **Purge:** at most once a day, never while a sync runs, notes deleted > 30 days ago are permanently removed through the existing delete path (sync tombstones and attachment GC still apply). "Delete now" and "Empty…" purge immediately after a confirmation dialog.
-- **To verify in the plan:** restore after another device already synced the delete (cloudStorage and cloudApi) must bring the note back everywhere, not resurrect a stale copy.
+- **Verified 2026-10-18:** in cloudStorage a restore (clearing `deletedAt` with a newer `lastModifiedDate`) propagates under last-writer-wins, except against a tombstone with an equal-or-later timestamp. In **cloudApi un-delete is not possible today** (PUT on a soft-deleted note returns 500; no endpoint flips `IsDeleted`) — slice 1 adds a server undelete endpoint. There is **no hard-delete path** anywhere today, and `VaultGc` counts soft-deleted notes' attachments as live — slice 1 adds a real purge (client row removal + server delete + vault release).
 
 ### Tags
 
 - Tables `Tags` and `NoteTagRefs` exist locally; `/v1/tags` exists on the server. This project adds the UI.
-- **To verify in the plan:** tags and tag links sync in cloudStorage and cloudApi modes; if not, closing that gap is a plan task.
+- **Verified 2026-10-18:** cloudStorage already syncs tags (`tags.json`, per-name LWW with tombstones) and note tag membership (a `tags` name list in each note blob). **cloudApi does not** (pull/push tags are no-ops; note DTOs carry no tags) — this project wires the existing `/v1/tags` and `PUT /notes/{id}/applyTag` endpoints so tags work in all three modes.
 
 ### Settings
 
@@ -146,7 +146,7 @@ Turn the Notes list from a flat list with a title-only search into an Outlook / 
 - **Swipe left:** Flag (last-used colour) and Delete (moves to Recently Deleted; `showUndoableAction`).
 - **Long-press:** Pin · Flag ▸ (7 colours with names) · Tags… · Attach to… · Share… · Delete. iOS context menu with preview; Android bottom sheet.
 - **Multi-select:** iOS Edit button; Android long-press then tap. Bulk Pin, Flag ▸, Tags…, Delete, Select all (applies to the current query results). One Undo restores a bulk delete.
-- **Share sheet:** markdown text or a PDF rendered from the markdown. A sensitive attachment asks to unlock first and is omitted if declined.
+- **Share sheet:** ordinary notes share their markdown as text (`share_plus`). PDF export is deferred. Entity notes (contacts, cheatsheets, gas logs, cars, records) do not share from Notes — they show "Share from Contacts / Cheatsheets / …".
 - **Delete from note detail** now moves to Recently Deleted with Undo (replaces today's immediate, no-undo delete).
 
 ### Recently Deleted
@@ -186,7 +186,7 @@ All · Pinned · Flagged (with a sub-row per colour in use, showing its name) ·
 
 - **iOS:** large-title bar, Edit for multi-select, context menu with preview, no FAB, edge swipe-back preserved.
 - **Android:** Material 3 app bar, FAB, long-press multi-select, bottom sheets.
-- `flutter_slidable` (existing dependency) for swipes; `HmmIconButton` with localized tooltips everywhere; safe areas respected.
+- `flutter_slidable` for swipes (**new dependency** — CLAUDE.md's "Key Packages" line is wrong, it is not in pubspec today); `share_plus` for the share sheet (new dependency); `HmmIconButton` with localized tooltips everywhere; safe areas respected.
 - Every new string in en and zh ARB (flag colour names, date headers, token labels); dates and times localized.
 
 ## Help
@@ -203,6 +203,31 @@ All · Pinned · Flagged (with a sub-row per colour in use, showing its name) ·
 - **Server:** migration; DTO fields; PUT without pin/flag keeps stored values; `?pinned` / `?flag` filters.
 - **Widgets:** rows at each density with rendered markdown and no raw `**` / `- [ ]`; swipes; long-press menu; multi-select bulk with Undo; chip bar follows usage; drawer counts; wide layouts (3 and 2 columns); help buttons; iOS and Android variants; sensitive thumbnail shows a lock with no unlock prompt.
 - **Regression:** display titles for contacts and cards; routing to their own screens; attached-note parent label; `notesSearchClear`; search stays visible after leaving.
+
+## Decisions from grilling (2026-10-18)
+
+These override anything above that conflicts.
+
+- **G1 Today / date headers** use the note's effective date (`noteDate ?? createDate`); "recently edited" is the Last-modified sort, not a filter.
+- **G2 Headers follow the sort:** effective date for date sorts, last-modified date for the Last-modified sort, A–Z groups for title, colour groups for flag sort.
+- **G3 Pinned section** appears at the top of **every** view, containing the pinned notes that match that view.
+- **G4 Delivery in six slices**, each merged and deployed independently:
+  1. data + flags + server (pin/flag fields and their OneDrive/API sync, server undelete endpoint, real purge, tag API wiring);
+  2. query engine, rows, date headers;
+  3. search tokens + saved searches;
+  4. drawer, chips, wide-screen sidebar;
+  5. swipes, multi-select, Recently Deleted;
+  6. tags UI and Manage tags.
+  The server change ships with slice 1, before the client release.
+- **G5 Saved searches** live in the synced settings bundle (whole-bundle last-writer-wins); concurrent edits on two devices may lose one — accepted.
+- **G6 Recently Deleted** retention fixed at 30 days.
+- **G7 Entity notes cannot be deleted from Notes.** Notes deletes only ordinary notes; contacts, cheatsheets, gas logs, cars, service records, licence and similar show "Manage in Contacts / Cheatsheets / Automobile …" instead of Delete (row action, long-press, multi-select and note detail). Pin, flag and tags work on every note. Multi-select bulk Delete skips entity notes and says how many were skipped.
+- **G8 Packages:** add `flutter_slidable` and `share_plus`; no PDF library (PDF export deferred).
+- **G9 Server undelete + real purge** are built in slice 1 (one deploy with the pin/flag change). Purge removes the client row, deletes on the server, and releases vault files.
+- **G10 Tags work in all three modes,** wiring the existing server endpoints for cloudApi.
+- **G11 Recently Deleted lists only ordinary notes** deleted from Notes. Features' own deletes never appear there. The 30-day purge applies to **all** soft-deleted notes (so deleted gas logs' and cards' photos finally leave the vault).
+- **G12 Deleting a parent note** leaves its attached notes in place; their parent label reads "(deleted note)" until the parent is restored, and they become unattached after the parent is purged.
+- **G13 Share** only ordinary notes (markdown text); entity notes say "Share from Contacts / Cheatsheets / …".
 
 ## Risks
 
