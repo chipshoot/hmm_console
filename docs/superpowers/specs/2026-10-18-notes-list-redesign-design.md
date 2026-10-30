@@ -30,17 +30,26 @@ Turn the Notes list from a flat list with a title-only search into an Outlook / 
 
 ## Data model and sync
 
-### New note fields (Drift schemaVersion 8 → 9)
+### Note state: pins and flags (separate table — G14)
+
+Pin and flag are the **user's own state about a note**, not note content (like a mail flag, which never changes the message). They live in their own table, one row per user per note, and **never touch the note row**.
 
 | Field | Type | Default | Meaning |
 |-------|------|---------|---------|
+| note key | note uuid (client) / `NoteId` (server) | — | the note this state is about |
+| user key | — (client: the device's one owner) / `AuthorId` (server) | — | whose state it is; ready for Sharing (Project 3) |
 | `isPinned` | bool | `false` | listed in the Pinned section first |
 | `flagColor` | int? | `null` | null = unflagged; 0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple, 6 grey |
+| `lastModifiedDate` | UTC time | — | per-state last-writer-wins clock |
 
-- Additive migration with defaults; existing notes are untouched.
-- Pin/flag changes are real edits: they bump `lastModifiedDate`. **They do not sync automatically** — neither the cloudStorage note blob nor the API note body carries arbitrary columns today. Slice 1 adds `isPinned`/`flagColor` keys to the OneDrive note blob (absent key on pull ⇒ keep the local value) and to the API note DTOs.
-- **Preservation:** the note mapper preserves fields it does not know; an API update that omits `IsPinned`/`FlagColor` keeps the stored value. An unknown `flagColor` value (from a newer client) is kept and shown as a grey flag.
-- **Server (`hmm`):** EF migration adds `IsPinned` (bool, default false) and `FlagColor` (int, nullable) to the note table; note DTOs carry them; list endpoint gains `?pinned=` and `?flag=` filters. **Deployed before the client release** that writes them.
+- **Client:** new Drift table `NoteStates` (schemaVersion 8 → 9, create-table migration; existing notes untouched — a note with no row is unpinned and unflagged).
+- **Not a note edit:** pinning or flagging does **not** bump the note's `version` or `lastModifiedDate`, does not push the note, and does not move it in the Last-modified sort. So a pin on one device can never overwrite a text edit made on another.
+- Unpin / unflag **writes** a row (`isPinned = false` / `flagColor = null`) rather than deleting it, so the change propagates.
+- **Sync, cloudStorage:** one OneDrive document `note-states.json` (`{version: 1, states: [{noteUuid, isPinned, flagColor, lastModified}]}`), merged **per entry** by `lastModified` (newer wins; tie keeps local), the same pattern as `tags.json`. Entries whose note no longer exists anywhere (purged) are dropped. Note blobs do not carry pin/flag.
+- **Sync, cloudApi:** `GET /v1/notes/states` (the current user's states) and `PUT /v1/notes/{id}/state` (`{isPinned, flagColor, lastModifiedDate}`; the server keeps the newer by `lastModifiedDate` and returns the stored row). Note DTOs do not carry pin/flag.
+- **Soft delete / restore** leave the state row alone (a restored note comes back pinned). **Purge** removes it (server: cascade on the note's hard delete; client: row removed; OneDrive: entry dropped).
+- **Preservation:** an unknown `flagColor` value (from a newer client) is kept and shown as a grey flag. Older clients are unaffected: they never read or write note state.
+- **Server (`hmm`):** EF migration adds table `NoteUserStates` (`AuthorId`, `NoteId`, `IsPinned` bool default false, `FlagColor` int nullable, `LastModifiedDate`; key `(AuthorId, NoteId)`; FK to the note with cascade delete). The user is the token's author; a user can only read or write their own rows, and only for notes they can access. **Deployed before the client release** that uses it. No `?pinned=` / `?flag=` filters on the note list (the client filters in memory; YAGNI).
 
 ### Recently Deleted
 
@@ -179,7 +188,7 @@ All · Pinned · Flagged (with a sub-row per colour in use, showing its name) ·
 - **Partial bulk failure:** "Flagged 8 of 10 notes"; failed notes stay selected.
 - **Saved search referencing a deleted tag or note:** that token renders struck-out "(removed)" and is ignored; the search still runs.
 - **Open note deleted on another device:** detail shows "This note was moved to Recently Deleted" with Restore.
-- **Cloud API server without the new fields:** pins and flags are hidden with "Pins and flags need the latest server" (safety net; the server ships first).
+- **Cloud API server without the note-state endpoints** (404): pins and flags are hidden with "Pins and flags need the latest server"; local state is kept and pushed once the server has them (safety net; the server ships first).
 - Purge runs at most daily and never during sync.
 
 ## Platform rules
@@ -199,8 +208,8 @@ All · Pinned · Flagged (with a sub-row per colour in use, showing its name) ·
 
 - **Query engine:** every token and source; scope; saved-search round-trip; unknown tokens preserved; counts (attached-note domain rule, General = unattached); date-group bucketing (midnight, time zones, month boundaries); pinned first; body/tag/parent/pinyin search; match ranges.
 - **Search index:** markdown → text; entity notes searched by preview, never JSON; cache invalidates on version change; performance benchmark (5,000 notes, ≤ 50 ms).
-- **Data:** migration 8 → 9 defaults; pin/flag round-trip through codec, mapper and API; older-client preservation; Recently Deleted delete / restore / 30-day purge / Delete now / Empty; restore-after-sync across modes; tag sync (or the gap closed).
-- **Server:** migration; DTO fields; PUT without pin/flag keeps stored values; `?pinned` / `?flag` filters.
+- **Data:** migration 8 → 9 creates `NoteStates` and leaves notes untouched; pin/flag never bump the note's version or `lastModifiedDate`; `note-states.json` per-entry merge (newer wins, tie keeps local, unpin propagates, purged notes dropped); cloudApi state pull/push and 404 fallback; unknown flag colour kept; Recently Deleted delete / restore / 30-day purge / Delete now / Empty; restore-after-sync across modes; tag sync (or the gap closed).
+- **Server:** `NoteUserStates` migration; `GET /v1/notes/states` returns only the caller's rows; `PUT /v1/notes/{id}/state` keeps the newer `lastModifiedDate`, rejects another user's note, leaves the note row unchanged; purge cascades the state rows.
 - **Widgets:** rows at each density with rendered markdown and no raw `**` / `- [ ]`; swipes; long-press menu; multi-select bulk with Undo; chip bar follows usage; drawer counts; wide layouts (3 and 2 columns); help buttons; iOS and Android variants; sensitive thumbnail shows a lock with no unlock prompt.
 - **Regression:** display titles for contacts and cards; routing to their own screens; attached-note parent label; `notesSearchClear`; search stays visible after leaving.
 
@@ -212,7 +221,7 @@ These override anything above that conflicts.
 - **G2 Headers follow the sort:** effective date for date sorts, last-modified date for the Last-modified sort, A–Z groups for title, colour groups for flag sort.
 - **G3 Pinned section** appears at the top of **every** view, containing the pinned notes that match that view.
 - **G4 Delivery in six slices**, each merged and deployed independently:
-  1. data + flags + server (pin/flag fields and their OneDrive/API sync, server undelete endpoint, real purge, tag API wiring);
+  1. data + flags + server (note-state table for pin/flag and its OneDrive/API sync, server undelete endpoint, real purge, tag API wiring);
   2. query engine, rows, date headers;
   3. search tokens + saved searches;
   4. drawer, chips, wide-screen sidebar;
@@ -223,15 +232,16 @@ These override anything above that conflicts.
 - **G6 Recently Deleted** retention fixed at 30 days.
 - **G7 Entity notes cannot be deleted from Notes.** Notes deletes only ordinary notes; contacts, cheatsheets, gas logs, cars, service records, licence and similar show "Manage in Contacts / Cheatsheets / Automobile …" instead of Delete (row action, long-press, multi-select and note detail). Pin, flag and tags work on every note. Multi-select bulk Delete skips entity notes and says how many were skipped.
 - **G8 Packages:** add `flutter_slidable` and `share_plus`; no PDF library (PDF export deferred).
-- **G9 Server undelete + real purge** are built in slice 1 (one deploy with the pin/flag change). Purge removes the client row, deletes on the server, and releases vault files.
+- **G9 Server undelete + real purge** are built in slice 1 (one deploy with the note-state change). Purge removes the client row, deletes on the server, and releases vault files.
 - **G10 Tags work in all three modes,** wiring the existing server endpoints for cloudApi.
 - **G11 Recently Deleted lists only ordinary notes** deleted from Notes. Features' own deletes never appear there. The 30-day purge applies to **all** soft-deleted notes (so deleted gas logs' and cards' photos finally leave the vault).
 - **G12 Deleting a parent note** leaves its attached notes in place; their parent label reads "(deleted note)" until the parent is restored, and they become unattached after the parent is purged.
 - **G13 Share** only ordinary notes (markdown text); entity notes say "Share from Contacts / Cheatsheets / …".
+- **G14 Pin and flag live in a separate per-user note-state table** (2026-10-29), not on the note: a pin/flag change is not a note edit, cannot overwrite a concurrent text edit under whole-note last-writer-wins, does not reorder the Last-modified sort, and gives each user their own pins and flags once Sharing (Project 3) arrives. Flags are not tags: one colour per note, fixed palette, never listed with tags. Replaces the earlier "new note fields" design and the note-list `?pinned=` / `?flag=` filters.
 
 ## Risks
 
 - **Scope** — this is large; the plan should deliver it in independently shippable slices (data + server; query engine; row + list; drawer + chips + search UI; actions + Recently Deleted; tags; wide layout).
-- **Server deploy ordering** — `IsPinned`/`FlagColor` must be live before the client release that writes them.
+- **Server deploy ordering** — the `NoteUserStates` table and state endpoints must be live before the client release that uses them.
 - **Sync semantics** for restore-after-delete and tags must be verified before UI depends on them.
 - **Markdown preview cost** — mitigated by per-version caching; measured by the benchmark.
