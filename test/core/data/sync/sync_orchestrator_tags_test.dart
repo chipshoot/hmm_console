@@ -99,4 +99,12 @@ void main() {
     final result = await orch(provider).syncNow();
     expect(result.errors.any((e) => e.recordType == 'tags'), isTrue);
   });
+
+  test('a tag failure does not hold the note cursor back', () async {
+    final provider = _FakeProvider(null)..throwOnPullTags = true;
+    final result = await orch(provider).syncNow();
+
+    expect(result.errors.map((e) => e.recordType).toSet(), {'tags'});
+    expect(await SyncMetaRepository().getLastPushedAt('fake'), isNotNull);
+  });
 }

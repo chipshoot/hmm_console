@@ -383,8 +383,9 @@ class SyncOrchestrator {
     // Attachment bytes and note states are re-derived on the next sync, so
     // their errors must not hold the note cursor back.
     // A failed remote purge is retried from the pending store next sync, so
-    // it must not hold the note cursor back either.
-    const nonBlocking = {'attachment', 'noteStates', 'purge'};
+    // it must not hold the note cursor back either. Tag definitions sync
+    // whole every run, independent of the note cursor.
+    const nonBlocking = {'attachment', 'noteStates', 'purge', 'tags'};
     final metadataClean = errors.every(
       (e) => nonBlocking.contains(e.recordType),
     );
