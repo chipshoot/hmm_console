@@ -188,7 +188,7 @@ class SyncOrchestrator {
     }
 
     // -------- 0c. Snapshot local deltas BEFORE pull --------
-    // Avoids re-uploading rows that the pull is about to overwrite.
+    // The push step skips any snapshot the pull overwrote (`_blobToPush`).
     timer.start(SyncPhase.collectLocal);
     final cursor =
         await _meta.getLastPushedAt(p.providerId) ??
@@ -240,13 +240,22 @@ class SyncOrchestrator {
     // Queue of (childLocalId, parentUuid) for pass 2 resolution.
     final pendingParents = <({int childId, String parentUuid})>[];
 
+    // uuid -> the remote stamp the pull wrote for every note it applied
+    // (inserted, updated or tombstoned) this run. The pre-pull snapshot of
+    // such a note is stale: pushing it would undo the newer remote change
+    // (a stale live body even un-deletes via the API's restore path).
+    final pulledThisRun = <String, DateTime>{};
+
     // -------- 2. PULL: notes --------
     timer.start(SyncPhase.pullNotes);
     if (remote != null) {
       for (final entry in remote.notes) {
         try {
           final applied = await _maybePullNote(p, entry, pendingParents);
-          if (applied) pulledNotes++;
+          if (applied) {
+            pulledNotes++;
+            pulledThisRun[entry.id] = entry.updatedAt;
+          }
         } catch (e) {
           errors.add(
             SyncError(
@@ -295,7 +304,9 @@ class SyncOrchestrator {
 
     // -------- 3. PUSH: local note changes --------
     timer.start(SyncPhase.pushNotes);
-    for (final blob in localNoteBlobs) {
+    for (final snapshot in localNoteBlobs) {
+      final blob = await _blobToPush(snapshot, pulledThisRun);
+      if (blob == null) continue;
       try {
         await p.pushNoteBody(blob.id, blob.body);
         pushedNotes++;
@@ -881,6 +892,47 @@ class SyncOrchestrator {
       n.attachments == null;
 
   // ==================== PUSH collection ====================
+
+  /// The blob to push for a pre-pull [snapshot], or null to skip it.
+  ///
+  /// A note the pull did not touch pushes its snapshot unchanged. A note the
+  /// pull applied this run is skipped — the remote copy won LWW and the
+  /// snapshot predates it — unless the row was edited again AFTER the pull
+  /// (its stamp is later than the pulled one). Then the current row is
+  /// pushed: the cursor advances to this run's end, so an edit made during
+  /// the run would otherwise never be collected again.
+  Future<NoteBlob?> _blobToPush(
+    NoteBlob snapshot,
+    Map<String, DateTime> pulledThisRun,
+  ) async {
+    final pulledAt = pulledThisRun[snapshot.id];
+    if (pulledAt == null) return snapshot;
+    final row = await (_db.select(
+      _db.notes,
+    )..where((n) => n.uuid.equals(snapshot.id))).getSingleOrNull();
+    if (row == null) return null;
+    final stamp = (row.lastModifiedDate ?? row.createDate).toUtc();
+    if (!stamp.isAfter(pulledAt.toUtc())) return null;
+    final catalogNames = <int, String>{};
+    final catalogId = row.catalogId;
+    if (catalogId != null) {
+      final cat = await (_db.select(
+        _db.noteCatalogs,
+      )..where((c) => c.id.equals(catalogId))).getSingleOrNull();
+      if (cat != null) catalogNames[cat.id] = cat.name;
+    }
+    final parentUuids = <int, String>{};
+    final parentId = row.parentNoteId;
+    if (parentId != null) {
+      final parent = await (_db.select(
+        _db.notes,
+      )..where((n) => n.id.equals(parentId))).getSingleOrNull();
+      final u = parent?.uuid;
+      if (u != null) parentUuids[parentId] = u;
+    }
+    final tagNames = await _tagRepo.tagNamesForNote(row.id);
+    return _noteRowToBlob(row, catalogNames, parentUuids, tagNames);
+  }
 
   Future<List<NoteBlob>> _collectChangedNotes(DateTime cursor) async {
     final rows = await (_db.select(
