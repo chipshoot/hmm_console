@@ -10,6 +10,12 @@
 //                  pushed body carries deletedAt
 //   pushManifest   no-op (server-side rows are the manifest; nothing
 //                  to push)
+//   restore        POST /v1/notes/{id}/restore before the PUT when the
+//                  server row is soft-deleted but the pushed body is live
+//   tags           GET|POST /v1/tags, DELETE /v1/tags/{id} (definitions);
+//                  PUT /v1/notes/{id}/tags (membership, set-replace)
+//   note states    GET /v1/notes/states, PUT /v1/notes/{id}/state
+//                  (pins + flags; 404 on the GET = server too old)
 //
 // The provider stays stateful only for the duration of a single sync
 // run — Riverpod rebuilds it on every container read so the per-
@@ -20,6 +26,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../network/api_client.dart';
@@ -59,6 +66,14 @@ class ApiSyncProvider implements CloudSyncProvider {
   /// uses catalog name as the cross-device-stable handle; the
   /// server still keys catalogs by int Id, so we translate here.
   final Map<String, int> _catalogIdByName = {};
+  /// Lower-cased tag name → server tag id, filled by [pullTags] and used by
+  /// [pushTags] in the same sync run (the orchestrator calls them in order).
+  final Map<String, int> _serverTagIdByName = {};
+
+  /// The server keeps no per-tag modification time; epoch 0 means a server
+  /// tag only fills a gap locally and never overrides a local edit or
+  /// tombstone in `TagSyncService`'s last-writer-wins merge.
+  static final DateTime _tagEpoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 
   @override
   String get providerId => 'hmm_api';
@@ -212,15 +227,23 @@ class ApiSyncProvider implements CloudSyncProvider {
         'Server returned a note without an id during push existence check.',
       );
     }
+    final serverDeleted = (existing['isDeleted'] as bool?) ?? false;
 
     if (isDeletedPush) {
-      // DELETE is the only way to flip IsDeleted on the server
-      // today; the controller has no PATCH for the flag.
+      // Already a tombstone on the server: nothing to do (re-deleting used
+      // to 500 because the controller cannot load a deleted note).
+      if (serverDeleted) return;
       await _dio.delete<void>('/notes/$existingId');
       return;
     }
 
+    if (serverDeleted) {
+      // A restore (Recently Deleted → Undo/Restore). The server refuses a
+      // PUT on a soft-deleted note, so flip IsDeleted back first.
+      await _restoreNote(existingId);
+    }
     await _updateNote(existingId, uuid, body);
+    await _pushTagMembership(existingId, body);
   }
 
   @override
@@ -300,14 +323,14 @@ class ApiSyncProvider implements CloudSyncProvider {
       'catalogId': catalogId,
       'description': body['description'],
     };
-    await _dio.post<void>('/notes', data: payload);
+    final resp = await _dio.post<dynamic>('/notes', data: payload);
+    final data = resp.data;
+    final newId = data is Map ? data['id'] as int? : null;
+    if (newId != null) await _pushTagMembership(newId, body);
   }
 
   Future<void> _updateNote(
-    int existingId,
-    String uuid,
-    Map<String, dynamic> body,
-  ) async {
+      int existingId, String uuid, Map<String, dynamic> body) async {
     final payload = <String, dynamic>{
       'uuid': uuid,
       'subject': body['subject'] ?? '(untitled)',
@@ -315,6 +338,41 @@ class ApiSyncProvider implements CloudSyncProvider {
       'description': body['description'],
     };
     await _dio.put<void>('/notes/$existingId', data: payload);
+  }
+
+  Future<void> _restoreNote(int id) async {
+    try {
+      await _dio.post<void>('/notes/$id/restore');
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 404 || code == 405) {
+        throw const ApiSyncProviderException(
+          'The server cannot restore deleted notes yet (no /notes/{id}/restore). '
+          'Deploy the latest Hmm API, then sync again.',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// Set-replace the note's tags on the server when the body carries a
+  /// `tags` list (the complete set, as in cloudStorage).
+  Future<void> _pushTagMembership(int noteId, Map<String, dynamic> body) async {
+    if (!body.containsKey('tags')) return;
+    final names =
+        (body['tags'] as List?)?.whereType<String>().toList() ?? const <String>[];
+    try {
+      await _dio.put<void>('/notes/$noteId/tags', data: {'names': names});
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 404 || code == 405) {
+        // Server predates note tags. The note itself synced; its tags follow
+        // once the server is updated (the note is re-pushed on its next edit).
+        debugPrint('ApiSyncProvider: no note-tags endpoint ($code) for note $noteId');
+        return;
+      }
+      rethrow;
+    }
   }
 
   /// Decode the server's `X-Pagination` header value. Returns null
@@ -366,8 +424,7 @@ class ApiSyncProvider implements CloudSyncProvider {
   /// parentNoteUuid stays null because the server doesn't model
   /// note threading.
   static Map<String, dynamic> _orchestratorBodyFromApiNote(
-    Map<String, dynamic> apiNote,
-  ) {
+      Map<String, dynamic> apiNote) {
     final isDeleted = (apiNote['isDeleted'] as bool?) ?? false;
     final modifiedRaw = apiNote['lastModifiedDate'] as String?;
     return <String, dynamic>{
@@ -380,6 +437,12 @@ class ApiSyncProvider implements CloudSyncProvider {
       'createDate': apiNote['createDate'],
       'lastModifiedDate': modifiedRaw,
       'deletedAt': isDeleted ? modifiedRaw : null,
+      // Only what the server actually sent: an older server has no
+      // tagNames, and an absent `tags` key makes the orchestrator keep the
+      // local membership instead of wiping it. Pin/flag never ride the note
+      // body (G14) — see pullNoteStates.
+      if (apiNote['tagNames'] is List)
+        'tags': (apiNote['tagNames'] as List).whereType<String>().toList(),
     };
   }
 
@@ -411,28 +474,158 @@ class ApiSyncProvider implements CloudSyncProvider {
     await _dio.put<void>('/profile/settings', data: body);
   }
 
-  // ---- Tags (Phase 4) ----
+  // ---- Tags ----
   //
-  // The API tier does not have a tags endpoint yet. The default no-ops on
-  // [CloudSyncProvider] are not inherited because this class uses `implements`
-  // (not `extends`), so we forward to the same no-op semantics explicitly.
+  // Definitions come from /v1/tags (no per-tag timestamps on the server, see
+  // [_tagEpoch]); membership rides each note push (PUT /notes/{id}/tags) and
+  // pull (ApiNote.tagNames).
 
   @override
-  Future<Map<String, dynamic>?> pullTags() async => null;
+  Future<Map<String, dynamic>?> pullTags() async {
+    _serverTagIdByName.clear();
+    final tags = <Map<String, dynamic>>[];
+    var page = 1;
+    while (true) {
+      final resp = await _dio.get<dynamic>(
+        '/tags',
+        queryParameters: {'PageNumber': page, 'PageSize': 100},
+      );
+      for (final raw in _unwrapValueList(resp.data)) {
+        if (raw is! Map) continue;
+        final name = (raw['name'] as String?)?.trim();
+        if (name == null || name.isEmpty) continue;
+        final id = raw['id'] as int?;
+        if (id != null) _serverTagIdByName[name.toLowerCase()] = id;
+        tags.add({
+          'name': name,
+          'description': raw['description'],
+          'is_activated': (raw['isActivated'] as bool?) ?? true,
+          'last_modified': _tagEpoch.toIso8601String(),
+          'deleted': false,
+        });
+      }
+      final totalPages =
+          _readPaginationHeader(resp.headers)?['totalPages'] as int? ?? 1;
+      if (page >= totalPages) break;
+      page++;
+    }
+    return {'version': 1, 'tags': tags};
+  }
 
   @override
-  Future<void> pushTags(Map<String, dynamic> doc) async {}
+  Future<void> pushTags(Map<String, dynamic> doc) async {
+    final rawTags = (doc['tags'] as List?) ?? const [];
+    for (final raw in rawTags) {
+      if (raw is! Map) continue;
+      final name = (raw['name'] as String?)?.trim();
+      if (name == null || name.isEmpty) continue;
+      final key = name.toLowerCase();
+      final deleted = (raw['deleted'] as bool?) ?? false;
+      final serverId = _serverTagIdByName[key];
+      if (deleted) {
+        if (serverId == null) continue;
+        await _dio.delete<void>('/tags/$serverId'); // deactivates server-side
+        _serverTagIdByName.remove(key);
+      } else if (serverId == null) {
+        final resp = await _dio.post<dynamic>(
+          '/tags',
+          data: {'name': name, 'description': raw['description']},
+        );
+        final data = resp.data;
+        final id = data is Map ? data['id'] as int? : null;
+        if (id != null) _serverTagIdByName[key] = id;
+      }
+    }
+  }
 
-  // ---- Note states ---- (wired to the API in Task 7)
+  // ---- Note states (pins + flags, G14) ----
+  //
+  // GET /v1/notes/states returns the caller's rows; PUT
+  // /v1/notes/{id}/state upserts one (the server keeps the newer
+  // lastModifiedDate). The orchestrator merges, then hands us the uuids
+  // whose local state won.
+
+  /// note uuid → server note id, filled by [pullNoteStates] and used by
+  /// [pushNoteStates] in the same sync run.
+  final Map<String, int> _serverNoteIdByUuid = {};
 
   @override
-  Future<Map<String, dynamic>?> pullNoteStates() async => null;
+  Future<Map<String, dynamic>?> pullNoteStates() async {
+    _serverNoteIdByUuid.clear();
+    final Response<dynamic> resp;
+    try {
+      resp = await _dio.get<dynamic>('/notes/states');
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 404 || code == 405) {
+        // A server older than the notes redesign: keep local state.
+        throw const NoteStatesUnsupportedException();
+      }
+      rethrow;
+    }
+    final states = <Map<String, dynamic>>[];
+    for (final raw in _unwrapValueList(resp.data)) {
+      if (raw is! Map) continue;
+      final uuid = raw['noteUuid'] as String?;
+      final id = raw['noteId'] as int?;
+      final at = DateTime.tryParse(raw['lastModifiedDate'] as String? ?? '');
+      if (uuid == null || uuid.isEmpty || at == null) continue;
+      if (id != null) _serverNoteIdByUuid[uuid] = id;
+      states.add({
+        'noteUuid': uuid,
+        'isPinned': (raw['isPinned'] as bool?) ?? false,
+        'flagColor': (raw['flagColor'] as num?)?.toInt(),
+        'lastModified': at.toUtc().toIso8601String(),
+      });
+    }
+    return {'version': 1, 'states': states};
+  }
 
   @override
-  Future<void> pushNoteStates(
-    Map<String, dynamic> doc, {
-    required Set<String> changed,
-  }) async {}
+  Future<void> pushNoteStates(Map<String, dynamic> doc,
+      {required Set<String> changed}) async {
+    if (changed.isEmpty) return;
+    final byUuid = <String, Map>{
+      for (final raw in (doc['states'] as List?) ?? const [])
+        if (raw is Map && raw['noteUuid'] is String) raw['noteUuid'] as String: raw,
+    };
+    var failed = 0;
+    for (final uuid in changed) {
+      final s = byUuid[uuid];
+      if (s == null) continue;
+      try {
+        final id = _serverNoteIdByUuid[uuid] ?? await _serverIdForUuid(uuid);
+        if (id == null) continue; // not on the server yet; retried next sync
+        await _dio.put<dynamic>('/notes/$id/state', data: {
+          'isPinned': (s['isPinned'] as bool?) ?? false,
+          'flagColor': s['flagColor'],
+          'lastModifiedDate': s['lastModified'],
+        });
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 404) continue; // note gone meanwhile
+        failed++;
+      }
+    }
+    if (failed > 0) {
+      throw ApiSyncProviderException(
+          '$failed note state(s) failed to push; retrying next sync.');
+    }
+  }
+
+  Future<int?> _serverIdForUuid(String uuid) async {
+    try {
+      final probe = await _dio.get<Map<String, dynamic>>(
+        '/notes/by-uuid/$uuid',
+        queryParameters: {'includeDeleted': true},
+      );
+      final id = probe.data?['id'] as int?;
+      if (id != null) _serverNoteIdByUuid[uuid] = id;
+      return id;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
 
   // ---- Attachments ----
   // cloudApi bytes route through the future ApiVaultStore (Phase 15), not the
