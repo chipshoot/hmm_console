@@ -224,6 +224,33 @@ void main() {
     },
   );
 
+  test('a soft-deleted note with its content keeps its pin and flag', () async {
+    // In Recently Deleted (deletedAt set, content intact, not purged):
+    // only a content-free tombstone may lose its state.
+    final id = await insertNote('n1', modified: t0, deletedAt: t0);
+    await states.putState(
+      NoteState(
+        noteUuid: 'n1',
+        isPinned: true,
+        flagColor: 2,
+        lastModifiedDate: t0,
+      ),
+    );
+    provider.remoteManifest = manifest([
+      ManifestEntry(id: 'n1', updatedAt: t0, deleted: true),
+    ]);
+    provider.remoteStates = {'version': 1, 'states': const []};
+
+    final result = await orchestrator.syncNow();
+
+    expect(result.errors, isEmpty, reason: result.errors.join('\n'));
+    final s = await states.getState('n1');
+    expect(s.isPinned, isTrue);
+    expect(s.flagColor, 2);
+    expect(pushedState('n1')?['isPinned'], isTrue);
+    expect((await row(id)).deletedAt, isNotNull);
+  });
+
   test(
     'a failed state pull is a non-fatal error and advances the cursor',
     () async {
