@@ -3,6 +3,12 @@
 /// Shape follows `docs/sync_contract.md` §3 and §9.
 library;
 
+/// Subject of a content-free tombstone row: one pulled for a note this device
+/// never had, or a cloudStorage note purged after 30 days. The row keeps its
+/// uuid and deletedAt so the manifest keeps propagating the delete. Such a
+/// row carries no note state (see `NoteStateSyncService`).
+const String kTombstoneSubject = '(deleted)';
+
 /// One note's payload, ready to push or just pulled.
 class NoteBlob {
   const NoteBlob({
@@ -90,6 +96,7 @@ enum SyncPhase {
   pullManifest,
   pullNotes,
   pushNotes,
+  noteStates,
   pushManifest,
   attachments,
 }
@@ -125,16 +132,15 @@ class SyncResult {
     required DateTime at,
     required SyncError error,
     SyncTiming? timing,
-  }) =>
-      SyncResult(
-        pulledNotes: 0,
-        pulledAttachments: 0,
-        pushedNotes: 0,
-        pushedAttachments: 0,
-        completedAt: at,
-        errors: [error],
-        timing: timing,
-      );
+  }) => SyncResult(
+    pulledNotes: 0,
+    pulledAttachments: 0,
+    pushedNotes: 0,
+    pushedAttachments: 0,
+    completedAt: at,
+    errors: [error],
+    timing: timing,
+  );
 
   final int pulledNotes;
   final int pulledAttachments;

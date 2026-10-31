@@ -43,8 +43,8 @@ class ApiSyncProvider implements CloudSyncProvider {
   ApiSyncProvider({
     required ApiClient client,
     required IdpTokenService tokenService,
-  })  : _dio = client.dio,
-        _tokenService = tokenService;
+  }) : _dio = client.dio,
+       _tokenService = tokenService;
 
   final Dio _dio;
   final IdpTokenService _tokenService;
@@ -304,7 +304,10 @@ class ApiSyncProvider implements CloudSyncProvider {
   }
 
   Future<void> _updateNote(
-      int existingId, String uuid, Map<String, dynamic> body) async {
+    int existingId,
+    String uuid,
+    Map<String, dynamic> body,
+  ) async {
     final payload = <String, dynamic>{
       'uuid': uuid,
       'subject': body['subject'] ?? '(untitled)',
@@ -349,16 +352,12 @@ class ApiSyncProvider implements CloudSyncProvider {
     final uuid = raw['uuid'] as String?;
     if (uuid == null || uuid.isEmpty) return null;
     final isDeleted = (raw['isDeleted'] as bool?) ?? false;
-    final modifiedRaw = raw['lastModifiedDate'] as String? ??
-        raw['createDate'] as String?;
+    final modifiedRaw =
+        raw['lastModifiedDate'] as String? ?? raw['createDate'] as String?;
     final modified = modifiedRaw != null
         ? DateTime.tryParse(modifiedRaw)?.toUtc() ?? DateTime.now().toUtc()
         : DateTime.now().toUtc();
-    return ManifestEntry(
-      id: uuid,
-      updatedAt: modified,
-      deleted: isDeleted,
-    );
+    return ManifestEntry(id: uuid, updatedAt: modified, deleted: isDeleted);
   }
 
   /// Translate the server's ApiNote shape to the orchestrator's
@@ -367,7 +366,8 @@ class ApiSyncProvider implements CloudSyncProvider {
   /// parentNoteUuid stays null because the server doesn't model
   /// note threading.
   static Map<String, dynamic> _orchestratorBodyFromApiNote(
-      Map<String, dynamic> apiNote) {
+    Map<String, dynamic> apiNote,
+  ) {
     final isDeleted = (apiNote['isDeleted'] as bool?) ?? false;
     final modifiedRaw = apiNote['lastModifiedDate'] as String?;
     return <String, dynamic>{
@@ -422,6 +422,17 @@ class ApiSyncProvider implements CloudSyncProvider {
 
   @override
   Future<void> pushTags(Map<String, dynamic> doc) async {}
+
+  // ---- Note states ---- (wired to the API in Task 7)
+
+  @override
+  Future<Map<String, dynamic>?> pullNoteStates() async => null;
+
+  @override
+  Future<void> pushNoteStates(
+    Map<String, dynamic> doc, {
+    required Set<String> changed,
+  }) async {}
 
   // ---- Attachments ----
   // cloudApi bytes route through the future ApiVaultStore (Phase 15), not the

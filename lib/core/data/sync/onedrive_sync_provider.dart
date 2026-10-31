@@ -59,6 +59,16 @@ class OneDriveSyncProvider implements CloudSyncProvider {
   @override
   Future<void> pushTags(Map<String, dynamic> doc) => _graph.putTags(doc);
 
+  @override
+  Future<Map<String, dynamic>?> pullNoteStates() => _graph.getNoteStates();
+
+  /// One whole document, like tags.json: [changed] is not needed here.
+  @override
+  Future<void> pushNoteStates(
+    Map<String, dynamic> doc, {
+    required Set<String> changed,
+  }) => _graph.putNoteStates(doc);
+
   // ---- Attachments (vault bytes) ----
 
   @override
@@ -109,10 +119,7 @@ class OneDriveSyncProvider implements CloudSyncProvider {
     if (legacyManifest == null) {
       // No legacy data at all — still write the marker so subsequent
       // syncs don't repeat this null-result probe.
-      await _graph.writeLegacyMigrationMarker(
-        forSub: sub,
-        copiedNoteCount: 0,
-      );
+      await _graph.writeLegacyMigrationMarker(forSub: sub, copiedNoteCount: 0);
       return 0;
     }
 

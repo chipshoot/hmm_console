@@ -11,6 +11,16 @@ import 'sync_models.dart';
 ///
 /// Each primitive may throw on transport/auth failure; the orchestrator
 /// catches and converts to [SyncError] entries in the final [SyncResult].
+/// Thrown by [CloudSyncProvider.pullNoteStates] when the remote cannot store
+/// note state at all (an Hmm API older than the notes redesign). The caller
+/// keeps every local state and pushes nothing.
+class NoteStatesUnsupportedException implements Exception {
+  const NoteStatesUnsupportedException();
+
+  @override
+  String toString() => 'NoteStatesUnsupportedException';
+}
+
 abstract class CloudSyncProvider {
   /// Stable identifier used for the sync-cursor key in SharedPreferences
   /// (e.g. `'onedrive'`, `'hmm_api'`).
@@ -68,6 +78,23 @@ abstract class CloudSyncProvider {
 
   /// Push the tag-definitions document. No-op default.
   Future<void> pushTags(Map<String, dynamic> doc) async {}
+
+  // ---- Note states (pins + flags, Notes redesign G14) ----
+
+  /// Fetch the note-state document `{version: 1, states: [{noteUuid,
+  /// isPinned, flagColor, lastModified}]}`, or null when the remote has none
+  /// yet. Throws [NoteStatesUnsupportedException] when the remote cannot
+  /// store note state. Default: null.
+  Future<Map<String, dynamic>?> pullNoteStates() async => null;
+
+  /// Push note states. [doc] is the full merged document; [changed] holds the
+  /// note uuids whose local state beat the remote one. A whole-document
+  /// store (OneDrive) writes [doc]; a per-row store (the Hmm API) sends only
+  /// [changed]. Default: no-op.
+  Future<void> pushNoteStates(
+    Map<String, dynamic> doc, {
+    required Set<String> changed,
+  }) async {}
 
   // ---- Attachments (vault bytes) ----
   //

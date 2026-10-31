@@ -23,15 +23,27 @@ class SyncMetaRepository {
 
   Future<void> setLastPushedAt(String providerId, DateTime at) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _cursorKey(providerId),
-      at.toUtc().toIso8601String(),
-    );
+    await prefs.setString(_cursorKey(providerId), at.toUtc().toIso8601String());
   }
 
   Future<void> clear(String providerId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_cursorKey(providerId));
+  }
+
+  static String _noteStatesUnsupportedKey(String providerId) =>
+      'sync_note_states_unsupported:$providerId';
+
+  /// True after the last sync found a remote without note-state support (an
+  /// old Hmm API). Read by the "Pins and flags need the latest server" banner.
+  Future<bool> getNoteStatesUnsupported(String providerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_noteStatesUnsupportedKey(providerId)) ?? false;
+  }
+
+  Future<void> setNoteStatesUnsupported(String providerId, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_noteStatesUnsupportedKey(providerId), value);
   }
 
   /// Stable identifier for this install. Generated lazily on first call. Used
@@ -52,5 +64,6 @@ class SyncMetaRepository {
   }
 }
 
-final syncMetaRepositoryProvider =
-    Provider<SyncMetaRepository>((ref) => SyncMetaRepository());
+final syncMetaRepositoryProvider = Provider<SyncMetaRepository>(
+  (ref) => SyncMetaRepository(),
+);

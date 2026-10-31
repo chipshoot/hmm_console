@@ -11,9 +11,11 @@ import '../../../features/settings/providers/settings_bus_provider.dart';
 import '../data_mode.dart';
 import '../local/database.dart';
 import '../../auth/current_author_account_name_provider.dart';
+import '../local/local_note_state_repository.dart';
 import '../local/local_tag_repository.dart';
 import 'api_sync_provider.dart';
 import 'cloud_sync_provider.dart';
+import 'note_state_sync_service.dart';
 import 'onedrive_sync_provider.dart';
 import 'sync_meta_repository.dart';
 import 'sync_models.dart';
@@ -44,19 +46,20 @@ class SyncOrchestrator {
     SyncableSettingsRepository? settingsRepo,
     void Function()? onSettingsApplied,
     Future<int> Function()? currentAuthorId,
-  })  : _db = db,
-        _meta = meta,
-        _vaultStore = vaultStore,
-        _settingsRepo = settingsRepo ?? SyncableSettingsRepository(),
-        _onSettingsApplied = onSettingsApplied,
-        _currentAuthorId = currentAuthorId,
-        _tagRepo = LocalTagRepository(db);
+  }) : _db = db,
+       _meta = meta,
+       _vaultStore = vaultStore,
+       _settingsRepo = settingsRepo ?? SyncableSettingsRepository(),
+       _onSettingsApplied = onSettingsApplied,
+       _currentAuthorId = currentAuthorId,
+       _tagRepo = LocalTagRepository(db);
 
   /// Null when the current DataMode is Local — no sync.
   final CloudSyncProvider? provider;
 
   final HmmDatabase _db;
   final SyncMetaRepository _meta;
+
   /// The store UNDERNEATH any encryption: bytes exactly as they sit on disk.
   ///
   /// Sync moves attachments between this device and the cloud, and for a
@@ -138,11 +141,13 @@ class SyncOrchestrator {
         // Migration failure shouldn't block a regular sync — log it as
         // an error in the result but continue. Worst case: the user has
         // to re-import legacy data manually; the live sync still works.
-        errors.add(SyncError(
-          recordType: 'manifest',
-          recordId: 'legacy-migration',
-          message: 'Legacy OneDrive migration failed (continuing): $e',
-        ));
+        errors.add(
+          SyncError(
+            recordType: 'manifest',
+            recordId: 'legacy-migration',
+            message: 'Legacy OneDrive migration failed (continuing): $e',
+          ),
+        );
       }
     }
 
@@ -155,11 +160,13 @@ class SyncOrchestrator {
     try {
       await timer.run(SyncPhase.settings, () => _syncSettings(p, errors));
     } catch (e) {
-      errors.add(SyncError(
-        recordType: 'manifest',
-        recordId: 'settings',
-        message: 'Settings sync threw: $e',
-      ));
+      errors.add(
+        SyncError(
+          recordType: 'manifest',
+          recordId: 'settings',
+          message: 'Settings sync threw: $e',
+        ),
+      );
     }
 
     // Tag definitions sync (independent of notes; non-fatal). Membership
@@ -167,17 +174,20 @@ class SyncOrchestrator {
     try {
       await timer.run(SyncPhase.tags, () => _syncTags(p, errors));
     } catch (e) {
-      errors.add(SyncError(
-        recordType: 'tags',
-        recordId: 'tags.json',
-        message: 'Tag sync threw: $e',
-      ));
+      errors.add(
+        SyncError(
+          recordType: 'tags',
+          recordId: 'tags.json',
+          message: 'Tag sync threw: $e',
+        ),
+      );
     }
 
     // -------- 0c. Snapshot local deltas BEFORE pull --------
     // Avoids re-uploading rows that the pull is about to overwrite.
     timer.start(SyncPhase.collectLocal);
-    final cursor = await _meta.getLastPushedAt(p.providerId) ??
+    final cursor =
+        await _meta.getLastPushedAt(p.providerId) ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     final localNoteBlobs = await _collectChangedNotes(cursor);
     timer.stop(SyncPhase.collectLocal);
@@ -234,11 +244,13 @@ class SyncOrchestrator {
           final applied = await _maybePullNote(p, entry, pendingParents);
           if (applied) pulledNotes++;
         } catch (e) {
-          errors.add(SyncError(
-            recordType: 'note',
-            recordId: entry.id,
-            message: 'Pull failed: $e',
-          ));
+          errors.add(
+            SyncError(
+              recordType: 'note',
+              recordId: entry.id,
+              message: 'Pull failed: $e',
+            ),
+          );
         }
       }
 
@@ -246,9 +258,9 @@ class SyncOrchestrator {
       // local.
       for (final pending in pendingParents) {
         try {
-          final parent = await (_db.select(_db.notes)
-                ..where((n) => n.uuid.equals(pending.parentUuid)))
-              .getSingleOrNull();
+          final parent = await (_db.select(
+            _db.notes,
+          )..where((n) => n.uuid.equals(pending.parentUuid))).getSingleOrNull();
           if (parent != null) {
             await (_db.update(_db.notes)
                   ..where((n) => n.id.equals(pending.childId)))
@@ -256,11 +268,13 @@ class SyncOrchestrator {
           }
           // Parent not found — leave parentNoteId null; next sync will retry.
         } catch (e) {
-          errors.add(SyncError(
-            recordType: 'note',
-            recordId: pending.parentUuid,
-            message: 'Parent resolution failed: $e',
-          ));
+          errors.add(
+            SyncError(
+              recordType: 'note',
+              recordId: pending.parentUuid,
+              message: 'Parent resolution failed: $e',
+            ),
+          );
         }
       }
 
@@ -277,15 +291,36 @@ class SyncOrchestrator {
         await p.pushNoteBody(blob.id, blob.body);
         pushedNotes++;
       } catch (e) {
-        errors.add(SyncError(
-          recordType: 'note',
-          recordId: blob.id,
-          message: 'Push failed: $e',
-        ));
+        errors.add(
+          SyncError(
+            recordType: 'note',
+            recordId: blob.id,
+            message: 'Push failed: $e',
+          ),
+        );
       }
     }
 
     timer.stop(SyncPhase.pushNotes);
+
+    // -------- 3b. Note states (pins + flags, G14) --------
+    // After the note pull (pulled notes exist locally, restores applied) and
+    // the note push (the API has every note a state can point at). Never
+    // writes a note row, so a pin can never overwrite a text edit.
+    try {
+      await timer.run(
+        SyncPhase.noteStates,
+        () => _syncNoteStates(p, remote, errors),
+      );
+    } catch (e) {
+      errors.add(
+        SyncError(
+          recordType: 'noteStates',
+          recordId: 'note-states',
+          message: 'Note state sync threw: ${e.runtimeType}',
+        ),
+      );
+    }
 
     // -------- 4. PUSH: rewritten manifest --------
     timer.start(SyncPhase.pushManifest);
@@ -293,17 +328,21 @@ class SyncOrchestrator {
       final freshManifest = await _buildManifest();
       await p.pushManifest(freshManifest);
     } catch (e) {
-      errors.add(SyncError(
-        recordType: 'manifest',
-        recordId: '-',
-        message: 'Failed to push manifest: $e',
-      ));
+      errors.add(
+        SyncError(
+          recordType: 'manifest',
+          recordId: '-',
+          message: 'Failed to push manifest: $e',
+        ),
+      );
     }
     timer.stop(SyncPhase.pushManifest);
 
     // -------- 4b. Reconcile attachment bytes (cloudStorage) --------
     final (pushedAtt, pulledAtt) = await timer.run(
-        SyncPhase.attachments, () => _reconcileVault(p, errors));
+      SyncPhase.attachments,
+      () => _reconcileVault(p, errors),
+    );
 
     // -------- 5. Advance cursor on a clean run --------
     final completedAt = DateTime.now().toUtc();
@@ -321,8 +360,12 @@ class SyncOrchestrator {
     // per-file Graph error must NOT hold the cursor back (which would
     // re-collect and re-push every changed note next sync). Such errors still
     // surface in result.errors; the missing bytes are retried next sync.
-    final metadataClean =
-        errors.every((e) => e.recordType == 'attachment');
+    // Attachment bytes and note states are re-derived on the next sync, so
+    // their errors must not hold the note cursor back.
+    const nonBlocking = {'attachment', 'noteStates'};
+    final metadataClean = errors.every(
+      (e) => nonBlocking.contains(e.recordType),
+    );
     if (metadataClean) {
       await _meta.setLastPushedAt(p.providerId, completedAt);
     }
@@ -343,7 +386,8 @@ class SyncOrchestrator {
   Future<int> pendingChangeCount() async {
     final p = provider;
     if (p == null) return 0;
-    final cursor = await _meta.getLastPushedAt(p.providerId) ??
+    final cursor =
+        await _meta.getLastPushedAt(p.providerId) ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     final countExp = _db.notes.id.count();
     final query = _db.selectOnly(_db.notes)
@@ -362,9 +406,9 @@ class SyncOrchestrator {
   ) async {
     final uuid = entry.id;
 
-    final local =
-        await (_db.select(_db.notes)..where((n) => n.uuid.equals(uuid)))
-            .getSingleOrNull();
+    final local = await (_db.select(
+      _db.notes,
+    )..where((n) => n.uuid.equals(uuid))).getSingleOrNull();
     final localUpdatedAt = local?.lastModifiedDate ?? local?.createDate;
     if (local != null &&
         localUpdatedAt != null &&
@@ -374,21 +418,28 @@ class SyncOrchestrator {
 
     if (entry.deleted) {
       if (local != null) {
-        await (_db.update(_db.notes)..where((n) => n.id.equals(local.id)))
-            .write(NotesCompanion(
-          deletedAt: Value(entry.updatedAt),
-          lastModifiedDate: Value(entry.updatedAt),
-        ));
+        await (_db.update(
+          _db.notes,
+        )..where((n) => n.id.equals(local.id))).write(
+          NotesCompanion(
+            deletedAt: Value(entry.updatedAt),
+            lastModifiedDate: Value(entry.updatedAt),
+          ),
+        );
       } else {
         // Insert tombstone so it can propagate to this device's peers.
-        await _db.into(_db.notes).insert(NotesCompanion.insert(
-              uuid: Value(uuid),
-              subject: '(deleted)',
-              authorId: await _defaultAuthorId(),
-              deletedAt: Value(entry.updatedAt),
-              lastModifiedDate: Value(entry.updatedAt),
-              createDate: Value(entry.updatedAt),
-            ));
+        await _db
+            .into(_db.notes)
+            .insert(
+              NotesCompanion.insert(
+                uuid: Value(uuid),
+                subject: kTombstoneSubject,
+                authorId: await _defaultAuthorId(),
+                deletedAt: Value(entry.updatedAt),
+                lastModifiedDate: Value(entry.updatedAt),
+                createDate: Value(entry.updatedAt),
+              ),
+            );
       }
       return true;
     }
@@ -411,13 +462,15 @@ class SyncOrchestrator {
     int? catalogId;
     final catalogName = body['catalogName'] as String?;
     if (catalogName != null && catalogName.isNotEmpty) {
-      final existingCat = await (_db.select(_db.noteCatalogs)
-            ..where((c) => c.name.equals(catalogName)))
-          .getSingleOrNull();
+      final existingCat = await (_db.select(
+        _db.noteCatalogs,
+      )..where((c) => c.name.equals(catalogName))).getSingleOrNull();
       if (existingCat != null) {
         catalogId = existingCat.id;
       } else {
-        catalogId = await _db.into(_db.noteCatalogs).insert(
+        catalogId = await _db
+            .into(_db.noteCatalogs)
+            .insert(
               NoteCatalogsCompanion.insert(name: catalogName, schema: '{}'),
             );
       }
@@ -431,7 +484,9 @@ class SyncOrchestrator {
     // Editable note date (Phase 2a). Absent (older client) ⇒ leave a stored
     // value untouched on update, and fall back to createDate on insert.
     final noteDateRaw = body['noteDate'] as String?;
-    final noteDate = noteDateRaw != null ? DateTime.tryParse(noteDateRaw) : null;
+    final noteDate = noteDateRaw != null
+        ? DateTime.tryParse(noteDateRaw)
+        : null;
 
     // Phase 2b location: present key ⇒ apply (set), absent ⇒ preserve.
     final hasLocation = body.containsKey('latitude');
@@ -447,27 +502,32 @@ class SyncOrchestrator {
 
     int childId;
     if (existing != null) {
-      await (_db.update(_db.notes)..where((n) => n.id.equals(existing.id)))
-          .write(NotesCompanion(
-        subject: Value(body['subject'] as String? ?? existing.subject),
-        content: Value(body['content'] as String?),
-        catalogId: Value(catalogId),
-        parentNoteId: const Value(null), // resolved in pass 2
-        description: Value(body['description'] as String?),
-        noteDate:
-            noteDate != null ? Value(noteDate) : const Value.absent(),
-        latitude: hasLocation ? Value(lat) : const Value.absent(),
-        longitude: hasLocation ? Value(lng) : const Value.absent(),
-        locationLabel: hasLocation ? Value(locLabel) : const Value.absent(),
-        attachments:
-            hasAttachments ? Value(attachmentsJson) : const Value.absent(),
-        lastModifiedDate: Value(entry.updatedAt),
-        deletedAt: Value(entry.deleted ? entry.updatedAt : null),
-      ));
+      await (_db.update(
+        _db.notes,
+      )..where((n) => n.id.equals(existing.id))).write(
+        NotesCompanion(
+          subject: Value(body['subject'] as String? ?? existing.subject),
+          content: Value(body['content'] as String?),
+          catalogId: Value(catalogId),
+          parentNoteId: const Value(null), // resolved in pass 2
+          description: Value(body['description'] as String?),
+          noteDate: noteDate != null ? Value(noteDate) : const Value.absent(),
+          latitude: hasLocation ? Value(lat) : const Value.absent(),
+          longitude: hasLocation ? Value(lng) : const Value.absent(),
+          locationLabel: hasLocation ? Value(locLabel) : const Value.absent(),
+          attachments: hasAttachments
+              ? Value(attachmentsJson)
+              : const Value.absent(),
+          lastModifiedDate: Value(entry.updatedAt),
+          deletedAt: Value(entry.deleted ? entry.updatedAt : null),
+        ),
+      );
       childId = existing.id;
     } else {
       final authorId = await _defaultAuthorId();
-      childId = await _db.into(_db.notes).insert(
+      childId = await _db
+          .into(_db.notes)
+          .insert(
             NotesCompanion.insert(
               uuid: Value(uuid),
               subject: body['subject'] as String? ?? '(untitled)',
@@ -491,12 +551,16 @@ class SyncOrchestrator {
       pendingParents.add((childId: childId, parentUuid: parentUuid));
     }
 
-    // Rebuild tag membership from the note body (set-replace). The body's
-    // tag list is the complete current set; absence means removal.
-    final tagNames =
-        (body['tags'] as List?)?.whereType<String>().toList() ??
-            const <String>[];
-    await _tagRepo.setTagsForNote(childId, tagNames);
+    // Rebuild tag membership from the note body (set-replace) when the body
+    // carries a `tags` list — it is then the complete current set. An absent
+    // key (an older client, or a server that predates note tags) keeps the
+    // local membership, like every other optional key.
+    if (body.containsKey('tags')) {
+      final tagNames =
+          (body['tags'] as List?)?.whereType<String>().toList() ??
+          const <String>[];
+      await _tagRepo.setTagsForNote(childId, tagNames);
+    }
   }
 
   /// Move notes owned by any other author onto the signed-in one.
@@ -509,20 +573,25 @@ class SyncOrchestrator {
     if (resolve == null) return 0; // tests without a signed-in identity
     try {
       final authorId = await resolve();
-      final adopted = await (_db.update(_db.notes)
-            ..where((n) => n.authorId.equals(authorId).not()))
-          .write(NotesCompanion(authorId: Value(authorId)));
+      final adopted =
+          await (_db.update(_db.notes)
+                ..where((n) => n.authorId.equals(authorId).not()))
+              .write(NotesCompanion(authorId: Value(authorId)));
       if (adopted > 0) {
-        debugPrint('SyncOrchestrator: adopted $adopted note(s) stranded on '
-            'another author; they were invisible to every query.');
+        debugPrint(
+          'SyncOrchestrator: adopted $adopted note(s) stranded on '
+          'another author; they were invisible to every query.',
+        );
       }
       return adopted;
     } catch (e) {
-      errors.add(SyncError(
-        recordType: 'note',
-        recordId: 'author-adoption',
-        message: 'Could not adopt orphaned notes (continuing): $e',
-      ));
+      errors.add(
+        SyncError(
+          recordType: 'note',
+          recordId: 'author-adoption',
+          message: 'Could not adopt orphaned notes (continuing): $e',
+        ),
+      );
       return 0;
     }
   }
@@ -548,9 +617,9 @@ class SyncOrchestrator {
     // than failing, but never prefer it in production wiring.
     final any = await (_db.select(_db.authors)..limit(1)).getSingleOrNull();
     if (any != null) return any.id;
-    return _db.into(_db.authors).insert(
-          AuthorsCompanion.insert(accountName: 'local-user'),
-        );
+    return _db
+        .into(_db.authors)
+        .insert(AuthorsCompanion.insert(accountName: 'local-user'));
   }
 
   // ==================== SETTINGS sync (Phase D.2) ====================
@@ -576,11 +645,13 @@ class SyncOrchestrator {
     } catch (e) {
       // Surface as a non-fatal error and continue with notes — pulled
       // settings can wait until the next sync.
-      errors.add(SyncError(
-        recordType: 'manifest',
-        recordId: 'settings',
-        message: 'Failed to pull settings: $e',
-      ));
+      errors.add(
+        SyncError(
+          recordType: 'manifest',
+          recordId: 'settings',
+          message: 'Failed to pull settings: $e',
+        ),
+      );
       return;
     }
 
@@ -600,11 +671,13 @@ class SyncOrchestrator {
     try {
       remote = SyncableSettings.fromJson(remoteJson);
     } catch (e) {
-      errors.add(SyncError(
-        recordType: 'manifest',
-        recordId: 'settings',
-        message: 'Ignored malformed remote settings: $e',
-      ));
+      errors.add(
+        SyncError(
+          recordType: 'manifest',
+          recordId: 'settings',
+          message: 'Ignored malformed remote settings: $e',
+        ),
+      );
       return;
     }
     if (remote.lastModified.isAfter(localSettings.lastModified)) {
@@ -627,11 +700,13 @@ class SyncOrchestrator {
     try {
       await p.pushSettings(local.toJson());
     } catch (e) {
-      errors.add(SyncError(
-        recordType: 'manifest',
-        recordId: 'settings',
-        message: 'Failed to push settings: $e',
-      ));
+      errors.add(
+        SyncError(
+          recordType: 'manifest',
+          recordId: 'settings',
+          message: 'Failed to push settings: $e',
+        ),
+      );
     }
   }
 
@@ -642,26 +717,96 @@ class SyncOrchestrator {
     try {
       remote = await p.pullTags();
     } catch (e) {
-      errors.add(SyncError(
-        recordType: 'tags',
-        recordId: 'tags.json',
-        message: 'Failed to pull tags: $e',
-      ));
+      errors.add(
+        SyncError(
+          recordType: 'tags',
+          recordId: 'tags.json',
+          message: 'Failed to pull tags: $e',
+        ),
+      );
       return;
     }
 
     final deviceId = await _meta.getOrCreateDeviceId();
-    final merged = await TagSyncService(_tagRepo)
-        .mergeDefinitions(remote, deviceId: deviceId, now: DateTime.now());
+    final merged = await TagSyncService(
+      _tagRepo,
+    ).mergeDefinitions(remote, deviceId: deviceId, now: DateTime.now());
     await p.pushTags(merged);
   }
+
+  // ==================== NOTE STATES sync (G14) ====================
+
+  Future<void> _syncNoteStates(
+    CloudSyncProvider p,
+    SyncManifest? remote,
+    List<SyncError> errors,
+  ) async {
+    Map<String, dynamic>? remoteDoc;
+    try {
+      remoteDoc = await p.pullNoteStates();
+    } on NoteStatesUnsupportedException {
+      // Old server: keep every local state untouched and push nothing; the
+      // UI reads the flag ("Pins and flags need the latest server").
+      await _meta.setNoteStatesUnsupported(p.providerId, true);
+      return;
+    } catch (e) {
+      errors.add(
+        SyncError(
+          recordType: 'noteStates',
+          recordId: 'note-states',
+          message: 'Failed to pull note states: ${e.runtimeType}',
+        ),
+      );
+      return;
+    }
+    await _meta.setNoteStatesUnsupported(p.providerId, false);
+
+    final merge = await NoteStateSyncService(LocalNoteStateRepository(_db))
+        .merge(
+          remoteDoc,
+          knownNoteUuids: await _stateBearingNoteUuids(remote),
+          deviceId: await _meta.getOrCreateDeviceId(),
+          now: DateTime.now(),
+        );
+    try {
+      await p.pushNoteStates(merge.document, changed: merge.localWins);
+    } catch (e) {
+      errors.add(
+        SyncError(
+          recordType: 'noteStates',
+          recordId: 'note-states',
+          message: 'Failed to push note states: ${e.runtimeType}',
+        ),
+      );
+    }
+  }
+
+  /// Note uuids a state may belong to: every local note except a content-
+  /// free tombstone (a purged note, or a delete this device only ever saw as
+  /// a tombstone), plus every live note of the remote manifest (its pull may
+  /// have failed this run — a failed pull must not drop a pin).
+  Future<Set<String>> _stateBearingNoteUuids(SyncManifest? remote) async {
+    final rows = await _db.select(_db.notes).get();
+    return {
+      for (final n in rows)
+        if (n.uuid != null && !_isContentFreeTombstone(n)) n.uuid!,
+      for (final e in remote?.notes ?? const <ManifestEntry>[])
+        if (!e.deleted) e.id,
+    };
+  }
+
+  static bool _isContentFreeTombstone(Note n) =>
+      n.deletedAt != null &&
+      n.subject == kTombstoneSubject &&
+      n.content == null &&
+      n.attachments == null;
 
   // ==================== PUSH collection ====================
 
   Future<List<NoteBlob>> _collectChangedNotes(DateTime cursor) async {
-    final rows = await (_db.select(_db.notes)
-          ..where((n) => n.lastModifiedDate.isBiggerThanValue(cursor)))
-        .get();
+    final rows = await (_db.select(
+      _db.notes,
+    )..where((n) => n.lastModifiedDate.isBiggerThanValue(cursor))).get();
     if (rows.isEmpty) return [];
 
     // Batch resolve catalog names and parent uuids.
@@ -670,9 +815,9 @@ class SyncOrchestrator {
 
     final catalogNames = <int, String>{};
     if (catalogIds.isNotEmpty) {
-      final cats = await (_db.select(_db.noteCatalogs)
-            ..where((c) => c.id.isIn(catalogIds)))
-          .get();
+      final cats = await (_db.select(
+        _db.noteCatalogs,
+      )..where((c) => c.id.isIn(catalogIds))).get();
       for (final c in cats) {
         catalogNames[c.id] = c.name;
       }
@@ -680,9 +825,9 @@ class SyncOrchestrator {
 
     final parentUuids = <int, String>{};
     if (parentIds.isNotEmpty) {
-      final parents = await (_db.select(_db.notes)
-            ..where((n) => n.id.isIn(parentIds)))
-          .get();
+      final parents = await (_db.select(
+        _db.notes,
+      )..where((n) => n.id.isIn(parentIds))).get();
       for (final parent in parents) {
         final u = parent.uuid;
         if (u != null) parentUuids[parent.id] = u;
@@ -728,13 +873,16 @@ class SyncOrchestrator {
     // `_collectChangedNotes`. Factored out so this stays readable; if
     // we end up with a third caller it's worth extracting properly.
     final catalogIds = missing.map((r) => r.catalogId).whereType<int>().toSet();
-    final parentIds = missing.map((r) => r.parentNoteId).whereType<int>().toSet();
+    final parentIds = missing
+        .map((r) => r.parentNoteId)
+        .whereType<int>()
+        .toSet();
 
     final catalogNames = <int, String>{};
     if (catalogIds.isNotEmpty) {
-      final cats = await (_db.select(_db.noteCatalogs)
-            ..where((c) => c.id.isIn(catalogIds)))
-          .get();
+      final cats = await (_db.select(
+        _db.noteCatalogs,
+      )..where((c) => c.id.isIn(catalogIds))).get();
       for (final c in cats) {
         catalogNames[c.id] = c.name;
       }
@@ -742,9 +890,9 @@ class SyncOrchestrator {
 
     final parentUuids = <int, String>{};
     if (parentIds.isNotEmpty) {
-      final parents = await (_db.select(_db.notes)
-            ..where((n) => n.id.isIn(parentIds)))
-          .get();
+      final parents = await (_db.select(
+        _db.notes,
+      )..where((n) => n.id.isIn(parentIds))).get();
       for (final parent in parents) {
         final u = parent.uuid;
         if (u != null) parentUuids[parent.id] = u;
@@ -767,10 +915,10 @@ class SyncOrchestrator {
   ) {
     final updatedAt = (n.lastModifiedDate ?? n.createDate).toUtc();
     final uuid = n.uuid!;
-    final catalogName =
-        n.catalogId != null ? catalogNames[n.catalogId!] : null;
-    final parentUuid =
-        n.parentNoteId != null ? parentUuids[n.parentNoteId!] : null;
+    final catalogName = n.catalogId != null ? catalogNames[n.catalogId!] : null;
+    final parentUuid = n.parentNoteId != null
+        ? parentUuids[n.parentNoteId!]
+        : null;
     return NoteBlob(
       id: uuid,
       body: {
@@ -808,7 +956,9 @@ class SyncOrchestrator {
   /// (cloudStorage/OneDrive). Per-file failures are collected, never fatal.
   /// Returns (pushed, pulled).
   Future<(int, int)> _reconcileVault(
-      CloudSyncProvider p, List<SyncError> errors) async {
+    CloudSyncProvider p,
+    List<SyncError> errors,
+  ) async {
     if (!p.supportsAttachments) return (0, 0);
     // Raw, not decrypting: see _vaultStore. This also means pulling a
     // sensitive attachment writes the ciphertext straight back to disk rather
@@ -825,9 +975,13 @@ class SyncOrchestrator {
           await p.pushAttachment(path, await vault.getBytes(path));
           pushed++;
         } catch (e) {
-          errors.add(SyncError(
-              recordType: 'attachment', recordId: path,
-              message: 'push failed: $e'));
+          errors.add(
+            SyncError(
+              recordType: 'attachment',
+              recordId: path,
+              message: 'push failed: $e',
+            ),
+          );
         }
       } else if (!localHas && remoteHas) {
         try {
@@ -835,14 +989,21 @@ class SyncOrchestrator {
           // null = listed-but-gone (deleted between list and get, or a
           // transient null). Leave the byte missing; the next sync retries.
           if (bytes != null) {
-            await vault.putBytes(path, bytes,
-                contentType: _contentTypeForPath(path));
+            await vault.putBytes(
+              path,
+              bytes,
+              contentType: _contentTypeForPath(path),
+            );
             pulled++;
           }
         } catch (e) {
-          errors.add(SyncError(
-              recordType: 'attachment', recordId: path,
-              message: 'pull failed: $e'));
+          errors.add(
+            SyncError(
+              recordType: 'attachment',
+              recordId: path,
+              message: 'pull failed: $e',
+            ),
+          );
         }
       }
     }
@@ -872,9 +1033,7 @@ class SyncOrchestrator {
       version: 1,
       generatedAt: DateTime.now().toUtc(),
       deviceId: deviceId,
-      notes: allNotes
-          .where((n) => n.uuid != null)
-          .map((n) {
+      notes: allNotes.where((n) => n.uuid != null).map((n) {
         final updatedAt = (n.lastModifiedDate ?? n.createDate).toUtc();
         return ManifestEntry(
           id: n.uuid!,
