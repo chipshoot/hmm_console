@@ -169,6 +169,9 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
   SyncStatus _status = const SyncStatus();
   bool _started = false;
 
+  /// True while a [runExclusive] body runs (e.g. the daily note purge).
+  bool _exclusiveBusy = false;
+
   SyncStatus get status => _status;
 
   /// Whether [start] has registered the lifecycle observer + periodic
@@ -262,7 +265,7 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
   /// "Waiting for WiFi". Throttle / in-flight skips don't touch that
   /// flag — they're invisible to the UI.
   Future<SyncResult?> triggerAutoSync(SyncTriggerReason reason) async {
-    if (_status.isSyncing) return null;
+    if (_status.isSyncing || _exclusiveBusy) return null;
     if (_lastSyncStartedAt != null &&
         _now().difference(_lastSyncStartedAt!) < throttle) {
       return null;
@@ -282,7 +285,7 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
   /// us). Still respects in-flight: if a sync is already running, this
   /// returns null immediately.
   Future<SyncResult?> triggerManualSync() async {
-    if (_status.isSyncing) return null;
+    if (_status.isSyncing || _exclusiveBusy) return null;
     _lastSyncStartedAt = _now();
     _status = _status._copyWith(
       isSyncing: true,
@@ -307,6 +310,21 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
     _localChangeDebounceTimer = Timer(localChangeDebounce, () {
       triggerAutoSync(SyncTriggerReason.localChange);
     });
+  }
+
+  /// Run [body] with sync locked out: returns null WITHOUT running it when a
+  /// sync (or another exclusive run) is in flight; while it runs, every
+  /// trigger is skipped (the next periodic/foreground trigger catches up).
+  /// Used by the daily Recently-Deleted purge, which must never interleave
+  /// with a sync. Errors from [body] propagate; the slot is always released.
+  Future<T?> runExclusive<T>(Future<T> Function() body) async {
+    if (_status.isSyncing || _exclusiveBusy) return null;
+    _exclusiveBusy = true;
+    try {
+      return await body();
+    } finally {
+      _exclusiveBusy = false;
+    }
   }
 
   /// Auto-sync's two-phase tail after the synchronous claim: first
