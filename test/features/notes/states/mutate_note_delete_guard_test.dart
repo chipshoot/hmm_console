@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -104,5 +105,18 @@ void main() {
     final after = (await notes.getNoteById(id))!;
     expect(after.version, before.version);
     expect(after.lastModifiedDate, before.lastModifiedDate);
+  });
+
+  test('pin and flag refuse a note without a uuid instead of keying the '
+      'state by an empty string', () async {
+    final id = await noteIn('General');
+    await (db.update(db.notes)..where((n) => n.id.equals(id))).write(
+      const NotesCompanion(uuid: Value(null)),
+    );
+    final mutate = container.read(mutateNoteProvider);
+
+    await expectLater(mutate.setPinned(id, true), throwsStateError);
+    await expectLater(mutate.setFlagColor(id, 1), throwsStateError);
+    expect(await db.select(db.noteStates).get(), isEmpty);
   });
 }

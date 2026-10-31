@@ -106,6 +106,8 @@ class MutateNote {
   Future<String> _uuidOf(int id) async {
     final note = await ref.read(hmmNoteRepositoryProvider).getNoteById(id);
     if (note == null) throw StateError('Note $id not found');
+    // A state keyed by '' would match no note and sync as garbage.
+    if (note.uuid.isEmpty) throw StateError('Note $id has no uuid');
     return note.uuid;
   }
 
