@@ -54,6 +54,13 @@ abstract interface class IHmmNoteRepository {
   /// parentNoteUuid.
   Future<HmmNote> setParentNote(int id, int? parentNoteId);
 
+  /// Undo a soft delete: clears deletedAt and stamps lastModifiedDate
+  /// strictly later than the tombstone (see [restoreStamp]) so the restore
+  /// wins last-writer-wins on other devices. A live note is returned
+  /// unchanged. Throws [StateError] when the note does not exist. The
+  /// note's state (pin/flag) is untouched.
+  Future<HmmNote> restoreNote(int id);
+
   /// Notes of [catalogId] with no parent (attachable candidates).
   Future<List<HmmNote>> getUnattachedNotes(int catalogId);
 
@@ -239,6 +246,29 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
   }
 
   @override
+  Future<HmmNote> restoreNote(int id) async {
+    final author = await _currentAuthor();
+    final row = await (_db.select(_db.notes)
+          ..where((n) => n.id.equals(id) & n.authorId.equals(author.id)))
+        .getSingleOrNull();
+    if (row == null) throw StateError('Note $id not found');
+    if (row.deletedAt == null) return HmmNoteMapper.fromDriftRow(row);
+
+    final stamp = restoreStamp(
+        row.lastModifiedDate ?? row.createDate, DateTime.now().toUtc());
+    await (_db.update(_db.notes)..where((n) => n.id.equals(id))).write(
+      NotesCompanion(
+        deletedAt: const Value(null),
+        lastModifiedDate: Value(stamp),
+        version: Value(_versionStamp()),
+      ),
+    );
+    final note = (await getNoteById(id))!;
+    _onLocalWrite?.call();
+    return note;
+  }
+
+  @override
   Future<List<HmmNote>> getUnattachedNotes(int catalogId) async {
     final author = await _currentAuthor();
     final rows = await (_db.select(_db.notes)
@@ -281,3 +311,18 @@ final localHmmNoteRepositoryProvider = Provider<IHmmNoteRepository>((ref) {
     },
   );
 });
+
+/// The lastModifiedDate a restore (or a note-state write) stamps. Drift
+/// stores DateTime as whole unix seconds, so "later than the previous value"
+/// must be at least the next whole second — a write in the same second
+/// would otherwise tie, and last-writer-wins keeps the old value on every
+/// other device.
+DateTime restoreStamp(DateTime previous, DateTime now) {
+  final prev = previous.toUtc();
+  final floored = DateTime.fromMillisecondsSinceEpoch(
+      prev.millisecondsSinceEpoch ~/ 1000 * 1000,
+      isUtc: true);
+  final next = floored.add(const Duration(seconds: 1));
+  final candidate = now.toUtc();
+  return candidate.isBefore(next) ? next : candidate;
+}

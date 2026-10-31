@@ -62,6 +62,8 @@ class _FakeNoteRepo implements IHmmNoteRepository {
       throw UnimplementedError();
   @override
   Future<List<HmmNote>> getUnattachedNotes(int catalogId) async => const [];
+  @override
+  Future<HmmNote> restoreNote(int id) async => stored;
 }
 
 class _FakeCatalogRepo implements INoteCatalogRepository {

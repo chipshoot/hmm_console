@@ -22,6 +22,7 @@ import 'local/local_note_catalog_repository.dart';
 import 'local/local_hmm_note_repository.dart';
 import 'local/local_scheduled_service_repository.dart';
 import 'local/local_service_record_repository.dart';
+import 'local/local_note_state_repository.dart';
 import 'local/local_tag_repository.dart';
 import '../../features/driver_licence/data/i_driver_licence_repository.dart';
 import 'local/local_driver_licence_repository.dart';
@@ -48,6 +49,12 @@ final tagRepositoryProvider = Provider<ITagRepository>((ref) {
   final mode = ref.watch(dataModeProvider);
   if (_useLocal(mode)) return ref.watch(localTagRepositoryProvider);
   throw UnimplementedError('API tag repository not yet implemented');
+});
+
+final noteStateRepositoryProvider = Provider<INoteStateRepository>((ref) {
+  final mode = ref.watch(dataModeProvider);
+  if (_useLocal(mode)) return ref.watch(localNoteStateRepositoryProvider);
+  throw UnimplementedError('API note state repository not yet implemented');
 });
 
 final noteCatalogRepositoryProvider = Provider<INoteCatalogRepository>((ref) {

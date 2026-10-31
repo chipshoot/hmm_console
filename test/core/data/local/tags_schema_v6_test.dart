@@ -8,9 +8,9 @@ void main() {
     final db = HmmDatabase(NativeDatabase.memory());
     addTearDown(db.close);
 
-    // v7 added Notes.noteDate, v8 added Notes location columns; the tag sync
-    // columns from v6 are unchanged.
-    expect(db.schemaVersion, 8);
+    // v7 added Notes.noteDate, v8 Notes location, v9 the NoteStates table;
+    // the tag sync columns from v6 are unchanged.
+    expect(db.schemaVersion, 9);
 
     final id = await db.into(db.tags).insert(
           TagsCompanion.insert(name: 'work'),

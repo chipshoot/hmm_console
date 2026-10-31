@@ -104,14 +104,35 @@ class NoteTagRefs extends Table {
   Set<Column> get primaryKey => {noteId, tagId};
 }
 
+
+/// v9: the user's own state about a note — pin + coloured flag (Notes
+/// redesign G14). Deliberately NOT columns on [Notes]: a pin or flag change
+/// is not a note edit, never bumps the note's version / lastModifiedDate and
+/// never re-pushes the note. One row per note uuid (this device has one
+/// owner). No row = unpinned and unflagged. Unpin / unflag write a row
+/// (false / null) so the change propagates; only purge removes rows.
+@DataClassName('NoteStateRow')
+class NoteStates extends Table {
+  TextColumn get noteUuid => text()();
+  BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
+  // null = unflagged; 0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple,
+  // 6 grey. Any other int (a newer client) is stored verbatim and shown grey.
+  IntColumn get flagColor => integer().nullable()();
+  // Per-state last-writer-wins clock for sync.
+  DateTimeColumn get lastModifiedDate => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {noteUuid};
+}
+
 @DriftDatabase(
-  tables: [Authors, NoteCatalogs, Notes, Tags, NoteTagRefs],
+  tables: [Authors, NoteCatalogs, Notes, Tags, NoteTagRefs, NoteStates],
 )
 class HmmDatabase extends _$HmmDatabase {
   HmmDatabase(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -247,6 +268,11 @@ class HmmDatabase extends _$HmmDatabase {
         await m.addColumn(notes, notes.latitude);
         await m.addColumn(notes, notes.longitude);
         await m.addColumn(notes, notes.locationLabel);
+      }
+      if (from < 9) {
+        // v9: per-note state (pin + flag) in its own table. Notes are
+        // untouched; no backfill — a note without a row is unpinned.
+        await m.createTable(noteStates);
       }
     },
   );
