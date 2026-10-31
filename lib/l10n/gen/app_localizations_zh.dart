@@ -2648,4 +2648,107 @@ class AppLocalizationsZh extends AppLocalizations {
   String notesCheatsheetPreview(String group, int count) {
     return '$group · $count 行';
   }
+
+  @override
+  String get notesPin => '置顶';
+
+  @override
+  String get notesUnpin => '取消置顶';
+
+  @override
+  String get notesFlagAction => '旗标…';
+
+  @override
+  String get notesFlagSheetTitle => '旗标';
+
+  @override
+  String get notesClearFlag => '清除旗标';
+
+  @override
+  String get flagColorRed => '红色';
+
+  @override
+  String get flagColorOrange => '橙色';
+
+  @override
+  String get flagColorYellow => '黄色';
+
+  @override
+  String get flagColorGreen => '绿色';
+
+  @override
+  String get flagColorBlue => '蓝色';
+
+  @override
+  String get flagColorPurple => '紫色';
+
+  @override
+  String get flagColorGrey => '灰色';
+
+  @override
+  String get notesPinnedLabel => '已置顶';
+
+  @override
+  String notesFlaggedLabel(String color) {
+    return '$color旗标';
+  }
+
+  @override
+  String get notesPinFailed => '无法置顶此笔记';
+
+  @override
+  String get notesFlagFailed => '无法为此笔记加旗标';
+
+  @override
+  String get notesMovedToRecentlyDeleted => '已移至“最近删除”';
+
+  @override
+  String get notesDeleteFailed => '无法删除此笔记';
+
+  @override
+  String get notesRestored => '笔记已恢复';
+
+  @override
+  String get notesRestoreFailed => '无法恢复此笔记';
+
+  @override
+  String notesManageIn(String place) {
+    return '请在$place中管理';
+  }
+
+  @override
+  String get notesManagePlaceOwnScreen => '其所属页面';
+
+  @override
+  String get helpNoteDetailTitle => '笔记';
+
+  @override
+  String get helpNoteDetailSummary => '阅读笔记，并通过 ⋯ 菜单置顶、加旗标、编辑或删除。';
+
+  @override
+  String get helpNoteDetailPinTitle => '置顶';
+
+  @override
+  String get helpNoteDetailPinBody =>
+      '将笔记标记为置顶；笔记列表将把置顶笔记排在最前。置顶会同步到你的其他设备。选择“取消置顶”即可移除。';
+
+  @override
+  String get helpNoteDetailFlagTitle => '旗标';
+
+  @override
+  String get helpNoteDetailFlagBody => '用七种颜色之一标记笔记。选择“清除旗标”即可移除。';
+
+  @override
+  String get helpNoteDetailDeleteTitle => '删除';
+
+  @override
+  String get helpNoteDetailDeleteBody =>
+      '将笔记移至“最近删除”。点按提示中的“撤销”即可恢复。已删除的笔记会在 30 天后永久移除。';
+
+  @override
+  String get helpNoteDetailManageTitle => '在其他位置管理';
+
+  @override
+  String get helpNoteDetailManageBody =>
+      '联系人、速查卡、车辆、加油记录等记录需在各自的页面中删除，而不是在笔记中删除。置顶和旗标在此仍然可用。';
 }

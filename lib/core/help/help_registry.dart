@@ -16,6 +16,7 @@ enum HelpId {
   cheatsheetWallet,
   cheatsheetDetail,
   cheatsheetDesigner,
+  noteDetail,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
@@ -249,6 +250,32 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.format_color_reset_outlined,
         title: l.helpCheatsheetDesignerResetTitle,
         body: l.helpCheatsheetDesignerResetBody,
+      ),
+    ],
+  ),
+  HelpId.noteDetail => ScreenHelp(
+    title: l.helpNoteDetailTitle,
+    summary: l.helpNoteDetailSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.push_pin_outlined,
+        title: l.helpNoteDetailPinTitle,
+        body: l.helpNoteDetailPinBody,
+      ),
+      HelpEntry(
+        icon: Icons.flag_outlined,
+        title: l.helpNoteDetailFlagTitle,
+        body: l.helpNoteDetailFlagBody,
+      ),
+      HelpEntry(
+        icon: Icons.delete_outline,
+        title: l.helpNoteDetailDeleteTitle,
+        body: l.helpNoteDetailDeleteBody,
+      ),
+      HelpEntry(
+        icon: Icons.open_in_new,
+        title: l.helpNoteDetailManageTitle,
+        body: l.helpNoteDetailManageBody,
       ),
     ],
   ),

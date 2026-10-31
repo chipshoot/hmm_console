@@ -2733,4 +2733,109 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$group · $_temp0';
   }
+
+  @override
+  String get notesPin => 'Pin';
+
+  @override
+  String get notesUnpin => 'Unpin';
+
+  @override
+  String get notesFlagAction => 'Flag…';
+
+  @override
+  String get notesFlagSheetTitle => 'Flag';
+
+  @override
+  String get notesClearFlag => 'Clear flag';
+
+  @override
+  String get flagColorRed => 'Red';
+
+  @override
+  String get flagColorOrange => 'Orange';
+
+  @override
+  String get flagColorYellow => 'Yellow';
+
+  @override
+  String get flagColorGreen => 'Green';
+
+  @override
+  String get flagColorBlue => 'Blue';
+
+  @override
+  String get flagColorPurple => 'Purple';
+
+  @override
+  String get flagColorGrey => 'Grey';
+
+  @override
+  String get notesPinnedLabel => 'Pinned';
+
+  @override
+  String notesFlaggedLabel(String color) {
+    return 'Flagged $color';
+  }
+
+  @override
+  String get notesPinFailed => 'Couldn\'t pin the note';
+
+  @override
+  String get notesFlagFailed => 'Couldn\'t flag the note';
+
+  @override
+  String get notesMovedToRecentlyDeleted => 'Moved to Recently Deleted';
+
+  @override
+  String get notesDeleteFailed => 'Couldn\'t delete the note';
+
+  @override
+  String get notesRestored => 'Note restored';
+
+  @override
+  String get notesRestoreFailed => 'Couldn\'t restore the note';
+
+  @override
+  String notesManageIn(String place) {
+    return 'Manage in $place';
+  }
+
+  @override
+  String get notesManagePlaceOwnScreen => 'its own screen';
+
+  @override
+  String get helpNoteDetailTitle => 'Note';
+
+  @override
+  String get helpNoteDetailSummary =>
+      'Read a note and use the ⋯ menu to pin, flag, edit or delete it.';
+
+  @override
+  String get helpNoteDetailPinTitle => 'Pin';
+
+  @override
+  String get helpNoteDetailPinBody =>
+      'Marks the note as pinned; the notes list will show pinned notes first. Pins sync to your other devices. Choose Unpin to remove it.';
+
+  @override
+  String get helpNoteDetailFlagTitle => 'Flag';
+
+  @override
+  String get helpNoteDetailFlagBody =>
+      'Marks the note with one of seven colours. Choose Clear flag to remove it.';
+
+  @override
+  String get helpNoteDetailDeleteTitle => 'Delete';
+
+  @override
+  String get helpNoteDetailDeleteBody =>
+      'Moves the note to Recently Deleted. Tap Undo in the message to bring it back. Deleted notes are removed for good after 30 days.';
+
+  @override
+  String get helpNoteDetailManageTitle => 'Manage in …';
+
+  @override
+  String get helpNoteDetailManageBody =>
+      'Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here.';
 }

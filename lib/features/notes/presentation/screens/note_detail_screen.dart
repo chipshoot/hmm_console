@@ -1,32 +1,40 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-
-import '../catalog_labels.dart';
-
-import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../states/note_selection.dart';
 
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/inline_ref_uri.dart';
 import '../../../../core/data/local/database.dart';
 import '../../../../core/data/repository_providers.dart';
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
+import '../../../../core/help/undoable_action.dart';
 import '../../../../core/notes/editing/edit_dispatch.dart';
+import '../../../../core/notes/note_state.dart';
 import '../../../../core/widgets/app_scaffold.dart';
+import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/models/hmm_note.dart';
 import '../../rendering/note_display.dart';
 import '../../rendering/render_registry.dart';
 import '../../states/mutate_note_state.dart';
+import '../../states/note_delete_policy.dart';
+import '../../states/note_selection.dart';
+import '../catalog_labels.dart';
 import '../widgets/markdown_view.dart';
 import '../widgets/note_file_card_list.dart';
+import '../widgets/note_flag_sheet.dart';
 import '../widgets/note_location_card.dart';
 import '../widgets/note_media_card_list.dart';
 
 class NoteDetailData {
-  const NoteDetailData(this.note, this.catalog);
+  /// [state] (pin/flag, G14) defaults to "no row": unpinned, unflagged.
+  NoteDetailData(this.note, this.catalog, [NoteState? state])
+      : state = state ?? NoteState.none(note.uuid);
   final HmmNote note;
   final NoteCatalog? catalog;
+  final NoteState state;
 }
 
 final noteDetailProvider =
@@ -38,10 +46,12 @@ final noteDetailProvider =
   if (cid != null) {
     catalog = await ref.watch(noteCatalogRepositoryProvider).getCatalogById(cid);
   }
-  return NoteDetailData(note, catalog);
+  final state =
+      await ref.watch(noteStateRepositoryProvider).getState(note.uuid);
+  return NoteDetailData(note, catalog, state);
 });
 
-enum _MenuAction { edit, raw, delete }
+enum _MenuAction { edit, raw, pin, flag, delete, manageIn }
 
 class NoteDetailScreen extends ConsumerWidget {
   const NoteDetailScreen({super.key, required this.noteId});
@@ -61,9 +71,12 @@ class NoteDetailScreen extends ConsumerWidget {
         orElse: () => 'Note',
       ),
       actions: [
+        const HelpButton(helpId: HelpId.noteDetail),
         async.maybeWhen(
           data: (d) {
             final catalogName = d.catalog?.name;
+            final canDelete = canDeleteFromNotes(d.note, catalogName);
+            final place = managePlaceFor(catalogName) ?? NoteManagePlace.ownScreen;
             return PopupMenuButton<_MenuAction>(
               onSelected: (a) async {
                 switch (a) {
@@ -71,27 +84,42 @@ class NoteDetailScreen extends ConsumerWidget {
                     dispatch.edit(context, catalogName, d.note);
                   case _MenuAction.raw:
                     context.push('/notes/$noteId/raw');
+                  case _MenuAction.pin:
+                    await _togglePin(context, ref, l, d.state);
+                  case _MenuAction.flag:
+                    await _chooseFlag(context, ref, l, d.state);
                   case _MenuAction.delete:
-                    await ref.read(mutateNoteProvider).delete(noteId);
-                    if (!context.mounted) return;
-                    final isWide = MediaQuery.of(context).size.width >=
-                        kNotesWideBreakpoint;
-                    if (isWide) {
-                      ref.read(selectedNoteIdProvider.notifier).select(null);
-                    } else {
-                      context.pop();
-                    }
+                    await _delete(context, ref, l);
+                  case _MenuAction.manageIn:
+                    break; // informational row: the item is disabled
                 }
               },
               itemBuilder: (context) => [
                 if (dispatch.canEdit(catalogName))
                   PopupMenuItem(
-                      value: _MenuAction.edit, child: Text(l.notesEditAction)),
+                      value: _MenuAction.edit,
+                      child: _MenuRow(Icons.edit_outlined, l.notesEditAction)),
                 PopupMenuItem(
                     value: _MenuAction.raw,
-                    child: Text(l.notesViewRaw)),
+                    child: _MenuRow(Icons.code, l.notesViewRaw)),
                 PopupMenuItem(
-                    value: _MenuAction.delete, child: Text(l.commonDelete)),
+                    value: _MenuAction.pin,
+                    child: _MenuRow(Icons.push_pin_outlined,
+                        d.state.isPinned ? l.notesUnpin : l.notesPin)),
+                PopupMenuItem(
+                    value: _MenuAction.flag,
+                    child: _MenuRow(Icons.flag_outlined, l.notesFlagAction)),
+                if (canDelete)
+                  PopupMenuItem(
+                      value: _MenuAction.delete,
+                      child: _MenuRow(Icons.delete_outline, l.commonDelete))
+                else
+                  // G7: entity notes are deleted from their own screen.
+                  PopupMenuItem(
+                      enabled: false,
+                      value: _MenuAction.manageIn,
+                      child: _MenuRow(Icons.open_in_new,
+                          l.notesManageIn(managePlaceLabel(place, l)))),
               ],
             );
           },
@@ -118,12 +146,34 @@ class NoteDetailScreen extends ConsumerWidget {
                   d.note.effectiveAttachments.primaryImage!,
                 ...d.note.effectiveAttachments.images.where(notInline),
               ];
+              final flag = d.state.flag;
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  Text(
-                      displayRegistry.title(d.note, d.catalog?.name, l),
-                      style: Theme.of(context).textTheme.titleLarge),
+                  Row(
+                    children: [
+                      if (d.state.isPinned)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Icon(Icons.push_pin,
+                              size: 18, semanticLabel: l.notesPinnedLabel),
+                        ),
+                      if (flag != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Icon(Icons.flag,
+                              size: 18,
+                              color: flag.color,
+                              semanticLabel: l.notesFlaggedLabel(
+                                  noteFlagColorLabel(flag, l))),
+                        ),
+                      Expanded(
+                        child: Text(
+                            displayRegistry.title(d.note, d.catalog?.name, l),
+                            style: Theme.of(context).textTheme.titleLarge),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   if (atts.isNotEmpty)
                     NoteMediaCardList(saved: atts, readOnly: true),
@@ -145,6 +195,69 @@ class NoteDetailScreen extends ConsumerWidget {
     );
   }
 
+  /// Delete = move to Recently Deleted, with Undo (restore). Everything the
+  /// snackbar's Undo needs is captured before the first await.
+  Future<void> _delete(
+      BuildContext context, WidgetRef ref, AppLocalizations l) async {
+    final mutate = ref.read(mutateNoteProvider);
+    final selection = ref.read(selectedNoteIdProvider.notifier);
+    final navigator = Navigator.of(context);
+    final isWide =
+        MediaQuery.of(context).size.width >= kNotesWideBreakpoint;
+    var moved = false;
+    await showUndoableAction(
+      context,
+      busyKey: ('deleteNote', noteId),
+      run: () async {
+        await mutate.delete(noteId);
+        moved = true;
+      },
+      undo: () async {
+        await mutate.restore(noteId);
+      },
+      done: l.notesMovedToRecentlyDeleted,
+      failed: l.notesDeleteFailed,
+      undone: l.notesRestored,
+      undoFailed: l.notesRestoreFailed,
+    );
+    if (!moved) return;
+    if (isWide) {
+      selection.select(null);
+    } else {
+      unawaited(navigator.maybePop());
+    }
+  }
+
+  Future<void> _togglePin(BuildContext context, WidgetRef ref,
+      AppLocalizations l, NoteState state) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final mutate = ref.read(mutateNoteProvider);
+    final container = ProviderScope.containerOf(context);
+    try {
+      await mutate.setPinned(noteId, !state.isPinned);
+      container.invalidate(noteDetailProvider(noteId));
+    } catch (e) {
+      debugPrint('NoteDetailScreen: pin failed (${e.runtimeType})');
+      messenger.showSnackBar(SnackBar(content: Text(l.notesPinFailed)));
+    }
+  }
+
+  Future<void> _chooseFlag(BuildContext context, WidgetRef ref,
+      AppLocalizations l, NoteState state) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final mutate = ref.read(mutateNoteProvider);
+    final container = ProviderScope.containerOf(context);
+    final choice = await showNoteFlagSheet(context, current: state.flag);
+    if (choice == null) return; // dismissed: change nothing
+    try {
+      await mutate.setFlagColor(noteId, choice.color?.stored);
+      container.invalidate(noteDetailProvider(noteId));
+    } catch (e) {
+      debugPrint('NoteDetailScreen: flag failed (${e.runtimeType})');
+      messenger.showSnackBar(SnackBar(content: Text(l.notesFlagFailed)));
+    }
+  }
+
   /// Renderers must not throw, but isolate anyway: fall back to a banner +
   /// generic view rather than crashing the read screen.
   String _safeRender(
@@ -155,4 +268,19 @@ class NoteDetailScreen extends ConsumerWidget {
       return '> ⚠️ Couldn\'t render this note\'s format. Use **View raw content** to inspect it.';
     }
   }
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow(this.icon, this.label);
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 12),
+          Flexible(child: Text(label)),
+        ],
+      );
 }
