@@ -37,8 +37,17 @@ class NoteDetailData {
   final NoteState state;
 }
 
+/// Pin + flag of one note, live: re-emits when sync (or this device) writes
+/// the note's NoteStates row.
+final noteStateProvider =
+    StreamProvider.autoDispose.family<NoteState, String>((ref, uuid) {
+  return ref.watch(noteStateRepositoryProvider).watchState(uuid);
+});
+
+/// autoDispose: nothing else refreshes this after a sync, so a kept-alive
+/// value would show a stale note for the rest of the session.
 final noteDetailProvider =
-    FutureProvider.family<NoteDetailData, int>((ref, id) async {
+    FutureProvider.autoDispose.family<NoteDetailData, int>((ref, id) async {
   final note = await ref.watch(hmmNoteRepositoryProvider).getNoteById(id);
   if (note == null) throw StateError('Note $id not found');
   NoteCatalog? catalog;
@@ -46,8 +55,7 @@ final noteDetailProvider =
   if (cid != null) {
     catalog = await ref.watch(noteCatalogRepositoryProvider).getCatalogById(cid);
   }
-  final state =
-      await ref.watch(noteStateRepositoryProvider).getState(note.uuid);
+  final state = await ref.watch(noteStateProvider(note.uuid).future);
   return NoteDetailData(note, catalog, state);
 });
 

@@ -14,6 +14,10 @@ abstract interface class INoteStateRepository {
   /// The stored state, or [NoteState.none] when the note has no row.
   Future<NoteState> getState(String noteUuid);
 
+  /// [getState] now and again after every change to the note's row —
+  /// including writes made by sync, so an open screen stays current.
+  Stream<NoteState> watchState(String noteUuid);
+
   /// Every stored state, by note uuid.
   Future<Map<String, NoteState>> getAllStates();
 
@@ -40,6 +44,12 @@ class LocalNoteStateRepository implements INoteStateRepository {
     final row = await _read(noteUuid);
     return row == null ? NoteState.none(noteUuid) : _fromRow(row);
   }
+
+  @override
+  Stream<NoteState> watchState(String noteUuid) =>
+      (_db.select(_db.noteStates)..where((s) => s.noteUuid.equals(noteUuid)))
+          .watchSingleOrNull()
+          .map((row) => row == null ? NoteState.none(noteUuid) : _fromRow(row));
 
   @override
   Future<Map<String, NoteState>> getAllStates() async {
