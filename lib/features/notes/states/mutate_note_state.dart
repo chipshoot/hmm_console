@@ -8,8 +8,10 @@ import '../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../core/data/hmm_note_input.dart';
 import '../../../core/data/note_location.dart';
 import '../../../core/data/repository_providers.dart';
+import '../../../core/notes/note_state.dart';
 import '../data/general_catalog.dart';
 import '../data/models/hmm_note.dart';
+import 'note_delete_policy.dart';
 
 class MutateNote {
   MutateNote(this.ref);
@@ -69,8 +71,49 @@ class MutateNote {
     return note;
   }
 
+  /// Move an ordinary note to Recently Deleted (soft delete). Entity notes
+  /// are refused with [EntityNoteDeleteRefused] — their own feature owns
+  /// their delete (G7).
   Future<void> delete(int id) async {
-    await ref.read(hmmNoteRepositoryProvider).deleteNote(id);
+    final repo = ref.read(hmmNoteRepositoryProvider);
+    final note = await repo.getNoteById(id);
+    if (note == null) return;
+    final catalogName = await _catalogNameOf(note);
+    if (!canDeleteFromNotes(note, catalogName)) {
+      throw EntityNoteDeleteRefused(
+        managePlaceFor(catalogName) ?? NoteManagePlace.ownScreen,
+      );
+    }
+    await repo.deleteNote(id);
+  }
+
+  /// Undo a delete (clear deletedAt with a newer lastModifiedDate).
+  Future<HmmNote> restore(int id) =>
+      ref.read(hmmNoteRepositoryProvider).restoreNote(id);
+
+  /// Pin or unpin (G14: writes the note's state row only — not a note
+  /// edit, so it never bumps the note or re-pushes it).
+  Future<NoteState> setPinned(int id, bool pinned) async => ref
+      .read(noteStateRepositoryProvider)
+      .setPinned(await _uuidOf(id), pinned);
+
+  /// [flagColor] null clears the flag. Same state-only semantics as
+  /// [setPinned].
+  Future<NoteState> setFlagColor(int id, int? flagColor) async => ref
+      .read(noteStateRepositoryProvider)
+      .setFlagColor(await _uuidOf(id), flagColor);
+
+  Future<String> _uuidOf(int id) async {
+    final note = await ref.read(hmmNoteRepositoryProvider).getNoteById(id);
+    if (note == null) throw StateError('Note $id not found');
+    return note.uuid;
+  }
+
+  Future<String?> _catalogNameOf(HmmNote note) async {
+    final cid = note.catalogId;
+    if (cid == null) return null;
+    return (await ref.read(noteCatalogRepositoryProvider).getCatalogById(cid))
+        ?.name;
   }
 
   /// Persist already-picked [pick] bytes into the note's vault and append the
