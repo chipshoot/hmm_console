@@ -66,6 +66,7 @@ class ApiSyncProvider implements CloudSyncProvider {
   /// uses catalog name as the cross-device-stable handle; the
   /// server still keys catalogs by int Id, so we translate here.
   final Map<String, int> _catalogIdByName = {};
+
   /// Lower-cased tag name → server tag id, filled by [pullTags] and used by
   /// [pushTags] in the same sync run (the orchestrator calls them in order).
   final Map<String, int> _serverTagIdByName = {};
@@ -73,7 +74,10 @@ class ApiSyncProvider implements CloudSyncProvider {
   /// The server keeps no per-tag modification time; epoch 0 means a server
   /// tag only fills a gap locally and never overrides a local edit or
   /// tombstone in `TagSyncService`'s last-writer-wins merge.
-  static final DateTime _tagEpoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+  static final DateTime _tagEpoch = DateTime.fromMillisecondsSinceEpoch(
+    0,
+    isUtc: true,
+  );
 
   @override
   String get providerId => 'hmm_api';
@@ -330,7 +334,10 @@ class ApiSyncProvider implements CloudSyncProvider {
   }
 
   Future<void> _updateNote(
-      int existingId, String uuid, Map<String, dynamic> body) async {
+    int existingId,
+    String uuid,
+    Map<String, dynamic> body,
+  ) async {
     final payload = <String, dynamic>{
       'uuid': uuid,
       'subject': body['subject'] ?? '(untitled)',
@@ -360,7 +367,8 @@ class ApiSyncProvider implements CloudSyncProvider {
   Future<void> _pushTagMembership(int noteId, Map<String, dynamic> body) async {
     if (!body.containsKey('tags')) return;
     final names =
-        (body['tags'] as List?)?.whereType<String>().toList() ?? const <String>[];
+        (body['tags'] as List?)?.whereType<String>().toList() ??
+        const <String>[];
     try {
       await _dio.put<void>('/notes/$noteId/tags', data: {'names': names});
     } on DioException catch (e) {
@@ -368,7 +376,9 @@ class ApiSyncProvider implements CloudSyncProvider {
       if (code == 404 || code == 405) {
         // Server predates note tags. The note itself synced; its tags follow
         // once the server is updated (the note is re-pushed on its next edit).
-        debugPrint('ApiSyncProvider: no note-tags endpoint ($code) for note $noteId');
+        debugPrint(
+          'ApiSyncProvider: no note-tags endpoint ($code) for note $noteId',
+        );
         return;
       }
       rethrow;
@@ -424,7 +434,8 @@ class ApiSyncProvider implements CloudSyncProvider {
   /// parentNoteUuid stays null because the server doesn't model
   /// note threading.
   static Map<String, dynamic> _orchestratorBodyFromApiNote(
-      Map<String, dynamic> apiNote) {
+    Map<String, dynamic> apiNote,
+  ) {
     final isDeleted = (apiNote['isDeleted'] as bool?) ?? false;
     final modifiedRaw = apiNote['lastModifiedDate'] as String?;
     return <String, dynamic>{
@@ -515,6 +526,7 @@ class ApiSyncProvider implements CloudSyncProvider {
   @override
   Future<void> pushTags(Map<String, dynamic> doc) async {
     final rawTags = (doc['tags'] as List?) ?? const [];
+    var failed = 0;
     for (final raw in rawTags) {
       if (raw is! Map) continue;
       final name = (raw['name'] as String?)?.trim();
@@ -522,19 +534,33 @@ class ApiSyncProvider implements CloudSyncProvider {
       final key = name.toLowerCase();
       final deleted = (raw['deleted'] as bool?) ?? false;
       final serverId = _serverTagIdByName[key];
-      if (deleted) {
-        if (serverId == null) continue;
-        await _dio.delete<void>('/tags/$serverId'); // deactivates server-side
-        _serverTagIdByName.remove(key);
-      } else if (serverId == null) {
-        final resp = await _dio.post<dynamic>(
-          '/tags',
-          data: {'name': name, 'description': raw['description']},
+      try {
+        if (deleted) {
+          if (serverId == null) continue;
+          await _dio.delete<void>('/tags/$serverId'); // deactivates server-side
+          _serverTagIdByName.remove(key);
+        } else if (serverId == null) {
+          final resp = await _dio.post<dynamic>(
+            '/tags',
+            data: {'name': name, 'description': raw['description']},
+          );
+          final data = resp.data;
+          final id = data is Map ? data['id'] as int? : null;
+          if (id != null) _serverTagIdByName[key] = id;
+        }
+      } on DioException catch (e) {
+        // One bad tag (e.g. a deactivated server tag whose name is taken)
+        // must not stop the rest. Log status only, never the tag name.
+        debugPrint(
+          'ApiSyncProvider: tag push failed (${e.response?.statusCode})',
         );
-        final data = resp.data;
-        final id = data is Map ? data['id'] as int? : null;
-        if (id != null) _serverTagIdByName[key] = id;
+        failed++;
       }
+    }
+    if (failed > 0) {
+      throw ApiSyncProviderException(
+        '$failed tag(s) failed to push; retrying next sync.',
+      );
     }
   }
 
@@ -582,12 +608,15 @@ class ApiSyncProvider implements CloudSyncProvider {
   }
 
   @override
-  Future<void> pushNoteStates(Map<String, dynamic> doc,
-      {required Set<String> changed}) async {
+  Future<void> pushNoteStates(
+    Map<String, dynamic> doc, {
+    required Set<String> changed,
+  }) async {
     if (changed.isEmpty) return;
     final byUuid = <String, Map>{
       for (final raw in (doc['states'] as List?) ?? const [])
-        if (raw is Map && raw['noteUuid'] is String) raw['noteUuid'] as String: raw,
+        if (raw is Map && raw['noteUuid'] is String)
+          raw['noteUuid'] as String: raw,
     };
     var failed = 0;
     for (final uuid in changed) {
@@ -596,11 +625,14 @@ class ApiSyncProvider implements CloudSyncProvider {
       try {
         final id = _serverNoteIdByUuid[uuid] ?? await _serverIdForUuid(uuid);
         if (id == null) continue; // not on the server yet; retried next sync
-        await _dio.put<dynamic>('/notes/$id/state', data: {
-          'isPinned': (s['isPinned'] as bool?) ?? false,
-          'flagColor': s['flagColor'],
-          'lastModifiedDate': s['lastModified'],
-        });
+        await _dio.put<dynamic>(
+          '/notes/$id/state',
+          data: {
+            'isPinned': (s['isPinned'] as bool?) ?? false,
+            'flagColor': s['flagColor'],
+            'lastModifiedDate': s['lastModified'],
+          },
+        );
       } on DioException catch (e) {
         if (e.response?.statusCode == 404) continue; // note gone meanwhile
         failed++;
@@ -608,7 +640,8 @@ class ApiSyncProvider implements CloudSyncProvider {
     }
     if (failed > 0) {
       throw ApiSyncProviderException(
-          '$failed note state(s) failed to push; retrying next sync.');
+        '$failed note state(s) failed to push; retrying next sync.',
+      );
     }
   }
 

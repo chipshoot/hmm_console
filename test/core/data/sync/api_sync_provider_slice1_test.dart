@@ -522,6 +522,51 @@ void main() {
         expect((sent['POST /tags'] as Map)['name'], 'home');
       },
     );
+
+    test(
+      'one rejected tag does not stop the others; failure thrown once',
+      () async {
+        adapter.onGet('/tags', (s) => s.reply(200, {'value': []}));
+        adapter.onPost(
+          '/tags',
+          (s) => s.reply(201, {'id': 1}),
+          data: {'name': 'a', 'description': null},
+        );
+        adapter.onPost(
+          '/tags',
+          (s) => s.reply(500, {'detail': 'dup'}),
+          data: {'name': 'b', 'description': null},
+        );
+        adapter.onPost(
+          '/tags',
+          (s) => s.reply(201, {'id': 3}),
+          data: {'name': 'c', 'description': null},
+        );
+        await provider.pullTags();
+
+        final posted = <Object?>[];
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (o, h) {
+              if (o.method == 'POST') posted.add((o.data as Map)['name']);
+              h.next(o);
+            },
+          ),
+        );
+
+        await expectLater(
+          provider.pushTags({
+            'tags': [
+              {'name': 'a', 'deleted': false},
+              {'name': 'b', 'deleted': false},
+              {'name': 'c', 'deleted': false},
+            ],
+          }),
+          throwsA(isA<ApiSyncProviderException>()),
+        );
+        expect(posted, ['a', 'b', 'c']);
+      },
+    );
   });
 }
 
