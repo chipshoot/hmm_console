@@ -17,6 +17,7 @@ import 'api_sync_provider.dart';
 import 'cloud_sync_provider.dart';
 import 'note_state_sync_service.dart';
 import 'onedrive_sync_provider.dart';
+import 'pending_remote_purge_store.dart';
 import 'sync_meta_repository.dart';
 import 'sync_models.dart';
 import 'tag_sync_service.dart';
@@ -46,12 +47,14 @@ class SyncOrchestrator {
     SyncableSettingsRepository? settingsRepo,
     void Function()? onSettingsApplied,
     Future<int> Function()? currentAuthorId,
+    PendingRemotePurgeStore? pendingPurges,
   }) : _db = db,
        _meta = meta,
        _vaultStore = vaultStore,
        _settingsRepo = settingsRepo ?? SyncableSettingsRepository(),
        _onSettingsApplied = onSettingsApplied,
        _currentAuthorId = currentAuthorId,
+       _pendingPurges = pendingPurges ?? PendingRemotePurgeStore(),
        _tagRepo = LocalTagRepository(db);
 
   /// Null when the current DataMode is Local — no sync.
@@ -81,6 +84,7 @@ class SyncOrchestrator {
   /// don't care about ownership.
   final Future<int> Function()? _currentAuthorId;
   final LocalTagRepository _tagRepo;
+  final PendingRemotePurgeStore _pendingPurges;
 
   /// Fires after a remote settings bundle is applied to local prefs.
   /// In production this calls `SettingsBus.bump()` so the Riverpod
@@ -282,6 +286,11 @@ class SyncOrchestrator {
       // out-of-band via the OS-level cloud sync client when the vault
       // root sits inside the user's OneDrive / iCloud Drive folder.)
     }
+
+    // Deferred remote purges (cloudStorage, see NotePurgeService). Runs only
+    // after the pull above had its chance to revive a note restored on
+    // another device.
+    await _flushRemotePurges(p, remote, errors);
     timer.stop(SyncPhase.pullNotes);
 
     // -------- 3. PUSH: local note changes --------
@@ -362,7 +371,9 @@ class SyncOrchestrator {
     // surface in result.errors; the missing bytes are retried next sync.
     // Attachment bytes and note states are re-derived on the next sync, so
     // their errors must not hold the note cursor back.
-    const nonBlocking = {'attachment', 'noteStates'};
+    // A failed remote purge is retried from the pending store next sync, so
+    // it must not hold the note cursor back either.
+    const nonBlocking = {'attachment', 'noteStates', 'purge'};
     final metadataClean = errors.every(
       (e) => nonBlocking.contains(e.recordType),
     );
@@ -778,6 +789,52 @@ class SyncOrchestrator {
           message: 'Failed to push note states: ${e.runtimeType}',
         ),
       );
+    }
+  }
+
+  // ==================== Deferred remote purge ====================
+
+  Future<void> _flushRemotePurges(
+    CloudSyncProvider p,
+    SyncManifest? remote,
+    List<SyncError> errors,
+  ) async {
+    final pending = await _pendingPurges.read(p.providerId);
+    if (pending.isEmpty) return;
+    final remoteById = {
+      for (final e in remote?.notes ?? const <ManifestEntry>[]) e.id: e,
+    };
+    for (final entry in pending.entries) {
+      final uuid = entry.key;
+      final local = await (_db.select(_db.notes)
+            ..where((n) => n.uuid.equals(uuid)))
+          .getSingleOrNull();
+      if (local == null || local.deletedAt == null) {
+        // Gone, or revived by this sync's pull (restored elsewhere):
+        // nothing to delete remotely, now or later.
+        await _pendingPurges.remove(p.providerId, uuid);
+        continue;
+      }
+      final r = remoteById[uuid];
+      final localStamp = (local.lastModifiedDate ?? local.createDate).toUtc();
+      if (r != null && (!r.deleted || r.updatedAt.isAfter(localStamp))) {
+        // The remote copy is newer than our tombstone but the pull did not
+        // apply it (it failed). Leave it for the next sync.
+        continue;
+      }
+      try {
+        final referenced = await collectReferencedVaultPaths(_db);
+        await p.purgeNote(uuid,
+            releasedVaultPaths:
+                entry.value.where((path) => !referenced.contains(path)).toSet());
+        await _pendingPurges.remove(p.providerId, uuid);
+      } catch (e) {
+        errors.add(SyncError(
+          recordType: 'purge',
+          recordId: uuid,
+          message: 'Remote purge failed (${e.runtimeType}); retrying next sync',
+        ));
+      }
     }
   }
 

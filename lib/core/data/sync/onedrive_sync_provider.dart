@@ -84,6 +84,17 @@ class OneDriveSyncProvider implements CloudSyncProvider {
   @override
   Future<Set<String>> listAttachmentPaths() => _graph.listAttachments();
 
+  @override
+  Future<void> purgeNote(String uuid,
+      {Set<String> releasedVaultPaths = const {}}) async {
+    // The manifest keeps the tombstone entry (built from the local stub), so
+    // peers still learn about the delete; only the content blob goes.
+    await _graph.deleteNoteBlob(uuid);
+    for (final path in releasedVaultPaths) {
+      await _graph.deleteAttachment(path);
+    }
+  }
+
   /// One-time copy of pre-per-user-isolation data into the current user's
   /// subtree. Idempotent: a marker file at `approot/users/.legacy_migrated.json`
   /// is checked first; once present, this method returns immediately.

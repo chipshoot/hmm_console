@@ -675,6 +675,38 @@ class ApiSyncProvider implements CloudSyncProvider {
 
   @override
   Future<Set<String>> listAttachmentPaths() async => const {};
+
+  @override
+  Future<void> purgeNote(String uuid,
+      {Set<String> releasedVaultPaths = const {}}) async {
+    if (uuid.isEmpty) return;
+    Map<String, dynamic>? existing;
+    try {
+      final probe = await _dio.get<Map<String, dynamic>>(
+        '/notes/by-uuid/$uuid',
+        queryParameters: {'includeDeleted': true},
+      );
+      existing = probe.data;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return; // never synced, or purged
+      rethrow;
+    }
+    final id = existing?['id'] as int?;
+    if (id == null) return;
+    if ((existing?['isDeleted'] as bool?) == false) {
+      throw const NoteLiveOnServerException();
+    }
+    try {
+      // The server also removes the note's vault folder; releasedVaultPaths
+      // is unused here.
+      await _dio.delete<void>('/notes/$id/purge');
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 404) return;
+      if (code == 409) throw const NoteLiveOnServerException();
+      rethrow;
+    }
+  }
 }
 
 /// Riverpod provider for [ApiSyncProvider]. Fresh per container read

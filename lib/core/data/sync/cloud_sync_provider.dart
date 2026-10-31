@@ -21,6 +21,15 @@ class NoteStatesUnsupportedException implements Exception {
   String toString() => 'NoteStatesUnsupportedException';
 }
 
+/// Thrown by [CloudSyncProvider.purgeNote] when the remote copy is live
+/// (restored on another device): the caller must keep its local row.
+class NoteLiveOnServerException implements Exception {
+  const NoteLiveOnServerException();
+
+  @override
+  String toString() => 'NoteLiveOnServerException';
+}
+
 abstract class CloudSyncProvider {
   /// Stable identifier used for the sync-cursor key in SharedPreferences
   /// (e.g. `'onedrive'`, `'hmm_api'`).
@@ -115,4 +124,13 @@ abstract class CloudSyncProvider {
 
   /// The set of vault-relative paths present in the remote vault.
   Future<Set<String>> listAttachmentPaths() async => const {};
+
+  // ---- Purge ----
+
+  /// Permanently remove [uuid]'s remote copy after a local purge, plus any
+  /// [releasedVaultPaths] no local note references any more. Throws
+  /// [NoteLiveOnServerException] when the remote copy is live. A remote copy
+  /// that is already gone is success. Default: no-op.
+  Future<void> purgeNote(String uuid,
+      {Set<String> releasedVaultPaths = const {}}) async {}
 }
