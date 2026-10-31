@@ -701,9 +701,12 @@ class ApiSyncProvider implements CloudSyncProvider {
       // is unused here.
       await _dio.delete<void>('/notes/$id/purge');
     } on DioException catch (e) {
-      final code = e.response?.statusCode;
-      if (code == 404) return;
-      if (code == 409) throw const NoteLiveOnServerException();
+      // The probe just returned this note as soft-deleted, so a 404 here
+      // means the purge route is missing (old server), not "already gone":
+      // rethrow so the caller keeps its row and retries later.
+      if (e.response?.statusCode == 409) {
+        throw const NoteLiveOnServerException();
+      }
       rethrow;
     }
   }

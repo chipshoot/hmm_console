@@ -11,9 +11,13 @@ import 'package:hmm_console/core/data/local/local_tag_repository.dart';
 import 'package:hmm_console/core/data/local/note_purge_service.dart';
 import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/pending_remote_purge_store.dart';
+import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
+import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
 import 'package:hmm_console/core/data/vault/vault_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../sync/onedrive_test_fakes.dart';
 
 void main() {
   late HmmDatabase db;
@@ -34,11 +38,15 @@ void main() {
 
   tearDown(() => db.close());
 
-  NotePurgeService service(DataMode mode) => NotePurgeService(
+  NotePurgeService service(
+    DataMode mode, {
+    Future<void> Function()? afterEligibilityRead,
+  }) => NotePurgeService(
     db: db,
     mode: mode,
     baseVaultStore: () async => vault,
     provider: mode == DataMode.local ? null : provider,
+    afterEligibilityRead: afterEligibilityRead,
   );
 
   String withImages(List<String> paths) => NoteAttachmentsCodec.encode(
@@ -246,6 +254,49 @@ void main() {
         reason: 'the stub keeps no pin/flag; the merge drops the remote entry',
       );
       expect((await byUuid('gone'))!.subject, kTombstoneSubject);
+    });
+
+    test('a restore that lands before the scrub wins: nothing is destroyed, '
+        'the queued remote purge is discarded by the next sync', () async {
+      final id = await insert(
+        'gone',
+        deletedAt: old,
+        attachments: withImages(['note-1/a.jpg']),
+      );
+      final before = (await byUuid('gone'))!;
+
+      final outcome = await service(
+        DataMode.cloudStorage,
+        afterEligibilityRead: () =>
+            (db.update(db.notes)..where((n) => n.id.equals(id))).write(
+              NotesCompanion(
+                deletedAt: const Value(null),
+                lastModifiedDate: Value(now),
+              ),
+            ),
+      ).purgeNow(id);
+
+      expect(outcome, PurgeOutcome.notEligible);
+      final row = (await byUuid('gone'))!;
+      expect(row.deletedAt, isNull, reason: 'the note is live again');
+      expect(row.subject, before.subject);
+      expect(row.content, before.content);
+      expect(row.attachments, before.attachments);
+      expect(vault.deleted, isEmpty, reason: 'no vault file released');
+      expect(provider.purged, isEmpty);
+
+      // The entry was queued before the scrub (crash safety); the sync flush
+      // sees a live note and discards it without any remote deletion.
+      expect((await PendingRemotePurgeStore().read('fake')).keys, ['gone']);
+      final result = await SyncOrchestrator(
+        provider: provider,
+        db: db,
+        meta: SyncMetaRepository(),
+        vaultStore: noopVaultStore,
+      ).syncNow();
+      expect(result.errors, isEmpty, reason: result.errors.join('\n'));
+      expect(await PendingRemotePurgeStore().read('fake'), isEmpty);
+      expect(provider.purged, isEmpty);
     });
 
     test('an already scrubbed tombstone is not processed again', () async {

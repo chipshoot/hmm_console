@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../attachments/attachment_providers.dart';
@@ -31,11 +31,13 @@ class NotePurgeService {
     required Future<IVaultStore> Function() baseVaultStore,
     CloudSyncProvider? provider,
     PendingRemotePurgeStore? pending,
+    @visibleForTesting Future<void> Function()? afterEligibilityRead,
   }) : _db = db,
        _mode = mode,
        _baseVaultStore = baseVaultStore,
        _provider = provider,
-       _pending = pending ?? PendingRemotePurgeStore();
+       _pending = pending ?? PendingRemotePurgeStore(),
+       _afterEligibilityRead = afterEligibilityRead;
 
   static const Duration retention = Duration(days: 30);
 
@@ -46,6 +48,10 @@ class NotePurgeService {
   final Future<IVaultStore> Function() _baseVaultStore;
   final CloudSyncProvider? _provider;
   final PendingRemotePurgeStore _pending;
+
+  /// Test seam: runs between the eligibility read and the write, to simulate
+  /// a restore landing in that window.
+  final Future<void> Function()? _afterEligibilityRead;
 
   /// Purge every note soft-deleted more than [retention] before [now].
   /// Returns how many were purged.
@@ -80,7 +86,16 @@ class NotePurgeService {
     }
 
     final paths = _vaultPathsOf(row.attachments);
+    await _afterEligibilityRead?.call();
     try {
+      // Queue the remote half BEFORE the irreversible scrub: a crash in
+      // between leaves a harmless entry (the sync flush discards it while the
+      // note is still live) instead of an orphaned OneDrive blob.
+      final p = _provider;
+      final uuid = row.uuid;
+      if (_mode == DataMode.cloudStorage && p != null && uuid != null) {
+        await _pending.add(p.providerId, uuid, paths);
+      }
       final done = switch (_mode) {
         DataMode.local => await _hardDelete(row.id, row.uuid, deletedAt),
         DataMode.cloudStorage => await _scrubToTombstone(
@@ -91,11 +106,6 @@ class NotePurgeService {
         DataMode.cloudApi => await _purgeOnServerThenDelete(row, deletedAt),
       };
       if (!done) return PurgeOutcome.notEligible;
-      final p = _provider;
-      final uuid = row.uuid;
-      if (_mode == DataMode.cloudStorage && p != null && uuid != null) {
-        await _pending.add(p.providerId, uuid, paths);
-      }
     } on NoteLiveOnServerException {
       return PurgeOutcome.keptLiveOnServer;
     } catch (e) {

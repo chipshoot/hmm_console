@@ -799,41 +799,63 @@ class SyncOrchestrator {
     SyncManifest? remote,
     List<SyncError> errors,
   ) async {
-    final pending = await _pendingPurges.read(p.providerId);
+    Map<String, Set<String>> pending;
+    try {
+      pending = await _pendingPurges.read(p.providerId);
+    } catch (e) {
+      errors.add(
+        SyncError(
+          recordType: 'purge',
+          recordId: 'pending',
+          message: 'Reading pending purges failed (${e.runtimeType})',
+        ),
+      );
+      return;
+    }
     if (pending.isEmpty) return;
     final remoteById = {
       for (final e in remote?.notes ?? const <ManifestEntry>[]) e.id: e,
     };
+    // Once per flush, and only now: after the pull has had its chance to
+    // revive notes (a revived note's attachments count as referenced).
+    Set<String>? referenced;
     for (final entry in pending.entries) {
       final uuid = entry.key;
-      final local = await (_db.select(_db.notes)
-            ..where((n) => n.uuid.equals(uuid)))
-          .getSingleOrNull();
-      if (local == null || local.deletedAt == null) {
-        // Gone, or revived by this sync's pull (restored elsewhere):
-        // nothing to delete remotely, now or later.
-        await _pendingPurges.remove(p.providerId, uuid);
-        continue;
-      }
-      final r = remoteById[uuid];
-      final localStamp = (local.lastModifiedDate ?? local.createDate).toUtc();
-      if (r != null && (!r.deleted || r.updatedAt.isAfter(localStamp))) {
-        // The remote copy is newer than our tombstone but the pull did not
-        // apply it (it failed). Leave it for the next sync.
-        continue;
-      }
       try {
-        final referenced = await collectReferencedVaultPaths(_db);
-        await p.purgeNote(uuid,
-            releasedVaultPaths:
-                entry.value.where((path) => !referenced.contains(path)).toSet());
+        final local = await (_db.select(_db.notes)
+              ..where((n) => n.uuid.equals(uuid)))
+            .getSingleOrNull();
+        if (local == null || local.deletedAt == null) {
+          // Gone, or revived by this sync's pull (restored elsewhere), or the
+          // local scrub never landed (restored here): nothing to delete
+          // remotely, now or later.
+          await _pendingPurges.remove(p.providerId, uuid);
+          continue;
+        }
+        final r = remoteById[uuid];
+        final localStamp =
+            (local.lastModifiedDate ?? local.createDate).toUtc();
+        if (r != null && (!r.deleted || r.updatedAt.isAfter(localStamp))) {
+          // The remote copy is newer than our tombstone but the pull did not
+          // apply it (it failed). Leave it for the next sync.
+          continue;
+        }
+        referenced ??= await collectReferencedVaultPaths(_db);
+        final refs = referenced;
+        await p.purgeNote(
+          uuid,
+          releasedVaultPaths:
+              entry.value.where((path) => !refs.contains(path)).toSet(),
+        );
         await _pendingPurges.remove(p.providerId, uuid);
       } catch (e) {
-        errors.add(SyncError(
-          recordType: 'purge',
-          recordId: uuid,
-          message: 'Remote purge failed (${e.runtimeType}); retrying next sync',
-        ));
+        errors.add(
+          SyncError(
+            recordType: 'purge',
+            recordId: uuid,
+            message: 'Remote purge failed (${e.runtimeType}); retrying next sync',
+          ),
+        );
       }
     }
   }

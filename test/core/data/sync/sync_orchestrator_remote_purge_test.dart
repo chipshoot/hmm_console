@@ -103,6 +103,23 @@ void main() {
     },
   );
 
+  test('a throwing pending store is a non-fatal purge error', () async {
+    remote(at: t, deleted: true);
+    final throwing = SyncOrchestrator(
+      provider: provider,
+      db: db,
+      meta: meta,
+      vaultStore: noopVaultStore,
+      pendingPurges: _ThrowingStore(),
+    );
+
+    final result = await throwing.syncNow();
+
+    expect(result.errors.map((e) => e.recordType), ['purge']);
+    expect(provider.purged, isEmpty);
+    expect(await meta.getLastPushedAt('fake'), isNotNull);
+  });
+
   test(
     'a failed remote purge stays pending and does not hold the cursor back',
     () async {
@@ -186,4 +203,10 @@ class _FakeProvider extends CloudSyncProvider {
     purged.add(uuid);
     purgedPaths.addAll(releasedVaultPaths);
   }
+}
+
+class _ThrowingStore extends PendingRemotePurgeStore {
+  @override
+  Future<Map<String, Set<String>>> read(String providerId) async =>
+      throw StateError('prefs down');
 }

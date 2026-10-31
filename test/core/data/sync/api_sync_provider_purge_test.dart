@@ -79,15 +79,15 @@ void main() {
     expect(deletes, isEmpty);
   });
 
-  test('a 404 from /purge is treated as already gone', () async {
+  test('a 404 from /purge after a deleted probe means a missing route: '
+      'it throws so the caller keeps its row', () async {
     adapter.onGet(
       '/notes/by-uuid/p1',
       (s) => s.reply(200, {'id': 5, 'uuid': 'p1', 'isDeleted': true}),
     );
     adapter.onDelete('/notes/5/purge', (s) => s.reply(404, {'detail': 'nf'}));
 
-    await provider.purgeNote('p1');
-
+    await expectLater(provider.purgeNote('p1'), throwsA(isA<DioException>()));
     expect(deletes, ['/notes/5/purge']);
   });
 }
