@@ -29,7 +29,9 @@ class NotePurgeScheduler {
 
   /// Purge if a day has passed since the last completed run and no sync is
   /// in flight. Returns how many notes were purged, or null when skipped or
-  /// failed (a skipped or failed run is not recorded, so it retries soon).
+  /// when the whole run threw. A skipped or whole-run-failed attempt is not
+  /// stamped, so it retries soon; per-note failures inside `purgeExpired` do
+  /// not throw, so the day is stamped and those notes retry the next day.
   Future<int?> maybeRun() async {
     if (_running) return null;
     _running = true;
