@@ -2,23 +2,26 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give every note a pin and a coloured flag that survive all three data modes, make delete recoverable (server undelete + client restore with Undo) and finite (real 30-day purge with vault release), make tags sync in cloudApi mode, and stop Notes from deleting entity notes — without any new list UI (that is slice 2+).
+**Goal:** Give every note a pin and a coloured flag that survive all three data modes **without ever being a note edit** (G14: a per-user note-state table), make delete recoverable (server undelete + client restore with Undo) and finite (real 30-day purge with vault release), make tags sync in cloudApi mode, and stop Notes from deleting entity notes — without any new list UI (that is slice 2+).
 
-**Architecture:** Server first (`hmm`, branch `feat/notes-pin-flag-undelete`): two additive columns on `notes`, DTO fields with "absent keeps" semantics, `?pinned=`/`?flag=` filters, `POST /v1/notes/{id}/restore`, `DELETE /v1/notes/{id}/purge`, and a set-replace `GET|PUT /v1/notes/{id}/tags` backed by a new `INoteTagMembershipRepository` (the existing `applyTag` path cannot persist on EF — see Task 4). Client (`hmm_console`, branch `feat/notes-list-redesign`): Drift v8→v9, `HmmNote`/mapper/inputs, repository `setPinned`/`setFlagColor`/`restoreNote`, OneDrive blob keys, `ApiSyncProvider` wiring (pin/flag, restore, tags, purge), a `NotePurgeService` + `NotePurgeScheduler` that run outside sync through a new `SyncController.runExclusive`, the G7 delete guard, and the note-detail menu (Pin, Flag…, undoable Delete, "Manage in …", Help).
+**Architecture:** Server first (`hmm`, branch `feat/notes-pin-flag-undelete`): a new `noteuserstates` table (`NoteUserStateDao`, PK `(AuthorId, NoteId)`, FK to the note with cascade delete) behind `INoteUserStateRepository` (newer-`LastModifiedDate`-wins upsert), `GET /v1/notes/states` + `PUT /v1/notes/{id}/state` (caller-only, 404 for a note the caller does not own), `POST /v1/notes/{id}/restore`, `DELETE /v1/notes/{id}/purge`, and a set-replace `GET|PUT /v1/notes/{id}/tags` backed by a new `INoteTagMembershipRepository` (the existing `applyTag` path cannot persist on EF — see Task 4). Note DTOs gain **no** pin/flag fields. Client (`hmm_console`, branch `feat/notes-list-redesign`): Drift v8→v9 creates a `NoteStates` table keyed by note uuid (no note column changes), `NoteState` + `LocalNoteStateRepository` (`setPinned`/`setFlagColor` never touch the note row), repository `restoreNote`, a `NoteStateSyncService` merge (per entry, newer wins, tie keeps local, purged notes dropped) run by the orchestrator against OneDrive `note-states.json` or the API state endpoints (a 404 keeps local state and sets a "server too old" flag), `ApiSyncProvider` wiring (states, restore, tags, purge), a `NotePurgeService` + `NotePurgeScheduler` that run outside sync through a new `SyncController.runExclusive`, the G7 delete guard, and the note-detail menu (Pin, Flag…, undoable Delete, "Manage in …", Help).
 
 **Tech Stack:** Flutter 3 / Dart 3, Riverpod, Drift (SQLite), Dio + http_mock_adapter, flutter_test; .NET 10, ASP.NET Core, EF Core (PostgreSQL in prod, SQLite in-memory in `Hmm.Core.Dal.EF.Tests`), AutoMapper, Newtonsoft.Json, xUnit v2 + Moq.
 
-**Spec:** docs/superpowers/specs/2026-10-18-notes-list-redesign-design.md
+**Spec:** docs/superpowers/specs/2026-10-18-notes-list-redesign-design.md (section "Note state: pins and flags (separate table — G14)" is authoritative for everything pin/flag).
 
 ## Global Constraints
 
-- Drift `schemaVersion` 8 → 9, additive only (`m.addColumn`), no backfill, no other table touched.
-- `isPinned`: `bool`, default `false` (Drift `is_pinned`, server `ispinned`).
-- `flagColor`: `int?`, `null` = unflagged; 0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple, 6 grey; any other int is stored verbatim and shown as grey (`NoteFlagColor.fromStored`).
-- Absent key ⇒ keep the stored value: OneDrive blob pull, `ApiSyncProvider` pull, server `PUT` (`IsPinned` null/absent keeps; `FlagColor` absent keeps, explicit `null` clears), and pulled `tags`.
-- Entity notes are never deleted from Notes (G7): only `General` (or a legacy row with no catalog) passes `canDeleteFromNotes`.
+- **Pin and flag are note state, never a note edit (G14).** Nothing in this plan adds a pin or flag column, DTO field or blob key to a note. Setting a pin or flag never changes the note's `version`, `lastModifiedDate` or sync cursor position and never re-pushes the note; it writes only the state row (and asks for a debounced sync of states).
+- Drift `schemaVersion` 8 → 9 creates the `note_states` table (`NoteStates`: `noteUuid` TEXT primary key, `isPinned` bool default false, `flagColor` int?, `lastModifiedDate`) and touches no other table. No row = unpinned and unflagged.
+- Server table `noteuserstates` (`authorid`, `noteid`, `ispinned` default false, `flagcolor` nullable, `lastmodifieddate`), PK `(authorid, noteid)`, FK `noteid → notes.id` ON DELETE CASCADE. Lower-case naming follows the existing tables (`notes`, `authorsettings`); the spec's "NoteUserStates" is this table.
+- `isPinned`: `bool`, default `false`. `flagColor`: `int?`, `null` = unflagged; 0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple, 6 grey; any other int is stored verbatim everywhere and shown as grey (`NoteFlagColor.fromStored`).
+- Unpin / unflag **write** a row (`isPinned = false` / `flagColor = null`); only a purge (or the sync merge dropping a purged note's entry) removes a state row. Soft delete and restore leave state rows alone.
+- State last-writer-wins is per entry by `lastModifiedDate`: newer wins, a tie keeps what the receiver has (client merge: local; server PUT: stored). A local state write stamps at least the next whole second after the row's previous stamp (`restoreStamp`), because Drift stores whole seconds.
+- The pulled note body's `tags` key: present ⇒ set-replace, absent ⇒ keep local membership (an older client or a server that predates note tags).
+- Entity notes are never deleted from Notes (G7): only `General` (or a legacy row with no catalog) passes `canDeleteFromNotes`. Pin and flag work on every note.
 - Recently Deleted = ordinary notes only (G11) — the list itself is slice 5; slice 1 only makes delete reversible.
-- Purge after 30 days applies to ALL soft-deleted notes (G11), runs at most once a day, never while a sync runs (`SyncController.runExclusive`).
+- Purge after 30 days applies to ALL soft-deleted notes (G11), runs at most once a day, never while a sync runs (`SyncController.runExclusive`), and removes the note's state row in every mode.
 - Logs carry ids and error types only (`${e.runtimeType}`), never note content, names or vault paths.
 - Icon buttons: `HmmIconButton` only (no raw `IconButton`; `test/core/help/icon_button_guard_test.dart` must stay green).
 - Hide/move actions use `showUndoableAction`; permanent deletes keep a confirmation dialog (none in slice 1 UI).
@@ -28,41 +31,44 @@
 - `flutter test` baseline recorded 2026-10-18 on `feat/notes-list-redesign` @126f53a: **2314 passed, 0 failed**. The count may only grow.
 - Backend baselines recorded 2026-10-18 on `hmm` main @0734684: `Hmm.Core.Tests` **233 passed**, `Hmm.ServiceApi.Core.Tests` **440 passed**, `Hmm.Core.Dal.EF.Tests` **68 passed**, 0 failed. Counts may only grow.
 - Backend work only in `/Users/fchy/Projects/hmm` on branch `feat/notes-pin-flag-undelete` (created from `main` in Task 1); never commit on `main`; never stage `/Users/fchy/Projects/hmm/CLAUDE.md` (unrelated uncommitted change) — always `git add <explicit paths>`.
-- The server (Tasks 1–4) is deployed to the VPS before any client release that writes the new fields.
+- The server (Tasks 1–4) is deployed to the VPS before any client release that uses note states, restore, purge or note tags.
 - Every commit message ends with the trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - No `git push`, no merge, no deploy anywhere in this plan.
 
 ## Review Focus
 
-1. **Pin on device A, then an edit on an older app on device B must not unpin.** The older app's blob has no `isPinned`/`flagColor` keys; the pull must keep A's values. Owning test: Task 6 `inbound update without pin/flag keys keeps the local pin and flag (older client edit)`.
-2. **Restore on a OneDrive device against a tombstone with an equal timestamp.** Drift stores `DateTime` at 1-second resolution, so a restore in the same second as its delete would tie and last-writer-wins would keep the tombstone on peers. `restoreNote` stamps at least the next whole second. Owning tests: Task 5 `restoreStamp` cases and Task 6 `a restore made in the same second as its delete still wins on peers` + `equal timestamps keep the local tombstone (documented tie)`.
-3. **Purge never deletes a note that was restored seconds earlier.** Every purge write is guarded by `deletedAt = <value read>`; the server purge refuses a live note (409 → `NoteLiveOnServerException`); OneDrive blob deletion is deferred into the next sync and skipped when the pull revived the note. Owning tests: Task 8 `a restore that lands during the purge wins`, `keeps the row when the server says the note is live`, `a note restored on another device is revived, never purged remotely`.
-4. **An entity note reached via the detail screen cannot be deleted generically.** `MutateNote.delete` refuses (throws `EntityNoteDeleteRefused`) and the menu shows "Manage in …" instead of Delete. Owning tests: Task 10 `delete refuses an entity note and leaves it live`, Task 11 `an entity note shows Manage in Automobile instead of Delete`.
-5. **A server still running the old build (no `IsPinned`) must not make the client drop pins.** The old `ApiNote` has no `isPinned`/`flagColor`/`tagNames` keys; the provider must omit them from the pulled body so the orchestrator keeps local values. Owning tests: Task 7 `an old server (no pin/flag/tag keys) yields a body without those keys` + Task 6 absent-key tests.
+1. **A pin on device A and a text edit on device B must both survive.** The pin lives only in the state row, so it never bumps the note and never re-pushes it; B's newer note blob applies to A's note row while A's state row is untouched, and the merged state document carries A's pin back to B. Owning tests: Task 5 `setPinned and setFlagColor never touch the note row`, Task 6 `a pin on this device and a text edit on another both survive` + `a remote pin applies without touching the local note row`.
+2. **Unpin propagates.** Unpin writes a row with `isPinned = false` and a newer stamp — never a deletion — so the merge sees a newer entry and peers unpin. A pin then unpin inside one second still gets a strictly later stamp. Owning tests: Task 5 `unpin writes a row with false, never deletes it` + `a second write in the same second still gets a later stamp`, Task 6 `a newer local unpin beats an older remote pin` + `a newer remote unpin is applied as a false row`.
+3. **An old server (404 on `GET /v1/notes/states`) keeps local state.** The API provider maps 404/405 to `NoteStatesUnsupportedException`; the orchestrator then writes and pushes nothing, keeps every local row, records no sync error and sets `SyncMetaRepository.getNoteStatesUnsupported` (the later "Pins and flags need the latest server" banner reads it); the next sync against a new server pushes every local state because the server has none. Owning tests: Task 6 `an old server keeps local state and sets the unsupported flag`, Task 7 `a server without the states endpoint is reported as unsupported`.
+4. **A state for a purged note resurrects nothing.** Purge deletes the local state row in every mode; the merge treats a content-free tombstone (or a note unknown locally and not live in the remote manifest) as "no note", so a peer's stale entry is neither applied nor pushed back, and the note row stays a tombstone. Owning tests: Task 6 `a state for a purged note is dropped and never revives the note`, Task 8 `purge removes the note's state row` (local and cloudStorage) + `calls the server purge, then deletes the row and its state`.
+5. **Another user's note cannot be pinned via PUT.** `PUT /v1/notes/{id}/state` resolves the caller from the token and 404s (same as a missing note) unless the caller owns the note; `GET /v1/notes/states` only ever queries the caller's `AuthorId`. Owning tests: Task 2 `PutState_on_another_authors_note_is_NotFound_and_saves_nothing`, `GetStates_returns_only_the_callers_rows`; Task 1 `Each_author_has_their_own_state_for_the_same_note`.
+6. **Restore on a OneDrive device against a tombstone with an equal timestamp.** Drift stores `DateTime` at 1-second resolution, so a restore in the same second as its delete would tie and last-writer-wins would keep the tombstone on peers. `restoreNote` stamps at least the next whole second. Owning tests: Task 5 `restoreStamp` cases and Task 6 `a restore made in the same second as its delete still wins on peers` + `equal timestamps keep the local tombstone (documented tie)`.
+7. **Purge never deletes a note that was restored seconds earlier.** Every purge write is guarded by `deletedAt = <value read>`; the server purge refuses a live note (409 → `NoteLiveOnServerException`); OneDrive blob deletion is deferred into the next sync and skipped when the pull revived the note. Owning tests: Task 8 `a restore that lands during the purge wins`, `keeps the row when the server says the note is live`, `a note restored on another device is revived, never purged remotely`.
+8. **An entity note reached via the detail screen cannot be deleted generically.** `MutateNote.delete` refuses (throws `EntityNoteDeleteRefused`) and the menu shows "Manage in …" instead of Delete. Owning tests: Task 10 `delete refuses an entity note and leaves it live`, Task 11 `an entity note shows Manage in Automobile instead of Delete`.
+9. **A server still running the old build (no `tagNames`) must not make the client drop tags.** The provider omits `tags` from the pulled body when the server sent no `tagNames`, and the orchestrator keeps local membership for an absent key. Owning tests: Task 7 `an old server (no tagNames) yields a body without a tags key` + Task 6 `an absent tags key keeps membership; a present empty list clears it`.
 
 ---
 
-### Task 1: Server — `IsPinned` / `FlagColor` columns, DTOs and "absent keeps" mapping
+### Task 1: Server — `NoteUserStates` table, migration and newer-wins repository
+
+Pins and flags are the user's own state about a note (G14), so they get their own table instead of note columns: a pin can then never overwrite a concurrent text edit under whole-note last-writer-wins, never moves the note in the Last-modified sort, and is already per user for Sharing (Project 3). The table mirrors the existing `authorsettings` satellite: hand-written migration, a `LastModifiedDate` monotonicity guard instead of a row-version token, no `Description` column (the DAO does not derive from `Entity`, like `NoteTagRefDao`).
 
 **Files:**
-- Modify: `/Users/fchy/Projects/hmm/src/Hmm.Core.Map/DomainEntity/HmmNote.cs` (after `LocationLabel`, ~line 41)
-- Modify: `/Users/fchy/Projects/hmm/src/Hmm.Core.Map/DbEntity/HmmNoteDao.cs` (after `LocationLabel`, ~line 62)
-- Create: `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/Migrations/20261018000000_AddNotePinAndFlagColumns.cs`
-- Modify: `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/Migrations/HmmDataContextModelSnapshot.cs` (HmmNoteDao entity, ~lines 177–186)
-- Modify: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNote.cs`, `ApiNoteForCreate.cs`, `ApiNoteForUpdate.cs`
-- Modify: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.DtoEntity/Profiles/ApiMappingProfile.cs` (`ApiNoteForUpdate → HmmNote` map, ~lines 81–91)
-- Modify: `/Users/fchy/Projects/hmm/src/Hmm.Utility.TestHelp/SampleDataGenerator.cs` (`Clone`, ~lines 467–516)
-- Test: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/ApiNotePinFlagMappingTests.cs` (create)
-- Test: `/Users/fchy/Projects/hmm/src/Hmm.Core.Tests/HmmNoteManagerPinFlagTests.cs` (create)
-- Test: `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF.Tests/NoteRepositoryPinFlagTests.cs` (create)
+- Create: `/Users/fchy/Projects/hmm/src/Hmm.Core.Map/DbEntity/NoteUserStateDao.cs`
+- Create: `/Users/fchy/Projects/hmm/src/Hmm.Core.Map/DomainEntity/NoteUserState.cs`
+- Create: `/Users/fchy/Projects/hmm/src/Hmm.Core.Map/Repositories/INoteUserStateRepository.cs`
+- Create: `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/Repositories/NoteUserStateEfRepository.cs`
+- Modify: `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/HmmDataContext.cs` (`ForeignKeyNames` / `IndexNames` constants; `DbSet` after `AuthorSettings`; model configuration at the end of `OnModelCreating`)
+- Create: `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/Migrations/20261018000000_AddNoteUserStatesTable.cs`
+- Modify: `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/Migrations/HmmDataContextModelSnapshot.cs` (new entity after `NoteTagRefDao`, ~line 357; new relationship block after the `NoteTagRefDao` relationships, ~line 461)
+- Test: `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF.Tests/NoteUserStateRepositoryTests.cs` (create)
 
 **Interfaces:**
-- Consumes: `CoreTestFixtureBase.ApiMapper`/`Mapper`/`NoteRepository`/`GetTestAuthor()`/`GetTestCatalog()`, `DbTestFixtureBase`.
+- Consumes: `DbTestFixtureBase` (`DbContext`, `NoteRepository`, `CatalogRepository`, `ContactRepository`, `AuthorRepository`), `IHmmDataContext.CommitAsync`.
 - Produces (C#):
-  - `HmmNote.IsPinned : bool`, `HmmNote.FlagColor : int?`; `HmmNoteDao.IsPinned : bool` (`ispinned`), `HmmNoteDao.FlagColor : int?` (`flagcolor`)
-  - `ApiNote.IsPinned : bool`, `ApiNote.FlagColor : int?`; `ApiNoteForCreate.IsPinned : bool`, `ApiNoteForCreate.FlagColor : int?`
-  - `ApiNoteForUpdate.IsPinned : bool?` (null ⇒ keep), `ApiNoteForUpdate.FlagColor : int?` + `ApiNoteForUpdate.FlagColorSpecified : bool` (absent ⇒ keep, explicit null ⇒ clear)
-  - Wire JSON (camelCase): `"isPinned"`, `"flagColor"`.
+  - `NoteUserStateDao { int AuthorId (authorid); int NoteId (noteid); HmmNoteDao? Note; bool IsPinned (ispinned); int? FlagColor (flagcolor); DateTime LastModifiedDate (lastmodifieddate) }` — table `noteuserstates`, PK `(AuthorId, NoteId)`, FK `fk_noteuserstates_notes` (cascade), FK `fk_noteuserstates_authors` (no action), index `ix_noteuserstates_noteid`.
+  - `NoteUserState { int AuthorId; int NoteId; string? NoteUuid; bool IsPinned; int? FlagColor; DateTime LastModifiedDate }` (domain, `Hmm.Core.Map.DomainEntity`; `NoteUuid` is a read-only projection of the note's uuid).
+  - `namespace Hmm.Core.Map.Repositories; public interface INoteUserStateRepository { Task<IReadOnlyList<NoteUserState>> GetForAuthorAsync(int authorId); Task<NoteUserState> SaveIfNewerAsync(NoteUserState incoming); }` — `SaveIfNewerAsync` inserts the first row, replaces a row only when `incoming.LastModifiedDate` is strictly newer (equal or older keeps stored), commits, and returns the stored row; a non-UTC stamp is normalised to UTC (an `Unspecified` kind is taken as UTC).
 
 - [ ] **Step 1: Create the server branch and confirm baselines**
 
@@ -76,200 +82,215 @@ dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1    # Passed: 440
 dotnet test src/Hmm.Core.Dal.EF.Tests 2>&1 | tail -1        # Passed: 68
 ```
 
-- [ ] **Step 2: Write the failing mapping tests**
+- [ ] **Step 2: Write the failing repository tests**
 
-Create `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/ApiNotePinFlagMappingTests.cs`:
-
-```csharp
-using Hmm.Core.Map.DomainEntity;
-using Hmm.ServiceApi.DtoEntity.HmmNote;
-using Hmm.Utility.TestHelp;
-using Newtonsoft.Json;
-using Xunit;
-
-namespace Hmm.ServiceApi.Core.Tests;
-
-/// <summary>
-/// Notes redesign slice 1: pin + flag ride the note DTOs. PUT maps the DTO
-/// onto the loaded note, so presence matters: a client that predates pins
-/// sends no key and must not unpin/unflag (absent keeps), while
-/// "flagColor": null is a deliberate clear. JSON is the camelCase wire shape.
-/// </summary>
-public class ApiNotePinFlagMappingTests : CoreTestFixtureBase
-{
-    private static HmmNote Stored() => new()
-    {
-        Id = 1, Subject = "s", Content = "{}",
-        Author = new Author { Id = 1 }, Catalog = new NoteCatalog { Id = 1 },
-        IsPinned = true, FlagColor = 3,
-    };
-
-    private static ApiNoteForUpdate Wire(string json) =>
-        JsonConvert.DeserializeObject<ApiNoteForUpdate>(json)!;
-
-    [Fact]
-    public void Put_omitting_pin_and_flag_keeps_the_stored_values()
-    {
-        var note = Stored();
-        var dto = Wire("{\"subject\":\"s2\"}");
-
-        Assert.Null(dto.IsPinned);
-        Assert.False(dto.FlagColorSpecified);
-        ApiMapper.Map(dto, note);
-
-        Assert.Equal("s2", note.Subject);
-        Assert.True(note.IsPinned);
-        Assert.Equal(3, note.FlagColor);
-    }
-
-    [Fact]
-    public void Put_with_an_explicit_null_flag_clears_it_and_keeps_the_pin()
-    {
-        var note = Stored();
-        var dto = Wire("{\"subject\":\"s2\",\"flagColor\":null}");
-
-        Assert.True(dto.FlagColorSpecified);
-        ApiMapper.Map(dto, note);
-
-        Assert.Null(note.FlagColor);
-        Assert.True(note.IsPinned);
-    }
-
-    [Fact]
-    public void Put_with_values_overwrites_both()
-    {
-        var note = Stored();
-        var dto = Wire("{\"subject\":\"s2\",\"isPinned\":false,\"flagColor\":5}");
-
-        ApiMapper.Map(dto, note);
-
-        Assert.False(note.IsPinned);
-        Assert.Equal(5, note.FlagColor);
-    }
-
-    [Fact]
-    public void Put_keeps_an_unknown_flag_value_verbatim()
-    {
-        // A newer client may use colours this server has never heard of.
-        var note = Stored();
-        ApiMapper.Map(Wire("{\"subject\":\"s2\",\"flagColor\":42}"), note);
-
-        Assert.Equal(42, note.FlagColor);
-    }
-
-    [Fact]
-    public void Create_maps_pin_and_flag()
-    {
-        var dto = new ApiNoteForCreate
-        {
-            Subject = "s", AuthorId = 1, CatalogId = 1, IsPinned = true, FlagColor = 0,
-        };
-
-        var note = ApiMapper.Map<ApiNoteForCreate, HmmNote>(dto);
-
-        Assert.True(note.IsPinned);
-        Assert.Equal(0, note.FlagColor);
-    }
-
-    [Fact]
-    public void ApiNote_exposes_pin_and_flag()
-    {
-        var api = ApiMapper.Map<ApiNote>(Stored());
-
-        Assert.True(api.IsPinned);
-        Assert.Equal(3, api.FlagColor);
-    }
-
-    [Fact]
-    public void Patch_round_trip_keeps_the_flag()
-    {
-        // PATCH maps the stored note to ApiNoteForUpdate, applies the patch,
-        // then maps back: the flag must survive the round trip untouched.
-        var dto = ApiMapper.Map<ApiNoteForUpdate>(Stored());
-        Assert.True(dto.FlagColorSpecified);
-
-        var target = Stored();
-        target.FlagColor = null;
-        target.IsPinned = false;
-        ApiMapper.Map(dto, target);
-
-        Assert.Equal(3, target.FlagColor);
-        Assert.True(target.IsPinned);
-    }
-}
-```
-
-- [ ] **Step 3: Write the failing manager and EF tests**
-
-Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Tests/HmmNoteManagerPinFlagTests.cs`:
+Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF.Tests/NoteUserStateRepositoryTests.cs`:
 
 ```csharp
-using Hmm.Core.DefaultManager;
+using Hmm.Core.Dal.EF.Repositories;
+using Hmm.Core.Map.DbEntity;
 using Hmm.Core.Map.DomainEntity;
-using Hmm.Utility.Misc;
 using Hmm.Utility.TestHelp;
-using Hmm.Utility.Validation;
-using Moq;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Hmm.Core.Tests
+namespace Hmm.Core.Dal.EF.Tests
 {
-    public class HmmNoteManagerPinFlagTests : CoreTestFixtureBase, IAsyncLifetime
+    /// <summary>
+    /// Notes redesign G14: pins and flags live in their own per-user table
+    /// and are never a note edit. Real EF context (SQLite in-memory).
+    /// </summary>
+    public class NoteUserStateRepositoryTests : DbTestFixtureBase, IAsyncLifetime
     {
-        private readonly HmmNoteManager _noteManager;
-        private Author _author;
-        private NoteCatalog _catalog;
+        private static readonly DateTime T1 = new(2026, 10, 18, 9, 0, 0, DateTimeKind.Utc);
+        private static readonly DateTime T2 = T1.AddMinutes(5);
 
-        public HmmNoteManagerPinFlagTests()
+        private AuthorDao _author = null!;
+        private AuthorDao _otherAuthor = null!;
+        private NoteCatalogDao _catalog = null!;
+        private NoteUserStateEfRepository _states = null!;
+
+        private DbContext Ef => (DbContext)DbContext;
+
+        // Each call is a fresh request scope in production; clear the tracker
+        // so nothing is served from memory instead of the database.
+        private void NewRequestScope() => Ef.ChangeTracker.Clear();
+
+        private async Task<HmmNoteDao> AddNoteAsync(string uuid)
         {
-            var mockValidator = new Mock<IHmmValidator<HmmNote>>();
-            mockValidator.Setup(v => v.ValidateEntityAsync(It.IsAny<HmmNote>()))
-                .ReturnsAsync((HmmNote note) => ProcessingResult<HmmNote>.Ok(note));
-            _noteManager = new HmmNoteManager(NoteRepository, UnitOfWork, Mapper, LookupRepository, DateProvider, mockValidator.Object);
+            var note = new HmmNoteDao
+            {
+                Author = _author, Catalog = _catalog, Subject = "stateful", Content = "c", Uuid = uuid,
+            };
+            await NoteRepository.AddAsync(note);
+            await DbContext.CommitAsync();
+            NewRequestScope();
+            return note;
+        }
+
+        private Task<NoteUserState> Save(int authorId, int noteId, bool pinned, int? flag, DateTime at)
+        {
+            NewRequestScope();
+            return _states.SaveIfNewerAsync(new NoteUserState
+            {
+                AuthorId = authorId, NoteId = noteId, IsPinned = pinned, FlagColor = flag, LastModifiedDate = at,
+            });
         }
 
         [Fact]
-        public async Task New_notes_default_to_unpinned_and_unflagged()
+        public async Task Save_inserts_the_first_state_and_returns_it_with_the_note_uuid()
         {
-            var created = await _noteManager.CreateAsync(new HmmNote
-            {
-                Author = _author, Catalog = _catalog, Subject = "plain", Content = "c",
-            });
+            var note = await AddNoteAsync("u-first");
 
-            var loaded = await _noteManager.GetNoteByIdAsync(created.Value.Id);
-            Assert.False(loaded.Value.IsPinned);
-            Assert.Null(loaded.Value.FlagColor);
+            var saved = await Save(_author.Id, note.Id, pinned: true, flag: 3, at: T1);
+
+            Assert.True(saved.IsPinned);
+            Assert.Equal(3, saved.FlagColor);
+            Assert.Equal(T1, saved.LastModifiedDate);
+            Assert.Equal("u-first", saved.NoteUuid);
+            Assert.Equal(1, await DbContext.Set<NoteUserStateDao>().CountAsync());
         }
 
         [Fact]
-        public async Task Create_and_update_persist_pin_and_flag()
+        public async Task A_newer_write_replaces_the_stored_state()
         {
-            var created = await _noteManager.CreateAsync(new HmmNote
-            {
-                Author = _author, Catalog = _catalog, Subject = "pin me", Content = "c",
-                IsPinned = true, FlagColor = 4,
-            });
-            Assert.True(created.Success);
+            var note = await AddNoteAsync("u-newer");
+            await Save(_author.Id, note.Id, pinned: true, flag: 3, at: T1);
 
-            var loaded = await _noteManager.GetNoteByIdAsync(created.Value.Id);
-            Assert.True(loaded.Value.IsPinned);
-            Assert.Equal(4, loaded.Value.FlagColor);
+            var saved = await Save(_author.Id, note.Id, pinned: false, flag: null, at: T2);
 
-            loaded.Value.IsPinned = false;
-            loaded.Value.FlagColor = null;
-            var updated = await _noteManager.UpdateAsync(loaded.Value);
-            Assert.True(updated.Success);
+            Assert.False(saved.IsPinned);
+            Assert.Null(saved.FlagColor);
+            Assert.Equal(T2, saved.LastModifiedDate);
+        }
 
-            var reloaded = await _noteManager.GetNoteByIdAsync(created.Value.Id);
-            Assert.False(reloaded.Value.IsPinned);
-            Assert.Null(reloaded.Value.FlagColor);
+        [Fact]
+        public async Task An_older_or_equal_write_keeps_the_stored_state()
+        {
+            var note = await AddNoteAsync("u-older");
+            await Save(_author.Id, note.Id, pinned: true, flag: 3, at: T2);
+
+            var older = await Save(_author.Id, note.Id, pinned: false, flag: 0, at: T1);
+            Assert.True(older.IsPinned);
+            Assert.Equal(3, older.FlagColor);
+            Assert.Equal(T2, older.LastModifiedDate);
+
+            var tie = await Save(_author.Id, note.Id, pinned: false, flag: 0, at: T2);
+            Assert.True(tie.IsPinned, "a tie keeps the stored row");
+            Assert.Equal(3, tie.FlagColor);
+        }
+
+        [Fact]
+        public async Task Unpin_is_stored_as_a_row_with_false()
+        {
+            var note = await AddNoteAsync("u-unpin");
+            await Save(_author.Id, note.Id, pinned: true, flag: null, at: T1);
+
+            await Save(_author.Id, note.Id, pinned: false, flag: null, at: T2);
+
+            NewRequestScope();
+            var row = await DbContext.Set<NoteUserStateDao>().SingleAsync();
+            Assert.False(row.IsPinned);
+            Assert.Equal(T2, row.LastModifiedDate);
+        }
+
+        [Fact]
+        public async Task An_unknown_flag_value_is_kept_verbatim()
+        {
+            // A newer client may use colours this server has never heard of.
+            var note = await AddNoteAsync("u-flag42");
+
+            var saved = await Save(_author.Id, note.Id, pinned: false, flag: 42, at: T1);
+
+            Assert.Equal(42, saved.FlagColor);
+        }
+
+        [Fact]
+        public async Task Each_author_has_their_own_state_for_the_same_note()
+        {
+            var note = await AddNoteAsync("u-shared");
+            await Save(_author.Id, note.Id, pinned: true, flag: null, at: T1);
+            await Save(_otherAuthor.Id, note.Id, pinned: false, flag: 5, at: T2);
+
+            NewRequestScope();
+            var mine = await _states.GetForAuthorAsync(_author.Id);
+            var theirs = await _states.GetForAuthorAsync(_otherAuthor.Id);
+
+            var m = Assert.Single(mine);
+            Assert.Equal(_author.Id, m.AuthorId);
+            Assert.True(m.IsPinned);
+            Assert.Null(m.FlagColor);
+            Assert.Equal("u-shared", m.NoteUuid);
+            var t = Assert.Single(theirs);
+            Assert.False(t.IsPinned);
+            Assert.Equal(5, t.FlagColor);
+        }
+
+        [Fact]
+        public async Task Saving_a_state_leaves_the_note_row_unchanged()
+        {
+            var note = await AddNoteAsync("u-untouched");
+            NewRequestScope();
+            var before = await DbContext.Set<HmmNoteDao>().AsNoTracking().SingleAsync(n => n.Id == note.Id);
+
+            await Save(_author.Id, note.Id, pinned: true, flag: 1, at: T2);
+
+            NewRequestScope();
+            var after = await DbContext.Set<HmmNoteDao>().AsNoTracking().SingleAsync(n => n.Id == note.Id);
+            Assert.Equal(before.LastModifiedDate, after.LastModifiedDate);
+            Assert.Equal(before.Version, after.Version);
+            Assert.Equal(before.Subject, after.Subject);
+        }
+
+        [Fact]
+        public async Task Hard_deleting_the_note_cascades_its_states()
+        {
+            // The Task 3 purge removes the note through NoteRepository.DeleteAsync;
+            // the state rows must go with it, for every author.
+            var note = await AddNoteAsync("u-purged");
+            await Save(_author.Id, note.Id, pinned: true, flag: null, at: T1);
+            await Save(_otherAuthor.Id, note.Id, pinned: true, flag: 2, at: T1);
+            NewRequestScope();
+
+            await NoteRepository.DeleteAsync(new HmmNoteDao { Id = note.Id, Subject = "stateful" });
+            await DbContext.CommitAsync();
+
+            NewRequestScope();
+            Assert.Equal(0, await DbContext.Set<NoteUserStateDao>().CountAsync());
         }
 
         public async Task InitializeAsync()
         {
-            _author = await GetTestAuthor();
-            _catalog = await GetTestCatalog();
+            if (Ef.Database.IsSqlite())
+            {
+                // Production is PostgreSQL, which always enforces FKs. Make the
+                // in-memory database do the same so the cascade is really tested.
+                await Ef.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
+            }
+
+            _catalog = (await CatalogRepository.AddAsync(new NoteCatalogDao
+            {
+                Name = "state-dal-test-catalog", Schema = "", FormatType = NoteContentFormatType.PlainText,
+                IsDefault = true, Description = "note state test catalog",
+            })).Value;
+            var contact = (await ContactRepository.AddAsync(new ContactDao
+            {
+                Contact = "{ \"FirstName\": \"Note\", \"LastName\": \"State\" }", Description = "state contact", IsActivated = true,
+            })).Value;
+            _author = (await AuthorRepository.AddAsync(new AuthorDao
+            {
+                AccountName = "state-dal-test", ContactInfo = contact, Description = "state author", IsActivated = true,
+            })).Value;
+            _otherAuthor = (await AuthorRepository.AddAsync(new AuthorDao
+            {
+                AccountName = "state-dal-test-other", ContactInfo = contact, Description = "other author", IsActivated = true,
+            })).Value;
+            await DbContext.CommitAsync();
+            NewRequestScope();
+            _states = new NoteUserStateEfRepository(DbContext);
         }
 
         public Task DisposeAsync() => Task.CompletedTask;
@@ -277,124 +298,299 @@ namespace Hmm.Core.Tests
 }
 ```
 
-Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF.Tests/NoteRepositoryPinFlagTests.cs`:
+(No transaction here, unlike some older fixtures: SQLite ignores `PRAGMA foreign_keys` inside a transaction, and every test instance already gets its own in-memory database.)
+
+- [ ] **Step 3: Run the tests to verify they fail**
+
+```bash
+cd /Users/fchy/Projects/hmm
+dotnet test src/Hmm.Core.Dal.EF.Tests --filter "FullyQualifiedName~NoteUserStateRepositoryTests" 2>&1 | tail -5
+```
+Expected: build FAILS with `error CS0246: The type or namespace name 'NoteUserStateEfRepository' could not be found` (and the same for `NoteUserStateDao` / `NoteUserState`).
+
+- [ ] **Step 4: Add the DAO, the domain type and the repository interface**
+
+Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Map/DbEntity/NoteUserStateDao.cs`:
 
 ```csharp
-using Hmm.Core.Map.DbEntity;
-using Hmm.Utility.TestHelp;
-using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
-using Xunit;
+// Ignore Spelling: Dao
 
-namespace Hmm.Core.Dal.EF.Tests
+using System;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Hmm.Core.Map.DbEntity;
+
+/// <summary>
+/// One user's own state about one note — pin and coloured flag (Notes
+/// redesign G14). Deliberately NOT columns on <see cref="HmmNoteDao"/>:
+/// changing a pin or flag is not a note edit, so it never bumps the note's
+/// version or LastModifiedDate and can never overwrite a concurrent text
+/// edit. Key (AuthorId, NoteId); the FK to the note cascades, so a purge
+/// removes every user's state with the note.
+/// </summary>
+/// <remarks>
+/// Like <see cref="AuthorSettingsDao"/>, conflicts resolve by the
+/// <see cref="LastModifiedDate"/> monotonicity guard in the repository, not a
+/// row-version token. Does not derive from <c>Entity</c> (no Id, no
+/// Description), like <see cref="NoteTagRefDao"/>.
+/// </remarks>
+public class NoteUserStateDao
 {
-    public class NoteRepositoryPinFlagTests : DbTestFixtureBase, IAsyncLifetime
+    [Column("authorid")]
+    public int AuthorId { get; set; }
+
+    [Column("noteid")]
+    public int NoteId { get; set; }
+
+    public HmmNoteDao? Note { get; set; }
+
+    [Column("ispinned")]
+    public bool IsPinned { get; set; }
+
+    /// <summary>
+    /// null = unflagged; 0 red, 1 orange, 2 yellow, 3 green, 4 blue,
+    /// 5 purple, 6 grey. Any other value (a newer client) is stored verbatim.
+    /// </summary>
+    [Column("flagcolor")]
+    public int? FlagColor { get; set; }
+
+    /// <summary>The client's last-writer-wins clock for this state (UTC).</summary>
+    [Column("lastmodifieddate")]
+    public DateTime LastModifiedDate { get; set; }
+}
+```
+
+Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Map/DomainEntity/NoteUserState.cs`:
+
+```csharp
+using System;
+
+namespace Hmm.Core.Map.DomainEntity;
+
+/// <summary>
+/// A user's pin + flag for one note (Notes redesign G14). Not part of
+/// <see cref="HmmNote"/>: note DTOs never carry it.
+/// </summary>
+public class NoteUserState
+{
+    public int AuthorId { get; set; }
+
+    public int NoteId { get; set; }
+
+    /// <summary>
+    /// The note's cross-device uuid (read-only projection, filled on reads;
+    /// null for a legacy note that has none yet). Clients key states by it.
+    /// </summary>
+    public string? NoteUuid { get; set; }
+
+    public bool IsPinned { get; set; }
+
+    /// <summary>null = unflagged; unknown values are kept verbatim.</summary>
+    public int? FlagColor { get; set; }
+
+    /// <summary>Per-state last-writer-wins clock (UTC).</summary>
+    public DateTime LastModifiedDate { get; set; }
+}
+```
+
+Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Map/Repositories/INoteUserStateRepository.cs`:
+
+```csharp
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Hmm.Core.Map.DomainEntity;
+
+namespace Hmm.Core.Map.Repositories
+{
+    /// <summary>
+    /// Per-user note state (pins + flags, Notes redesign G14). Callers pass
+    /// the signed-in author's id; the repository never decides who the
+    /// caller is, and never touches the note row.
+    /// </summary>
+    public interface INoteUserStateRepository
     {
-        private AuthorDao _author;
-        private NoteCatalogDao _catalog;
+        /// <summary>Every state row of <paramref name="authorId"/>, ordered by note id.</summary>
+        Task<IReadOnlyList<NoteUserState>> GetForAuthorAsync(int authorId);
 
-        [Fact]
-        public async Task New_note_defaults_to_unpinned_and_unflagged()
-        {
-            var note = new HmmNoteDao { Author = _author, Catalog = _catalog, Subject = "plain", Content = "c" };
-            await NoteRepository.AddAsync(note);
-            await DbContext.CommitAsync();
-            ((DbContext)DbContext).ChangeTracker.Clear();
-
-            var loaded = (await NoteRepository.GetEntityAsync(note.Id)).Value;
-            Assert.False(loaded.IsPinned);
-            Assert.Null(loaded.FlagColor);
-        }
-
-        [Fact]
-        public async Task Pin_and_flag_round_trip_through_the_database()
-        {
-            var note = new HmmNoteDao
-            {
-                Author = _author, Catalog = _catalog, Subject = "flagged", Content = "c",
-                IsPinned = true, FlagColor = 6,
-            };
-            await NoteRepository.AddAsync(note);
-            await DbContext.CommitAsync();
-            ((DbContext)DbContext).ChangeTracker.Clear();
-
-            var loaded = (await NoteRepository.GetEntityAsync(note.Id)).Value;
-            Assert.True(loaded.IsPinned);
-            Assert.Equal(6, loaded.FlagColor);
-        }
-
-        public async Task InitializeAsync()
-        {
-            Transaction = await ((DbContext)DbContext).Database.BeginTransactionAsync();
-            var catalog = new NoteCatalogDao
-            {
-                Name = "pinflag-dal-test-catalog", Schema = "", FormatType = NoteContentFormatType.PlainText,
-                IsDefault = true, Description = "pin/flag test catalog",
-            };
-            _catalog = (await CatalogRepository.AddAsync(catalog)).Value;
-            var contact = (await ContactRepository.AddAsync(new ContactDao
-            {
-                Contact = "{ \"FirstName\": \"Pin\", \"LastName\": \"Flag\" }", Description = "pin/flag contact", IsActivated = true,
-            })).Value;
-            _author = (await AuthorRepository.AddAsync(new AuthorDao
-            {
-                AccountName = "pinflag-dal-test", ContactInfo = contact, Description = "pin/flag author", IsActivated = true,
-            })).Value;
-            await DbContext.CommitAsync();
-        }
-
-        public async Task DisposeAsync()
-        {
-            await Transaction.RollbackAsync();
-            await Transaction.DisposeAsync();
-        }
+        /// <summary>
+        /// Upsert by (AuthorId, NoteId) with last-writer-wins: the first row is
+        /// inserted; a stored row is replaced only when
+        /// <paramref name="incoming"/>.LastModifiedDate is strictly newer
+        /// (equal or older keeps the stored row). Commits. Returns the stored
+        /// row after the guard — the caller's own write, or the newer one that
+        /// beat it.
+        /// </summary>
+        Task<NoteUserState> SaveIfNewerAsync(NoteUserState incoming);
     }
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they fail**
+- [ ] **Step 5: Add the EF implementation**
 
-```bash
-cd /Users/fchy/Projects/hmm
-dotnet test src/Hmm.ServiceApi.Core.Tests --filter "FullyQualifiedName~ApiNotePinFlagMappingTests" 2>&1 | tail -5
+Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/Repositories/NoteUserStateEfRepository.cs`:
+
+```csharp
+using Hmm.Core.Map.DbEntity;
+using Hmm.Core.Map.DomainEntity;
+using Hmm.Core.Map.Repositories;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace Hmm.Core.Dal.EF.Repositories
+{
+    public class NoteUserStateEfRepository : INoteUserStateRepository
+    {
+        private readonly IHmmDataContext _dataContext;
+
+        public NoteUserStateEfRepository(IHmmDataContext dataContext)
+        {
+            ArgumentNullException.ThrowIfNull(dataContext);
+            _dataContext = dataContext;
+        }
+
+        public async Task<IReadOnlyList<NoteUserState>> GetForAuthorAsync(int authorId)
+        {
+            return await _dataContext.Set<NoteUserStateDao>()
+                .AsNoTracking()
+                .Where(s => s.AuthorId == authorId)
+                .OrderBy(s => s.NoteId)
+                .Select(s => new NoteUserState
+                {
+                    AuthorId = s.AuthorId,
+                    NoteId = s.NoteId,
+                    NoteUuid = s.Note!.Uuid,
+                    IsPinned = s.IsPinned,
+                    FlagColor = s.FlagColor,
+                    LastModifiedDate = s.LastModifiedDate,
+                })
+                .ToListAsync();
+        }
+
+        public async Task<NoteUserState> SaveIfNewerAsync(NoteUserState incoming)
+        {
+            ArgumentNullException.ThrowIfNull(incoming);
+            var stamp = ToUtc(incoming.LastModifiedDate);
+
+            var stored = await _dataContext.Set<NoteUserStateDao>()
+                .FirstOrDefaultAsync(s => s.AuthorId == incoming.AuthorId && s.NoteId == incoming.NoteId);
+            if (stored == null)
+            {
+                stored = new NoteUserStateDao
+                {
+                    AuthorId = incoming.AuthorId,
+                    NoteId = incoming.NoteId,
+                    IsPinned = incoming.IsPinned,
+                    FlagColor = incoming.FlagColor,
+                    LastModifiedDate = stamp,
+                };
+                _dataContext.Set<NoteUserStateDao>().Add(stored);
+                await _dataContext.CommitAsync();
+            }
+            else if (stamp > stored.LastModifiedDate)
+            {
+                stored.IsPinned = incoming.IsPinned;
+                stored.FlagColor = incoming.FlagColor;
+                stored.LastModifiedDate = stamp;
+                await _dataContext.CommitAsync();
+            }
+            // else: a stale (or equal) write is a no-op — the stored row wins.
+
+            var uuid = await _dataContext.Set<HmmNoteDao>()
+                .AsNoTracking()
+                .Where(n => n.Id == stored.NoteId)
+                .Select(n => n.Uuid)
+                .FirstOrDefaultAsync();
+
+            return new NoteUserState
+            {
+                AuthorId = stored.AuthorId,
+                NoteId = stored.NoteId,
+                NoteUuid = uuid,
+                IsPinned = stored.IsPinned,
+                FlagColor = stored.FlagColor,
+                LastModifiedDate = stored.LastModifiedDate,
+            };
+        }
+
+        // Npgsql refuses a non-UTC DateTime for a timestamptz column, and the
+        // comparison above must be instant-to-instant.
+        private static DateTime ToUtc(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
+    }
+}
 ```
-Expected: build FAILS with `error CS0117: 'HmmNote' does not contain a definition for 'IsPinned'` (and the same for `FlagColor`, `FlagColorSpecified`).
 
-- [ ] **Step 5: Add the domain and DAO fields**
+- [ ] **Step 6: Configure the model**
 
-In `HmmNote.cs`, after `public string? LocationLabel { get; set; }` add:
+In `HmmDataContext.cs`:
+
+1. In `ForeignKeyNames`, after `FK_AuthorSettings_Authors`, add:
+
+```csharp
+        public const string FK_NoteUserStates_Notes = "fk_noteuserstates_notes";
+        public const string FK_NoteUserStates_Authors = "fk_noteuserstates_authors";
+```
+
+2. In `IndexNames`, after `UQ_AuthorSettings_AuthorId`, add:
+
+```csharp
+        public const string IX_NoteUserStates_NoteId = "ix_noteuserstates_noteid";
+```
+
+3. After `public DbSet<AuthorSettingsDao> AuthorSettings { get; set; }` add:
 
 ```csharp
 
-        /// <summary>
-        /// Pinned notes list first (Notes redesign slice 1). Default false.
-        /// </summary>
-        public bool IsPinned { get; set; }
-
-        /// <summary>
-        /// Coloured flag: null = unflagged; 0 red, 1 orange, 2 yellow,
-        /// 3 green, 4 blue, 5 purple, 6 grey. Any other value (written by a
-        /// newer client) is stored verbatim; clients show it as grey.
-        /// </summary>
-        public int? FlagColor { get; set; }
+        public DbSet<NoteUserStateDao> NoteUserStates { get; set; }
 ```
 
-In `HmmNoteDao.cs`, after the `LocationLabel` property add:
+4. At the end of `OnModelCreating` (after the `AuthorSettingsDao` unique index), add:
 
 ```csharp
 
-        [Column("ispinned")]
-        public bool IsPinned { get; set; }
+            // ============================================================
+            // NoteUserStateDao Configuration (Notes redesign G14)
+            // ============================================================
+            // Pins + flags: one row per (author, note), never a note edit.
+            // The default `false` for ispinned lives in the migration only
+            // (a model-level HasDefaultValue on a bool makes EF warn that a
+            // false value would always be replaced by the default).
+            modelBuilder.Entity<NoteUserStateDao>().ToTable("noteuserstates");
+            modelBuilder.Entity<NoteUserStateDao>().HasKey(s => new { s.AuthorId, s.NoteId });
 
-        [Column("flagcolor")]
-        public int? FlagColor { get; set; }
+            // Cascade: purging a note removes every user's state for it.
+            modelBuilder.Entity<NoteUserStateDao>()
+                .HasOne(s => s.Note)
+                .WithMany()
+                .HasForeignKey(s => s.NoteId)
+                .HasConstraintName(ForeignKeyNames.FK_NoteUserStates_Notes)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<NoteUserStateDao>()
+                .HasOne<AuthorDao>()
+                .WithMany()
+                .HasForeignKey(s => s.AuthorId)
+                .HasConstraintName(ForeignKeyNames.FK_NoteUserStates_Authors)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<NoteUserStateDao>()
+                .HasIndex(s => s.NoteId)
+                .HasDatabaseName(IndexNames.IX_NoteUserStates_NoteId);
 ```
 
-- [ ] **Step 6: Add the hand-written migration and update the snapshot**
+- [ ] **Step 7: Add the hand-written migration and update the snapshot**
 
-Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/Migrations/20261018000000_AddNotePinAndFlagColumns.cs`:
+Create `/Users/fchy/Projects/hmm/src/Hmm.Core.Dal.EF/Migrations/20261018000000_AddNoteUserStatesTable.cs`:
 
 ```csharp
+using System;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -403,213 +599,189 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Hmm.Core.Dal.EF.Migrations
 {
     [DbContext(typeof(HmmDataContext))]
-    [Migration("20261018000000_AddNotePinAndFlagColumns")]
+    [Migration("20261018000000_AddNoteUserStatesTable")]
     /// <inheritdoc />
-    public partial class AddNotePinAndFlagColumns : Migration
+    public partial class AddNoteUserStatesTable : Migration
     {
         // Hand-written for the same cross-provider drift reason as the
-        // earlier migrations. Notes redesign slice 1: pin (default false,
-        // so every existing note stays unpinned) and a nullable flag colour
-        // (null = unflagged). No backfill.
+        // earlier migrations. Notes redesign G14: per-user pin + flag in
+        // their own table — no change to `notes`. Existing notes simply have
+        // no row (unpinned, unflagged). No backfill.
 
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<bool>(
-                name: "ispinned", table: "notes",
-                type: "boolean", nullable: false, defaultValue: false);
-            migrationBuilder.AddColumn<int>(
-                name: "flagcolor", table: "notes",
-                type: "integer", nullable: true);
+            migrationBuilder.CreateTable(
+                name: "noteuserstates",
+                columns: table => new
+                {
+                    authorid = table.Column<int>(type: "integer", nullable: false),
+                    noteid = table.Column<int>(type: "integer", nullable: false),
+                    ispinned = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    flagcolor = table.Column<int>(type: "integer", nullable: true),
+                    lastmodifieddate = table.Column<DateTime>(
+                        type: "timestamp with time zone", nullable: false),
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_noteuserstates", x => new { x.authorid, x.noteid });
+                    table.ForeignKey(
+                        name: "fk_noteuserstates_authors",
+                        column: x => x.authorid,
+                        principalTable: "authors",
+                        principalColumn: "id");
+                    table.ForeignKey(
+                        name: "fk_noteuserstates_notes",
+                        column: x => x.noteid,
+                        principalTable: "notes",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_noteuserstates_noteid",
+                table: "noteuserstates",
+                column: "noteid");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(name: "ispinned", table: "notes");
-            migrationBuilder.DropColumn(name: "flagcolor", table: "notes");
+            migrationBuilder.DropTable(name: "noteuserstates");
         }
     }
 }
 ```
 
-In `HmmDataContextModelSnapshot.cs`, inside `modelBuilder.Entity("Hmm.Core.Map.DbEntity.HmmNoteDao", b => {` (the first one, ~line 151), insert after the `Description` property block:
+In `HmmDataContextModelSnapshot.cs`, after the closing `});` of the first `modelBuilder.Entity("Hmm.Core.Map.DbEntity.NoteTagRefDao", b =>` block (the property block, ending with `b.ToTable("notetagrefs", (string)null);`), insert:
 
 ```csharp
+
+            modelBuilder.Entity("Hmm.Core.Map.DbEntity.NoteUserStateDao", b =>
+                {
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("authorid");
+
+                    b.Property<int>("NoteId")
+                        .HasColumnType("integer")
+                        .HasColumnName("noteid");
 
                     b.Property<int?>("FlagColor")
                         .HasColumnType("integer")
                         .HasColumnName("flagcolor");
-```
-
-and after the `IsDeleted` property block:
-
-```csharp
 
                     b.Property<bool>("IsPinned")
                         .HasColumnType("boolean")
                         .HasColumnName("ispinned");
+
+                    b.Property<DateTime>("LastModifiedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lastmodifieddate");
+
+                    b.HasKey("AuthorId", "NoteId");
+
+                    b.HasIndex("NoteId")
+                        .HasDatabaseName("ix_noteuserstates_noteid");
+
+                    b.ToTable("noteuserstates", (string)null);
+                });
 ```
 
-(Startup logs `PendingModelChangesWarning` rather than failing — `Startup.cs` ~line 183 — but keep the snapshot exact anyway.)
-
-- [ ] **Step 7: Add the DTO fields**
-
-In `ApiNote.cs`, after `public string? LocationLabel { get; set; }` add:
+and after the closing `});` of the second `NoteTagRefDao` block (the relationships, ending with `b.Navigation("Tag");`), insert:
 
 ```csharp
 
-        /// <summary>Pinned notes list first.</summary>
-        public bool IsPinned { get; set; }
-
-        /// <summary>
-        /// null = unflagged; 0 red … 6 grey. Unknown values are returned
-        /// verbatim (a newer client wrote them).
-        /// </summary>
-        public int? FlagColor { get; set; }
-```
-
-In `ApiNoteForCreate.cs`, after `public string? LocationLabel { get; set; }` add:
-
-```csharp
-
-        public bool IsPinned { get; set; }
-
-        public int? FlagColor { get; set; }
-```
-
-In `ApiNoteForUpdate.cs`, add `using Newtonsoft.Json;` to the usings and, after `public string? LocationLabel { get; set; }`, add:
-
-```csharp
-
-        /// <summary>
-        /// Replacement pin. Null (or an absent key) ⇒ keep the stored value,
-        /// so a client that predates pins never unpins a note.
-        /// </summary>
-        public bool? IsPinned { get; set; }
-
-        private int? _flagColor;
-
-        /// <summary>
-        /// Replacement flag. This DTO is mapped ONTO the stored note, so
-        /// presence matters: an absent key keeps the stored flag
-        /// (<see cref="FlagColorSpecified"/> stays false) while
-        /// "flagColor": null clears it. Newtonsoft calls this setter only for
-        /// a key that is present — null included. Same pattern as
-        /// <c>ApiCheatsheetForUpdate.Style</c>.
-        /// </summary>
-        public int? FlagColor
-        {
-            get => _flagColor;
-            set
-            {
-                _flagColor = value;
-                FlagColorSpecified = true;
-            }
-        }
-
-        /// <summary>True when the request body carried a "flagColor" key at all.</summary>
-        [JsonIgnore]
-        public bool FlagColorSpecified { get; private set; }
-```
-
-- [ ] **Step 8: Map "absent keeps" in the API profile**
-
-In `ApiMappingProfile.cs`, replace the `CreateMap<ApiNoteForUpdate, Core.Map.DomainEntity.HmmNote>()` chain's last line
-
-```csharp
-                .ForMember(d => d.LocationLabel,
-                    opt => opt.Condition(s => s.LocationLabel != null));
-```
-
-with
-
-```csharp
-                .ForMember(d => d.LocationLabel,
-                    opt => opt.Condition(s => s.LocationLabel != null))
-                // Notes redesign slice 1: an omitted pin keeps the stored
-                // value; an omitted flag keeps it, an explicit null clears it.
-                .ForMember(d => d.IsPinned, opt =>
+            modelBuilder.Entity("Hmm.Core.Map.DbEntity.NoteUserStateDao", b =>
                 {
-                    opt.Condition(s => s.IsPinned.HasValue);
-                    opt.MapFrom(s => s.IsPinned.GetValueOrDefault());
-                })
-                .ForMember(d => d.FlagColor,
-                    opt => opt.Condition(s => s.FlagColorSpecified));
+                    b.HasOne("Hmm.Core.Map.DbEntity.AuthorDao", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_noteuserstates_authors");
+
+                    b.HasOne("Hmm.Core.Map.DbEntity.HmmNoteDao", "Note")
+                        .WithMany()
+                        .HasForeignKey("NoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_noteuserstates_notes");
+
+                    b.Navigation("Note");
+                });
 ```
 
-- [ ] **Step 9: Teach the test fixture's clone the new columns**
+(Startup logs `PendingModelChangesWarning` rather than failing — `Startup.cs` ~line 183 — but keep the snapshot exact anyway. The SQLite test database is built from the model by `EnsureCreated()`, so the tests exercise the model configuration; PostgreSQL runs the migration.)
 
-In `SampleDataGenerator.cs` `Clone`, in the `targetNote == null` branch add after `IsDeleted = source.IsDeleted,`:
-
-```csharp
-                IsPinned = source.IsPinned,
-                FlagColor = source.FlagColor,
-```
-
-and in the `else` branch add after `targetNote.IsDeleted = source.IsDeleted;`:
-
-```csharp
-            targetNote.IsPinned = source.IsPinned;
-            targetNote.FlagColor = source.FlagColor;
-```
-
-- [ ] **Step 10: Run the new tests and the full suites**
+- [ ] **Step 8: Run the new tests and the full suites**
 
 ```bash
 cd /Users/fchy/Projects/hmm
-dotnet test src/Hmm.ServiceApi.Core.Tests --filter "FullyQualifiedName~ApiNotePinFlagMappingTests" 2>&1 | tail -1   # Passed: 7
-dotnet test src/Hmm.Core.Tests --filter "FullyQualifiedName~HmmNoteManagerPinFlagTests" 2>&1 | tail -1           # Passed: 2
-dotnet test src/Hmm.Core.Dal.EF.Tests --filter "FullyQualifiedName~NoteRepositoryPinFlagTests" 2>&1 | tail -1     # Passed: 2
-dotnet test src/Hmm.Core.Tests 2>&1 | tail -1             # Passed: 235
-dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1  # Passed: 447
-dotnet test src/Hmm.Core.Dal.EF.Tests 2>&1 | tail -1      # Passed: 70
+dotnet test src/Hmm.Core.Dal.EF.Tests --filter "FullyQualifiedName~NoteUserStateRepositoryTests" 2>&1 | tail -1   # Passed: 8
+dotnet test src/Hmm.Core.Dal.EF.Tests 2>&1 | tail -1      # Passed: 76
+dotnet test src/Hmm.Core.Tests 2>&1 | tail -1             # Passed: 233
+dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1  # Passed: 440
 ```
+If only `Hard_deleting_the_note_cascades_its_states` fails with a row left over, the FK is not configured with `DeleteBehavior.Cascade` (Step 6) — fix the model, not the test.
 
-- [ ] **Step 11: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 cd /Users/fchy/Projects/hmm
-git add src/Hmm.Core.Map/DomainEntity/HmmNote.cs src/Hmm.Core.Map/DbEntity/HmmNoteDao.cs \
-  src/Hmm.Core.Dal.EF/Migrations/20261018000000_AddNotePinAndFlagColumns.cs \
+git add src/Hmm.Core.Map/DbEntity/NoteUserStateDao.cs src/Hmm.Core.Map/DomainEntity/NoteUserState.cs \
+  src/Hmm.Core.Map/Repositories/INoteUserStateRepository.cs \
+  src/Hmm.Core.Dal.EF/Repositories/NoteUserStateEfRepository.cs src/Hmm.Core.Dal.EF/HmmDataContext.cs \
+  src/Hmm.Core.Dal.EF/Migrations/20261018000000_AddNoteUserStatesTable.cs \
   src/Hmm.Core.Dal.EF/Migrations/HmmDataContextModelSnapshot.cs \
-  src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNote.cs src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNoteForCreate.cs \
-  src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNoteForUpdate.cs src/Hmm.ServiceApi.DtoEntity/Profiles/ApiMappingProfile.cs \
-  src/Hmm.Utility.TestHelp/SampleDataGenerator.cs \
-  src/Hmm.ServiceApi.Core.Tests/ApiNotePinFlagMappingTests.cs src/Hmm.Core.Tests/HmmNoteManagerPinFlagTests.cs \
-  src/Hmm.Core.Dal.EF.Tests/NoteRepositoryPinFlagTests.cs
+  src/Hmm.Core.Dal.EF.Tests/NoteUserStateRepositoryTests.cs
 git status --short   # CLAUDE.md must still show " M" (unstaged)
 git commit -m "$(cat <<'MSG'
-feat(notes): IsPinned + FlagColor columns with absent-keeps PUT semantics
+feat(notes): per-user note state table (pins + flags) with newer-wins upsert
 
-Additive migration (ispinned default false, flagcolor nullable). PUT that
-omits isPinned/flagColor keeps the stored value; explicit flagColor null
-clears it (FlagColorSpecified, same pattern as cheatsheet Style).
+New noteuserstates table, key (authorid, noteid), FK to the note with
+cascade delete so a purge removes every user's state. Pin/flag are never a
+note edit: the notes table and note DTOs are unchanged.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 MSG
 )"
 ```
 
-### Task 2: Server — `?pinned=` and `?flag=` list filters
+### Task 2: Server — `GET /v1/notes/states` and `PUT /v1/notes/{id}/state` (caller-only)
+
+Who the caller is: the existing note endpoints do not check ownership at all; the self-scoped endpoints (`ProfileSettingsController`, `NoteVaultController`, `MigrationController`) resolve the signed-in author with `ICurrentUserAuthorProvider.GetCurrentUserAuthorAsync()` (JWT subject → author row, `src/Hmm.ServiceApi/Services/CurrentUserAuthorProvider.cs`). The state endpoints do the same. This task introduces the owner check `ResolveOwnerAsync` that Tasks 3 and 4 reuse: a missing note and another author's note both answer the same 404, so ids are never probed. Soft-deleted notes are allowed (soft delete leaves state alone; a restored note comes back pinned).
+
+Routing: `states` cannot collide with `GET /v1/notes/{id:int}` (int constraint) or `by-uuid/{uuid}`. An old server answers `GET /v1/notes/states` with 404 — the client's "server too old" signal (Task 7).
 
 **Files:**
-- Modify: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi/Areas/HmmNoteService/Controllers/HmmNoteController.cs` (`Get` collection action, lines 54–79; usings lines 1–17)
-- Test: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/NoteControllerPinFlagFilterTests.cs` (create)
+- Create: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNoteState.cs`
+- Create: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNoteStateForUpdate.cs`
+- Modify: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi/Areas/HmmNoteService/Controllers/HmmNoteController.cs` (usings lines 1–17; new actions + `ResolveOwnerAsync` + `ToApiState` before the closing brace of the class, line 415)
+- Modify: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi/Startup.cs` (usings; DI after `.AddScoped<IRepository<AuthorSettingsDao>, AuthorSettingsEfRepository>()`, line 203)
+- Test: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/NoteControllerStateTests.cs` (create)
 
 **Interfaces:**
-- Consumes: `IHmmNoteManager.GetNotesAsync(Expression<Func<HmmNote,bool>> query, bool includeDeleted, ResourceCollectionParameters)`, `PredicateBuilder.And` (`Hmm.Utility.Misc`).
-- Produces: `public async Task<IActionResult> Get([FromQuery] ResourceCollectionParameters resourceCollectionParameters, [FromQuery] bool includeDeleted = false, [FromQuery] bool? pinned = null, [FromQuery] int? flag = null)` — `GET /v1/notes?pinned=true|false&flag=<int>` (exact colour); both optional, combinable, AND-ed with the existing soft-delete filter.
+- Consumes: `INoteUserStateRepository`, `NoteUserState` (Task 1), `ICurrentUserAuthorProvider.GetCurrentUserAuthorAsync()`, `IHmmNoteManager.GetNoteByIdAsync(int id, bool includeDelete)`.
+- Produces (C#):
+  - `ApiNoteState { int NoteId; string? NoteUuid; bool IsPinned; int? FlagColor; DateTime LastModifiedDate }` — wire JSON (camelCase): `{"noteId", "noteUuid", "isPinned", "flagColor", "lastModifiedDate"}`.
+  - `ApiNoteStateForUpdate { bool IsPinned; int? FlagColor; DateTime? LastModifiedDate }` — wire `{"isPinned", "flagColor", "lastModifiedDate"}`.
+  - `GET /v1/notes/states` → 200 `ApiNoteState[]` (the caller's rows only) | 401.
+  - `PUT /v1/notes/{id}/state` → 200 `ApiNoteState` (the stored row after newer-wins; may be a newer row that beat the request) | 400 (no body / no `lastModifiedDate`) | 401 | 404 (missing note or another author's).
+  - `private async Task<(IActionResult Error, int AuthorId)> ResolveOwnerAsync(int id, ICurrentUserAuthorProvider authorProvider)` in `HmmNoteController` (reused by Tasks 3 and 4).
+  - DI: `INoteUserStateRepository → NoteUserStateEfRepository` (scoped).
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Write the failing controller tests**
 
-Create `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/NoteControllerPinFlagFilterTests.cs`:
+Create `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/NoteControllerStateTests.cs`:
 
 ```csharp
+using Hmm.Core;
 using Hmm.Core.DefaultManager;
 using Hmm.Core.Map.DomainEntity;
+using Hmm.Core.Map.Repositories;
 using Hmm.ServiceApi.Areas.HmmNoteService.Controllers;
-using Hmm.Utility.Dal.Query;
+using Hmm.ServiceApi.DtoEntity.HmmNote;
 using Hmm.Utility.Misc;
 using Hmm.Utility.TestHelp;
 using Hmm.Utility.Validation;
@@ -620,12 +792,20 @@ using Moq;
 
 namespace Hmm.ServiceApi.Core.Tests
 {
-    public class NoteControllerPinFlagFilterTests : CoreTestFixtureBase
+    /// <summary>
+    /// Notes redesign G14: pin + flag are the caller's own state, read and
+    /// written through dedicated endpoints — never through the note.
+    /// </summary>
+    public class NoteControllerStateTests : CoreTestFixtureBase
     {
+        private static readonly DateTime T1 = new(2026, 10, 18, 9, 0, 0, DateTimeKind.Utc);
+
         private readonly HmmNoteManager _noteManager;
         private readonly HmmNoteController _controller;
+        private readonly Mock<ICurrentUserAuthorProvider> _authors = new();
+        private readonly Mock<INoteUserStateRepository> _states = new();
 
-        public NoteControllerPinFlagFilterTests()
+        public NoteControllerStateTests()
         {
             var validator = new Mock<IHmmValidator<HmmNote>>();
             validator.Setup(v => v.ValidateEntityAsync(It.IsAny<HmmNote>()))
@@ -643,77 +823,153 @@ namespace Hmm.ServiceApi.Core.Tests
             ConfigureControllerForValidation(_controller);
         }
 
-        private async Task CreateNoteAsync(string subject, bool isPinned, int? flag)
+        private void SignInAs(Author author) =>
+            _authors.Setup(a => a.GetCurrentUserAuthorAsync()).ReturnsAsync(ProcessingResult<Author>.Ok(author));
+
+        private async Task<(Author Owner, HmmNote Note)> CreateOwnedNoteAsync(bool deleted = false)
         {
-            var result = await _noteManager.CreateAsync(new HmmNote
+            var owner = await GetTestAuthor();
+            var created = await _noteManager.CreateAsync(new HmmNote
             {
-                Author = await GetTestAuthor(), Catalog = await GetTestCatalog(),
-                Subject = subject, Content = "c", IsPinned = isPinned, FlagColor = flag,
+                Author = owner, Catalog = await GetTestCatalog(), Subject = "stateful", Content = "c",
             });
-            Assert.True(result.Success);
+            if (deleted) Assert.True(await _noteManager.DeleteAsync(created.Value.Id));
+            SignInAs(owner);
+            return (owner, created.Value);
         }
 
-        private static List<HmmNote> Notes(IActionResult result)
+        private static ApiNoteStateForUpdate Body(bool pinned, int? flag, DateTime? at) =>
+            new() { IsPinned = pinned, FlagColor = flag, LastModifiedDate = at };
+
+        [Fact]
+        public async Task GetStates_returns_only_the_callers_rows()
         {
+            var (owner, _) = await CreateOwnedNoteAsync();
+            _states.Setup(s => s.GetForAuthorAsync(owner.Id)).ReturnsAsync(new List<NoteUserState>
+            {
+                new() { AuthorId = owner.Id, NoteId = 3, NoteUuid = "u3", IsPinned = true, FlagColor = 42, LastModifiedDate = T1 },
+            });
+
+            var result = await _controller.GetStates(_states.Object, _authors.Object);
+
             var ok = Assert.IsType<OkObjectResult>(result);
-            return Assert.IsType<PageList<HmmNote>>(ok.Value).ToList();
+            var state = Assert.Single(Assert.IsAssignableFrom<IEnumerable<ApiNoteState>>(ok.Value));
+            Assert.Equal(3, state.NoteId);
+            Assert.Equal("u3", state.NoteUuid);
+            Assert.True(state.IsPinned);
+            Assert.Equal(42, state.FlagColor);
+            Assert.Equal(T1, state.LastModifiedDate);
+            _states.Verify(s => s.GetForAuthorAsync(It.Is<int>(id => id != owner.Id)), Times.Never);
         }
 
         [Fact]
-        public async Task Get_with_pinned_true_returns_only_pinned_notes()
+        public async Task GetStates_without_a_signed_in_author_is_Unauthorized()
         {
-            await CreateNoteAsync("pinned one", isPinned: true, flag: null);
-            await CreateNoteAsync("flagged red", isPinned: false, flag: 0);
+            _authors.Setup(a => a.GetCurrentUserAuthorAsync())
+                .ReturnsAsync(ProcessingResult<Author>.Fail("no user", ErrorCategory.Unauthorized));
 
-            var notes = Notes(await _controller.Get(new ResourceCollectionParameters(), pinned: true));
+            var result = await _controller.GetStates(_states.Object, _authors.Object);
 
-            Assert.Equal(new[] { "pinned one" }, notes.Select(n => n.Subject));
+            Assert.IsType<UnauthorizedResult>(result);
         }
 
         [Fact]
-        public async Task Get_with_pinned_false_excludes_pinned_notes()
+        public async Task PutState_saves_for_the_caller_and_returns_the_stored_row()
         {
-            await CreateNoteAsync("pinned one", isPinned: true, flag: null);
-            await CreateNoteAsync("flagged red", isPinned: false, flag: 0);
+            var (owner, note) = await CreateOwnedNoteAsync();
+            _states.Setup(s => s.SaveIfNewerAsync(It.IsAny<NoteUserState>()))
+                .ReturnsAsync((NoteUserState s) => new NoteUserState
+                {
+                    AuthorId = s.AuthorId, NoteId = s.NoteId, NoteUuid = "u", IsPinned = s.IsPinned,
+                    FlagColor = s.FlagColor, LastModifiedDate = s.LastModifiedDate,
+                });
 
-            var notes = Notes(await _controller.Get(new ResourceCollectionParameters(), pinned: false));
+            var result = await _controller.PutState(note.Id, Body(true, 4, T1), _states.Object, _authors.Object);
 
-            Assert.DoesNotContain(notes, n => n.IsPinned);
-            Assert.Contains(notes, n => n.Subject == "flagged red");
-            Assert.Equal(6, notes.Count); // 5 seeded + "flagged red"
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var stored = Assert.IsType<ApiNoteState>(ok.Value);
+            Assert.True(stored.IsPinned);
+            Assert.Equal(4, stored.FlagColor);
+            _states.Verify(s => s.SaveIfNewerAsync(It.Is<NoteUserState>(x =>
+                x.AuthorId == owner.Id && x.NoteId == note.Id && x.IsPinned && x.FlagColor == 4
+                && x.LastModifiedDate == T1)), Times.Once);
         }
 
         [Fact]
-        public async Task Get_with_flag_returns_that_colour_only()
+        public async Task PutState_returns_the_newer_stored_row_when_the_request_lost()
         {
-            await CreateNoteAsync("red", isPinned: false, flag: 0);
-            await CreateNoteAsync("blue", isPinned: false, flag: 4);
+            var (owner, note) = await CreateOwnedNoteAsync();
+            _states.Setup(s => s.SaveIfNewerAsync(It.IsAny<NoteUserState>()))
+                .ReturnsAsync(new NoteUserState
+                {
+                    AuthorId = owner.Id, NoteId = note.Id, IsPinned = true, FlagColor = null,
+                    LastModifiedDate = T1.AddHours(1),
+                });
 
-            var notes = Notes(await _controller.Get(new ResourceCollectionParameters(), flag: 4));
+            var result = await _controller.PutState(note.Id, Body(false, null, T1), _states.Object, _authors.Object);
 
-            Assert.Equal(new[] { "blue" }, notes.Select(n => n.Subject));
+            var stored = Assert.IsType<ApiNoteState>(Assert.IsType<OkObjectResult>(result).Value);
+            Assert.True(stored.IsPinned, "the client learns it lost and keeps the newer state");
+            Assert.Equal(T1.AddHours(1), stored.LastModifiedDate);
         }
 
         [Fact]
-        public async Task Get_combines_pinned_and_flag()
+        public async Task PutState_on_another_authors_note_is_NotFound_and_saves_nothing()
         {
-            await CreateNoteAsync("pinned blue", isPinned: true, flag: 4);
-            await CreateNoteAsync("blue", isPinned: false, flag: 4);
-            await CreateNoteAsync("pinned", isPinned: true, flag: null);
+            var (_, note) = await CreateOwnedNoteAsync();
+            SignInAs(new Author { Id = 999, AccountName = "intruder" });
 
-            var notes = Notes(await _controller.Get(new ResourceCollectionParameters(), pinned: true, flag: 4));
+            var result = await _controller.PutState(note.Id, Body(true, 0, T1), _states.Object, _authors.Object);
 
-            Assert.Equal(new[] { "pinned blue" }, notes.Select(n => n.Subject));
+            Assert.IsType<NotFoundObjectResult>(result);
+            _states.Verify(s => s.SaveIfNewerAsync(It.IsAny<NoteUserState>()), Times.Never);
         }
 
         [Fact]
-        public async Task Get_without_filters_is_unchanged()
+        public async Task PutState_on_an_unknown_note_is_NotFound()
         {
-            await CreateNoteAsync("pinned", isPinned: true, flag: 2);
+            SignInAs(await GetTestAuthor());
 
-            var notes = Notes(await _controller.Get(new ResourceCollectionParameters()));
+            var result = await _controller.PutState(9999, Body(true, null, T1), _states.Object, _authors.Object);
 
-            Assert.Equal(6, notes.Count);
+            Assert.IsType<NotFoundObjectResult>(result);
+            _states.Verify(s => s.SaveIfNewerAsync(It.IsAny<NoteUserState>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task PutState_without_lastModifiedDate_is_BadRequest()
+        {
+            var (_, note) = await CreateOwnedNoteAsync();
+
+            var result = await _controller.PutState(note.Id, Body(true, null, null), _states.Object, _authors.Object);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+            _states.Verify(s => s.SaveIfNewerAsync(It.IsAny<NoteUserState>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task PutState_on_a_soft_deleted_note_is_allowed()
+        {
+            // Soft delete leaves state alone: a restored note comes back pinned.
+            var (_, note) = await CreateOwnedNoteAsync(deleted: true);
+            _states.Setup(s => s.SaveIfNewerAsync(It.IsAny<NoteUserState>()))
+                .ReturnsAsync((NoteUserState s) => s);
+
+            var result = await _controller.PutState(note.Id, Body(true, null, T1), _states.Object, _authors.Object);
+
+            Assert.IsType<OkObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task PutState_without_a_signed_in_author_is_Unauthorized()
+        {
+            var (_, note) = await CreateOwnedNoteAsync();
+            _authors.Setup(a => a.GetCurrentUserAuthorAsync())
+                .ReturnsAsync(ProcessingResult<Author>.Fail("no user", ErrorCategory.Unauthorized));
+
+            var result = await _controller.PutState(note.Id, Body(true, null, T1), _states.Object, _authors.Object);
+
+            Assert.IsType<UnauthorizedResult>(result);
         }
     }
 }
@@ -723,71 +979,219 @@ namespace Hmm.ServiceApi.Core.Tests
 
 ```bash
 cd /Users/fchy/Projects/hmm
-dotnet test src/Hmm.ServiceApi.Core.Tests --filter "FullyQualifiedName~NoteControllerPinFlagFilterTests" 2>&1 | tail -5
+dotnet test src/Hmm.ServiceApi.Core.Tests --filter "FullyQualifiedName~NoteControllerStateTests" 2>&1 | tail -5
 ```
-Expected: build FAILS with `error CS1739: The best overload for 'Get' does not have a parameter named 'pinned'`.
+Expected: build FAILS with `error CS0246: The type or namespace name 'ApiNoteStateForUpdate' could not be found` and `'HmmNoteController' does not contain a definition for 'GetStates'`.
 
-- [ ] **Step 3: Implement the filters**
+- [ ] **Step 3: Add the DTOs**
 
-In `HmmNoteController.cs` add `using System.Linq.Expressions;` to the usings, then replace the collection `Get` action (lines 60–79) with:
+Create `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNoteState.cs`:
 
 ```csharp
-        public async Task<IActionResult> Get(
-            [FromQuery] ResourceCollectionParameters resourceCollectionParameters,
-            [FromQuery] bool includeDeleted = false,
-            [FromQuery] bool? pinned = null,
-            [FromQuery] int? flag = null)
+using System;
+
+namespace Hmm.ServiceApi.DtoEntity.HmmNote
+{
+    /// <summary>
+    /// The caller's pin + flag for one note (Notes redesign G14). Clients
+    /// key it by <see cref="NoteUuid"/>; <see cref="NoteId"/> is the server
+    /// id for PUT /v1/notes/{id}/state.
+    /// </summary>
+    public class ApiNoteState
+    {
+        public int NoteId { get; set; }
+
+        /// <summary>Null only for a legacy note that has no uuid yet.</summary>
+        public string? NoteUuid { get; set; }
+
+        public bool IsPinned { get; set; }
+
+        /// <summary>null = unflagged; 0 red … 6 grey; unknown values verbatim.</summary>
+        public int? FlagColor { get; set; }
+
+        /// <summary>The state's last-writer-wins clock (UTC).</summary>
+        public DateTime LastModifiedDate { get; set; }
+    }
+}
+```
+
+Create `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNoteStateForUpdate.cs`:
+
+```csharp
+using System;
+
+namespace Hmm.ServiceApi.DtoEntity.HmmNote
+{
+    /// <summary>
+    /// Body of PUT /v1/notes/{id}/state. A full replacement of the caller's
+    /// state for the note, applied only if <see cref="LastModifiedDate"/> is
+    /// newer than the stored one.
+    /// </summary>
+    public class ApiNoteStateForUpdate
+    {
+        public bool IsPinned { get; set; }
+
+        public int? FlagColor { get; set; }
+
+        /// <summary>Required. The client's stamp for this state (UTC).</summary>
+        public DateTime? LastModifiedDate { get; set; }
+    }
+}
+```
+
+- [ ] **Step 4: Add the controller actions and the owner check**
+
+In `HmmNoteController.cs` add `using Hmm.Core.Map.Repositories;` and `using System.Collections.Generic;` to the usings. Before the final closing brace of the class add:
+
+```csharp
+
+        /// <summary>
+        /// The caller's pin/flag states (Notes redesign G14). Self-scoped:
+        /// the author comes from the token, never from the request.
+        /// </summary>
+        [HttpGet("states", Name = "GetNoteStates")]
+        [ProducesResponseType(typeof(ApiNoteState[]), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetStates(
+            [FromServices] INoteUserStateRepository states,
+            [FromServices] ICurrentUserAuthorProvider authorProvider)
         {
-            // includeDeleted lets the cloudApi sync provider see
-            // tombstones so they can be propagated to other devices.
-            // Normal callers leave the default — soft-deleted notes
-            // stay hidden.
-            //
-            // pinned / flag (Notes redesign slice 1): optional, AND-ed.
-            // flag is an exact colour (0 red … 6 grey, or any stored int).
-            Expression<Func<HmmNote, bool>> query = null;
-            if (pinned.HasValue)
+            try
             {
-                var wantPinned = pinned.Value;
-                query = n => n.IsPinned == wantPinned;
-            }
-            if (flag.HasValue)
-            {
-                var wantFlag = flag.Value;
-                Expression<Func<HmmNote, bool>> byFlag = n => n.FlagColor == wantFlag;
-                query = query == null ? byFlag : query.And(byFlag);
-            }
+                var authorResult = await authorProvider.GetCurrentUserAuthorAsync();
+                if (!authorResult.Success || authorResult.Value == null)
+                {
+                    return Unauthorized();
+                }
 
-            var noteListResult = await _noteManager.GetNotesAsync(query, includeDeleted, resourceCollectionParameters);
-            if (!noteListResult.Success)
+                var rows = await states.GetForAuthorAsync(authorResult.Value.Id);
+                return Ok(rows.Select(ToApiState).ToList());
+            }
+            catch (Exception ex)
             {
-                _logger.LogError("Failed to retrieve notes. Error: {ErrorMessage}, TraceId: {TraceId}",
-                    noteListResult.ErrorMessage, HttpContext.TraceIdentifier);
+                _logger.LogError("Unexpected {ErrorType} while reading note states. TraceId: {TraceId}",
+                    ex.GetType().Name, HttpContext.TraceIdentifier);
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                    ProblemDetailsHelper.InternalServerError("An error occurred while retrieving notes.", HttpContext));
+                    ProblemDetailsHelper.InternalServerError("An unexpected error occurred while reading note states.", HttpContext));
+            }
+        }
+
+        /// <summary>
+        /// Set the caller's pin/flag for note <paramref name="id"/>. Newer
+        /// lastModifiedDate wins (a tie keeps the stored row); the stored row
+        /// is returned either way. The note itself is never modified.
+        /// Owner-only: another author's note (or a missing one) is a 404.
+        /// </summary>
+        [HttpPut("{id:int}/state", Name = "SetNoteState")]
+        [ProducesResponseType(typeof(ApiNoteState), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> PutState(
+            int id,
+            [FromBody] ApiNoteStateForUpdate body,
+            [FromServices] INoteUserStateRepository states,
+            [FromServices] ICurrentUserAuthorProvider authorProvider)
+        {
+            if (body?.LastModifiedDate == null)
+            {
+                return BadRequest(ProblemDetailsHelper.BadRequest("lastModifiedDate is required", HttpContext));
             }
 
-            // Return 200 OK with empty array when no results (REST best practice)
-            return Ok(noteListResult.Value ?? new PageList<HmmNote>());
+            try
+            {
+                var (error, authorId) = await ResolveOwnerAsync(id, authorProvider);
+                if (error != null) return error;
+
+                var stored = await states.SaveIfNewerAsync(new NoteUserState
+                {
+                    AuthorId = authorId,
+                    NoteId = id,
+                    IsPinned = body.IsPinned,
+                    FlagColor = body.FlagColor,
+                    LastModifiedDate = body.LastModifiedDate.Value,
+                });
+                return Ok(ToApiState(stored));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Unexpected {ErrorType} while saving the state of note {NoteId}. TraceId: {TraceId}",
+                    ex.GetType().Name, id, HttpContext.TraceIdentifier);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ProblemDetailsHelper.InternalServerError("An unexpected error occurred while saving the note state.", HttpContext));
+            }
+        }
+
+        private static ApiNoteState ToApiState(NoteUserState s) => new()
+        {
+            NoteId = s.NoteId,
+            NoteUuid = s.NoteUuid,
+            IsPinned = s.IsPinned,
+            FlagColor = s.FlagColor,
+            LastModifiedDate = s.LastModifiedDate,
+        };
+
+        /// <summary>
+        /// (This file has no nullable context, so the tuple's Error is a plain
+        /// IActionResult that is null on success.)
+        /// Resolve the signed-in author and verify they own note
+        /// <paramref name="id"/> (deleted notes included). A missing note and
+        /// another author's note both map to the same 404.
+        /// </summary>
+        private async Task<(IActionResult Error, int AuthorId)> ResolveOwnerAsync(
+            int id, ICurrentUserAuthorProvider authorProvider)
+        {
+            var authorResult = await authorProvider.GetCurrentUserAuthorAsync();
+            if (!authorResult.Success || authorResult.Value == null)
+            {
+                return (Unauthorized(), 0);
+            }
+
+            var noteResult = await _noteManager.GetNoteByIdAsync(id, includeDelete: true);
+            if (!noteResult.Success || noteResult.Value == null
+                || noteResult.Value.Author == null
+                || noteResult.Value.Author.Id != authorResult.Value.Id)
+            {
+                return (NotFound(ProblemDetailsHelper.NotFound($"Note with id {id} not found", HttpContext)), 0);
+            }
+
+            return (null, authorResult.Value.Id);
         }
 ```
 
-- [ ] **Step 4: Run tests**
+- [ ] **Step 5: Register the repository**
 
-```bash
-cd /Users/fchy/Projects/hmm
-dotnet test src/Hmm.ServiceApi.Core.Tests --filter "FullyQualifiedName~NoteControllerPinFlagFilterTests" 2>&1 | tail -1   # Passed: 5
-dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1   # Passed: 452
+In `Startup.cs` add `using Hmm.Core.Map.Repositories;` to the usings and, after `.AddScoped<IRepository<AuthorSettingsDao>, AuthorSettingsEfRepository>()`, add:
+
+```csharp
+                .AddScoped<INoteUserStateRepository, NoteUserStateEfRepository>()
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Run tests**
 
 ```bash
 cd /Users/fchy/Projects/hmm
-git add src/Hmm.ServiceApi/Areas/HmmNoteService/Controllers/HmmNoteController.cs \
-  src/Hmm.ServiceApi.Core.Tests/NoteControllerPinFlagFilterTests.cs
+dotnet test src/Hmm.ServiceApi.Core.Tests --filter "FullyQualifiedName~NoteControllerStateTests" 2>&1 | tail -1   # Passed: 9
+dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1   # Passed: 449
+dotnet build Hmm.sln 2>&1 | tail -3                        # Build succeeded, 0 Error(s)
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+cd /Users/fchy/Projects/hmm
+git add src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNoteState.cs src/Hmm.ServiceApi.DtoEntity/HmmNote/ApiNoteStateForUpdate.cs \
+  src/Hmm.ServiceApi/Areas/HmmNoteService/Controllers/HmmNoteController.cs src/Hmm.ServiceApi/Startup.cs \
+  src/Hmm.ServiceApi.Core.Tests/NoteControllerStateTests.cs
+git status --short   # CLAUDE.md still unstaged
 git commit -m "$(cat <<'MSG'
-feat(notes): ?pinned= and ?flag= filters on GET /v1/notes
+feat(notes): GET /v1/notes/states and PUT /v1/notes/{id}/state
+
+Self-scoped (author from the token), owner-only PUT (another author's note
+is a 404, like a missing one), newer lastModifiedDate wins and the stored
+row is returned. Adds ResolveOwnerAsync for the restore/purge/tags actions.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 MSG
@@ -801,20 +1205,19 @@ Why `/purge` and not `?permanent=true`: an old server ignores an unknown query p
 **Files:**
 - Modify: `/Users/fchy/Projects/hmm/src/Hmm.Core/IHmmNoteManager.cs` (after `DeleteAsync`, line 48)
 - Modify: `/Users/fchy/Projects/hmm/src/Hmm.Core/DefaultManager/HmmNoteManager.cs` (after `DeleteAsync`, line 243)
-- Modify: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi/Areas/HmmNoteService/Controllers/HmmNoteController.cs` (usings; `Put` lines 211–222; `Delete` lines 378–389; new actions + helper before the closing brace of the class, line 415)
+- Modify: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi/Areas/HmmNoteService/Controllers/HmmNoteController.cs` (usings; `Put` lines 211–222; `Delete` lines 378–389; new actions before the closing brace of the class)
 - Modify: `/Users/fchy/Projects/hmm/src/Hmm.Utility.TestHelp/CoreTestFixtureBase.cs` (`GetNoteRepository`, add a `DeleteAsync` setup before `return mockNotes.Object;`, ~line 615)
 - Test: `/Users/fchy/Projects/hmm/src/Hmm.Core.Tests/HmmNoteManagerRestorePurgeTests.cs` (create)
 - Test: `/Users/fchy/Projects/hmm/src/Hmm.ServiceApi.Core.Tests/NoteControllerRestorePurgeTests.cs` (create)
 
 **Interfaces:**
-- Consumes: `ICurrentUserAuthorProvider.GetCurrentUserAuthorAsync()`, `IVaultBlobStore.ListAsync/DeleteAsync(int authorId, string path, CancellationToken)`, `IVersionRepository<HmmNoteDao>.DeleteAsync(HmmNoteDao)`.
+- Consumes: `ResolveOwnerAsync` (Task 2), `ICurrentUserAuthorProvider.GetCurrentUserAuthorAsync()`, `IVaultBlobStore.ListAsync/DeleteAsync(int authorId, string path, CancellationToken)`, `IVersionRepository<HmmNoteDao>.DeleteAsync(HmmNoteDao)`; the `noteuserstates` cascade (Task 1) removes the purged note's states.
 - Produces (C#):
   - `Task<ProcessingResult<HmmNote>> IHmmNoteManager.RestoreAsync(int noteId)` — clears `IsDeleted`; idempotent for a live note; NotFound passes through.
   - `Task<ProcessingResult<Unit>> IHmmNoteManager.PurgeAsync(int noteId)` — removes a soft-deleted row (tag refs cascade); `Conflict` for a live note; `NotFound` for a missing one.
   - `POST /v1/notes/{id}/restore` → 200 `ApiNote` | 401 | 404 (missing or another author's).
   - `DELETE /v1/notes/{id}/purge` → 204 | 401 | 404 | 409 (live note). Best-effort removes `attachments/note-{id}/*` from the owner's vault.
   - `PUT /v1/notes/{id}` on a soft-deleted note → 409 (was 500). `DELETE /v1/notes/{id}` on an already-deleted note → 204 (was 500).
-  - private `Task<(IActionResult Error, int AuthorId)> ResolveOwnerAsync(int id, ICurrentUserAuthorProvider authorProvider)` in `HmmNoteController` (reused by Task 4).
 
 - [ ] **Step 1: Write the failing manager tests**
 
@@ -1340,33 +1743,6 @@ Before the final closing brace of the class add:
                     ProblemDetailsHelper.InternalServerError("An unexpected error occurred while purging the note.", HttpContext));
             }
         }
-
-        /// <summary>
-        /// (This file has no nullable context, so the tuple's Error is a plain
-        /// IActionResult that is null on success.)
-        /// Resolve the signed-in author and verify they own note
-        /// <paramref name="id"/> (deleted notes included). A missing note and
-        /// another author's note both map to the same 404.
-        /// </summary>
-        private async Task<(IActionResult Error, int AuthorId)> ResolveOwnerAsync(
-            int id, ICurrentUserAuthorProvider authorProvider)
-        {
-            var authorResult = await authorProvider.GetCurrentUserAuthorAsync();
-            if (!authorResult.Success || authorResult.Value == null)
-            {
-                return (Unauthorized(), 0);
-            }
-
-            var noteResult = await _noteManager.GetNoteByIdAsync(id, includeDelete: true);
-            if (!noteResult.Success || noteResult.Value == null
-                || noteResult.Value.Author == null
-                || noteResult.Value.Author.Id != authorResult.Value.Id)
-            {
-                return (NotFound(ProblemDetailsHelper.NotFound($"Note with id {id} not found", HttpContext)), 0);
-            }
-
-            return (null, authorResult.Value.Id);
-        }
 ```
 
 - [ ] **Step 7: Run tests**
@@ -1375,8 +1751,8 @@ Before the final closing brace of the class add:
 cd /Users/fchy/Projects/hmm
 dotnet test src/Hmm.Core.Tests --filter "FullyQualifiedName~HmmNoteManagerRestorePurgeTests" 2>&1 | tail -1          # Passed: 6
 dotnet test src/Hmm.ServiceApi.Core.Tests --filter "FullyQualifiedName~NoteControllerRestorePurgeTests" 2>&1 | tail -1 # Passed: 10
-dotnet test src/Hmm.Core.Tests 2>&1 | tail -1             # Passed: 241
-dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1  # Passed: 462
+dotnet test src/Hmm.Core.Tests 2>&1 | tail -1             # Passed: 239
+dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1  # Passed: 459
 ```
 
 - [ ] **Step 8: Commit**
@@ -1884,7 +2260,7 @@ namespace Hmm.ServiceApi.DtoEntity.HmmNote
 }
 ```
 
-In `ApiNote.cs`, after the `FlagColor` property add:
+In `ApiNote.cs`, after `public string? LocationLabel { get; set; }` add:
 
 ```csharp
 
@@ -1921,11 +2297,11 @@ In `Startup.cs`, after `.AddScoped<IVersionRepository<HmmNoteDao>, NoteEfReposit
                 .AddScoped<INoteTagMembershipRepository, NoteTagMembershipEfRepository>()
 ```
 
-and add `using Hmm.Core.Map.Repositories;` to `Startup.cs`.
+(`using Hmm.Core.Map.Repositories;` is already in `Startup.cs` from Task 2).
 
 - [ ] **Step 7: Controller endpoints and the `applyTag` rewire**
 
-In `HmmNoteController.cs` add `using Hmm.Core.Map.Repositories;` and `using System.Collections.Generic;`. Replace the whole `ApplyTag` action (lines 254–296, doc comment included) with:
+In `HmmNoteController.cs` (`using Hmm.Core.Map.Repositories;` and `using System.Collections.Generic;` are already present from Task 2) replace the whole `ApplyTag` action (lines 254–296, doc comment included) with:
 
 ```csharp
         /// <summary>
@@ -2031,9 +2407,9 @@ In `HmmNoteController.cs` add `using Hmm.Core.Map.Repositories;` and `using Syst
 cd /Users/fchy/Projects/hmm
 dotnet test src/Hmm.Core.Dal.EF.Tests --filter "FullyQualifiedName~NoteTagMembershipRepositoryTests" 2>&1 | tail -1   # Passed: 5
 dotnet test src/Hmm.ServiceApi.Core.Tests --filter "FullyQualifiedName~NoteControllerTagsTests" 2>&1 | tail -1        # Passed: 7
-dotnet test src/Hmm.Core.Tests 2>&1 | tail -1             # Passed: 241
-dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1  # Passed: 469
-dotnet test src/Hmm.Core.Dal.EF.Tests 2>&1 | tail -1      # Passed: 75
+dotnet test src/Hmm.Core.Tests 2>&1 | tail -1             # Passed: 239
+dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1  # Passed: 466
+dotnet test src/Hmm.Core.Dal.EF.Tests 2>&1 | tail -1      # Passed: 81
 dotnet build Hmm.sln 2>&1 | tail -3                       # Build succeeded, 0 Error(s)
 ```
 
@@ -2062,36 +2438,39 @@ MSG
 )"
 ```
 
-### Task 5: Client — Drift v9 (`isPinned`, `flagColor`), model, inputs, repository pin/flag/restore
+### Task 5: Client — Drift v9 `NoteStates` table, `NoteState`, `LocalNoteStateRepository`, repository `restoreNote`
+
+Verified facts this task relies on: every note row has a uuid (`Notes.uuid` has `clientDefault(generateUuid)`, the v2→v3 migration back-filled old rows, `idx_notes_uuid` is unique, and pulled tombstones are inserted with their uuid), and sync identifies notes by that uuid. In `local` / `cloudStorage` the device has exactly one owner (`SyncOrchestrator._adoptOrphanedNotes`), so the client state table needs no author column: one row per note uuid. Tags track no pending-push flag — every sync merges and pushes the whole tag document — and note states follow the same model (Task 6 recomputes "local wins" from timestamps each sync), so `NoteStates` needs no dirty column either.
 
 **Files:**
-- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/local/database.dart` (Notes table after `locationLabel`, line 65; `schemaVersion` line 114; `onUpgrade` after the `from < 8` block, line 250)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/local/database.dart` (new `NoteStates` table after `NoteTagRefs`, line 105; `@DriftDatabase(tables: …)` line 108; `schemaVersion` line 114; `onUpgrade` after the `from < 8` block, line 250)
 - Regenerate: `/Users/fchy/Projects/hmm_console/lib/core/data/local/database.g.dart`
 - Create: `/Users/fchy/Projects/hmm_console/lib/core/notes/note_flag.dart`
-- Modify: `/Users/fchy/Projects/hmm_console/lib/features/notes/data/models/hmm_note.dart`
-- Modify: `/Users/fchy/Projects/hmm_console/lib/features/notes/data/mappers/hmm_note_mapper.dart` (lines 15–37)
-- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/hmm_note_input.dart`
-- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/local/local_hmm_note_repository.dart` (interface lines 30–65; `createNote` 140–173; `updateNote` 176–213; new methods after `setParentNote`, line 239)
+- Create: `/Users/fchy/Projects/hmm_console/lib/core/notes/note_state.dart`
+- Create: `/Users/fchy/Projects/hmm_console/lib/core/data/local/local_note_state_repository.dart`
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/repository_providers.dart` (imports; new provider after `tagRepositoryProvider`, line 51)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/local/local_hmm_note_repository.dart` (interface after `setParentNote`; new method after `setParentNote`, line 239; top-level `restoreStamp` at the end of the file)
 - Modify: `/Users/fchy/Projects/hmm_console/test/features/notes/states/mutate_note_state_test.dart` (`_FakeNoteRepo`, lines 17–64)
 - Modify: `/Users/fchy/Projects/hmm_console/test/core/data/local/tags_schema_v6_test.dart` (line 13)
-- Test: `/Users/fchy/Projects/hmm_console/test/core/data/local/notes_schema_v9_migration_test.dart` (create)
-- Test: `/Users/fchy/Projects/hmm_console/test/core/data/local/local_hmm_note_repository_pin_flag_test.dart` (create)
+- Test: `/Users/fchy/Projects/hmm_console/test/core/data/local/note_states_schema_v9_migration_test.dart` (create)
+- Test: `/Users/fchy/Projects/hmm_console/test/core/data/local/local_note_state_repository_test.dart` (create)
+- Test: `/Users/fchy/Projects/hmm_console/test/core/data/local/local_hmm_note_repository_restore_test.dart` (create)
 - Test: `/Users/fchy/Projects/hmm_console/test/core/notes/note_flag_test.dart` (create)
 
 **Interfaces:**
 - Produces (Dart):
-  - Drift: `Notes.isPinned` (`BoolColumn`, default false, SQL `is_pinned`), `Notes.flagColor` (`IntColumn` nullable, SQL `flag_color`); `HmmDatabase.schemaVersion == 9`.
+  - Drift: `@DataClassName('NoteStateRow') class NoteStates` — `noteUuid` (TEXT, primary key, SQL `note_uuid`), `isPinned` (`BoolColumn`, default false), `flagColor` (`IntColumn` nullable), `lastModifiedDate` (`DateTimeColumn`, required); SQL table `note_states`; `NoteStatesCompanion`; `db.noteStates`; `HmmDatabase.schemaVersion == 9`.
   - `enum NoteFlagColor { red, orange, yellow, green, blue, purple, grey }` with `Color color`, `int get stored`, `static NoteFlagColor? fromStored(int? value)`.
-  - `HmmNote.isPinned` (`bool`, default `false`), `HmmNote.flagColor` (`int?`), `NoteFlagColor? get flag`.
-  - `HmmNoteCreate({..., bool isPinned = false, int? flagColor})`.
-  - `class NoteFlagPatch { const NoteFlagPatch(int? color); const NoteFlagPatch.clear(); final int? color; }`
-  - `HmmNoteUpdate({..., bool? isPinned, NoteFlagPatch? flag})` — null = don't touch.
-  - `IHmmNoteRepository.setPinned(int id, bool pinned) → Future<HmmNote>`, `setFlagColor(int id, int? flagColor) → Future<HmmNote>`, `restoreNote(int id) → Future<HmmNote>`.
-  - `DateTime restoreStamp(DateTime previous, DateTime now)` (top-level, `local_hmm_note_repository.dart`).
+  - `class NoteState { const NoteState({required String noteUuid, bool isPinned = false, int? flagColor, required DateTime lastModifiedDate}); factory NoteState.none(String noteUuid); NoteFlagColor? get flag; }` — `NoteState.none` is unpinned, unflagged, stamped at the epoch.
+  - `abstract interface class INoteStateRepository { Future<NoteState> getState(String noteUuid); Future<Map<String, NoteState>> getAllStates(); Future<NoteState> setPinned(String noteUuid, bool pinned); Future<NoteState> setFlagColor(String noteUuid, int? flagColor); }`
+  - `class LocalNoteStateRepository implements INoteStateRepository { LocalNoteStateRepository(HmmDatabase db, {void Function()? onLocalWrite}); Future<void> putState(NoteState state); Future<void> deleteState(String noteUuid); }` — `putState` / `deleteState` are for sync and purge: they write verbatim and do not call `onLocalWrite`.
+  - `final localNoteStateRepositoryProvider = Provider<LocalNoteStateRepository>`, `final noteStateRepositoryProvider = Provider<INoteStateRepository>` (local + cloudStorage; throws `UnimplementedError` for cloudApi exactly like `hmmNoteRepositoryProvider`).
+  - `IHmmNoteRepository.restoreNote(int id) → Future<HmmNote>`.
+  - `DateTime restoreStamp(DateTime previous, DateTime now)` (top-level, `local_hmm_note_repository.dart`) — at least the next whole second after `previous`; also used for note-state stamps.
 
 - [ ] **Step 1: Write the failing migration test**
 
-Create `/Users/fchy/Projects/hmm_console/test/core/data/local/notes_schema_v9_migration_test.dart`:
+Create `/Users/fchy/Projects/hmm_console/test/core/data/local/note_states_schema_v9_migration_test.dart`:
 
 ```dart
 import 'package:drift/drift.dart' show Value;
@@ -2100,8 +2479,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 
 /// The v8 `notes` table exactly as Drift created it (DateTime columns are
-/// unix seconds). Only `notes` is needed: the v8 → v9 step touches nothing
-/// else.
+/// unix seconds). Only `notes` is needed: the v8 → v9 step creates
+/// `note_states` and touches nothing else.
 const _v8Notes = '''
 CREATE TABLE notes (
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -2124,7 +2503,7 @@ CREATE TABLE notes (
 )''';
 
 void main() {
-  test('v8 → v9 adds is_pinned (false) and flag_color (null), rows untouched',
+  test('v8 → v9 creates an empty note_states table and leaves notes untouched',
       () async {
     final db = HmmDatabase(NativeDatabase.memory(setup: (raw) {
       raw.execute(_v8Notes);
@@ -2140,34 +2519,30 @@ void main() {
     final row = await db.select(db.notes).getSingle();
     expect(row.uuid, 'u-old');
     expect(row.subject, 'old note');
-    expect(row.content, 'body');
-    expect(row.isPinned, isFalse);
-    expect(row.flagColor, isNull);
     expect(row.lastModifiedDate!.toUtc(),
         DateTime.fromMillisecondsSinceEpoch(1700000000 * 1000, isUtc: true));
+    expect(await db.select(db.noteStates).get(), isEmpty,
+        reason: 'no row = unpinned and unflagged; nothing is backfilled');
+
+    final noteColumns = await db.customSelect('PRAGMA table_info(notes)').get();
+    expect(noteColumns.map((c) => c.read<String>('name')),
+        isNot(anyOf(contains('is_pinned'), contains('flag_color'))),
+        reason: 'pin and flag are never note columns (G14)');
   });
 
-  test('a fresh v9 database defaults new notes to unpinned and unflagged',
-      () async {
+  test('a fresh v9 database stores a state row keyed by note uuid', () async {
     final db = HmmDatabase(NativeDatabase.memory());
     addTearDown(db.close);
-    final authorId = await db
-        .into(db.authors)
-        .insert(AuthorsCompanion.insert(accountName: 'tester'));
 
-    final id = await db.into(db.notes).insert(
-        NotesCompanion.insert(subject: 'new', authorId: authorId));
-    final row = await (db.select(db.notes)..where((n) => n.id.equals(id)))
-        .getSingle();
-    expect(row.isPinned, isFalse);
-    expect(row.flagColor, isNull);
-
-    await (db.update(db.notes)..where((n) => n.id.equals(id))).write(
-        const NotesCompanion(isPinned: Value(true), flagColor: Value(42)));
-    final updated = await (db.select(db.notes)..where((n) => n.id.equals(id)))
-        .getSingle();
-    expect(updated.isPinned, isTrue);
-    expect(updated.flagColor, 42, reason: 'unknown colours are stored verbatim');
+    await db.into(db.noteStates).insert(NoteStatesCompanion.insert(
+          noteUuid: 'u1',
+          flagColor: const Value(42),
+          lastModifiedDate: DateTime.utc(2026, 10, 18, 9),
+        ));
+    final row = await db.select(db.noteStates).getSingle();
+    expect(row.noteUuid, 'u1');
+    expect(row.isPinned, isFalse, reason: 'isPinned defaults to false');
+    expect(row.flagColor, 42, reason: 'unknown colours are stored verbatim');
   });
 }
 ```
@@ -2176,33 +2551,46 @@ void main() {
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-flutter test test/core/data/local/notes_schema_v9_migration_test.dart
+flutter test test/core/data/local/note_states_schema_v9_migration_test.dart
 ```
-Expected: compile error `The getter 'isPinned' isn't defined for the type 'Note'`.
+Expected: compile error `The getter 'noteStates' isn't defined for the type 'HmmDatabase'`.
 
-- [ ] **Step 3: Add the columns and the migration step**
+- [ ] **Step 3: Add the table and the migration step**
 
-In `database.dart`, after `TextColumn get locationLabel => text().withLength(min: 0, max: 500).nullable()();` add:
+In `database.dart`, after the `NoteTagRefs` class add:
 
 ```dart
-  // v9: pin + coloured flag (Notes redesign slice 1). Additive; existing
-  // rows read as unpinned / unflagged.
+
+/// v9: the user's own state about a note — pin + coloured flag (Notes
+/// redesign G14). Deliberately NOT columns on [Notes]: a pin or flag change
+/// is not a note edit, never bumps the note's version / lastModifiedDate and
+/// never re-pushes the note. One row per note uuid (this device has one
+/// owner). No row = unpinned and unflagged. Unpin / unflag write a row
+/// (false / null) so the change propagates; only purge removes rows.
+@DataClassName('NoteStateRow')
+class NoteStates extends Table {
+  TextColumn get noteUuid => text()();
   BoolColumn get isPinned => boolean().withDefault(const Constant(false))();
   // null = unflagged; 0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple,
   // 6 grey. Any other int (a newer client) is stored verbatim and shown grey.
   IntColumn get flagColor => integer().nullable()();
+  // Per-state last-writer-wins clock for sync.
+  DateTimeColumn get lastModifiedDate => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {noteUuid};
+}
 ```
 
-Change `int get schemaVersion => 8;` to `int get schemaVersion => 9;`.
+Change `tables: [Authors, NoteCatalogs, Notes, Tags, NoteTagRefs],` to `tables: [Authors, NoteCatalogs, Notes, Tags, NoteTagRefs, NoteStates],` and `int get schemaVersion => 8;` to `int get schemaVersion => 9;`.
 
 After the `if (from < 8) { ... }` block inside `onUpgrade`, add:
 
 ```dart
       if (from < 9) {
-        // v9: pin + flag. No backfill — every existing note is unpinned and
-        // unflagged by the column defaults.
-        await m.addColumn(notes, notes.isPinned);
-        await m.addColumn(notes, notes.flagColor);
+        // v9: per-note state (pin + flag) in its own table. Notes are
+        // untouched; no backfill — a note without a row is unpinned.
+        await m.createTable(noteStates);
       }
 ```
 
@@ -2224,8 +2612,8 @@ In `test/core/data/local/tags_schema_v6_test.dart` replace
 with
 
 ```dart
-    // v7 added Notes.noteDate, v8 Notes location, v9 Notes pin/flag; the tag
-    // sync columns from v6 are unchanged.
+    // v7 added Notes.noteDate, v8 Notes location, v9 the NoteStates table;
+    // the tag sync columns from v6 are unchanged.
     expect(db.schemaVersion, 9);
 ```
 
@@ -2233,11 +2621,11 @@ with
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-flutter test test/core/data/local/notes_schema_v9_migration_test.dart test/core/data/local/tags_schema_v6_test.dart
+flutter test test/core/data/local/note_states_schema_v9_migration_test.dart test/core/data/local/tags_schema_v6_test.dart
 ```
 Expected: `All tests passed!` (3 tests).
 
-- [ ] **Step 5: Write the failing flag + repository tests**
+- [ ] **Step 5: Write the failing flag, state-repository and restore tests**
 
 Create `/Users/fchy/Projects/hmm_console/test/core/notes/note_flag_test.dart`:
 
@@ -2261,16 +2649,129 @@ void main() {
 }
 ```
 
-Create `/Users/fchy/Projects/hmm_console/test/core/data/local/local_hmm_note_repository_pin_flag_test.dart`:
+Create `/Users/fchy/Projects/hmm_console/test/core/data/local/local_note_state_repository_test.dart`:
 
 ```dart
-import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/hmm_note_input.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
+import 'package:hmm_console/core/data/local/local_note_state_repository.dart';
 import 'package:hmm_console/core/notes/note_flag.dart';
+import 'package:hmm_console/core/notes/note_state.dart';
+
+void main() {
+  late HmmDatabase db;
+  late LocalHmmNoteRepository notes;
+  late LocalNoteStateRepository states;
+  var noteWrites = 0;
+  var stateWrites = 0;
+
+  setUp(() async {
+    noteWrites = 0;
+    stateWrites = 0;
+    db = HmmDatabase(NativeDatabase.memory());
+    final authorId = await db
+        .into(db.authors)
+        .insert(AuthorsCompanion.insert(accountName: 'tester'));
+    final author = await (db.select(db.authors)
+          ..where((a) => a.id.equals(authorId)))
+        .getSingle();
+    notes = LocalHmmNoteRepository(db, () async => author,
+        onLocalWrite: () => noteWrites++);
+    states = LocalNoteStateRepository(db, onLocalWrite: () => stateWrites++);
+  });
+
+  tearDown(() => db.close());
+
+  test('a note without a row is unpinned and unflagged', () async {
+    final s = await states.getState('nobody');
+    expect(s.noteUuid, 'nobody');
+    expect(s.isPinned, isFalse);
+    expect(s.flagColor, isNull);
+    expect(s.flag, isNull);
+    expect(await states.getAllStates(), isEmpty);
+  });
+
+  test('setPinned and setFlagColor never touch the note row', () async {
+    final created = await notes.createNote(
+        const HmmNoteCreate(subject: 'keep me', catalogId: 1, content: 'body'));
+    final before = (await notes.getNoteById(created.id))!;
+    noteWrites = 0;
+
+    await states.setPinned(created.uuid, true);
+    await states.setFlagColor(created.uuid, 3);
+
+    final after = (await notes.getNoteById(created.id))!;
+    expect(after.version, before.version, reason: 'not a note edit (G14)');
+    expect(after.lastModifiedDate, before.lastModifiedDate);
+    expect(after.subject, 'keep me');
+    expect(after.content, 'body');
+    expect(noteWrites, 0, reason: 'the note is not marked for sync');
+    expect(stateWrites, 2, reason: 'each state write asks for a sync');
+  });
+
+  test('a pin change keeps the flag and a flag change keeps the pin', () async {
+    await states.setFlagColor('n1', 5);
+    final pinned = await states.setPinned('n1', true);
+    expect(pinned.flagColor, 5);
+    final flagged = await states.setFlagColor('n1', 1);
+    expect(flagged.isPinned, isTrue);
+    expect(flagged.flag, NoteFlagColor.orange);
+  });
+
+  test('unpin writes a row with false, never deletes it', () async {
+    await states.setPinned('n1', true);
+    await states.setPinned('n1', false);
+    await states.setFlagColor('n1', 2);
+    await states.setFlagColor('n1', null);
+
+    final rows = await db.select(db.noteStates).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.isPinned, isFalse);
+    expect(rows.single.flagColor, isNull);
+  });
+
+  test('an unknown flag value is kept verbatim and shows as grey', () async {
+    final s = await states.setFlagColor('n1', 42);
+    expect(s.flagColor, 42);
+    expect(s.flag, NoteFlagColor.grey);
+  });
+
+  test('a second write in the same second still gets a later stamp', () async {
+    final first = await states.setPinned('n1', true);
+    final second = await states.setPinned('n1', false); // same wall-clock second
+    expect(second.lastModifiedDate.isAfter(first.lastModifiedDate), isTrue,
+        reason: 'Drift keeps whole seconds; a tie would lose the unpin on peers');
+  });
+
+  test('putState and deleteState write verbatim without asking for a sync',
+      () async {
+    final at = DateTime.utc(2026, 10, 18, 9);
+    await states.putState(
+        NoteState(noteUuid: 'n1', isPinned: true, flagColor: 4, lastModifiedDate: at));
+    final s = await states.getState('n1');
+    expect(s.isPinned, isTrue);
+    expect(s.flagColor, 4);
+    expect(s.lastModifiedDate.toUtc(), at);
+
+    await states.deleteState('n1');
+    expect(await states.getAllStates(), isEmpty);
+    expect(stateWrites, 0);
+  });
+}
+```
+
+Create `/Users/fchy/Projects/hmm_console/test/core/data/local/local_hmm_note_repository_restore_test.dart`:
+
+```dart
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/hmm_note_input.dart';
+import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
+import 'package:hmm_console/core/data/local/local_note_state_repository.dart';
 
 void main() {
   late HmmDatabase db;
@@ -2291,54 +2792,6 @@ void main() {
   });
 
   tearDown(() => db.close());
-
-  test('createNote stores the initial pin and flag', () async {
-    final n = await repo.createNote(const HmmNoteCreate(
-        subject: 's', catalogId: 1, isPinned: true, flagColor: 2));
-    expect(n.isPinned, isTrue);
-    expect(n.flagColor, 2);
-    expect(n.flag, NoteFlagColor.yellow);
-  });
-
-  test('setPinned flips only the pin, bumps version and notifies sync',
-      () async {
-    final created = await repo.createNote(const HmmNoteCreate(
-        subject: 'keep me', catalogId: 1, content: 'body'));
-    writes = 0;
-
-    final pinned = await repo.setPinned(created.id, true);
-    expect(pinned.isPinned, isTrue);
-    expect(pinned.subject, 'keep me');
-    expect(pinned.content, 'body');
-    expect(pinned.version, isNot(equals(created.version)));
-    expect(pinned.lastModifiedDate, isNotNull);
-    expect(writes, 1);
-
-    final unpinned = await repo.setPinned(created.id, false);
-    expect(unpinned.isPinned, isFalse);
-    expect(writes, 2);
-  });
-
-  test('setFlagColor sets, clears, and keeps an unknown value verbatim',
-      () async {
-    final created =
-        await repo.createNote(const HmmNoteCreate(subject: 's', catalogId: 1));
-
-    expect((await repo.setFlagColor(created.id, 3)).flagColor, 3);
-    expect((await repo.setFlagColor(created.id, null)).flagColor, isNull);
-    final future = await repo.setFlagColor(created.id, 42);
-    expect(future.flagColor, 42);
-    expect(future.flag, NoteFlagColor.grey);
-  });
-
-  test('a pin change leaves the flag alone and vice versa', () async {
-    final created = await repo.createNote(
-        const HmmNoteCreate(subject: 's', catalogId: 1, flagColor: 5));
-    final pinned = await repo.setPinned(created.id, true);
-    expect(pinned.flagColor, 5);
-    final flagged = await repo.setFlagColor(created.id, 1);
-    expect(flagged.isPinned, isTrue);
-  });
 
   test('restoreNote clears deletedAt with a stamp strictly after the tombstone',
       () async {
@@ -2361,6 +2814,19 @@ void main() {
     expect(writes, 1);
   });
 
+  test('delete and restore leave the note state alone', () async {
+    final created =
+        await repo.createNote(const HmmNoteCreate(subject: 's', catalogId: 1));
+    final states = LocalNoteStateRepository(db);
+    await states.setPinned(created.uuid, true);
+
+    await repo.deleteNote(created.id);
+    expect((await states.getState(created.uuid)).isPinned, isTrue);
+    await repo.restoreNote(created.id);
+    expect((await states.getState(created.uuid)).isPinned, isTrue,
+        reason: 'a restored note comes back pinned');
+  });
+
   test('restoreNote on a live note is a no-op', () async {
     final created =
         await repo.createNote(const HmmNoteCreate(subject: 's', catalogId: 1));
@@ -2373,14 +2839,6 @@ void main() {
 
   test('restoreNote throws for a missing note', () async {
     expect(() => repo.restoreNote(999), throwsStateError);
-  });
-
-  test('raw writes outside the repository keep pin/flag columns', () async {
-    final created = await repo.createNote(
-        const HmmNoteCreate(subject: 's', catalogId: 1, isPinned: true));
-    await (db.update(db.notes)..where((n) => n.id.equals(created.id)))
-        .write(const NotesCompanion(subject: Value('renamed')));
-    expect((await repo.getNoteById(created.id))!.isPinned, isTrue);
   });
 
   group('restoreStamp', () {
@@ -2411,11 +2869,11 @@ void main() {
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-flutter test test/core/notes/note_flag_test.dart test/core/data/local/local_hmm_note_repository_pin_flag_test.dart
+flutter test test/core/notes/note_flag_test.dart test/core/data/local/local_note_state_repository_test.dart test/core/data/local/local_hmm_note_repository_restore_test.dart
 ```
-Expected: compile errors `Target of URI doesn't exist: 'package:hmm_console/core/notes/note_flag.dart'` and `No named parameter with the name 'isPinned'`.
+Expected: compile errors `Target of URI doesn't exist: 'package:hmm_console/core/notes/note_flag.dart'` (and `…/local_note_state_repository.dart`), `The method 'restoreNote' isn't defined for the type 'LocalHmmNoteRepository'`.
 
-- [ ] **Step 7: Add `NoteFlagColor`**
+- [ ] **Step 7: Add `NoteFlagColor` and `NoteState`**
 
 Create `/Users/fchy/Projects/hmm_console/lib/core/notes/note_flag.dart`:
 
@@ -2423,7 +2881,7 @@ Create `/Users/fchy/Projects/hmm_console/lib/core/notes/note_flag.dart`:
 import 'dart:ui' show Color;
 
 /// The seven note flag colours (Apple Mail palette). Persisted as
-/// `Notes.flagColor`: null = unflagged, otherwise the enum index.
+/// `NoteStates.flagColor`: null = unflagged, otherwise the enum index.
 enum NoteFlagColor {
   red(Color(0xFFFF3B30)),
   orange(Color(0xFFFF9500)),
@@ -2437,7 +2895,7 @@ enum NoteFlagColor {
 
   final Color color;
 
-  /// The int stored in `Notes.flagColor` for this colour.
+  /// The int stored in `NoteStates.flagColor` for this colour.
   int get stored => index;
 
   /// Display colour for a stored value. Null ⇒ unflagged (null). A value
@@ -2453,132 +2911,209 @@ enum NoteFlagColor {
 }
 ```
 
-- [ ] **Step 8: Extend the domain model and mapper**
-
-In `hmm_note.dart`, add `import '../../../../core/notes/note_flag.dart';` to the imports; add `this.isPinned = false,` and `this.flagColor,` to the constructor parameter list (after `this.attachments,`); and add before `/// Note-level attachments`:
+Create `/Users/fchy/Projects/hmm_console/lib/core/notes/note_state.dart`:
 
 ```dart
-  /// Pinned notes list first (slice 2+). A real edit: changing it bumps
-  /// lastModifiedDate so sync carries it.
+import 'note_flag.dart';
+
+/// The user's own state about one note — pin + coloured flag (Notes
+/// redesign G14). Not part of `HmmNote`: changing it is not a note edit.
+class NoteState {
+  const NoteState({
+    required this.noteUuid,
+    this.isPinned = false,
+    this.flagColor,
+    required this.lastModifiedDate,
+  });
+
+  /// No stored row: unpinned, unflagged, older than any real write.
+  factory NoteState.none(String noteUuid) => NoteState(
+        noteUuid: noteUuid,
+        lastModifiedDate: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      );
+
+  /// The note's cross-device uuid (`Notes.uuid`).
+  final String noteUuid;
+
   final bool isPinned;
 
   /// Raw stored flag: null = unflagged; 0–6 = [NoteFlagColor] index; any
   /// other int came from a newer client and is preserved verbatim.
   final int? flagColor;
 
+  /// Per-state last-writer-wins clock.
+  final DateTime lastModifiedDate;
+
   /// Display flag ([NoteFlagColor.grey] for an unknown stored value).
   NoteFlagColor? get flag => NoteFlagColor.fromStored(flagColor);
-```
-
-In `hmm_note_mapper.dart`, in `fromDriftRow` add after `attachments: _decodeAttachments(row.attachments),`:
-
-```dart
-        isPinned: row.isPinned,
-        flagColor: row.flagColor,
-```
-
-- [ ] **Step 9: Extend the input objects**
-
-In `hmm_note_input.dart`:
-
-Add to `HmmNoteCreate`'s constructor `this.isPinned = false,` and `this.flagColor,` and the fields:
-
-```dart
-  /// Initial pin. Defaults to unpinned.
-  final bool isPinned;
-
-  /// Initial flag (null = unflagged). Stored verbatim.
-  final int? flagColor;
-```
-
-Add before `class HmmNoteUpdate`:
-
-```dart
-/// Patch for `Notes.flagColor`. Wrapping the value keeps "clear the flag"
-/// (`NoteFlagPatch(null)` / [NoteFlagPatch.clear]) distinct from "don't
-/// touch" (no patch at all).
-class NoteFlagPatch {
-  const NoteFlagPatch(this.color);
-  const NoteFlagPatch.clear() : color = null;
-
-  final int? color;
 }
 ```
 
-Add to `HmmNoteUpdate`'s constructor `this.isPinned,` and `this.flag,`, the fields:
+- [ ] **Step 8: Add the state repository and its providers**
+
+Create `/Users/fchy/Projects/hmm_console/lib/core/data/local/local_note_state_repository.dart`:
 
 ```dart
-  /// Replacement pin. Null ⇒ don't touch.
-  final bool? isPinned;
+import 'package:drift/drift.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-  /// Replacement flag. Null ⇒ don't touch; `NoteFlagPatch(null)` clears.
-  final NoteFlagPatch? flag;
+import '../../notes/note_state.dart';
+import '../sync/sync_controller.dart';
+import '../sync/sync_orchestrator.dart';
+import 'database.dart';
+import 'local_hmm_note_repository.dart' show restoreStamp;
+
+/// Pin + flag per note (Notes redesign G14), keyed by note uuid. Writes go
+/// to `NoteStates` only — never to the note row — so they cannot overwrite
+/// a concurrent text edit made on another device.
+abstract interface class INoteStateRepository {
+  /// The stored state, or [NoteState.none] when the note has no row.
+  Future<NoteState> getState(String noteUuid);
+
+  /// Every stored state, by note uuid.
+  Future<Map<String, NoteState>> getAllStates();
+
+  /// Pin or unpin. Unpin writes `isPinned = false` (never deletes) so the
+  /// change propagates. Keeps the flag.
+  Future<NoteState> setPinned(String noteUuid, bool pinned);
+
+  /// Set a colour (0–6; any other int is stored verbatim) or clear it with
+  /// null (a row with a null flag). Keeps the pin.
+  Future<NoteState> setFlagColor(String noteUuid, int? flagColor);
+}
+
+class LocalNoteStateRepository implements INoteStateRepository {
+  LocalNoteStateRepository(this._db, {void Function()? onLocalWrite})
+      : _onLocalWrite = onLocalWrite;
+
+  final HmmDatabase _db;
+
+  /// Asks for a debounced sync (of states — the note cursor is untouched).
+  final void Function()? _onLocalWrite;
+
+  @override
+  Future<NoteState> getState(String noteUuid) async {
+    final row = await _read(noteUuid);
+    return row == null ? NoteState.none(noteUuid) : _fromRow(row);
+  }
+
+  @override
+  Future<Map<String, NoteState>> getAllStates() async {
+    final rows = await _db.select(_db.noteStates).get();
+    return {for (final r in rows) r.noteUuid: _fromRow(r)};
+  }
+
+  @override
+  Future<NoteState> setPinned(String noteUuid, bool pinned) async {
+    final current = await _read(noteUuid);
+    return _writeLocal(NoteState(
+      noteUuid: noteUuid,
+      isPinned: pinned,
+      flagColor: current?.flagColor,
+      lastModifiedDate: _stamp(current),
+    ));
+  }
+
+  @override
+  Future<NoteState> setFlagColor(String noteUuid, int? flagColor) async {
+    final current = await _read(noteUuid);
+    return _writeLocal(NoteState(
+      noteUuid: noteUuid,
+      isPinned: current?.isPinned ?? false,
+      flagColor: flagColor,
+      lastModifiedDate: _stamp(current),
+    ));
+  }
+
+  /// Sync only: store [state] exactly as received (its own stamp). Does not
+  /// ask for another sync.
+  Future<void> putState(NoteState state) async {
+    await _db.into(_db.noteStates).insertOnConflictUpdate(_companion(state));
+  }
+
+  /// Purge / sync only: remove the row of a note that no longer exists.
+  Future<void> deleteState(String noteUuid) async {
+    await (_db.delete(_db.noteStates)
+          ..where((s) => s.noteUuid.equals(noteUuid)))
+        .go();
+  }
+
+  Future<NoteState> _writeLocal(NoteState state) async {
+    await putState(state);
+    _onLocalWrite?.call();
+    return getState(state.noteUuid);
+  }
+
+  /// Drift keeps whole seconds: a second write inside the same second must
+  /// still be strictly newer, or peers would keep the first value on a tie.
+  DateTime _stamp(NoteStateRow? current) {
+    final now = DateTime.now().toUtc();
+    return current == null ? now : restoreStamp(current.lastModifiedDate, now);
+  }
+
+  Future<NoteStateRow?> _read(String noteUuid) => (_db.select(_db.noteStates)
+        ..where((s) => s.noteUuid.equals(noteUuid)))
+      .getSingleOrNull();
+
+  static NoteStatesCompanion _companion(NoteState s) =>
+      NoteStatesCompanion.insert(
+        noteUuid: s.noteUuid,
+        isPinned: Value(s.isPinned),
+        flagColor: Value(s.flagColor),
+        lastModifiedDate: s.lastModifiedDate.toUtc(),
+      );
+
+  static NoteState _fromRow(NoteStateRow r) => NoteState(
+        noteUuid: r.noteUuid,
+        isPinned: r.isPinned,
+        flagColor: r.flagColor,
+        lastModifiedDate: r.lastModifiedDate.toUtc(),
+      );
+}
+
+final localNoteStateRepositoryProvider =
+    Provider<LocalNoteStateRepository>((ref) {
+  return LocalNoteStateRepository(
+    ref.watch(hmmDatabaseProvider),
+    // Same debounced auto-sync gate as LocalHmmNoteRepository: read (not
+    // watch) both providers since this closure runs later, at write time.
+    onLocalWrite: () {
+      if (ref.read(syncOrchestratorProvider).isActive) {
+        ref.read(syncControllerProvider).notifyLocalChange();
+      }
+    },
+  );
+});
 ```
 
-and replace the `isEmpty` getter with:
+In `repository_providers.dart` add `import 'local/local_note_state_repository.dart';` to the imports and, after `tagRepositoryProvider`, add:
 
 ```dart
-  bool get isEmpty =>
-      subject == null &&
-      content == null &&
-      description == null &&
-      attachments == null &&
-      noteDate == null &&
-      location == null &&
-      isPinned == null &&
-      flag == null;
+
+final noteStateRepositoryProvider = Provider<INoteStateRepository>((ref) {
+  final mode = ref.watch(dataModeProvider);
+  if (_useLocal(mode)) return ref.watch(localNoteStateRepositoryProvider);
+  throw UnimplementedError('API note state repository not yet implemented');
+});
 ```
 
-- [ ] **Step 10: Extend the repository**
+- [ ] **Step 9: Add `restoreNote` and `restoreStamp`**
 
 In `local_hmm_note_repository.dart`, add to `IHmmNoteRepository` after `Future<HmmNote> setParentNote(int id, int? parentNoteId);`:
 
 ```dart
 
-  /// Pin or unpin. A real edit: bumps lastModifiedDate + version and
-  /// notifies sync, leaving every other column untouched.
-  Future<HmmNote> setPinned(int id, bool pinned);
-
-  /// Set a flag colour (0–6; any other int is stored verbatim) or clear it
-  /// with null. Same edit semantics as [setPinned].
-  Future<HmmNote> setFlagColor(int id, int? flagColor);
-
   /// Undo a soft delete: clears deletedAt and stamps lastModifiedDate
   /// strictly later than the tombstone (see [restoreStamp]) so the restore
   /// wins last-writer-wins on other devices. A live note is returned
-  /// unchanged. Throws [StateError] when the note does not exist.
+  /// unchanged. Throws [StateError] when the note does not exist. The
+  /// note's state (pin/flag) is untouched.
   Future<HmmNote> restoreNote(int id);
-```
-
-In `createNote`, add after `lastModifiedDate: Value(now),`:
-
-```dart
-          isPinned: Value(input.isPinned),
-          flagColor: Value(input.flagColor),
-```
-
-In `updateNote`, add after the `locationLabel:` entry:
-
-```dart
-      isPinned: patch.isPinned != null
-          ? Value(patch.isPinned!)
-          : const Value.absent(),
-      // null = don't touch; NoteFlagPatch(null) writes SQL NULL (clears).
-      flagColor:
-          patch.flag != null ? Value(patch.flag!.color) : const Value.absent(),
 ```
 
 After the `setParentNote` method add:
 
 ```dart
-
-  @override
-  Future<HmmNote> setPinned(int id, bool pinned) =>
-      updateNote(id, HmmNoteUpdate(isPinned: pinned));
-
-  @override
-  Future<HmmNote> setFlagColor(int id, int? flagColor) =>
-      updateNote(id, HmmNoteUpdate(flag: NoteFlagPatch(flagColor)));
 
   @override
   Future<HmmNote> restoreNote(int id) async {
@@ -2608,10 +3143,11 @@ At the end of the file (top level, after the provider) add:
 
 ```dart
 
-/// The lastModifiedDate a restore writes. Drift stores DateTime as whole
-/// unix seconds, so "later than the tombstone" must be at least the next
-/// whole second — a restore in the same second as its delete would otherwise
-/// tie, and last-writer-wins keeps the tombstone on every other device.
+/// The lastModifiedDate a restore (or a note-state write) stamps. Drift
+/// stores DateTime as whole unix seconds, so "later than the previous value"
+/// must be at least the next whole second — a write in the same second
+/// would otherwise tie, and last-writer-wins keeps the old value on every
+/// other device.
 DateTime restoreStamp(DateTime previous, DateTime now) {
   final prev = previous.toUtc();
   final floored = DateTime.fromMillisecondsSinceEpoch(
@@ -2623,22 +3159,18 @@ DateTime restoreStamp(DateTime previous, DateTime now) {
 }
 ```
 
-- [ ] **Step 11: Keep the test fake compiling**
+- [ ] **Step 10: Keep the test fake compiling**
 
 In `test/features/notes/states/mutate_note_state_test.dart`, add to `_FakeNoteRepo` after `getUnattachedNotes`:
 
 ```dart
-  @override
-  Future<HmmNote> setPinned(int id, bool pinned) async => stored;
-  @override
-  Future<HmmNote> setFlagColor(int id, int? flagColor) async => stored;
   @override
   Future<HmmNote> restoreNote(int id) async => stored;
 ```
 
 (All other `IHmmNoteRepository` fakes under `test/` already use `noSuchMethod`.)
 
-- [ ] **Step 12: Run tests and analyze**
+- [ ] **Step 11: Run tests and analyze**
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
@@ -2648,52 +3180,212 @@ flutter analyze
 ```
 Expected: all pass; analyze reports only the 2 pre-existing infos.
 
-- [ ] **Step 13: Commit**
+- [ ] **Step 12: Commit**
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-git add lib/core/data/local/database.dart lib/core/data/local/database.g.dart lib/core/notes/note_flag.dart \
-  lib/features/notes/data/models/hmm_note.dart lib/features/notes/data/mappers/hmm_note_mapper.dart \
-  lib/core/data/hmm_note_input.dart lib/core/data/local/local_hmm_note_repository.dart \
+git add lib/core/data/local/database.dart lib/core/data/local/database.g.dart \
+  lib/core/notes/note_flag.dart lib/core/notes/note_state.dart \
+  lib/core/data/local/local_note_state_repository.dart lib/core/data/repository_providers.dart \
+  lib/core/data/local/local_hmm_note_repository.dart \
   test/features/notes/states/mutate_note_state_test.dart test/core/data/local/tags_schema_v6_test.dart \
-  test/core/data/local/notes_schema_v9_migration_test.dart \
-  test/core/data/local/local_hmm_note_repository_pin_flag_test.dart test/core/notes/note_flag_test.dart
+  test/core/data/local/note_states_schema_v9_migration_test.dart \
+  test/core/data/local/local_note_state_repository_test.dart \
+  test/core/data/local/local_hmm_note_repository_restore_test.dart test/core/notes/note_flag_test.dart
 git commit -m "$(cat <<'MSG'
-feat(notes): schema v9 pin + flag columns, repository setPinned/setFlagColor/restoreNote
+feat(notes): schema v9 NoteStates table for pins/flags; restoreNote
 
-Additive v8→v9 migration. Restore stamps the next whole second after the
-tombstone so it cannot tie under Drift's 1-second DateTime resolution.
+Pin and flag live in their own table keyed by note uuid and never touch
+the note row (G14). State writes and restore stamp the next whole second
+so they cannot tie under Drift's 1-second DateTime resolution.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 MSG
 )"
 ```
 
-### Task 6: Client — OneDrive blob carries pin/flag; absent keys keep; restore propagation pinned by tests
+### Task 6: Client — note-state sync (`NoteStateSyncService`, OneDrive `note-states.json`); tags keep on an absent key; restore propagation pinned by tests
+
+The state document mirrors `tags.json` exactly: the orchestrator pulls one document, merges it per entry with `NoteStateSyncService` (newer `lastModified` wins, a tie keeps local), and pushes the whole merged document back every sync (`TagSyncService` / `_syncTags` do the same; neither tracks a dirty flag). Per-row remotes (the API, Task 7) receive only the `localWins` set. It runs after the note pull (pulled notes exist locally, restores are applied) and after the note push (the API has every note a state can point at), and never writes a note row.
+
+Purged notes: in cloudStorage a purge keeps a content-free tombstone row in the manifest (Task 8), so "absent from the manifest" alone would never drop a purged note's state — and peers that have not purged yet keep pushing their entry. The merge therefore treats as "no note" any uuid that is neither a local note other than a content-free tombstone (`subject == kTombstoneSubject`, no content, no attachments, deleted) nor a live entry of the remote manifest. Entries for such uuids are not applied, are dropped from the pushed document, and a local row for one is deleted. A peer's stale entry may bounce until that peer purges too; it is never applied, so nothing resurrects. A live remote-manifest entry counts as a note even when its pull failed this run, so a failed pull never drops a pin.
 
 **Files:**
-- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/sync_orchestrator.dart` (`_applyPulledNote` lines 404–503; `_noteRowToBlob` body lines 777–802)
-- Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/sync_orchestrator_pin_flag_test.dart` (create)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/sync_models.dart` (`kTombstoneSubject` after `library;`; `SyncPhase.noteStates` after `pushNotes`, line 92)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/cloud_sync_provider.dart` (`NoteStatesUnsupportedException`; `pullNoteStates` / `pushNoteStates` after `pushTags`)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/sync_meta_repository.dart` (unsupported flag)
+- Create: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/note_state_sync_service.dart`
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/onedrive_graph_client.dart` (after `putTags`, line 226)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/onedrive_sync_provider.dart` (after `pushTags`, line 60)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/api_sync_provider.dart` (no-op stubs after `pushTags`; replaced in Task 7)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/sync_orchestrator.dart` (imports; tombstone insert in `_maybePullNote`, line 384; new step 3b after the note push, line 298; `metadataClean`, line 326; tag-membership tail of `_applyPulledNote`, lines 497–502; new `_syncNoteStates` after `_syncTags`)
+- Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/note_state_sync_service_test.dart` (create)
+- Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/sync_orchestrator_note_states_test.dart` (create)
+- Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/onedrive_note_states_graph_test.dart` (create)
 - Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/sync_orchestrator_restore_test.dart` (create)
 
 **Interfaces:**
-- Consumes: `SyncOrchestrator({provider, db, meta, vaultStore})`, `noopVaultStore` (`test/core/data/sync/onedrive_test_fakes.dart`), `LocalHmmNoteRepository.restoreNote` (Task 5).
-- Produces: note blob keys `isPinned: bool`, `flagColor: int?`. Pull: `isPinned` present (bool) ⇒ apply, absent ⇒ keep; `flagColor` present ⇒ apply (null clears), absent ⇒ keep; `tags` present ⇒ set-replace, absent ⇒ keep (was: clear).
+- Consumes: `LocalNoteStateRepository.getAllStates/putState/deleteState`, `NoteState` (Task 5), `LocalHmmNoteRepository.restoreNote` (Task 5), `SyncOrchestrator({provider, db, meta, vaultStore})`, `noopVaultStore` / `FakeOneDriveAuth` (`test/core/data/sync/onedrive_test_fakes.dart`).
+- Produces (Dart):
+  - `const String kTombstoneSubject = '(deleted)';` (`sync_models.dart`; Task 8 reuses it).
+  - `SyncPhase.noteStates`.
+  - `class NoteStatesUnsupportedException implements Exception` (`cloud_sync_provider.dart`).
+  - `CloudSyncProvider.pullNoteStates() → Future<Map<String, dynamic>?>` (default null) and `CloudSyncProvider.pushNoteStates(Map<String, dynamic> doc, {required Set<String> changed}) → Future<void>` (default no-op).
+  - Document shape: `{'version': 1, 'device_id': String, 'generated_at': ISO, 'states': [{'noteUuid': String, 'isPinned': bool, 'flagColor': int?, 'lastModified': ISO-8601 UTC}]}` (`device_id` / `generated_at` are diagnostics, as in `tags.json`).
+  - `class NoteStateMerge { final Map<String, dynamic> document; final Set<String> localWins; }`, `class NoteStateSyncService { NoteStateSyncService(LocalNoteStateRepository repo); Future<NoteStateMerge> merge(Map<String, dynamic>? remoteDoc, {required Set<String> knownNoteUuids, required String deviceId, required DateTime now}); }`
+  - `SyncMetaRepository.getNoteStatesUnsupported(String providerId) → Future<bool>`, `setNoteStatesUnsupported(String providerId, bool value) → Future<void>` — key `sync_note_states_unsupported:<providerId>`; the later "Pins and flags need the latest server" banner reads it (no UI in slice 1).
+  - `OneDriveGraphClient.getNoteStates() / putNoteStates(Map<String, dynamic>)` at `users/{sub}/note-states.json`.
+  - Sync errors with `recordType: 'noteStates'` are non-fatal (the note cursor still advances; the merge recomputes next sync).
+  - Pulled note body: `tags` present ⇒ set-replace, absent ⇒ keep (was: clear).
 
-- [ ] **Step 1: Write the failing pin/flag sync tests**
+- [ ] **Step 1: Write the failing merge tests**
 
-Create `/Users/fchy/Projects/hmm_console/test/core/data/sync/sync_orchestrator_pin_flag_test.dart`:
+Create `/Users/fchy/Projects/hmm_console/test/core/data/sync/note_state_sync_service_test.dart`:
+
+```dart
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/local/local_note_state_repository.dart';
+import 'package:hmm_console/core/data/sync/note_state_sync_service.dart';
+import 'package:hmm_console/core/notes/note_state.dart';
+
+void main() {
+  late HmmDatabase db;
+  late LocalNoteStateRepository repo;
+  late NoteStateSyncService service;
+  final t1 = DateTime.utc(2026, 10, 1, 9);
+  final t2 = t1.add(const Duration(hours: 1));
+  final now = DateTime.utc(2026, 10, 2);
+
+  setUp(() {
+    db = HmmDatabase(NativeDatabase.memory());
+    repo = LocalNoteStateRepository(db);
+    service = NoteStateSyncService(repo);
+  });
+
+  tearDown(() => db.close());
+
+  Map<String, dynamic> doc(List<Map<String, dynamic>> states) =>
+      {'version': 1, 'states': states};
+
+  Map<String, dynamic> entry(String uuid,
+          {bool pinned = false, int? flag, required DateTime at}) =>
+      {'noteUuid': uuid, 'isPinned': pinned, 'flagColor': flag, 'lastModified': at.toIso8601String()};
+
+  Future<NoteStateMerge> merge(Map<String, dynamic>? remote,
+          {Set<String> known = const {'n1', 'n2'}}) =>
+      service.merge(remote, knownNoteUuids: known, deviceId: 'dev-a', now: now);
+
+  Map<String, dynamic>? pushed(NoteStateMerge m, String uuid) =>
+      (m.document['states'] as List)
+          .cast<Map<String, dynamic>>()
+          .where((s) => s['noteUuid'] == uuid)
+          .firstOrNull;
+
+  test('a newer remote state is applied and the merged document carries it',
+      () async {
+    final m = await merge(doc([entry('n1', pinned: true, flag: 2, at: t2)]));
+
+    final s = await repo.getState('n1');
+    expect(s.isPinned, isTrue);
+    expect(s.flagColor, 2);
+    expect(m.localWins, isEmpty);
+    expect(pushed(m, 'n1')!['isPinned'], isTrue);
+    expect(m.document['version'], 1);
+    expect(m.document['device_id'], 'dev-a');
+  });
+
+  test('a newer local unpin beats an older remote pin', () async {
+    await repo.putState(NoteState(noteUuid: 'n1', isPinned: false, lastModifiedDate: t2));
+
+    final m = await merge(doc([entry('n1', pinned: true, at: t1)]));
+
+    expect((await repo.getState('n1')).isPinned, isFalse);
+    expect(m.localWins, {'n1'});
+    expect(pushed(m, 'n1')!['isPinned'], isFalse,
+        reason: 'unpin travels as a row with false, not as a missing row');
+  });
+
+  test('a newer remote unpin is applied as a false row', () async {
+    await repo.putState(NoteState(noteUuid: 'n1', isPinned: true, flagColor: 4, lastModifiedDate: t1));
+
+    await merge(doc([entry('n1', pinned: false, flag: null, at: t2)]));
+
+    final rows = await db.select(db.noteStates).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.isPinned, isFalse);
+    expect(rows.single.flagColor, isNull);
+  });
+
+  test('a tie keeps local and is not a local win', () async {
+    await repo.putState(NoteState(noteUuid: 'n1', isPinned: true, lastModifiedDate: t1));
+
+    final m = await merge(doc([entry('n1', pinned: false, at: t1)]));
+
+    expect((await repo.getState('n1')).isPinned, isTrue);
+    expect(m.localWins, isEmpty);
+  });
+
+  test('a local state absent remotely is a local win', () async {
+    await repo.putState(NoteState(noteUuid: 'n2', flagColor: 0, lastModifiedDate: t1));
+
+    final m = await merge(null);
+
+    expect(m.localWins, {'n2'});
+    expect(pushed(m, 'n2')!['flagColor'], 0);
+  });
+
+  test('an entry for a note that no longer exists is ignored and not pushed back',
+      () async {
+    final m = await merge(doc([entry('gone', pinned: true, at: t2)]));
+
+    expect(await repo.getAllStates(), isEmpty);
+    expect(pushed(m, 'gone'), isNull);
+  });
+
+  test('a local state for a note that no longer exists is dropped', () async {
+    await repo.putState(NoteState(noteUuid: 'gone', isPinned: true, lastModifiedDate: t2));
+
+    final m = await merge(null);
+
+    expect(await repo.getAllStates(), isEmpty);
+    expect(m.localWins, isEmpty);
+  });
+
+  test('an unknown flag colour is kept; malformed entries are skipped', () async {
+    final m = await merge(doc([
+      entry('n1', flag: 42, at: t2),
+      {'isPinned': true, 'lastModified': t2.toIso8601String()}, // no uuid
+      {'noteUuid': 'n2', 'isPinned': true, 'lastModified': 'not a date'},
+      {'noteUuid': 'n2', 'isPinned': true, 'flagColor': 'red', 'lastModified': t2.toIso8601String()},
+    ]));
+
+    expect((await repo.getState('n1')).flagColor, 42);
+    final n2 = await repo.getState('n2');
+    expect(n2.isPinned, isTrue, reason: 'a non-numeric flag reads as unflagged');
+    expect(n2.flagColor, isNull);
+    expect(pushed(m, 'n1')!['flagColor'], 42);
+  });
+}
+```
+
+- [ ] **Step 2: Write the failing orchestrator, graph and tag tests**
+
+Create `/Users/fchy/Projects/hmm_console/test/core/data/sync/sync_orchestrator_note_states_test.dart`:
 
 ```dart
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/local/local_note_state_repository.dart';
 import 'package:hmm_console/core/data/local/local_tag_repository.dart';
 import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
+import 'package:hmm_console/core/notes/note_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'onedrive_test_fakes.dart';
@@ -2703,144 +3395,170 @@ void main() {
 
   late HmmDatabase db;
   late _FakeProvider provider;
+  late SyncMetaRepository meta;
   late SyncOrchestrator orchestrator;
+  late LocalNoteStateRepository states;
 
   final t0 = DateTime.utc(2026, 10, 1, 9);
   final t1 = t0.add(const Duration(hours: 1));
+  final t2 = t0.add(const Duration(hours: 2));
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     db = HmmDatabase(NativeDatabase.memory());
     await db.into(db.authors).insert(AuthorsCompanion.insert(accountName: 'tester'));
     provider = _FakeProvider();
+    meta = SyncMetaRepository();
     orchestrator = SyncOrchestrator(
-        provider: provider, db: db, meta: SyncMetaRepository(), vaultStore: noopVaultStore);
+        provider: provider, db: db, meta: meta, vaultStore: noopVaultStore);
+    states = LocalNoteStateRepository(db);
   });
 
   tearDown(() => db.close());
 
-  Future<int> insertLocal({bool pinned = false, int? flag}) =>
+  Future<int> insertNote(String uuid,
+          {String subject = 'mine', required DateTime modified, DateTime? deletedAt, String? content = 'body'}) =>
       db.into(db.notes).insert(NotesCompanion.insert(
-            uuid: const Value('n1'),
-            subject: 'mine',
+            uuid: Value(uuid),
+            subject: subject,
+            content: Value(content),
             authorId: 1,
             createDate: Value(t0),
-            lastModifiedDate: Value(t0),
-            isPinned: Value(pinned),
-            flagColor: Value(flag),
+            lastModifiedDate: Value(modified),
+            deletedAt: Value(deletedAt),
           ));
 
   Future<Note> row(int id) =>
       (db.select(db.notes)..where((n) => n.id.equals(id))).getSingle();
 
-  void remoteNewer(Map<String, dynamic> body) {
-    provider.remoteManifest = SyncManifest(
-      version: 1, generatedAt: t1, deviceId: 'other',
-      notes: [ManifestEntry(id: 'n1', updatedAt: t1, deleted: false)],
-      attachments: const [],
-    );
-    provider.remoteBodies['n1'] = {
-      'uuid': 'n1',
-      'subject': 'mine (edited elsewhere)',
-      'createDate': t0.toIso8601String(),
-      'lastModifiedDate': t1.toIso8601String(),
-      ...body,
-    };
-  }
+  SyncManifest manifest(List<ManifestEntry> notes) => SyncManifest(
+      version: 1, generatedAt: t2, deviceId: 'other', notes: notes, attachments: const []);
 
-  test('outbound: the pushed blob carries isPinned and flagColor', () async {
-    await insertLocal(pinned: true, flag: 4);
-    provider.remoteManifest = SyncManifest(
-        version: 1, generatedAt: t0, deviceId: 'x', notes: const [], attachments: const []);
+  Map<String, dynamic>? pushedState(String uuid) =>
+      (provider.pushedStates!['states'] as List)
+          .cast<Map<String, dynamic>>()
+          .where((s) => s['noteUuid'] == uuid)
+          .firstOrNull;
+
+  test('a pin on this device and a text edit on another both survive', () async {
+    final id = await insertNote('n1', modified: t0);
+    // This device already synced the note; then it only pinned it.
+    await meta.setLastPushedAt('fake', t0.add(const Duration(minutes: 1)));
+    await states.setPinned('n1', true);
+    // The other device edited the text later and never pinned.
+    provider.remoteManifest = manifest([ManifestEntry(id: 'n1', updatedAt: t2, deleted: false)]);
+    provider.remoteBodies['n1'] = {
+      'uuid': 'n1', 'subject': 'edited on B', 'content': 'new body',
+      'lastModifiedDate': t2.toIso8601String(), 'tags': const <String>[],
+    };
+    provider.remoteStates = {'version': 1, 'states': const []};
 
     final result = await orchestrator.syncNow();
 
     expect(result.errors, isEmpty, reason: result.errors.join('\n'));
-    expect(provider.pushedBodies['n1']!['isPinned'], isTrue);
-    expect(provider.pushedBodies['n1']!['flagColor'], 4);
-  });
-
-  test('outbound: an unflagged note sends an explicit null flagColor', () async {
-    await insertLocal();
-    provider.remoteManifest = SyncManifest(
-        version: 1, generatedAt: t0, deviceId: 'x', notes: const [], attachments: const []);
-
-    await orchestrator.syncNow();
-
-    final body = provider.pushedBodies['n1']!;
-    expect(body.containsKey('flagColor'), isTrue);
-    expect(body['flagColor'], isNull);
-    expect(body['isPinned'], isFalse);
-  });
-
-  test('inbound update with pin/flag keys applies them (null clears the flag)',
-      () async {
-    final id = await insertLocal(pinned: true, flag: 2);
-    remoteNewer({'isPinned': false, 'flagColor': null, 'tags': const <String>[]});
-
-    await orchestrator.syncNow();
-
     final r = await row(id);
-    expect(r.isPinned, isFalse);
-    expect(r.flagColor, isNull);
+    expect(r.subject, 'edited on B', reason: 'the text edit applied');
+    expect((await states.getState('n1')).isPinned, isTrue, reason: 'the pin survived');
+    expect(provider.pushedBodies.containsKey('n1'), isFalse,
+        reason: 'pinning never re-pushes the note, so it cannot overwrite the edit');
+    expect(pushedState('n1')!['isPinned'], isTrue);
+    expect(provider.pushedChanged, {'n1'});
   });
 
-  test('inbound update without pin/flag keys keeps the local pin and flag '
-      '(older client edit)', () async {
-    final id = await insertLocal(pinned: true, flag: 3);
-    remoteNewer({'tags': const <String>[]}); // older app: no isPinned/flagColor
-
-    await orchestrator.syncNow();
-
-    final r = await row(id);
-    expect(r.subject, 'mine (edited elsewhere)', reason: 'the edit applied');
-    expect(r.isPinned, isTrue);
-    expect(r.flagColor, 3);
-  });
-
-  test('inbound insert without pin/flag keys lands unpinned and unflagged',
-      () async {
-    provider.remoteManifest = SyncManifest(
-      version: 1, generatedAt: t1, deviceId: 'other',
-      notes: [ManifestEntry(id: 'r1', updatedAt: t1, deleted: false)],
-      attachments: const [],
-    );
-    provider.remoteBodies['r1'] = {
-      'uuid': 'r1', 'subject': 'from old app', 'createDate': t1.toIso8601String(),
+  test('a remote pin applies without touching the local note row', () async {
+    final id = await insertNote('n1', modified: t2);
+    await meta.setLastPushedAt('fake', t2.add(const Duration(minutes: 1)));
+    final before = await row(id);
+    provider.remoteManifest = manifest([ManifestEntry(id: 'n1', updatedAt: t2, deleted: false)]);
+    provider.remoteStates = {
+      'version': 1,
+      'states': [
+        {'noteUuid': 'n1', 'isPinned': true, 'flagColor': 3, 'lastModified': t1.toIso8601String()},
+      ],
     };
 
     await orchestrator.syncNow();
 
-    final r = await (db.select(db.notes)..where((n) => n.uuid.equals('r1'))).getSingle();
-    expect(r.isPinned, isFalse);
-    expect(r.flagColor, isNull);
+    final s = await states.getState('n1');
+    expect(s.isPinned, isTrue);
+    expect(s.flagColor, 3);
+    final after = await row(id);
+    expect(after.lastModifiedDate, before.lastModifiedDate);
+    expect(after.version, before.version);
+    expect(provider.pushedBodies, isEmpty);
   });
 
-  test('inbound unknown flag value is kept verbatim', () async {
-    final id = await insertLocal();
-    remoteNewer({'isPinned': true, 'flagColor': 42});
+  test('an old server keeps local state and sets the unsupported flag', () async {
+    await insertNote('n1', modified: t0);
+    await states.putState(NoteState(noteUuid: 'n1', isPinned: true, lastModifiedDate: t1));
+    provider.remoteManifest = manifest([ManifestEntry(id: 'n1', updatedAt: t0, deleted: false)]);
+    provider.unsupported = true;
 
+    final result = await orchestrator.syncNow();
+
+    expect(result.errors, isEmpty, reason: 'an old server is not a sync failure');
+    expect((await states.getState('n1')).isPinned, isTrue);
+    expect(provider.pushCalls, 0);
+    expect(await meta.getNoteStatesUnsupported('fake'), isTrue);
+
+    // The server is upgraded: it has no states yet, so every local one goes up.
+    provider.unsupported = false;
+    provider.remoteStates = null;
     await orchestrator.syncNow();
 
-    expect((await row(id)).flagColor, 42);
+    expect(await meta.getNoteStatesUnsupported('fake'), isFalse);
+    expect(provider.pushedChanged, {'n1'});
+  });
+
+  test('a state for a purged note is dropped and never revives the note', () async {
+    // Purged on this device: a content-free tombstone (Task 8) plus a stale
+    // state row; a peer that has not purged yet still pushes a newer pin.
+    final id = await insertNote('n1',
+        subject: kTombstoneSubject, content: null, modified: t0, deletedAt: t0);
+    await states.putState(NoteState(noteUuid: 'n1', isPinned: true, lastModifiedDate: t0));
+    provider.remoteManifest = manifest([ManifestEntry(id: 'n1', updatedAt: t0, deleted: true)]);
+    provider.remoteStates = {
+      'version': 1,
+      'states': [
+        {'noteUuid': 'n1', 'isPinned': true, 'flagColor': null, 'lastModified': t2.toIso8601String()},
+      ],
+    };
+
+    final result = await orchestrator.syncNow();
+
+    expect(result.errors, isEmpty, reason: result.errors.join('\n'));
+    expect(await states.getAllStates(), isEmpty);
+    expect(pushedState('n1'), isNull);
+    final r = await row(id);
+    expect(r.deletedAt, isNotNull);
+    expect(r.subject, kTombstoneSubject);
+  });
+
+  test('a failed state pull is a non-fatal error and advances the cursor', () async {
+    await insertNote('n1', modified: t0);
+    provider.remoteManifest = manifest([ManifestEntry(id: 'n1', updatedAt: t0, deleted: false)]);
+    provider.failPull = true;
+
+    final result = await orchestrator.syncNow();
+
+    expect(result.errors.map((e) => e.recordType), ['noteStates']);
+    expect(await meta.getLastPushedAt('fake'), isNotNull);
   });
 
   test('an absent tags key keeps membership; a present empty list clears it',
       () async {
-    final id = await insertLocal();
+    final id = await insertNote('n1', modified: t0);
     final tags = LocalTagRepository(db);
     await tags.setTagsForNote(id, ['work']);
 
-    remoteNewer({}); // no 'tags' key
+    provider.remoteManifest = manifest([ManifestEntry(id: 'n1', updatedAt: t1, deleted: false)]);
+    provider.remoteBodies['n1'] = {
+      'uuid': 'n1', 'subject': 'mine', 'lastModifiedDate': t1.toIso8601String(),
+    }; // no 'tags' key: an older client, or a server without note tags
     await orchestrator.syncNow();
     expect(await tags.tagNamesForNote(id), ['work']);
 
-    final t2 = t1.add(const Duration(hours: 1));
-    provider.remoteManifest = SyncManifest(
-      version: 1, generatedAt: t2, deviceId: 'other',
-      notes: [ManifestEntry(id: 'n1', updatedAt: t2, deleted: false)],
-      attachments: const [],
-    );
+    provider.remoteManifest = manifest([ManifestEntry(id: 'n1', updatedAt: t2, deleted: false)]);
     provider.remoteBodies['n1'] = {
       'uuid': 'n1', 'subject': 'mine', 'lastModifiedDate': t2.toIso8601String(),
       'tags': const <String>[],
@@ -2852,9 +3570,14 @@ void main() {
 
 class _FakeProvider extends CloudSyncProvider {
   SyncManifest? remoteManifest;
-  final Map<String, Map<String, dynamic>> pushedBodies = {};
   final Map<String, Map<String, dynamic>> remoteBodies = {};
-  SyncManifest? lastPushedManifest;
+  final Map<String, Map<String, dynamic>> pushedBodies = {};
+  Map<String, dynamic>? remoteStates;
+  Map<String, dynamic>? pushedStates;
+  Set<String>? pushedChanged;
+  int pushCalls = 0;
+  bool unsupported = false;
+  bool failPull = false;
 
   @override
   String get providerId => 'fake';
@@ -2867,15 +3590,88 @@ class _FakeProvider extends CloudSyncProvider {
   @override
   Future<SyncManifest?> pullManifest() async => remoteManifest;
   @override
-  Future<void> pushManifest(SyncManifest manifest) async => lastPushedManifest = manifest;
+  Future<void> pushManifest(SyncManifest manifest) async {}
   @override
   Future<Map<String, dynamic>?> pullNoteBody(String id) async => remoteBodies[id];
   @override
   Future<void> pushNoteBody(String id, Map<String, dynamic> body) async => pushedBodies[id] = body;
+
+  @override
+  Future<Map<String, dynamic>?> pullNoteStates() async {
+    if (unsupported) throw const NoteStatesUnsupportedException();
+    if (failPull) throw StateError('offline');
+    return remoteStates;
+  }
+
+  @override
+  Future<void> pushNoteStates(Map<String, dynamic> doc, {required Set<String> changed}) async {
+    pushCalls++;
+    pushedStates = doc;
+    pushedChanged = changed;
+  }
 }
 ```
 
-- [ ] **Step 2: Write the restore-propagation tests**
+Create `/Users/fchy/Projects/hmm_console/test/core/data/sync/onedrive_note_states_graph_test.dart`:
+
+```dart
+import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/sync/onedrive_graph_client.dart';
+import 'package:http_mock_adapter/http_mock_adapter.dart';
+
+import 'onedrive_test_fakes.dart';
+
+void main() {
+  late Dio dio;
+  late DioAdapter adapter;
+  const path = '/me/drive/special/approot:/users/SUB-1/note-states.json:/content';
+
+  setUp(() {
+    dio = Dio(BaseOptions(validateStatus: (_) => true));
+    adapter = DioAdapter(dio: dio);
+  });
+
+  OneDriveGraphClient client() =>
+      OneDriveGraphClient(FakeOneDriveAuth(), () async => 'SUB-1', dio: dio);
+
+  test('getNoteStates returns the decoded body on 200', () async {
+    adapter.onGet(path, (s) => s.reply(200, {
+          'version': 1,
+          'states': [
+            {'noteUuid': 'n1', 'isPinned': true, 'flagColor': null, 'lastModified': '2026-10-01T09:00:00.000Z'},
+          ],
+        }));
+
+    final doc = await client().getNoteStates();
+
+    expect((doc!['states'] as List).single['noteUuid'], 'n1');
+  });
+
+  test('getNoteStates returns null when note-states.json is absent (404)', () async {
+    adapter.onGet(path, (s) => s.reply(404, null));
+
+    expect(await client().getNoteStates(), isNull);
+  });
+
+  test('putNoteStates PUTs the document to the user-scoped note-states.json', () async {
+    Map<String, dynamic>? captured;
+    adapter.onPut(path, (s) => s.reply(200, {'ok': true}), data: Matchers.any);
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) {
+      if (o.method == 'PUT' && o.path == path && o.data is Map) {
+        captured = o.data as Map<String, dynamic>;
+      }
+      h.next(o);
+    }));
+
+    await client().putNoteStates({'version': 1, 'states': const []});
+
+    expect(captured!['version'], 1);
+  });
+}
+```
+
+- [ ] **Step 3: Write the restore-propagation tests**
 
 Create `/Users/fchy/Projects/hmm_console/test/core/data/sync/sync_orchestrator_restore_test.dart`:
 
@@ -3032,52 +3828,293 @@ class _FakeProvider extends CloudSyncProvider {
 }
 ```
 
-- [ ] **Step 3: Run to verify failure**
+- [ ] **Step 4: Run to verify failure**
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-flutter test test/core/data/sync/sync_orchestrator_pin_flag_test.dart test/core/data/sync/sync_orchestrator_restore_test.dart
+flutter test test/core/data/sync/note_state_sync_service_test.dart test/core/data/sync/sync_orchestrator_note_states_test.dart \
+  test/core/data/sync/onedrive_note_states_graph_test.dart test/core/data/sync/sync_orchestrator_restore_test.dart
 ```
-Expected: the pin/flag file FAILS — `outbound: the pushed blob carries isPinned and flagColor` (`Expected: true Actual: <null>`), `inbound update with pin/flag keys applies them` (`isPinned` still true), `an absent tags key keeps membership` (`Expected: ['work'] Actual: []`). The restore file already PASSES: it pins existing last-writer-wins behaviour plus Task 5's `restoreStamp`. If any restore test fails here, stop and investigate before changing the orchestrator.
+Expected: compile errors `Target of URI doesn't exist: 'package:hmm_console/core/data/sync/note_state_sync_service.dart'`, `Undefined name 'kTombstoneSubject'`, `The method 'getNoteStates' isn't defined for the type 'OneDriveGraphClient'`. Run the restore file alone (`flutter test test/core/data/sync/sync_orchestrator_restore_test.dart`): it already PASSES — it pins existing last-writer-wins behaviour plus Task 5's `restoreStamp`. If any restore test fails here, stop and investigate before changing the orchestrator.
 
-- [ ] **Step 4: Implement the blob keys and absent-keeps pull**
+- [ ] **Step 5: Shared constants, provider contract and the unsupported flag**
 
-In `sync_orchestrator.dart` `_noteRowToBlob`, add after `'attachments': n.attachments,`:
-
-```dart
-        // Pin + flag (Notes redesign slice 1). Older clients omit them; the
-        // inbound apply keeps the stored value when a key is absent.
-        'isPinned': n.isPinned,
-        'flagColor': n.flagColor,
-```
-
-In `_applyPulledNote`, after `final attachmentsJson = body['attachments'] as String?;` add:
+In `sync_models.dart`, after the `library;` line add:
 
 ```dart
 
-    // Pin + flag: present key ⇒ apply (a null flagColor clears), absent key
-    // (an older client) ⇒ keep the stored value.
-    final hasPinned = body['isPinned'] is bool;
-    final pinned = hasPinned ? body['isPinned'] as bool : false;
-    final hasFlag = body.containsKey('flagColor');
-    final flagColor = (body['flagColor'] as num?)?.toInt();
+/// Subject of a content-free tombstone row: one pulled for a note this device
+/// never had, or a cloudStorage note purged after 30 days. The row keeps its
+/// uuid and deletedAt so the manifest keeps propagating the delete. Such a
+/// row carries no note state (see `NoteStateSyncService`).
+const String kTombstoneSubject = '(deleted)';
 ```
 
-In the `existing != null` update companion, add after the `attachments:` entry:
+and in `enum SyncPhase` add `noteStates,` after `pushNotes,`.
+
+In `cloud_sync_provider.dart`, add before `abstract class CloudSyncProvider`:
 
 ```dart
-        isPinned: hasPinned ? Value(pinned) : const Value.absent(),
-        flagColor: hasFlag ? Value(flagColor) : const Value.absent(),
+/// Thrown by [CloudSyncProvider.pullNoteStates] when the remote cannot store
+/// note state at all (an Hmm API older than the notes redesign). The caller
+/// keeps every local state and pushes nothing.
+class NoteStatesUnsupportedException implements Exception {
+  const NoteStatesUnsupportedException();
+
+  @override
+  String toString() => 'NoteStatesUnsupportedException';
+}
 ```
 
-In the insert companion, add after `attachments: Value(attachmentsJson),`:
+and inside the class, after `pushTags`:
 
 ```dart
-              isPinned: Value(pinned),
-              flagColor: Value(flagColor),
+
+  // ---- Note states (pins + flags, Notes redesign G14) ----
+
+  /// Fetch the note-state document `{version: 1, states: [{noteUuid,
+  /// isPinned, flagColor, lastModified}]}`, or null when the remote has none
+  /// yet. Throws [NoteStatesUnsupportedException] when the remote cannot
+  /// store note state. Default: null.
+  Future<Map<String, dynamic>?> pullNoteStates() async => null;
+
+  /// Push note states. [doc] is the full merged document; [changed] holds the
+  /// note uuids whose local state beat the remote one. A whole-document
+  /// store (OneDrive) writes [doc]; a per-row store (the Hmm API) sends only
+  /// [changed]. Default: no-op.
+  Future<void> pushNoteStates(Map<String, dynamic> doc,
+      {required Set<String> changed}) async {}
 ```
 
-Replace the tag-membership tail
+In `sync_meta_repository.dart`, after `clear`, add:
+
+```dart
+
+  static String _noteStatesUnsupportedKey(String providerId) =>
+      'sync_note_states_unsupported:$providerId';
+
+  /// True after the last sync found a remote without note-state support (an
+  /// old Hmm API). Read by the "Pins and flags need the latest server" banner.
+  Future<bool> getNoteStatesUnsupported(String providerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_noteStatesUnsupportedKey(providerId)) ?? false;
+  }
+
+  Future<void> setNoteStatesUnsupported(String providerId, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_noteStatesUnsupportedKey(providerId), value);
+  }
+```
+
+- [ ] **Step 6: The merge service**
+
+Create `/Users/fchy/Projects/hmm_console/lib/core/data/sync/note_state_sync_service.dart`:
+
+```dart
+import '../../notes/note_state.dart';
+import '../local/local_note_state_repository.dart';
+
+/// Result of [NoteStateSyncService.merge].
+class NoteStateMerge {
+  const NoteStateMerge({required this.document, required this.localWins});
+
+  /// Every surviving state at its winning version — the document to push.
+  final Map<String, dynamic> document;
+
+  /// Note uuids whose local state is strictly newer than the remote one, or
+  /// absent remotely: what a per-row remote must receive.
+  final Set<String> localWins;
+}
+
+/// Merges note states (pins + flags, Notes redesign G14) per entry, the
+/// same way [TagSyncService] merges tag definitions: newer `lastModified`
+/// wins, a tie keeps local. Entries for notes that no longer exist
+/// ([knownNoteUuids] excludes them — purged notes, content-free tombstones)
+/// are neither applied nor pushed, and their local rows are dropped.
+class NoteStateSyncService {
+  NoteStateSyncService(this._repo);
+
+  final LocalNoteStateRepository _repo;
+
+  Future<NoteStateMerge> merge(
+    Map<String, dynamic>? remoteDoc, {
+    required Set<String> knownNoteUuids,
+    required String deviceId,
+    required DateTime now,
+  }) async {
+    // 1. Drop local states whose note no longer exists anywhere.
+    final local = await _repo.getAllStates();
+    for (final uuid in local.keys.toList()) {
+      if (!knownNoteUuids.contains(uuid)) {
+        await _repo.deleteState(uuid);
+        local.remove(uuid);
+      }
+    }
+
+    // 2. Parse remote entries defensively; ignore unknown notes.
+    final remote = <String, NoteState>{};
+    for (final raw in (remoteDoc?['states'] as List?) ?? const []) {
+      if (raw is! Map) continue;
+      final s = _parse(raw.cast<String, dynamic>());
+      if (s != null && knownNoteUuids.contains(s.noteUuid)) {
+        remote[s.noteUuid] = s;
+      }
+    }
+
+    // 3. Remote-newer wins; a tie keeps local.
+    for (final r in remote.values) {
+      final l = local[r.noteUuid];
+      if (l == null || r.lastModifiedDate.isAfter(l.lastModifiedDate)) {
+        await _repo.putState(r);
+      }
+    }
+
+    // 4. What the remote is missing or holds older.
+    final localWins = <String>{
+      for (final l in local.values)
+        if (remote[l.noteUuid] == null ||
+            l.lastModifiedDate.isAfter(remote[l.noteUuid]!.lastModifiedDate))
+          l.noteUuid,
+    };
+
+    final merged = await _repo.getAllStates();
+    final uuids = merged.keys.toList()..sort();
+    return NoteStateMerge(
+      document: {
+        'version': 1,
+        'device_id': deviceId,
+        'generated_at': now.toUtc().toIso8601String(),
+        'states': [
+          for (final uuid in uuids)
+            {
+              'noteUuid': uuid,
+              'isPinned': merged[uuid]!.isPinned,
+              'flagColor': merged[uuid]!.flagColor,
+              'lastModified':
+                  merged[uuid]!.lastModifiedDate.toUtc().toIso8601String(),
+            },
+        ],
+      },
+      localWins: localWins,
+    );
+  }
+
+  static NoteState? _parse(Map<String, dynamic> j) {
+    final uuid = j['noteUuid'];
+    final at = DateTime.tryParse(j['lastModified'] as String? ?? '');
+    if (uuid is! String || uuid.isEmpty || at == null) return null;
+    final flag = j['flagColor'];
+    return NoteState(
+      noteUuid: uuid,
+      isPinned: j['isPinned'] is bool ? j['isPinned'] as bool : false,
+      // Any int is kept verbatim (a newer client's colour shows grey).
+      flagColor: flag is num ? flag.toInt() : null,
+      lastModifiedDate: at.toUtc(),
+    );
+  }
+}
+```
+
+- [ ] **Step 7: OneDrive transport (and the API stubs)**
+
+In `onedrive_graph_client.dart`, after `putTags`, add:
+
+```dart
+
+  /// Fetch the user's note-state document from `users/{sub}/note-states.json`
+  /// (pins + flags), or null when the file doesn't exist yet.
+  Future<Map<String, dynamic>?> getNoteStates() async {
+    final path = await _userPath('note-states.json', action: 'content');
+    final resp = await _dio.get<Map<String, dynamic>>(path);
+    if (resp.statusCode == 404) return null;
+    _throwIfBad(resp);
+    return resp.data;
+  }
+
+  /// Push the user's note-state document to `users/{sub}/note-states.json`.
+  Future<void> putNoteStates(Map<String, dynamic> body) async {
+    final path = await _userPath('note-states.json', action: 'content');
+    final resp = await _dio.put(
+      path,
+      data: body,
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    _throwIfBad(resp);
+  }
+```
+
+In `onedrive_sync_provider.dart`, after `pushTags`, add:
+
+```dart
+
+  @override
+  Future<Map<String, dynamic>?> pullNoteStates() => _graph.getNoteStates();
+
+  /// One whole document, like tags.json: [changed] is not needed here.
+  @override
+  Future<void> pushNoteStates(Map<String, dynamic> doc,
+          {required Set<String> changed}) =>
+      _graph.putNoteStates(doc);
+```
+
+In `api_sync_provider.dart` (it `implements` the contract, so it does not inherit the defaults), after `pushTags`, add the stubs Task 7 replaces:
+
+```dart
+
+  // ---- Note states ---- (wired to the API in Task 7)
+
+  @override
+  Future<Map<String, dynamic>?> pullNoteStates() async => null;
+
+  @override
+  Future<void> pushNoteStates(Map<String, dynamic> doc,
+      {required Set<String> changed}) async {}
+```
+
+- [ ] **Step 8: Orchestrator — state sync, tombstone constant, non-fatal errors, tags on an absent key**
+
+In `sync_orchestrator.dart`:
+
+1. Add the imports `import '../local/local_note_state_repository.dart';` and `import 'note_state_sync_service.dart';`.
+2. In `_maybePullNote`'s tombstone insert, replace `subject: '(deleted)',` with `subject: kTombstoneSubject,`.
+3. Immediately after `timer.stop(SyncPhase.pushNotes);` add:
+
+```dart
+
+    // -------- 3b. Note states (pins + flags, G14) --------
+    // After the note pull (pulled notes exist locally, restores applied) and
+    // the note push (the API has every note a state can point at). Never
+    // writes a note row, so a pin can never overwrite a text edit.
+    try {
+      await timer.run(
+          SyncPhase.noteStates, () => _syncNoteStates(p, remote, errors));
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'noteStates',
+        recordId: 'note-states',
+        message: 'Note state sync threw: $e',
+      ));
+    }
+```
+
+4. Replace
+
+```dart
+    final metadataClean =
+        errors.every((e) => e.recordType == 'attachment');
+```
+
+with
+
+```dart
+    // Attachment bytes and note states are re-derived on the next sync, so
+    // their errors must not hold the note cursor back.
+    const nonBlocking = {'attachment', 'noteStates'};
+    final metadataClean =
+        errors.every((e) => nonBlocking.contains(e.recordType));
+```
+
+5. Replace the tag-membership tail of `_applyPulledNote`
 
 ```dart
     // Rebuild tag membership from the note body (set-replace). The body's
@@ -3103,43 +4140,118 @@ with
     }
 ```
 
-- [ ] **Step 5: Run tests**
+6. Add after `_syncTags`:
+
+```dart
+
+  // ==================== NOTE STATES sync (G14) ====================
+
+  Future<void> _syncNoteStates(
+    CloudSyncProvider p,
+    SyncManifest? remote,
+    List<SyncError> errors,
+  ) async {
+    Map<String, dynamic>? remoteDoc;
+    try {
+      remoteDoc = await p.pullNoteStates();
+    } on NoteStatesUnsupportedException {
+      // Old server: keep every local state untouched and push nothing; the
+      // UI reads the flag ("Pins and flags need the latest server").
+      await _meta.setNoteStatesUnsupported(p.providerId, true);
+      return;
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'noteStates',
+        recordId: 'note-states',
+        message: 'Failed to pull note states: $e',
+      ));
+      return;
+    }
+    await _meta.setNoteStatesUnsupported(p.providerId, false);
+
+    final merge = await NoteStateSyncService(LocalNoteStateRepository(_db))
+        .merge(
+      remoteDoc,
+      knownNoteUuids: await _stateBearingNoteUuids(remote),
+      deviceId: await _meta.getOrCreateDeviceId(),
+      now: DateTime.now(),
+    );
+    try {
+      await p.pushNoteStates(merge.document, changed: merge.localWins);
+    } catch (e) {
+      errors.add(SyncError(
+        recordType: 'noteStates',
+        recordId: 'note-states',
+        message: 'Failed to push note states: $e',
+      ));
+    }
+  }
+
+  /// Note uuids a state may belong to: every local note except a content-
+  /// free tombstone (a purged note, or a delete this device only ever saw as
+  /// a tombstone), plus every live note of the remote manifest (its pull may
+  /// have failed this run — a failed pull must not drop a pin).
+  Future<Set<String>> _stateBearingNoteUuids(SyncManifest? remote) async {
+    final rows = await _db.select(_db.notes).get();
+    return {
+      for (final n in rows)
+        if (n.uuid != null && !_isContentFreeTombstone(n)) n.uuid!,
+      for (final e in remote?.notes ?? const <ManifestEntry>[])
+        if (!e.deleted) e.id,
+    };
+  }
+
+  static bool _isContentFreeTombstone(Note n) =>
+      n.deletedAt != null &&
+      n.subject == kTombstoneSubject &&
+      n.content == null &&
+      n.attachments == null;
+```
+
+- [ ] **Step 9: Run tests**
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
 flutter test test/core/data/sync/
+flutter analyze
 ```
-Expected: `All tests passed!`.
+Expected: `All tests passed!` (including the existing `sync_orchestrator_tags_test.dart`, `sync_orchestrator_timing_test.dart` — every `SyncPhase` value, the new one included, is reported — and `onedrive_tags_graph_test.dart`); analyze at the 2 pre-existing infos.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-git add lib/core/data/sync/sync_orchestrator.dart \
-  test/core/data/sync/sync_orchestrator_pin_flag_test.dart test/core/data/sync/sync_orchestrator_restore_test.dart
+git add lib/core/data/sync/sync_models.dart lib/core/data/sync/cloud_sync_provider.dart \
+  lib/core/data/sync/sync_meta_repository.dart lib/core/data/sync/note_state_sync_service.dart \
+  lib/core/data/sync/onedrive_graph_client.dart lib/core/data/sync/onedrive_sync_provider.dart \
+  lib/core/data/sync/api_sync_provider.dart lib/core/data/sync/sync_orchestrator.dart \
+  test/core/data/sync/note_state_sync_service_test.dart test/core/data/sync/sync_orchestrator_note_states_test.dart \
+  test/core/data/sync/onedrive_note_states_graph_test.dart test/core/data/sync/sync_orchestrator_restore_test.dart
 git commit -m "$(cat <<'MSG'
-feat(sync): OneDrive note blob carries isPinned/flagColor; absent keys keep
+feat(sync): per-entry note-state sync (pins/flags) via note-states.json
 
-An older client's blob (no pin/flag/tags keys) no longer unpins, unflags or
-untags on pull. Restore propagation and the equal-timestamp tie are pinned
-by tests.
+Merged like tags.json: newer lastModified wins, a tie keeps local, purged
+notes' entries are dropped, the note row is never written. A remote without
+note-state support keeps local state and sets a flag for the UI. A pulled
+note body without a tags key now keeps local membership. Restore
+propagation and the equal-timestamp tie are pinned by tests.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 MSG
 )"
 ```
 
-### Task 7: Client — `ApiSyncProvider` sends/reads pin/flag, restores via the undelete endpoint, syncs tags
+### Task 7: Client — `ApiSyncProvider` syncs note states, restores via the undelete endpoint, syncs tags
 
 Note: there is no cloudApi note *repository* in the app today — `hmmNoteRepositoryProvider` throws `UnimplementedError` for `DataMode.cloudApi` (`lib/core/data/repository_providers.dart:38`). Notes reach the API only through `SyncOrchestrator` + `ApiSyncProvider` over the local Drift store, so that is where slice 1 wires the cloudApi side.
 
 **Files:**
-- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/api_sync_provider.dart` (imports line 19–28; fields after line 61; `pushNoteBody` 173–224; `_createNote` 289–304; `_updateNote` 306–315; `_orchestratorBodyFromApiNote` 369–384; `pullTags`/`pushTags` 414–424)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/api_sync_provider.dart` (imports line 19–28; fields after line 61; `pushNoteBody` 173–224; `_createNote` 289–304; `_updateNote` 306–315; `_orchestratorBodyFromApiNote` 369–384; `pullTags`/`pushTags` 414–424; the Task 6 note-state stubs after `pushTags`)
 - Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/api_sync_provider_slice1_test.dart` (create)
 
 **Interfaces:**
-- Consumes (server, Tasks 1–4): `ApiNote.isPinned/flagColor/tagNames`, `PUT /notes/{id}` with `isPinned`/`flagColor`, `POST /notes/{id}/restore`, `PUT /notes/{id}/tags {"names": [...]}`, `GET|POST /tags`, `DELETE /tags/{id}`.
-- Produces: pulled body keys `isPinned`, `flagColor`, `tags` only when the server sent them; push: restore-then-PUT for a server tombstone being revived; no DELETE for an already-deleted server note; tag definitions doc `{'version': 1, 'tags': [{name, description, is_activated, last_modified (epoch), deleted: false}]}`.
+- Consumes (server, Tasks 1–4): `GET /notes/states` → `[{noteId, noteUuid, isPinned, flagColor, lastModifiedDate}]`, `PUT /notes/{id}/state {isPinned, flagColor, lastModifiedDate}`, `ApiNote.tagNames`, `POST /notes/{id}/restore`, `PUT /notes/{id}/tags {"names": [...]}`, `GET|POST /tags`, `DELETE /tags/{id}`; `NoteStatesUnsupportedException`, `pullNoteStates` / `pushNoteStates(doc, changed:)` (Task 6).
+- Produces: `pullNoteStates` maps the server rows to the Task 6 document (rows without a `noteUuid` are skipped) and throws `NoteStatesUnsupportedException` on 404/405; `pushNoteStates` PUTs only the `changed` uuids (server id from the GET, else the by-uuid probe; a note the server does not have yet is skipped and retried next sync; other failures are counted and thrown once as `ApiSyncProviderException`); note bodies carry no pin/flag; pulled body key `tags` only when the server sent `tagNames`; push: restore-then-PUT for a server tombstone being revived; no DELETE for an already-deleted server note; tag definitions doc `{'version': 1, 'tags': [{name, description, is_activated, last_modified (epoch), deleted: false}]}`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -3149,6 +4261,7 @@ Create `/Users/fchy/Projects/hmm_console/test/core/data/sync/api_sync_provider_s
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/sync/api_sync_provider.dart';
+import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/network/api_client.dart';
 import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -3179,56 +4292,40 @@ void main() {
       '/notes/by-uuid/$uuid', (s) => s.reply(200, {'uuid': uuid, ...note}));
 
   group('pull', () {
-    test('pin, flag and tag names come through when the server sends them', () async {
+    test('tag names come through when the server sends them', () async {
       existing('abc', {
         'id': 7, 'subject': 's', 'content': 'c', 'catalogName': 'General',
         'lastModifiedDate': '2026-10-18T10:00:00Z', 'isDeleted': false,
-        'isPinned': true, 'flagColor': 2, 'tagNames': ['work'],
+        'tagNames': ['work'],
       });
 
       final body = (await provider.pullNoteBody('abc'))!;
 
-      expect(body['isPinned'], isTrue);
-      expect(body['flagColor'], 2);
       expect(body['tags'], ['work']);
+      expect(body.containsKey('isPinned'), isFalse, reason: 'pin/flag are note state, never note body');
+      expect(body.containsKey('flagColor'), isFalse);
     });
 
-    test('an explicit null flagColor stays a present key (clears on apply)', () async {
-      existing('abc', {'id': 7, 'subject': 's', 'isPinned': false, 'flagColor': null, 'tagNames': []});
+    test('an empty tagNames list stays a present key (clears on apply)', () async {
+      existing('abc', {'id': 7, 'subject': 's', 'tagNames': []});
 
       final body = (await provider.pullNoteBody('abc'))!;
 
-      expect(body.containsKey('flagColor'), isTrue);
-      expect(body['flagColor'], isNull);
+      expect(body.containsKey('tags'), isTrue);
       expect(body['tags'], isEmpty);
     });
 
-    test('an old server (no pin/flag/tag keys) yields a body without those keys', () async {
+    test('an old server (no tagNames) yields a body without a tags key', () async {
       existing('abc', {'id': 7, 'subject': 's', 'content': 'c', 'isDeleted': false});
 
       final body = (await provider.pullNoteBody('abc'))!;
 
-      expect(body.containsKey('isPinned'), isFalse);
-      expect(body.containsKey('flagColor'), isFalse);
       expect(body.containsKey('tags'), isFalse);
     });
   });
 
   group('push', () {
-    test('update sends isPinned and flagColor (null included)', () async {
-      existing('u', {'id': 42});
-      adapter.onPut('/notes/42', (s) => s.reply(204, null), data: Matchers.any);
-
-      await provider.pushNoteBody('u', {'subject': 's', 'content': 'c', 'isPinned': true, 'flagColor': null});
-
-      final payload = sent['PUT /notes/42'] as Map<String, dynamic>;
-      expect(payload['isPinned'], isTrue);
-      expect(payload.containsKey('flagColor'), isTrue);
-      expect(payload['flagColor'], isNull);
-      expect(writes, ['PUT /notes/42'], reason: 'no tags key ⇒ no tags call');
-    });
-
-    test('create sends pin/flag and pushes tags to the new id', () async {
+    test('create sends no pin/flag and pushes tags to the new id', () async {
       adapter.onGet('/notes/by-uuid/new', (s) => s.reply(404, {'detail': 'nf'}));
       adapter.onGet('/authors', (s) => s.reply(200, {'value': [{'id': 3}]}));
       adapter.onGet('/notecatalogs', (s) => s.reply(200, {'value': [{'id': 1, 'name': 'General'}]}));
@@ -3237,12 +4334,12 @@ void main() {
 
       await provider.pushNoteBody('new', {
         'subject': 's', 'content': 'c', 'catalogName': 'General',
-        'isPinned': true, 'flagColor': 5, 'tags': ['work'],
+        'tags': ['work'],
       });
 
       final create = sent['POST /notes'] as Map<String, dynamic>;
-      expect(create['isPinned'], isTrue);
-      expect(create['flagColor'], 5);
+      expect(create.containsKey('isPinned'), isFalse);
+      expect(create.containsKey('flagColor'), isFalse);
       expect(writes, ['POST /notes', 'PUT /notes/99/tags']);
       expect(sent['PUT /notes/99/tags'], {'names': ['work']});
     });
@@ -3290,6 +4387,17 @@ void main() {
       expect(sent['PUT /notes/42/tags'], {'names': ['a', 'b']});
     });
 
+    test('an update without a tags key makes no tags call', () async {
+      existing('u', {'id': 42});
+      adapter.onPut('/notes/42', (s) => s.reply(204, null), data: Matchers.any);
+
+      await provider.pushNoteBody('u', {'subject': 's', 'content': 'c'});
+
+      expect(writes, ['PUT /notes/42']);
+      final payload = sent['PUT /notes/42'] as Map<String, dynamic>;
+      expect(payload.containsKey('isPinned'), isFalse);
+    });
+
     test('an old server without the tags endpoint does not fail the push', () async {
       existing('u', {'id': 42});
       adapter.onPut('/notes/42', (s) => s.reply(204, null), data: Matchers.any);
@@ -3298,6 +4406,90 @@ void main() {
       await provider.pushNoteBody('u', {'subject': 's', 'content': 'c', 'tags': ['a']});
 
       expect(writes, ['PUT /notes/42', 'PUT /notes/42/tags']);
+    });
+  });
+
+  group('note states', () {
+    test('pullNoteStates maps the caller\'s rows to the state document', () async {
+      adapter.onGet('/notes/states', (s) => s.reply(200, [
+            {'noteId': 7, 'noteUuid': 'abc', 'isPinned': true, 'flagColor': 42,
+             'lastModifiedDate': '2026-10-18T10:00:00Z'},
+            {'noteId': 8, 'noteUuid': null, 'isPinned': true, 'flagColor': null,
+             'lastModifiedDate': '2026-10-18T10:00:00Z'},
+          ]));
+
+      final doc = (await provider.pullNoteStates())!;
+
+      final state = (doc['states'] as List).single as Map<String, dynamic>;
+      expect(state['noteUuid'], 'abc');
+      expect(state['isPinned'], isTrue);
+      expect(state['flagColor'], 42, reason: 'unknown colours are kept');
+      expect(DateTime.parse(state['lastModified'] as String), DateTime.utc(2026, 10, 18, 10));
+    });
+
+    test('a server without the states endpoint is reported as unsupported', () async {
+      adapter.onGet('/notes/states', (s) => s.reply(404, {'detail': 'nf'}));
+
+      await expectLater(provider.pullNoteStates(), throwsA(isA<NoteStatesUnsupportedException>()));
+    });
+
+    test('pushNoteStates PUTs only the changed states, by server id', () async {
+      adapter.onGet('/notes/states', (s) => s.reply(200, [
+            {'noteId': 7, 'noteUuid': 'abc', 'isPinned': false, 'flagColor': null,
+             'lastModifiedDate': '2026-10-18T09:00:00Z'},
+          ]));
+      adapter.onPut('/notes/7/state', (s) => s.reply(200, {}), data: Matchers.any);
+      await provider.pullNoteStates();
+
+      await provider.pushNoteStates({
+        'states': [
+          {'noteUuid': 'abc', 'isPinned': false, 'flagColor': null, 'lastModified': '2026-10-18T10:00:00.000Z'},
+          {'noteUuid': 'same', 'isPinned': true, 'flagColor': 1, 'lastModified': '2026-10-18T08:00:00.000Z'},
+        ],
+      }, changed: {'abc'});
+
+      expect(writes, ['PUT /notes/7/state']);
+      expect(sent['PUT /notes/7/state'],
+          {'isPinned': false, 'flagColor': null, 'lastModifiedDate': '2026-10-18T10:00:00.000Z'},
+          reason: 'unpin is sent as false, never as a delete');
+    });
+
+    test('a note unknown to the GET is resolved by uuid; one the server lacks is skipped', () async {
+      adapter.onGet('/notes/states', (s) => s.reply(200, []));
+      adapter.onGet('/notes/by-uuid/new', (s) => s.reply(200, {'id': 9, 'uuid': 'new'}));
+      adapter.onGet('/notes/by-uuid/unsynced', (s) => s.reply(404, {'detail': 'nf'}));
+      adapter.onPut('/notes/9/state', (s) => s.reply(200, {}), data: Matchers.any);
+      await provider.pullNoteStates();
+
+      await provider.pushNoteStates({
+        'states': [
+          {'noteUuid': 'new', 'isPinned': true, 'flagColor': 0, 'lastModified': '2026-10-18T10:00:00.000Z'},
+          {'noteUuid': 'unsynced', 'isPinned': true, 'flagColor': null, 'lastModified': '2026-10-18T10:00:00.000Z'},
+        ],
+      }, changed: {'new', 'unsynced'});
+
+      expect(writes, ['PUT /notes/9/state']);
+    });
+
+    test('a failed PUT is reported once, after the others were tried', () async {
+      adapter.onGet('/notes/states', (s) => s.reply(200, [
+            {'noteId': 7, 'noteUuid': 'a', 'isPinned': false, 'lastModifiedDate': '2026-10-18T09:00:00Z'},
+            {'noteId': 8, 'noteUuid': 'b', 'isPinned': false, 'lastModifiedDate': '2026-10-18T09:00:00Z'},
+          ]));
+      adapter.onPut('/notes/7/state', (s) => s.reply(500, {'detail': 'boom'}), data: Matchers.any);
+      adapter.onPut('/notes/8/state', (s) => s.reply(200, {}), data: Matchers.any);
+      await provider.pullNoteStates();
+
+      await expectLater(
+        provider.pushNoteStates({
+          'states': [
+            {'noteUuid': 'a', 'isPinned': true, 'lastModified': '2026-10-18T10:00:00.000Z'},
+            {'noteUuid': 'b', 'isPinned': true, 'lastModified': '2026-10-18T10:00:00.000Z'},
+          ],
+        }, changed: {'a', 'b'}),
+        throwsA(isA<ApiSyncProviderException>()),
+      );
+      expect(writes, ['PUT /notes/7/state', 'PUT /notes/8/state']);
     });
   });
 
@@ -3357,7 +4549,7 @@ class _FakeIdpTokenService implements IdpTokenService {
 cd /Users/fchy/Projects/hmm_console
 flutter test test/core/data/sync/api_sync_provider_slice1_test.dart
 ```
-Expected: FAIL — e.g. `pin, flag and tag names come through` (`Expected: true Actual: <null>`), `a restored note is undeleted` (`Expected: ['POST /notes/8/restore', 'PUT /notes/8'] Actual: ['PUT /notes/8']`), `pullTags maps server tags` (`Null check operator used on a null value`).
+Expected: FAIL — e.g. `tag names come through when the server sends them` (`Expected: ['work'] Actual: <null>`), `pullNoteStates maps the caller's rows` (`Null check operator used on a null value` — the Task 6 stub returns null), `a restored note is undeleted` (`Expected: ['POST /notes/8/restore', 'PUT /notes/8'] Actual: ['PUT /notes/8']`), `pullTags maps server tags` (`Null check operator used on a null value`).
 
 - [ ] **Step 3: Implement**
 
@@ -3456,7 +4648,6 @@ Replace `_createNote` and `_updateNote` with:
       'authorId': authorId,
       'catalogId': catalogId,
       'description': body['description'],
-      ..._pinFlagFields(body),
     };
     final resp = await _dio.post<dynamic>('/notes', data: payload);
     final data = resp.data;
@@ -3471,18 +4662,9 @@ Replace `_createNote` and `_updateNote` with:
       'subject': body['subject'] ?? '(untitled)',
       'content': body['content'] ?? '',
       'description': body['description'],
-      ..._pinFlagFields(body),
     };
     await _dio.put<void>('/notes/$existingId', data: payload);
   }
-
-  /// Pin/flag go on the wire only when the orchestrator's body carries them,
-  /// and then always as present keys: the server keeps the stored value for
-  /// an absent key and clears the flag for an explicit null.
-  static Map<String, dynamic> _pinFlagFields(Map<String, dynamic> body) => {
-        if (body.containsKey('isPinned')) 'isPinned': body['isPinned'] ?? false,
-        if (body.containsKey('flagColor')) 'flagColor': body['flagColor'],
-      };
 
   Future<void> _restoreNote(int id) async {
     try {
@@ -3537,11 +4719,10 @@ Replace `_orchestratorBodyFromApiNote` with:
       'createDate': apiNote['createDate'],
       'lastModifiedDate': modifiedRaw,
       'deletedAt': isDeleted ? modifiedRaw : null,
-      // Only what the server actually sent: an older server has none of
-      // these keys, and an absent key makes the orchestrator keep the local
-      // pin, flag and tags instead of wiping them.
-      if (apiNote.containsKey('isPinned')) 'isPinned': apiNote['isPinned'],
-      if (apiNote.containsKey('flagColor')) 'flagColor': apiNote['flagColor'],
+      // Only what the server actually sent: an older server has no
+      // tagNames, and an absent `tags` key makes the orchestrator keep the
+      // local membership instead of wiping it. Pin/flag never ride the note
+      // body (G14) — see pullNoteStates.
       if (apiNote['tagNames'] is List)
         'tags': (apiNote['tagNames'] as List).whereType<String>().toList(),
     };
@@ -3616,6 +4797,99 @@ Replace the `// ---- Tags (Phase 4) ----` comment block and the two tag methods 
   }
 ```
 
+Replace the Task 6 note-state stubs (`// ---- Note states ---- (wired to the API in Task 7)` and its two methods) with:
+
+```dart
+  // ---- Note states (pins + flags, G14) ----
+  //
+  // GET /v1/notes/states returns the caller's rows; PUT
+  // /v1/notes/{id}/state upserts one (the server keeps the newer
+  // lastModifiedDate). The orchestrator merges, then hands us the uuids
+  // whose local state won.
+
+  /// note uuid → server note id, filled by [pullNoteStates] and used by
+  /// [pushNoteStates] in the same sync run.
+  final Map<String, int> _serverNoteIdByUuid = {};
+
+  @override
+  Future<Map<String, dynamic>?> pullNoteStates() async {
+    _serverNoteIdByUuid.clear();
+    final Response<dynamic> resp;
+    try {
+      resp = await _dio.get<dynamic>('/notes/states');
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 404 || code == 405) {
+        // A server older than the notes redesign: keep local state.
+        throw const NoteStatesUnsupportedException();
+      }
+      rethrow;
+    }
+    final states = <Map<String, dynamic>>[];
+    for (final raw in _unwrapValueList(resp.data)) {
+      if (raw is! Map) continue;
+      final uuid = raw['noteUuid'] as String?;
+      final id = raw['noteId'] as int?;
+      final at = DateTime.tryParse(raw['lastModifiedDate'] as String? ?? '');
+      if (uuid == null || uuid.isEmpty || at == null) continue;
+      if (id != null) _serverNoteIdByUuid[uuid] = id;
+      states.add({
+        'noteUuid': uuid,
+        'isPinned': (raw['isPinned'] as bool?) ?? false,
+        'flagColor': (raw['flagColor'] as num?)?.toInt(),
+        'lastModified': at.toUtc().toIso8601String(),
+      });
+    }
+    return {'version': 1, 'states': states};
+  }
+
+  @override
+  Future<void> pushNoteStates(Map<String, dynamic> doc,
+      {required Set<String> changed}) async {
+    if (changed.isEmpty) return;
+    final byUuid = <String, Map>{
+      for (final raw in (doc['states'] as List?) ?? const [])
+        if (raw is Map && raw['noteUuid'] is String) raw['noteUuid'] as String: raw,
+    };
+    var failed = 0;
+    for (final uuid in changed) {
+      final s = byUuid[uuid];
+      if (s == null) continue;
+      try {
+        final id = _serverNoteIdByUuid[uuid] ?? await _serverIdForUuid(uuid);
+        if (id == null) continue; // not on the server yet; retried next sync
+        await _dio.put<dynamic>('/notes/$id/state', data: {
+          'isPinned': (s['isPinned'] as bool?) ?? false,
+          'flagColor': s['flagColor'],
+          'lastModifiedDate': s['lastModified'],
+        });
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 404) continue; // note gone meanwhile
+        failed++;
+      }
+    }
+    if (failed > 0) {
+      throw ApiSyncProviderException(
+          '$failed note state(s) failed to push; retrying next sync.');
+    }
+  }
+
+  Future<int?> _serverIdForUuid(String uuid) async {
+    try {
+      final probe = await _dio.get<Map<String, dynamic>>(
+        '/notes/by-uuid/$uuid',
+        queryParameters: {'includeDeleted': true},
+      );
+      final id = probe.data?['id'] as int?;
+      if (id != null) _serverNoteIdByUuid[uuid] = id;
+      return id;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+```
+
 Also update the file header comment's wire mapping (lines 5–12) by adding after the `pushManifest` line:
 
 ```dart
@@ -3623,6 +4897,8 @@ Also update the file header comment's wire mapping (lines 5–12) by adding afte
 //                  server row is soft-deleted but the pushed body is live
 //   tags           GET|POST /v1/tags, DELETE /v1/tags/{id} (definitions);
 //                  PUT /v1/notes/{id}/tags (membership, set-replace)
+//   note states    GET /v1/notes/states, PUT /v1/notes/{id}/state
+//                  (pins + flags; 404 on the GET = server too old)
 ```
 
 - [ ] **Step 4: Run tests**
@@ -3640,11 +4916,12 @@ Expected: `All tests passed!`; analyze at the 2 pre-existing infos.
 cd /Users/fchy/Projects/hmm_console
 git add lib/core/data/sync/api_sync_provider.dart test/core/data/sync/api_sync_provider_slice1_test.dart
 git commit -m "$(cat <<'MSG'
-feat(sync): cloudApi carries pin/flag/tags and restores through the undelete endpoint
+feat(sync): cloudApi syncs note states and tags, restores through the undelete endpoint
 
 A revived server tombstone is restored before the PUT (which 500'd), a
-tombstone already deleted on the server is no longer re-DELETEd, and keys an
-old server does not send are left out so local pins, flags and tags survive.
+tombstone already deleted on the server is no longer re-DELETEd, pins and
+flags travel through the note-state endpoints (an old server keeps local
+state), and an old server's missing tagNames no longer wipes local tags.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 MSG
@@ -3657,29 +4934,27 @@ Safe behaviour per mode (G6/G9/G11):
 
 | Mode | Local row | Remote | Why |
 |------|-----------|--------|-----|
-| `local` | hard-deleted (+ tag refs, children detached) | — | nothing else holds it |
-| `cloudStorage` | **scrubbed to a content-free tombstone** (`subject = '(deleted)'`, content/attachments/location/pin/flag/catalog/parent cleared, `uuid`/`deletedAt`/`lastModifiedDate` kept) | blob (+ released vault files) deleted **inside the next sync, after the pull** | `_buildManifest` is built from local rows; a hard-deleted row would vanish from the manifest and a device that never saw the delete would re-push its live copy (`_collectMissingFromRemote`). The kept tombstone keeps propagating the delete. Deferring the blob deletion lets the pull first revive a note restored on another device. `lastModifiedDate` is NOT bumped, so peers' 30-day clocks are not reset and a newer restore elsewhere still wins. |
-| `cloudApi` | hard-deleted **after** `DELETE /notes/{id}/purge` succeeds (or 404) | server row removed by the purge endpoint (409 if live) | the server is the manifest; the 409 guard means a restore that reached the server first is never destroyed |
+| `local` | hard-deleted (+ tag refs and the note's state row, children detached) | — | nothing else holds it |
+| `cloudStorage` | **scrubbed to a content-free tombstone** (`subject = '(deleted)'`, content/attachments/location/catalog/parent cleared, `uuid`/`deletedAt`/`lastModifiedDate` kept; the note's `NoteStates` row deleted — the Task 6 merge then drops the entry from `note-states.json`) | blob (+ released vault files) deleted **inside the next sync, after the pull** | `_buildManifest` is built from local rows; a hard-deleted row would vanish from the manifest and a device that never saw the delete would re-push its live copy (`_collectMissingFromRemote`). The kept tombstone keeps propagating the delete. Deferring the blob deletion lets the pull first revive a note restored on another device. `lastModifiedDate` is NOT bumped, so peers' 30-day clocks are not reset and a newer restore elsewhere still wins. |
+| `cloudApi` | hard-deleted (+ its state row) **after** `DELETE /notes/{id}/purge` succeeds (or 404) | server row removed by the purge endpoint (409 if live) | the server is the manifest; the 409 guard means a restore that reached the server first is never destroyed |
 
 Every local write is guarded by `deletedAt = <value just read>`, so a restore that lands between the candidate query and the write wins.
 
 **Files:**
-- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/sync_models.dart` (add `kTombstoneSubject`)
 - Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/cloud_sync_provider.dart` (add `purgeNote`, `NoteLiveOnServerException`)
 - Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/onedrive_sync_provider.dart` (after `listAttachmentPaths`, line 75)
 - Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/api_sync_provider.dart` (after `listAttachmentPaths`, end of class)
 - Create: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/pending_remote_purge_store.dart`
 - Create: `/Users/fchy/Projects/hmm_console/lib/core/data/local/note_purge_service.dart`
-- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/sync_orchestrator.dart` (constructor 39–55; tombstone insert line 384; call site before `timer.stop(SyncPhase.pullNotes)` line 271; `metadataClean` line 326; new `_flushRemotePurges`)
+- Modify: `/Users/fchy/Projects/hmm_console/lib/core/data/sync/sync_orchestrator.dart` (constructor 39–55; call site before `timer.stop(SyncPhase.pullNotes)` line 271; the `nonBlocking` set from Task 6; new `_flushRemotePurges`)
 - Test: `/Users/fchy/Projects/hmm_console/test/core/data/local/note_purge_service_test.dart` (create)
 - Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/sync_orchestrator_remote_purge_test.dart` (create)
 - Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/api_sync_provider_purge_test.dart` (create)
 - Test: `/Users/fchy/Projects/hmm_console/test/core/data/sync/onedrive_sync_provider_purge_test.dart` (create)
 
 **Interfaces:**
-- Consumes: `collectReferencedVaultPaths(HmmDatabase)` (`lib/core/data/vault/vault_gc.dart`), `IVaultStore.delete`, `baseVaultStoreProvider`, `OneDriveGraphClient.deleteNoteBlob/deleteAttachment`, server `DELETE /notes/{id}/purge` (Task 3).
+- Consumes: `kTombstoneSubject` (Task 6), the `NoteStates` table (Task 5; server rows cascade with the note, Task 1), `collectReferencedVaultPaths(HmmDatabase)` (`lib/core/data/vault/vault_gc.dart`), `IVaultStore.delete`, `baseVaultStoreProvider`, `OneDriveGraphClient.deleteNoteBlob/deleteAttachment`, server `DELETE /notes/{id}/purge` (Task 3).
 - Produces (Dart):
-  - `const String kTombstoneSubject = '(deleted)';`
   - `class NoteLiveOnServerException implements Exception`
   - `CloudSyncProvider.purgeNote(String uuid, {Set<String> releasedVaultPaths = const {}}) → Future<void>` (default no-op)
   - `class PendingRemotePurgeStore { Future<Map<String, Set<String>>> read(String providerId); Future<void> add(String providerId, String uuid, Set<String> vaultPaths); Future<void> remove(String providerId, String uuid); }`
@@ -3756,6 +5031,13 @@ void main() {
   Future<Note?> byUuid(String uuid) =>
       (db.select(db.notes)..where((n) => n.uuid.equals(uuid))).getSingleOrNull();
 
+  Future<void> addState(String uuid) => db.into(db.noteStates).insert(
+      NoteStatesCompanion.insert(
+          noteUuid: uuid, isPinned: const Value(true), lastModifiedDate: old));
+
+  Future<List<String>> stateUuids() async =>
+      (await db.select(db.noteStates).get()).map((s) => s.noteUuid).toList()..sort();
+
   group('local mode', () {
     test('purgeExpired hard-deletes notes deleted more than 30 days ago, '
         'with their tag refs, detaching children and releasing vault files', () async {
@@ -3770,6 +5052,17 @@ void main() {
       expect(await (db.select(db.noteTagRefs)..where((r) => r.noteId.equals(id))).get(), isEmpty);
       expect((await byUuid('child'))!.parentNoteId, isNull, reason: 'G12: unattached after purge');
       expect(vault.deleted, ['note-1/a.jpg']);
+    });
+
+    test('purge removes the note\'s state row', () async {
+      await insert('gone', deletedAt: old);
+      await insert('keeper');
+      await addState('gone');
+      await addState('keeper');
+
+      await service(DataMode.local).purgeExpired(now);
+
+      expect(await stateUuids(), ['keeper']);
     });
 
     test('notes deleted 30 days ago or less are kept', () async {
@@ -3834,6 +5127,17 @@ void main() {
       expect(vault.deleted, ['note-1/a.jpg']);
     });
 
+    test('purge removes the note\'s state row', () async {
+      await insert('gone', deletedAt: old);
+      await addState('gone');
+
+      await service(DataMode.cloudStorage).purgeExpired(now);
+
+      expect(await stateUuids(), isEmpty,
+          reason: 'the stub keeps no pin/flag; the merge drops the remote entry');
+      expect((await byUuid('gone'))!.subject, kTombstoneSubject);
+    });
+
     test('an already scrubbed tombstone is not processed again', () async {
       await insert('gone', deletedAt: old);
       final s = service(DataMode.cloudStorage);
@@ -3844,22 +5148,27 @@ void main() {
   });
 
   group('cloudApi mode', () {
-    test('calls the server purge, then deletes the row', () async {
+    test('calls the server purge, then deletes the row and its state', () async {
       await insert('gone', deletedAt: old);
+      await addState('gone');
 
       expect(await service(DataMode.cloudApi).purgeExpired(now), 1);
 
       expect(provider.purged, ['gone']);
       expect(await byUuid('gone'), isNull);
+      expect(await stateUuids(), isEmpty,
+          reason: 'the server cascades its rows; the client drops its own');
       expect(vault.deleted, isEmpty, reason: 'the server releases cloudApi vault bytes');
     });
 
     test('keeps the row when the server says the note is live', () async {
       final id = await insert('gone', deletedAt: old);
+      await addState('gone');
       provider.liveOnServer = true;
 
       expect(await service(DataMode.cloudApi).purgeNow(id), PurgeOutcome.keptLiveOnServer);
       expect(await byUuid('gone'), isNotNull);
+      expect(await stateUuids(), ['gone'], reason: 'a live note keeps its pin');
     });
 
     test('keeps the row when the server purge fails', () async {
@@ -4212,16 +5521,6 @@ Expected: compile error `Target of URI doesn't exist: 'package:hmm_console/core/
 
 - [ ] **Step 4: Provider contract**
 
-In `sync_models.dart`, after the `library;` line add:
-
-```dart
-
-/// Subject of a content-free tombstone row: one pulled for a note this device
-/// never had, or a cloudStorage note purged after 30 days. The row keeps its
-/// uuid and deletedAt so the manifest keeps propagating the delete.
-const String kTombstoneSubject = '(deleted)';
-```
-
 In `cloud_sync_provider.dart`, add before `abstract class CloudSyncProvider`:
 
 ```dart
@@ -4445,8 +5744,9 @@ class NotePurgeService {
     final paths = _vaultPathsOf(row.attachments);
     try {
       final done = switch (_mode) {
-        DataMode.local => await _hardDelete(row.id, deletedAt),
-        DataMode.cloudStorage => await _scrubToTombstone(row.id, deletedAt),
+        DataMode.local => await _hardDelete(row.id, row.uuid, deletedAt),
+        DataMode.cloudStorage =>
+          await _scrubToTombstone(row.id, row.uuid, deletedAt),
         DataMode.cloudApi => await _purgeOnServerThenDelete(row, deletedAt),
       };
       if (!done) return PurgeOutcome.notEligible;
@@ -4472,10 +5772,10 @@ class NotePurgeService {
     if (p != null && uuid != null) {
       await p.purgeNote(uuid); // throws NoteLiveOnServerException when live
     }
-    return _hardDelete(row.id, deletedAt);
+    return _hardDelete(row.id, uuid, deletedAt);
   }
 
-  Future<bool> _hardDelete(int id, DateTime deletedAt) =>
+  Future<bool> _hardDelete(int id, String? uuid, DateTime deletedAt) =>
       _db.transaction(() async {
         final gone = await (_db.delete(_db.notes)
               ..where((n) => n.id.equals(id) & n.deletedAt.equals(deletedAt)))
@@ -4483,6 +5783,7 @@ class NotePurgeService {
         if (gone == 0) return false; // restored meanwhile
         await (_db.delete(_db.noteTagRefs)..where((r) => r.noteId.equals(id)))
             .go();
+        await _deleteState(uuid);
         await _detachChildren(id);
         return true;
       });
@@ -4491,7 +5792,7 @@ class NotePurgeService {
   /// propagating the delete. lastModifiedDate is deliberately NOT bumped:
   /// peers keep their own 30-day clock, and a newer restore elsewhere still
   /// wins the pull and refills this row.
-  Future<bool> _scrubToTombstone(int id, DateTime deletedAt) =>
+  Future<bool> _scrubToTombstone(int id, String? uuid, DateTime deletedAt) =>
       _db.transaction(() async {
         final changed = await (_db.update(_db.notes)
               ..where((n) => n.id.equals(id) & n.deletedAt.equals(deletedAt)))
@@ -4505,15 +5806,22 @@ class NotePurgeService {
           locationLabel: Value(null),
           catalogId: Value(null),
           parentNoteId: Value(null),
-          isPinned: Value(false),
-          flagColor: Value(null),
         ));
         if (changed == 0) return false; // restored meanwhile
         await (_db.delete(_db.noteTagRefs)..where((r) => r.noteId.equals(id)))
             .go();
+        await _deleteState(uuid);
         await _detachChildren(id);
         return true;
       });
+
+  /// A purged note's pin/flag goes with it (G14). The note row never held
+  /// them; the sync merge drops the remote entry once the note is gone.
+  Future<void> _deleteState(String? uuid) async {
+    if (uuid == null) return;
+    await (_db.delete(_db.noteStates)..where((s) => s.noteUuid.equals(uuid)))
+        .go();
+  }
 
   /// G12: attached notes become unattached once their parent is purged. The
   /// bump makes the detach sync like any other edit.
@@ -4571,8 +5879,7 @@ In `sync_orchestrator.dart`:
 
 1. Add the import `import 'pending_remote_purge_store.dart';`.
 2. Constructor: add the parameter `PendingRemotePurgeStore? pendingPurges,` after `Future<int> Function()? currentAuthorId,`, the initializer `_pendingPurges = pendingPurges ?? PendingRemotePurgeStore(),` before `_tagRepo = LocalTagRepository(db);`, and the field `final PendingRemotePurgeStore _pendingPurges;` next to `final LocalTagRepository _tagRepo;`.
-3. In `_maybePullNote`'s tombstone insert, replace `subject: '(deleted)',` with `subject: kTombstoneSubject,`.
-4. Immediately before `timer.stop(SyncPhase.pullNotes);` (after the `if (remote != null) { ... }` block) add:
+3. Immediately before `timer.stop(SyncPhase.pullNotes);` (after the `if (remote != null) { ... }` block) add:
 
 ```dart
 
@@ -4582,11 +5889,10 @@ In `sync_orchestrator.dart`:
     await _flushRemotePurges(p, remote, errors);
 ```
 
-5. Replace
+4. Replace
 
 ```dart
-    final metadataClean =
-        errors.every((e) => e.recordType == 'attachment');
+    const nonBlocking = {'attachment', 'noteStates'};
 ```
 
 with
@@ -4594,11 +5900,10 @@ with
 ```dart
     // A failed remote purge is retried from the pending store next sync, so
     // it must not hold the note cursor back either.
-    final metadataClean = errors.every(
-        (e) => e.recordType == 'attachment' || e.recordType == 'purge');
+    const nonBlocking = {'attachment', 'noteStates', 'purge'};
 ```
 
-6. Add the method after `_syncTags`:
+5. Add the method after `_syncNoteStates` (Task 6):
 
 ```dart
 
@@ -4662,7 +5967,7 @@ Expected: `All tests passed!`; analyze at the 2 pre-existing infos.
 
 ```bash
 cd /Users/fchy/Projects/hmm_console
-git add lib/core/data/sync/sync_models.dart lib/core/data/sync/cloud_sync_provider.dart \
+git add lib/core/data/sync/cloud_sync_provider.dart \
   lib/core/data/sync/onedrive_sync_provider.dart lib/core/data/sync/api_sync_provider.dart \
   lib/core/data/sync/pending_remote_purge_store.dart lib/core/data/local/note_purge_service.dart \
   lib/core/data/sync/sync_orchestrator.dart \
@@ -4674,7 +5979,8 @@ feat(notes): real 30-day purge with vault release, per data mode
 local hard-deletes; cloudStorage keeps a content-free tombstone and deletes
 the OneDrive blob inside the next sync, after the pull could revive a note
 restored elsewhere; cloudApi purges on the server first (409 keeps a live
-note). Guarded writes mean a restore that lands meanwhile always wins.
+note). Every mode drops the note's state row (pins/flags). Guarded writes
+mean a restore that lands meanwhile always wins.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 MSG
@@ -5021,12 +6327,12 @@ MSG
 - Test: `/Users/fchy/Projects/hmm_console/test/features/notes/states/mutate_note_delete_guard_test.dart` (create)
 
 **Interfaces:**
-- Consumes: `contactCatalogName` (`lib/core/data/local/local_contact_repository.dart:20`), `cheatsheetCatalogName` (`lib/core/data/local/local_cheatsheet_repository.dart:17`), `kGeneralCatalogName` + `CatalogPalette.domainKeyFor` (`lib/core/notes/catalog_palette.dart`), `IHmmNoteRepository.restoreNote/setPinned/setFlagColor` (Task 5).
+- Consumes: `contactCatalogName` (`lib/core/data/local/local_contact_repository.dart:20`), `cheatsheetCatalogName` (`lib/core/data/local/local_cheatsheet_repository.dart:17`), `kGeneralCatalogName` + `CatalogPalette.domainKeyFor` (`lib/core/notes/catalog_palette.dart`), `IHmmNoteRepository.restoreNote`, `INoteStateRepository.setPinned/setFlagColor`, `noteStateRepositoryProvider`, `NoteState`, `LocalNoteStateRepository` (Task 5).
 - Produces (Dart):
   - `bool canDeleteFromNotes(HmmNote note, String? catalogName)`
   - `enum NoteManagePlace { contacts, cheatsheets, automobile, ownScreen }`, `NoteManagePlace? managePlaceFor(String? catalogName)`
   - `class EntityNoteDeleteRefused implements Exception { final NoteManagePlace place; }`
-  - `MutateNote.delete(int id)` now throws `EntityNoteDeleteRefused` for entity notes; `MutateNote.restore(int id) → Future<HmmNote>`, `setPinned(int id, bool pinned) → Future<HmmNote>`, `setFlagColor(int id, int? flagColor) → Future<HmmNote>`.
+  - `MutateNote.delete(int id)` now throws `EntityNoteDeleteRefused` for entity notes; `MutateNote.restore(int id) → Future<HmmNote>`, `setPinned(int id, bool pinned) → Future<NoteState>`, `setFlagColor(int id, int? flagColor) → Future<NoteState>` — both resolve the note's uuid and write only its state row (never the note; a missing note throws `StateError`).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -5086,6 +6392,7 @@ import 'package:hmm_console/core/data/hmm_note_input.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
+import 'package:hmm_console/core/data/local/local_note_state_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
 import 'package:hmm_console/features/notes/states/note_delete_policy.dart';
@@ -5107,6 +6414,7 @@ void main() {
     container = ProviderContainer(overrides: [
       hmmNoteRepositoryProvider.overrideWithValue(notes),
       noteCatalogRepositoryProvider.overrideWithValue(catalogs),
+      noteStateRepositoryProvider.overrideWithValue(LocalNoteStateRepository(db)),
     ]);
   });
 
@@ -5156,6 +6464,20 @@ void main() {
     expect((await mutate.setPinned(id, true)).isPinned, isTrue);
     expect((await mutate.setFlagColor(id, 0)).flagColor, 0);
     expect((await mutate.setFlagColor(id, null)).flagColor, isNull);
+  });
+
+  test('pin and flag write the state row, never the note', () async {
+    final id = await noteIn('General');
+    final before = (await notes.getNoteById(id))!;
+    final mutate = container.read(mutateNoteProvider);
+
+    final state = await mutate.setPinned(id, true);
+    await mutate.setFlagColor(id, 4);
+
+    expect(state.noteUuid, before.uuid);
+    final after = (await notes.getNoteById(id))!;
+    expect(after.version, before.version);
+    expect(after.lastModifiedDate, before.lastModifiedDate);
   });
 }
 ```
@@ -5216,7 +6538,7 @@ class EntityNoteDeleteRefused implements Exception {
 
 - [ ] **Step 4: Guard `MutateNote.delete` and add restore/pin/flag**
 
-In `mutate_note_state.dart` add `import 'note_delete_policy.dart';` and replace
+In `mutate_note_state.dart` add `import '../../../core/notes/note_state.dart';` and `import 'note_delete_policy.dart';` and replace
 
 ```dart
   Future<void> delete(int id) async {
@@ -5246,12 +6568,23 @@ with
   Future<HmmNote> restore(int id) =>
       ref.read(hmmNoteRepositoryProvider).restoreNote(id);
 
-  Future<HmmNote> setPinned(int id, bool pinned) =>
-      ref.read(hmmNoteRepositoryProvider).setPinned(id, pinned);
+  /// Pin or unpin (G14: writes the note's state row only — not a note
+  /// edit, so it never bumps the note or re-pushes it).
+  Future<NoteState> setPinned(int id, bool pinned) async =>
+      ref.read(noteStateRepositoryProvider)
+          .setPinned(await _uuidOf(id), pinned);
 
-  /// [flagColor] null clears the flag.
-  Future<HmmNote> setFlagColor(int id, int? flagColor) =>
-      ref.read(hmmNoteRepositoryProvider).setFlagColor(id, flagColor);
+  /// [flagColor] null clears the flag. Same state-only semantics as
+  /// [setPinned].
+  Future<NoteState> setFlagColor(int id, int? flagColor) async =>
+      ref.read(noteStateRepositoryProvider)
+          .setFlagColor(await _uuidOf(id), flagColor);
+
+  Future<String> _uuidOf(int id) async {
+    final note = await ref.read(hmmNoteRepositoryProvider).getNoteById(id);
+    if (note == null) throw StateError('Note $id not found');
+    return note.uuid;
+  }
 
   Future<String?> _catalogNameOf(HmmNote note) async {
     final cid = note.catalogId;
@@ -5299,7 +6632,8 @@ The only UI change in slice 1: today's detail Delete is instant with no Undo (a 
 - Test: `/Users/fchy/Projects/hmm_console/test/features/notes/presentation/widgets/note_flag_sheet_test.dart` (create)
 
 **Interfaces:**
-- Consumes: `MutateNote.delete/restore/setPinned/setFlagColor`, `canDeleteFromNotes`, `managePlaceFor` (Task 10), `NoteFlagColor` (Task 5), `showUndoableAction`, `HelpButton`, `HmmNote.isPinned/flag`.
+- Consumes: `MutateNote.delete/restore/setPinned/setFlagColor`, `canDeleteFromNotes`, `managePlaceFor` (Task 10), `NoteFlagColor` (Task 5), `showUndoableAction`, `HelpButton`, `NoteState.isPinned/flag` + `noteStateRepositoryProvider` (Task 5).
+- Changes `NoteDetailData` to `NoteDetailData(HmmNote note, NoteCatalog? catalog, [NoteState? state])` — `state` defaults to `NoteState.none(note.uuid)`, so the existing tests that build `NoteDetailData(note, catalog)` (`note_detail_screen_test.dart`, `note_detail_media_test.dart`, `raw_content_screen_test.dart`, `notes_shell_delete_test.dart`, `note_display_widgets_test.dart`) compile unchanged. The constructor is no longer `const`; none of those tests uses `const`.
 - Produces (Dart):
   - `class NoteFlagChoice { const NoteFlagChoice(NoteFlagColor? color); final NoteFlagColor? color; }` (null color = Clear flag)
   - `Future<NoteFlagChoice?> showNoteFlagSheet(BuildContext context, {NoteFlagColor? current})` — `CupertinoActionSheet` on iOS/macOS, Material bottom sheet otherwise; null = dismissed.
@@ -5504,6 +6838,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
+import 'package:hmm_console/core/notes/note_state.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
 import 'package:hmm_console/features/notes/states/mutate_note_state.dart';
@@ -5527,15 +6862,15 @@ class _RecordingMutate implements MutateNote {
   }
 
   @override
-  Future<HmmNote> setPinned(int id, bool pinned) async {
+  Future<NoteState> setPinned(int id, bool pinned) async {
     calls.add('pin $id $pinned');
-    return _n(id);
+    return NoteState(noteUuid: 'u$id', isPinned: pinned, lastModifiedDate: DateTime.utc(2026));
   }
 
   @override
-  Future<HmmNote> setFlagColor(int id, int? flagColor) async {
+  Future<NoteState> setFlagColor(int id, int? flagColor) async {
     calls.add('flag $id $flagColor');
-    return _n(id);
+    return NoteState(noteUuid: 'u$id', flagColor: flagColor, lastModifiedDate: DateTime.utc(2026));
   }
 }
 
@@ -5547,14 +6882,16 @@ Future<_RecordingMutate> _pump(WidgetTester tester,
   final mutate = _RecordingMutate();
   final note = HmmNote(
       id: 5, uuid: 'u5', subject: 'My note', authorId: 1, catalogId: 1,
-      content: 'Hello body', createDate: DateTime(2026, 1, 1), isPinned: pinned, flagColor: flag);
+      content: 'Hello body', createDate: DateTime(2026, 1, 1));
+  final state = NoteState(
+      noteUuid: 'u5', isPinned: pinned, flagColor: flag, lastModifiedDate: DateTime.utc(2026));
   // A fresh key per pump: a second pump in one test gets a new scope with
   // its own overrides instead of updating the old one.
   await tester.pumpWidget(ProviderScope(
     key: UniqueKey(),
     overrides: [
       mutateNoteProvider.overrideWithValue(mutate),
-      noteDetailProvider(5).overrideWith((ref) async => NoteDetailData(note, _catalog(catalog))),
+      noteDetailProvider(5).overrideWith((ref) async => NoteDetailData(note, _catalog(catalog), state)),
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -5832,6 +7169,7 @@ import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
 import '../../../../core/help/undoable_action.dart';
 import '../../../../core/notes/editing/edit_dispatch.dart';
+import '../../../../core/notes/note_state.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/models/hmm_note.dart';
@@ -5848,9 +7186,12 @@ import '../widgets/note_location_card.dart';
 import '../widgets/note_media_card_list.dart';
 
 class NoteDetailData {
-  const NoteDetailData(this.note, this.catalog);
+  /// [state] (pin/flag, G14) defaults to "no row": unpinned, unflagged.
+  NoteDetailData(this.note, this.catalog, [NoteState? state])
+      : state = state ?? NoteState.none(note.uuid);
   final HmmNote note;
   final NoteCatalog? catalog;
+  final NoteState state;
 }
 
 final noteDetailProvider =
@@ -5862,7 +7203,9 @@ final noteDetailProvider =
   if (cid != null) {
     catalog = await ref.watch(noteCatalogRepositoryProvider).getCatalogById(cid);
   }
-  return NoteDetailData(note, catalog);
+  final state =
+      await ref.watch(noteStateRepositoryProvider).getState(note.uuid);
+  return NoteDetailData(note, catalog, state);
 });
 
 enum _MenuAction { edit, raw, pin, flag, delete, manageIn }
@@ -5899,9 +7242,9 @@ class NoteDetailScreen extends ConsumerWidget {
                   case _MenuAction.raw:
                     context.push('/notes/$noteId/raw');
                   case _MenuAction.pin:
-                    await _togglePin(context, ref, l, d.note);
+                    await _togglePin(context, ref, l, d.state);
                   case _MenuAction.flag:
-                    await _chooseFlag(context, ref, l, d.note);
+                    await _chooseFlag(context, ref, l, d.state);
                   case _MenuAction.delete:
                     await _delete(context, ref, l);
                   case _MenuAction.manageIn:
@@ -5919,7 +7262,7 @@ class NoteDetailScreen extends ConsumerWidget {
                 PopupMenuItem(
                     value: _MenuAction.pin,
                     child: _MenuRow(Icons.push_pin_outlined,
-                        d.note.isPinned ? l.notesUnpin : l.notesPin)),
+                        d.state.isPinned ? l.notesUnpin : l.notesPin)),
                 PopupMenuItem(
                     value: _MenuAction.flag,
                     child: _MenuRow(Icons.flag_outlined, l.notesFlagAction)),
@@ -5960,13 +7303,13 @@ class NoteDetailScreen extends ConsumerWidget {
                   d.note.effectiveAttachments.primaryImage!,
                 ...d.note.effectiveAttachments.images.where(notInline),
               ];
-              final flag = d.note.flag;
+              final flag = d.state.flag;
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
                   Row(
                     children: [
-                      if (d.note.isPinned)
+                      if (d.state.isPinned)
                         Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: Icon(Icons.push_pin,
@@ -6043,12 +7386,12 @@ class NoteDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _togglePin(BuildContext context, WidgetRef ref,
-      AppLocalizations l, HmmNote note) async {
+      AppLocalizations l, NoteState state) async {
     final messenger = ScaffoldMessenger.of(context);
     final mutate = ref.read(mutateNoteProvider);
     final container = ProviderScope.containerOf(context);
     try {
-      await mutate.setPinned(noteId, !note.isPinned);
+      await mutate.setPinned(noteId, !state.isPinned);
       container.invalidate(noteDetailProvider(noteId));
     } catch (e) {
       debugPrint('NoteDetailScreen: pin failed (${e.runtimeType})');
@@ -6057,11 +7400,11 @@ class NoteDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _chooseFlag(BuildContext context, WidgetRef ref,
-      AppLocalizations l, HmmNote note) async {
+      AppLocalizations l, NoteState state) async {
     final messenger = ScaffoldMessenger.of(context);
     final mutate = ref.read(mutateNoteProvider);
     final container = ProviderScope.containerOf(context);
-    final choice = await showNoteFlagSheet(context, current: note.flag);
+    final choice = await showNoteFlagSheet(context, current: state.flag);
     if (choice == null) return; // dismissed: change nothing
     try {
       await mutate.setFlagColor(noteId, choice.color?.stored);
@@ -6102,7 +7445,8 @@ class _MenuRow extends StatelessWidget {
 
 Notes for the implementer:
 - `showUndoableAction` shows `failed` when `mutate.delete` throws, including `EntityNoteDeleteRefused` — unreachable from this menu (the item is replaced by "Manage in …"), but safe.
-- The `noteDetailProvider` invalidation after pin/flag uses the `ProviderContainer` captured before the await, never the `WidgetRef`.
+- The `noteDetailProvider` invalidation after pin/flag uses the `ProviderContainer` captured before the await, never the `WidgetRef`; it re-reads the state row (the note row did not change).
+- Pin and flag read `d.state`, never the note: `HmmNote` has no pin/flag fields (G14).
 
 - [ ] **Step 7: Run tests and analyze**
 
@@ -6188,9 +7532,9 @@ cd /Users/fchy/Projects/hmm
 git branch --show-current                                   # feat/notes-pin-flag-undelete
 git status --short                                          # only " M CLAUDE.md"
 dotnet build Hmm.sln 2>&1 | tail -2                         # Build succeeded, 0 Error(s)
-dotnet test src/Hmm.Core.Tests 2>&1 | tail -1               # Passed: 241 (baseline 233)
-dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1    # Passed: 469 (baseline 440)
-dotnet test src/Hmm.Core.Dal.EF.Tests 2>&1 | tail -1        # Passed: 75 (baseline 68)
+dotnet test src/Hmm.Core.Tests 2>&1 | tail -1               # Passed: 239 (baseline 233)
+dotnet test src/Hmm.ServiceApi.Core.Tests 2>&1 | tail -1    # Passed: 466 (baseline 440)
+dotnet test src/Hmm.Core.Dal.EF.Tests 2>&1 | tail -1        # Passed: 81 (baseline 68)
 git log --oneline main..HEAD                                # 4 commits (Tasks 1-4)
 ```
 
@@ -6209,15 +7553,15 @@ git log --oneline 126f53a..HEAD   # 8 commits (Tasks 5-12)
 ```bash
 cd /Users/fchy/Projects/hmm/docker && ./test-env.sh
 ```
-Then run the app on the iOS simulator in Cloud (API) mode: pin a note and flag it from the detail ⋯ menu, sync, and confirm with `GET /v1/notes?pinned=true` that it is pinned server-side; delete it, tap Undo, sync, and confirm the server row is live (`GET /v1/notes/by-uuid/{uuid}`). In Cloud Storage mode confirm the OneDrive note blob contains `isPinned` / `flagColor`.
+Then run the app on the iOS simulator in Cloud (API) mode: pin a note and flag it from the detail ⋯ menu, sync, and confirm with `GET /v1/notes/states` that the caller's row has `isPinned: true` and the flag, and that `GET /v1/notes/by-uuid/{uuid}` shows an unchanged `lastModifiedDate` (pinning is not a note edit); delete it, tap Undo, sync, and confirm the server row is live (`GET /v1/notes/by-uuid/{uuid}`). In Cloud Storage mode confirm `users/{sub}/note-states.json` on OneDrive has the note's entry (`noteUuid`, `isPinned`, `flagColor`, `lastModified`) and that the note blob has no pin/flag keys; unpin and confirm the entry stays with `isPinned: false`.
 
 - [ ] **Step 4: Record the deploy checklist (for the human; do NOT execute here)**
 
-**Order is mandatory: server first, then client.** A client release that writes `isPinned`/`flagColor`/tags or calls `/restore`, `/purge`, `/tags` before the server has them would sync against an API that silently drops pins (old `PUT`) and cannot restore or purge.
+**Order is mandatory: server first, then client.** A client release that calls `/notes/states`, `/restore`, `/purge` or `/tags` before the server has them would find pins and flags unsupported (the client keeps them locally and shows nothing server-side) and could not restore or purge.
 
 1. Merge `hmm` branch `feat/notes-pin-flag-undelete` to `main` after review (never stage `hmm/CLAUDE.md`).
 2. Back up the production PostgreSQL database on the VPS (use the `hmm-deployer` agent's pre-deploy backup).
-3. Deploy the `hmm` API to the VPS. On startup `AutomobileAppStartupFilter` runs `Database.Migrate()` and logs **"PostgreSQL migrations applied"** — confirm that line, and that `20261018000000_AddNotePinAndFlagColumns` is in `__EFMigrationsHistory`.
-4. Smoke-test production with a real token: `GET /v1/notes?pinned=true` → 200; `GET /v1/notes/by-uuid/{uuid}` body has `isPinned`, `flagColor`, `tagNames`; `POST /v1/notes/{id}/restore` on a deleted note → 200; `PUT /v1/notes/{id}/tags {"names":[]}` → 200; `DELETE /v1/notes/{id}/purge` on a live note → 409.
+3. Deploy the `hmm` API to the VPS. On startup `AutomobileAppStartupFilter` runs `Database.Migrate()` and logs **"PostgreSQL migrations applied"** — confirm that line, and that `20261018000000_AddNoteUserStatesTable` is in `__EFMigrationsHistory` (table `noteuserstates` exists).
+4. Smoke-test production with a real token: `GET /v1/notes/states` → 200 (array); `PUT /v1/notes/{id}/state {"isPinned":true,"flagColor":null,"lastModifiedDate":"<now, UTC>"}` on an own note → 200 echoing the row, then the same body with `isPinned:false` and a later stamp → 200 with `isPinned:false`; `GET /v1/notes/by-uuid/{uuid}` body has `tagNames` and no pin/flag fields; `POST /v1/notes/{id}/restore` on a deleted note → 200; `PUT /v1/notes/{id}/tags {"names":[]}` → 200; `DELETE /v1/notes/{id}/purge` on a live note → 409.
 5. Only then merge `hmm_console` `feat/notes-list-redesign` (slice 1) and build the client with the production dart-defines (`scripts/deploy-prod-ios-device.sh` — a plain `flutter build` points at localhost).
-6. After the client release, watch one sync cycle per mode for `recordType: 'purge'` errors and for "The server cannot restore deleted notes yet" (means step 3 did not land).
+6. After the client release, watch one sync cycle per mode for `recordType: 'purge'` errors and for "The server cannot restore deleted notes yet" or `SyncMetaRepository.getNoteStatesUnsupported('hmm_api') == true` (either means step 3 did not land).
