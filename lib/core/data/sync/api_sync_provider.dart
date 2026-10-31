@@ -12,7 +12,7 @@
 //                  to push)
 //   restore        POST /v1/notes/{id}/restore before the PUT when the
 //                  server row is soft-deleted but the pushed body is live
-//   tags           GET|POST /v1/tags, DELETE /v1/tags/{id} (definitions);
+//   tags           definitions: no-op (server tags are global; slice 6);
 //                  PUT /v1/notes/{id}/tags (membership, set-replace)
 //   note states    GET /v1/notes/states, PUT /v1/notes/{id}/state
 //                  (pins + flags; 404 on the GET = server too old)
@@ -66,18 +66,6 @@ class ApiSyncProvider implements CloudSyncProvider {
   /// uses catalog name as the cross-device-stable handle; the
   /// server still keys catalogs by int Id, so we translate here.
   final Map<String, int> _catalogIdByName = {};
-
-  /// Lower-cased tag name → server tag id, filled by [pullTags] and used by
-  /// [pushTags] in the same sync run (the orchestrator calls them in order).
-  final Map<String, int> _serverTagIdByName = {};
-
-  /// The server keeps no per-tag modification time; epoch 0 means a server
-  /// tag only fills a gap locally and never overrides a local edit or
-  /// tombstone in `TagSyncService`'s last-writer-wins merge.
-  static final DateTime _tagEpoch = DateTime.fromMillisecondsSinceEpoch(
-    0,
-    isUtc: true,
-  );
 
   @override
   String get providerId => 'hmm_api';
@@ -487,82 +475,18 @@ class ApiSyncProvider implements CloudSyncProvider {
 
   // ---- Tags ----
   //
-  // Definitions come from /v1/tags (no per-tag timestamps on the server, see
-  // [_tagEpoch]); membership rides each note push (PUT /notes/{id}/tags) and
-  // pull (ApiNote.tagNames).
+  // Tag DEFINITIONS do not sync in cloudApi: server tags are global (no
+  // author column), so pulling would copy every account's tags and a DELETE
+  // would deactivate a tag for all accounts. Per-author tags are slice 6.
+  // Null = "nothing remote", which leaves local definitions untouched.
+  // MEMBERSHIP still syncs: pulled ApiNote.tagNames, and PUT
+  // /notes/{id}/tags on push (the server creates missing names).
 
   @override
-  Future<Map<String, dynamic>?> pullTags() async {
-    _serverTagIdByName.clear();
-    final tags = <Map<String, dynamic>>[];
-    var page = 1;
-    while (true) {
-      final resp = await _dio.get<dynamic>(
-        '/tags',
-        queryParameters: {'PageNumber': page, 'PageSize': 100},
-      );
-      for (final raw in _unwrapValueList(resp.data)) {
-        if (raw is! Map) continue;
-        final name = (raw['name'] as String?)?.trim();
-        if (name == null || name.isEmpty) continue;
-        final id = raw['id'] as int?;
-        if (id != null) _serverTagIdByName[name.toLowerCase()] = id;
-        tags.add({
-          'name': name,
-          'description': raw['description'],
-          'is_activated': (raw['isActivated'] as bool?) ?? true,
-          'last_modified': _tagEpoch.toIso8601String(),
-          'deleted': false,
-        });
-      }
-      final totalPages =
-          _readPaginationHeader(resp.headers)?['totalPages'] as int? ?? 1;
-      if (page >= totalPages) break;
-      page++;
-    }
-    return {'version': 1, 'tags': tags};
-  }
+  Future<Map<String, dynamic>?> pullTags() async => null;
 
   @override
-  Future<void> pushTags(Map<String, dynamic> doc) async {
-    final rawTags = (doc['tags'] as List?) ?? const [];
-    var failed = 0;
-    for (final raw in rawTags) {
-      if (raw is! Map) continue;
-      final name = (raw['name'] as String?)?.trim();
-      if (name == null || name.isEmpty) continue;
-      final key = name.toLowerCase();
-      final deleted = (raw['deleted'] as bool?) ?? false;
-      final serverId = _serverTagIdByName[key];
-      try {
-        if (deleted) {
-          if (serverId == null) continue;
-          await _dio.delete<void>('/tags/$serverId'); // deactivates server-side
-          _serverTagIdByName.remove(key);
-        } else if (serverId == null) {
-          final resp = await _dio.post<dynamic>(
-            '/tags',
-            data: {'name': name, 'description': raw['description']},
-          );
-          final data = resp.data;
-          final id = data is Map ? data['id'] as int? : null;
-          if (id != null) _serverTagIdByName[key] = id;
-        }
-      } on DioException catch (e) {
-        // One bad tag (e.g. a deactivated server tag whose name is taken)
-        // must not stop the rest. Log status only, never the tag name.
-        debugPrint(
-          'ApiSyncProvider: tag push failed (${e.response?.statusCode})',
-        );
-        failed++;
-      }
-    }
-    if (failed > 0) {
-      throw ApiSyncProviderException(
-        '$failed tag(s) failed to push; retrying next sync.',
-      );
-    }
-  }
+  Future<void> pushTags(Map<String, dynamic> doc) async {}
 
   // ---- Note states (pins + flags, G14) ----
   //

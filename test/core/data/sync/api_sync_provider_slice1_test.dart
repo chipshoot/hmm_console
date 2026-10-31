@@ -467,106 +467,30 @@ void main() {
   });
 
   group('tag definitions', () {
-    test('pullTags maps server tags with an epoch timestamp', () async {
-      adapter.onGet(
-        '/tags',
-        (s) => s.reply(200, {
-          'value': [
-            {'id': 1, 'name': 'work', 'description': 'job'},
-          ],
-        }),
+    // Server tags are global (no author column): definition sync would copy
+    // every account's tags and deactivate tags for all accounts (slice 6).
+    test('pullTags and pushTags make no HTTP calls', () async {
+      final requests = <String>[];
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (o, h) {
+            requests.add('${o.method} ${o.path}');
+            h.next(o);
+          },
+        ),
       );
 
-      final doc = (await provider.pullTags())!;
+      final doc = await provider.pullTags();
+      await provider.pushTags({
+        'tags': [
+          {'name': 'home', 'deleted': false},
+          {'name': 'work', 'deleted': true},
+        ],
+      });
 
-      final tag = (doc['tags'] as List).single as Map<String, dynamic>;
-      expect(tag['name'], 'work');
-      expect(tag['description'], 'job');
-      expect(tag['is_activated'], isTrue);
-      expect(tag['deleted'], isFalse);
-      expect(
-        DateTime.parse(tag['last_modified'] as String),
-        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-      );
+      expect(doc, isNull);
+      expect(requests, isEmpty);
     });
-
-    test(
-      'pushTags creates missing live tags and deactivates tombstoned ones',
-      () async {
-        adapter.onGet(
-          '/tags',
-          (s) => s.reply(200, {
-            'value': [
-              {'id': 1, 'name': 'work'},
-              {'id': 2, 'name': 'keep'},
-            ],
-          }),
-        );
-        adapter.onPost(
-          '/tags',
-          (s) => s.reply(201, {'id': 3, 'name': 'home'}),
-          data: Matchers.any,
-        );
-        adapter.onDelete('/tags/1', (s) => s.reply(204, null));
-        await provider.pullTags();
-
-        await provider.pushTags({
-          'tags': [
-            {'name': 'home', 'deleted': false},
-            {'name': 'Work', 'deleted': true},
-            {'name': 'keep', 'deleted': false},
-          ],
-        });
-
-        expect(writes, ['POST /tags', 'DELETE /tags/1']);
-        expect((sent['POST /tags'] as Map)['name'], 'home');
-      },
-    );
-
-    test(
-      'one rejected tag does not stop the others; failure thrown once',
-      () async {
-        adapter.onGet('/tags', (s) => s.reply(200, {'value': []}));
-        adapter.onPost(
-          '/tags',
-          (s) => s.reply(201, {'id': 1}),
-          data: {'name': 'a', 'description': null},
-        );
-        adapter.onPost(
-          '/tags',
-          (s) => s.reply(500, {'detail': 'dup'}),
-          data: {'name': 'b', 'description': null},
-        );
-        adapter.onPost(
-          '/tags',
-          (s) => s.reply(201, {'id': 3}),
-          data: {'name': 'c', 'description': null},
-        );
-        await provider.pullTags();
-
-        final posted = <Object?>[];
-        dio.interceptors.add(
-          InterceptorsWrapper(
-            onRequest: (o, h) {
-              if (o.method == 'POST') posted.add((o.data as Map)['name']);
-              h.next(o);
-            },
-          ),
-        );
-
-        await expectLater(
-          provider.pushTags({
-            'tags': [
-              {'name': 'a', 'deleted': false},
-              {'name': 'b', 'deleted': false},
-              {'name': 'c', 'deleted': false},
-            ],
-          }),
-          throwsA(isA<ApiSyncProviderException>()),
-        );
-        expect(posted, ['a', 'b', 'c']);
-      },
-    );
   });
 }
 
