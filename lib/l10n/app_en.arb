@@ -1375,7 +1375,7 @@
   "@notesFlaggedLabel": {"placeholders": {"color": {"type": "String"}}},
   "notesPinFailed": "Couldn't pin the note",
   "notesFlagFailed": "Couldn't flag the note",
-  "notesMovedToRecentlyDeleted": "Moved to Recently Deleted",
+  "notesMovedToRecentlyDeleted": "Note deleted",
   "notesDeleteFailed": "Couldn't delete the note",
   "notesRestored": "Note restored",
   "notesRestoreFailed": "Couldn't restore the note",
@@ -1385,11 +1385,11 @@
   "helpNoteDetailTitle": "Note",
   "helpNoteDetailSummary": "Read a note and use the ⋯ menu to pin, flag, edit or delete it.",
   "helpNoteDetailPinTitle": "Pin",
-  "helpNoteDetailPinBody": "Marks the note as pinned; the notes list will show pinned notes first. Pins sync to your other devices. Choose Unpin to remove it.",
+  "helpNoteDetailPinBody": "Marks the note as pinned. Pins sync to your other devices. Choose Unpin to remove it.",
   "helpNoteDetailFlagTitle": "Flag",
   "helpNoteDetailFlagBody": "Marks the note with one of seven colours. Choose Clear flag to remove it.",
   "helpNoteDetailDeleteTitle": "Delete",
-  "helpNoteDetailDeleteBody": "Moves the note to Recently Deleted. Tap Undo in the message to bring it back. Deleted notes are removed for good after 30 days.",
+  "helpNoteDetailDeleteBody": "Deletes the note. Tap Undo in the message to bring it back right away. Deleted notes are removed for good after 30 days.",
   "helpNoteDetailManageTitle": "Manage in …",
   "helpNoteDetailManageBody": "Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here."
 }

@@ -5051,7 +5051,7 @@ abstract class AppLocalizations {
   /// No description provided for @notesMovedToRecentlyDeleted.
   ///
   /// In en, this message translates to:
-  /// **'Moved to Recently Deleted'**
+  /// **'Note deleted'**
   String get notesMovedToRecentlyDeleted;
 
   /// No description provided for @notesDeleteFailed.
@@ -5105,7 +5105,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNoteDetailPinBody.
   ///
   /// In en, this message translates to:
-  /// **'Marks the note as pinned; the notes list will show pinned notes first. Pins sync to your other devices. Choose Unpin to remove it.'**
+  /// **'Marks the note as pinned. Pins sync to your other devices. Choose Unpin to remove it.'**
   String get helpNoteDetailPinBody;
 
   /// No description provided for @helpNoteDetailFlagTitle.
@@ -5129,7 +5129,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNoteDetailDeleteBody.
   ///
   /// In en, this message translates to:
-  /// **'Moves the note to Recently Deleted. Tap Undo in the message to bring it back. Deleted notes are removed for good after 30 days.'**
+  /// **'Deletes the note. Tap Undo in the message to bring it back right away. Deleted notes are removed for good after 30 days.'**
   String get helpNoteDetailDeleteBody;
 
   /// No description provided for @helpNoteDetailManageTitle.

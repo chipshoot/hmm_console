@@ -2700,7 +2700,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesFlagFailed => '无法为此笔记加旗标';
 
   @override
-  String get notesMovedToRecentlyDeleted => '已移至“最近删除”';
+  String get notesMovedToRecentlyDeleted => '笔记已删除';
 
   @override
   String get notesDeleteFailed => '无法删除此笔记';
@@ -2729,8 +2729,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpNoteDetailPinTitle => '置顶';
 
   @override
-  String get helpNoteDetailPinBody =>
-      '将笔记标记为置顶；笔记列表将把置顶笔记排在最前。置顶会同步到你的其他设备。选择“取消置顶”即可移除。';
+  String get helpNoteDetailPinBody => '将笔记标记为置顶。置顶会同步到你的其他设备。选择“取消置顶”即可移除。';
 
   @override
   String get helpNoteDetailFlagTitle => '旗标';
@@ -2743,7 +2742,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNoteDetailDeleteBody =>
-      '将笔记移至“最近删除”。点按提示中的“撤销”即可恢复。已删除的笔记会在 30 天后永久移除。';
+      '删除笔记。点按提示中的“撤销”即可立即恢复。已删除的笔记会在 30 天后永久移除。';
 
   @override
   String get helpNoteDetailManageTitle => '在其他位置管理';

@@ -167,7 +167,7 @@ void main() {
     expect(flagged.calls, ['flag 5 null']);
   });
 
-  testWidgets('Delete moves to Recently Deleted with Undo; Undo restores', (
+  testWidgets('Delete shows Note deleted with Undo; Undo restores', (
     tester,
   ) async {
     final mutate = await _pump(tester);
@@ -176,7 +176,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(mutate.calls, ['delete 5']);
-    expect(find.text('Moved to Recently Deleted'), findsOneWidget);
+    expect(find.text('Note deleted'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(mutate.calls, ['delete 5', 'restore 5']);

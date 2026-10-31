@@ -826,7 +826,7 @@
   "notesFlaggedLabel": "{color}旗标",
   "notesPinFailed": "无法置顶此笔记",
   "notesFlagFailed": "无法为此笔记加旗标",
-  "notesMovedToRecentlyDeleted": "已移至“最近删除”",
+  "notesMovedToRecentlyDeleted": "笔记已删除",
   "notesDeleteFailed": "无法删除此笔记",
   "notesRestored": "笔记已恢复",
   "notesRestoreFailed": "无法恢复此笔记",
@@ -835,11 +835,11 @@
   "helpNoteDetailTitle": "笔记",
   "helpNoteDetailSummary": "阅读笔记，并通过 ⋯ 菜单置顶、加旗标、编辑或删除。",
   "helpNoteDetailPinTitle": "置顶",
-  "helpNoteDetailPinBody": "将笔记标记为置顶；笔记列表将把置顶笔记排在最前。置顶会同步到你的其他设备。选择“取消置顶”即可移除。",
+  "helpNoteDetailPinBody": "将笔记标记为置顶。置顶会同步到你的其他设备。选择“取消置顶”即可移除。",
   "helpNoteDetailFlagTitle": "旗标",
   "helpNoteDetailFlagBody": "用七种颜色之一标记笔记。选择“清除旗标”即可移除。",
   "helpNoteDetailDeleteTitle": "删除",
-  "helpNoteDetailDeleteBody": "将笔记移至“最近删除”。点按提示中的“撤销”即可恢复。已删除的笔记会在 30 天后永久移除。",
+  "helpNoteDetailDeleteBody": "删除笔记。点按提示中的“撤销”即可立即恢复。已删除的笔记会在 30 天后永久移除。",
   "helpNoteDetailManageTitle": "在其他位置管理",
   "helpNoteDetailManageBody": "联系人、速查卡、车辆、加油记录等记录需在各自的页面中删除，而不是在笔记中删除。置顶和旗标在此仍然可用。"
 }

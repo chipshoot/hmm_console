@@ -2785,7 +2785,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesFlagFailed => 'Couldn\'t flag the note';
 
   @override
-  String get notesMovedToRecentlyDeleted => 'Moved to Recently Deleted';
+  String get notesMovedToRecentlyDeleted => 'Note deleted';
 
   @override
   String get notesDeleteFailed => 'Couldn\'t delete the note';
@@ -2816,7 +2816,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNoteDetailPinBody =>
-      'Marks the note as pinned; the notes list will show pinned notes first. Pins sync to your other devices. Choose Unpin to remove it.';
+      'Marks the note as pinned. Pins sync to your other devices. Choose Unpin to remove it.';
 
   @override
   String get helpNoteDetailFlagTitle => 'Flag';
@@ -2830,7 +2830,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNoteDetailDeleteBody =>
-      'Moves the note to Recently Deleted. Tap Undo in the message to bring it back. Deleted notes are removed for good after 30 days.';
+      'Deletes the note. Tap Undo in the message to bring it back right away. Deleted notes are removed for good after 30 days.';
 
   @override
   String get helpNoteDetailManageTitle => 'Manage in …';
