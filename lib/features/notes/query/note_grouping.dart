@@ -11,23 +11,38 @@ NoteGroupKey dateGroupFor(
   DateTime date, {
   required DateTime now,
   required int firstDayOfWeek,
-}) {
-  final d = _day(date.toLocal());
-  final localNow = now.toLocal();
-  final today = _day(localNow);
-  if (d.isAfter(today)) return MonthGroup(d.year, d.month);
-  if (d == today) return const TodayGroup();
-  if (d == DateTime(today.year, today.month, today.day - 1)) {
-    return const YesterdayGroup();
+}) => DateGrouper(now: now, firstDayOfWeek: firstDayOfWeek).groupOf(date);
+
+/// [dateGroupFor] with the day boundaries computed once, for grouping many
+/// dates against the same [now].
+class DateGrouper {
+  DateGrouper({required DateTime now, required int firstDayOfWeek}) {
+    final localNow = now.toLocal();
+    final today = _day(localNow);
+    _tomorrow = DateTime(today.year, today.month, today.day + 1);
+    _today = today;
+    _yesterday = DateTime(today.year, today.month, today.day - 1);
+    // Dart weekday: 1 = Monday ... 7 = Sunday; `% 7` makes Sunday 0.
+    final back = ((localNow.weekday % 7) - firstDayOfWeek) % 7;
+    _weekStart = DateTime(today.year, today.month, today.day - back);
+    _monthStart = DateTime(today.year, today.month);
   }
-  // Dart weekday: 1 = Monday ... 7 = Sunday; `% 7` makes Sunday 0.
-  final back = ((localNow.weekday % 7) - firstDayOfWeek) % 7;
-  final weekStart = DateTime(today.year, today.month, today.day - back);
-  if (!d.isBefore(weekStart)) return const ThisWeekGroup();
-  if (d.year == today.year && d.month == today.month) {
-    return const ThisMonthGroup();
+
+  late final DateTime _today, _tomorrow, _yesterday, _weekStart, _monthStart;
+
+  NoteGroupKey groupOf(DateTime date) {
+    // Day-start boundaries make "which local day" a plain instant compare.
+    if (!date.isBefore(_tomorrow)) {
+      final d = date.toLocal();
+      return MonthGroup(d.year, d.month);
+    }
+    if (!date.isBefore(_today)) return const TodayGroup();
+    if (!date.isBefore(_yesterday)) return const YesterdayGroup();
+    if (!date.isBefore(_weekStart)) return const ThisWeekGroup();
+    if (!date.isBefore(_monthStart)) return const ThisMonthGroup();
+    final d = date.toLocal();
+    return MonthGroup(d.year, d.month);
   }
-  return MonthGroup(d.year, d.month);
 }
 
 DateTime _day(DateTime local) => DateTime(local.year, local.month, local.day);

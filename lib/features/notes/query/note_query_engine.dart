@@ -68,7 +68,10 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
       )) {
         continue;
       }
-      if (searching && !_matchesText(words, n, corpus, titleOf(n))) continue;
+      final idx = searching ? _cache.lookup(_keyOf(n)) : null;
+      if (searching && !_matchesText(words, idx, n, corpus, titleOf(n))) {
+        continue;
+      }
       final title = titleOf(n);
       hits.add(
         searching
@@ -76,8 +79,11 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
                 note: n,
                 title: title,
                 state: state,
-                titleMatches: _ranges(words, foldForMatch(title)),
-                previewMatches: _ranges(words, _previewFolded(n)),
+                titleMatches: _ranges(
+                  words,
+                  idx?.titleFolded ?? foldForMatch(title),
+                ),
+                previewMatches: _ranges(words, _previewFolded(idx)),
               )
             : NoteHit(note: n, title: title, state: state),
       );
@@ -139,16 +145,12 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
               if (!h.state.isPinned) h,
           ];
 
+    final dates = DateGrouper(now: now, firstDayOfWeek: firstDayOfWeek);
     NoteGroupKey keyOf(NoteHit h) => switch (query.sort) {
-      NoteSort.dateNewest || NoteSort.dateOldest => dateGroupFor(
-        h.note.effectiveNoteDate,
-        now: now,
-        firstDayOfWeek: firstDayOfWeek,
-      ),
-      NoteSort.lastModified => dateGroupFor(
+      NoteSort.dateNewest ||
+      NoteSort.dateOldest => dates.groupOf(h.note.effectiveNoteDate),
+      NoteSort.lastModified => dates.groupOf(
         h.note.lastModifiedDate ?? h.note.effectiveNoteDate,
-        now: now,
-        firstDayOfWeek: firstDayOfWeek,
       ),
       NoteSort.subjectAZ => letterGroupFor(h.title, _pinyin),
       NoteSort.flagColor => flagGroupFor(h.state.flagColor),
@@ -185,8 +187,8 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
   }
 
   /// Folded first 400 characters of the preview text, or '' without an index.
-  String _previewFolded(HmmNote n) {
-    final folded = _cache.lookup(_keyOf(n))?.bodyFolded ?? '';
+  String _previewFolded(NoteTextIndex? idx) {
+    final folded = idx?.bodyFolded ?? '';
     return folded.length > 400 ? folded.substring(0, 400) : folded;
   }
 
@@ -308,11 +310,11 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
 
   bool _matchesText(
     List<String> words,
+    NoteTextIndex? idx,
     HmmNote n,
     NotesListData c,
     String title,
   ) {
-    final idx = _cache.lookup(_keyOf(n));
     if (idx == null) {
       // No index yet: title and parent title only.
       final t = normalizeForSearch(title);
