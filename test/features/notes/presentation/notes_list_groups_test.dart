@@ -60,6 +60,25 @@ class _LetterList extends NotesListState {
   );
 }
 
+/// A 2024 note edited today, listed by last-modified date.
+class _EditedList extends NotesListState {
+  @override
+  Future<NotesListData> build() async => NotesListData(
+    all: [
+      HmmNote(
+        id: 1,
+        uuid: 'u1',
+        subject: 'Old but edited',
+        authorId: 1,
+        createDate: DateTime(2024, 3, 4),
+        lastModifiedDate: _today.add(const Duration(hours: 9, minutes: 30)),
+      ),
+    ],
+    catalogsById: const {},
+    query: const NoteQuery.initial().copyWith(sort: NoteSort.lastModified),
+  );
+}
+
 Widget _app(NotesListState Function() state, {Locale? locale}) => ProviderScope(
   overrides: [notesListStateProvider.overrideWith(state)],
   child: MaterialApp(
@@ -145,6 +164,21 @@ void main() {
     expect(
       find.text('${_twoMonthsAgo.year}年${_twoMonthsAgo.month}月'),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('last-modified sort: the row shows the date it is grouped by', (
+    t,
+  ) async {
+    await t.pumpWidget(_app(_EditedList.new));
+    await t.pumpAndSettle();
+
+    expect(find.text('Today'), findsOneWidget);
+    final edited = _today.add(const Duration(hours: 9, minutes: 30));
+    expect(find.text(DateFormat.jm('en').format(edited)), findsOneWidget);
+    expect(
+      find.text(DateFormat.yMd('en').format(DateTime(2024, 3, 4))),
+      findsNothing,
     );
   });
 }

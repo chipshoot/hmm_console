@@ -29,6 +29,7 @@ class NoteRow extends ConsumerWidget {
     required this.catalogName,
     required this.parentTitle,
     required this.tags,
+    required this.date,
     this.highlightWords = const [],
     required this.now,
     this.onTap,
@@ -40,6 +41,10 @@ class NoteRow extends ConsumerWidget {
   final String? catalogName;
   final String? parentTitle;
   final List<NoteTagLabel> tags;
+
+  /// The date shown at the trailing edge and read out: the one the row is
+  /// grouped by (see `groupingDateOf`), so it never contradicts its header.
+  final DateTime date;
   final List<String> highlightWords;
   final DateTime now;
   final VoidCallback? onTap;
@@ -57,7 +62,7 @@ class NoteRow extends ConsumerWidget {
         ? CatalogPalette.domainStyle(domainKey!).color
         : CatalogPalette.styleFor(catalogName).color;
 
-    final when = note.effectiveNoteDate.toLocal();
+    final when = date.toLocal();
     final DateFormat format;
     if (when.year == now.year &&
         when.month == now.month &&

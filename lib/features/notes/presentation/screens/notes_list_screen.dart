@@ -20,6 +20,7 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/models/hmm_note.dart';
+import '../../query/note_grouping.dart';
 import '../../query/note_query.dart';
 import '../../query/note_results.dart';
 import '../../rendering/note_display.dart';
@@ -305,6 +306,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             : data.catalogsById[note.catalogId]?.name,
         parentTitle: parentTitleOf(note, domain),
         tags: data.tagsByNoteId[note.id] ?? const [],
+        date: groupingDateOf(note, data.query.sort),
         highlightWords: highlightWords,
         now: now,
         onTap: () => open(note),

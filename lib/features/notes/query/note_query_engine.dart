@@ -147,11 +147,8 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
 
     final dates = DateGrouper(now: now, firstDayOfWeek: firstDayOfWeek);
     NoteGroupKey keyOf(NoteHit h) => switch (query.sort) {
-      NoteSort.dateNewest ||
-      NoteSort.dateOldest => dates.groupOf(h.note.effectiveNoteDate),
-      NoteSort.lastModified => dates.groupOf(
-        h.note.lastModifiedDate ?? h.note.effectiveNoteDate,
-      ),
+      NoteSort.dateNewest || NoteSort.dateOldest || NoteSort.lastModified =>
+        dates.groupOf(groupingDateOf(h.note, query.sort)),
       NoteSort.subjectAZ => letterGroupFor(h.title, _pinyin),
       NoteSort.flagColor => flagGroupFor(h.state.flagColor),
     };

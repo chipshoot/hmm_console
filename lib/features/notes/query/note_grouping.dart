@@ -2,7 +2,17 @@ import '../../../core/notes/note_flag.dart';
 import '../../../core/util/search_normalize.dart';
 import '../../contacts/domain/contact_name.dart';
 import '../../contacts/domain/pinyin_transcriber.dart';
+import '../data/models/hmm_note.dart';
+import 'note_query.dart';
 import 'note_results.dart';
+
+/// The date a note is grouped (and shown) by under [sort]: the last-modified
+/// date for [NoteSort.lastModified] (G2), the effective note date otherwise
+/// (G1).
+DateTime groupingDateOf(HmmNote note, NoteSort sort) =>
+    sort == NoteSort.lastModified
+    ? note.lastModifiedDate ?? note.effectiveNoteDate
+    : note.effectiveNoteDate;
 
 /// The date bucket for [date], in the device's local time. [firstDayOfWeek]
 /// follows `MaterialLocalizations.firstDayOfWeekIndex` (0 = Sunday). A future

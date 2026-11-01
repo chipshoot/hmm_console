@@ -77,6 +77,7 @@ Widget _host(
   List<({int id, String name})> tags = const [],
   String? parentTitle,
   bool entity = false,
+  DateTime? date,
 }) => ProviderScope(
   overrides: [
     attachmentResolverProvider.overrideWith((_) async => _NullResolver()),
@@ -97,6 +98,7 @@ Widget _host(
         catalogName: catalogName,
         parentTitle: parentTitle,
         tags: tags,
+        date: date ?? hit.note.effectiveNoteDate,
         now: _now,
       ),
     ),
@@ -278,6 +280,24 @@ void main() {
       expect(find.text('2/3/2024'), findsOneWidget);
     },
   );
+
+  testWidgets('trailing time and semantics use the date passed in', (t) async {
+    final handle = t.ensureSemantics();
+    await t.pumpWidget(
+      _host(
+        _hit(_note(date: DateTime(2024, 3, 4))),
+        date: DateTime(2026, 6, 15, 9, 30),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('9:30 AM'), findsOneWidget);
+    expect(find.text('3/4/2024'), findsNothing);
+    expect(
+      t.getSemantics(find.byType(NoteRow)).label,
+      startsWith('Grocery, 9:30 AM'),
+    );
+    handle.dispose();
+  });
 
   testWidgets(
     'entity note row shows its display title and plain preview, not JSON',
