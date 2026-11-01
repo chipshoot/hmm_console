@@ -100,6 +100,8 @@ Pin and flag are the **user's own state about a note**, not note content (like a
 
 `Stream<NoteResults> run(NoteQuery)`; first implementation `InMemoryNoteQueryEngine`.
 
+**2026-11-01 (Slice 2 decision):** the engine interface is a synchronous `evaluate(NoteQuery, NotesListData, {now, firstDayOfWeek})` rather than `Stream<NoteResults> run(NoteQuery)`, because the corpus is already reactive through Riverpod. The replaceable seam is `notesResultsProvider` (`AsyncValue<NoteResults>`), which is all the UI reads; a future FTS5/server engine swaps in behind that provider. See "Decisions this plan makes" in `docs/superpowers/plans/2026-11-01-notes-slice2-query-rows-headers.md`.
+
 - Results are **grouped**: Pinned first (when sort is by date), then Today / Yesterday / This week / This month / then by month ("Oct 2026"). Title or flag sorts use flat groups ("A", "B" … / by colour).
 - **Match ranges** for title and preview highlighting.
 - **Counts** for drawer/sidebar/chips: per domain, tag, flag colour, Pinned, Recently Deleted. Domain semantics preserved: an attached note counts and filters under its parent's domain; "General" = unattached General notes.
