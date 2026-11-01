@@ -10,16 +10,19 @@ const _blocks = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'hr'};
 /// markers dropped.
 String markdownToPlainText(String markdown) {
   if (markdown.isEmpty) return '';
-  final doc = md.Document(
-    extensionSet: md.ExtensionSet.gitHubFlavored,
-    encodeHtml: false,
-    inlineSyntaxes: [_DropHtmlTag()],
-  );
   final lines = <String>[];
   // Top-level Text nodes are raw HTML blocks.
-  _collect(doc.parseLines(markdown.split('\n')), lines, root: true);
+  _collect(parseMarkdownNodes(markdown), lines, root: true);
   return lines.join('\n');
 }
+
+/// Parses [markdown] (GFM, inline HTML tags dropped) into its top-level AST
+/// nodes. Top-level [md.Text] nodes are raw HTML blocks.
+List<md.Node> parseMarkdownNodes(String markdown) => md.Document(
+  extensionSet: md.ExtensionSet.gitHubFlavored,
+  encodeHtml: false,
+  inlineSyntaxes: [_DropHtmlTag()],
+).parseLines(markdown.split('\n'));
 
 void _collect(List<md.Node> nodes, List<String> out, {bool root = false}) {
   final buf = StringBuffer();
