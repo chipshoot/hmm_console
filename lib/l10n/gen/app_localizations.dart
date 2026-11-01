@@ -899,14 +899,14 @@ abstract class AppLocalizations {
   /// No description provided for @notesSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search subjects'**
+  /// **'Search notes'**
   String get notesSearchHint;
 
   /// No description provided for @notesLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Failed to load notes: {error}'**
-  String notesLoadFailed(String error);
+  /// **'Couldn\'t load your notes'**
+  String get notesLoadFailed;
 
   /// No description provided for @notesFilter.
   ///

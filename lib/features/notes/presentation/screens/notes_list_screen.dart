@@ -151,17 +151,21 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               child: Center(child: CircularProgressIndicator()),
             ),
           ],
-          error: (e, _) => [
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: AppEmptyState(
-                icon: Icons.error_outline,
-                message: l.notesLoadFailed('$e'),
-                actionLabel: l.notesRetry,
-                onAction: notifier.refresh,
+          error: (e, _) {
+            // The type only: the message may hold note text or paths.
+            debugPrint('NotesListScreen: load failed (${e.runtimeType})');
+            return [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppEmptyState(
+                  icon: Icons.error_outline,
+                  message: l.notesLoadFailed,
+                  actionLabel: l.notesRetry,
+                  onAction: notifier.refresh,
+                ),
               ),
-            ),
-          ],
+            ];
+          },
           data: (results) => data == null
               ? const []
               : _body(context, data, results, density, l),
@@ -266,9 +270,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       // The parent's own words, capped so a long record name cannot swallow
       // the row; an anchor has no subject, so it falls back to the domain.
       if (parentSubject != null) {
-        return parentSubject.length > 20
-            ? '${parentSubject.substring(0, 20)}…'
-            : parentSubject;
+        final chars = parentSubject.characters;
+        return chars.length > 20 ? '${chars.take(20)}…' : parentSubject;
       }
       return data.parentDomainOf(note) != null && domain != null
           ? domainLabel(domain, l)

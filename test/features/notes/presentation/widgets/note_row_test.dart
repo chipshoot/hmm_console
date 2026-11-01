@@ -11,6 +11,7 @@ import 'package:hmm_console/core/notes/note_state.dart';
 import 'package:hmm_console/core/settings/app_settings.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/note_preview_text.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_row.dart';
 import 'package:hmm_console/features/notes/query/note_results.dart';
 import 'package:hmm_console/features/notes/rendering/note_display.dart';
@@ -280,6 +281,17 @@ void main() {
       expect(find.text('2/3/2024'), findsOneWidget);
     },
   );
+
+  testWidgets('an image-only note has no blank preview line', (t) async {
+    final handle = t.ensureSemantics();
+    await t.pumpWidget(
+      _host(_hit(_note(content: '![p](hmm-attachment://attachments/a.jpg)'))),
+    );
+    await t.pumpAndSettle();
+    expect(find.byType(NotePreviewText), findsNothing);
+    expect(t.getSemantics(find.byType(NoteRow)).label, 'Grocery, 9:30 AM');
+    handle.dispose();
+  });
 
   testWidgets('trailing time and semantics use the date passed in', (t) async {
     final handle = t.ensureSemantics();

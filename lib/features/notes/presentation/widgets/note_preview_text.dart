@@ -13,14 +13,32 @@ const _skipped = {'img', 'table', 'pre', 'hr'};
 const _containers = {'ul', 'ol', 'li', 'blockquote'};
 const _blocks = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'};
 
+/// How much of a note the row preview parses: far more than a preview
+/// shows, so a long note costs no more than a short one.
+const previewSourceLimit = 4000;
+
+/// The first [previewSourceLimit] characters of [markdown], cut after the
+/// last line break inside them when there is one, never inside a surrogate
+/// pair.
+String boundedPreviewSource(String markdown) {
+  if (markdown.length <= previewSourceLimit) return markdown;
+  final newline = markdown.lastIndexOf('\n', previewSourceLimit - 1);
+  if (newline > 0) return markdown.substring(0, newline + 1);
+  var end = previewSourceLimit;
+  final last = markdown.codeUnitAt(end - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) end++; // keep the pair whole
+  return markdown.substring(0, end);
+}
+
 /// Styled runs of [markdown] for a row preview: no raw markers, list items
 /// prefixed `• ` (tasks `☐ `/`☑ `), images/tables/HTML/fenced code omitted,
-/// blocks separated by one space, stopping after [maxChars] characters.
+/// blocks separated by one space, stopping after [maxChars] characters. Only
+/// [boundedPreviewSource] of it is parsed.
 List<PreviewRun> previewRuns(String markdown, {int maxChars = 400}) {
   if (markdown.isEmpty) return const [];
   final b = _RunBuilder(maxChars);
   // Top-level Text nodes are raw HTML blocks, so they are skipped.
-  _blockWalk(parseMarkdownNodes(markdown), b, root: true);
+  _blockWalk(parseMarkdownNodes(boundedPreviewSource(markdown)), b, root: true);
   return b.runs;
 }
 
@@ -158,27 +176,23 @@ void _inlineWalk(md.Node n, _RunBuilder b, _Flags f) {
   }
 }
 
-/// A row's note preview: rendered markdown (or a pre-computed [plainText] for
-/// entity notes) clamped to [maxLines], with [highlightWords] marked.
+/// A row's note preview: pre-computed [runs] (see [previewRuns]; a single
+/// plain run for entity notes) clamped to [maxLines], with [highlightWords]
+/// marked.
 class NotePreviewText extends StatelessWidget {
   const NotePreviewText({
     super.key,
-    required this.markdown,
-    this.plainText,
+    required this.runs,
     required this.maxLines,
     this.highlightWords = const [],
   });
 
-  final String markdown;
-  final String? plainText;
+  final List<PreviewRun> runs;
   final int maxLines;
   final List<String> highlightWords;
 
   @override
   Widget build(BuildContext context) {
-    final runs = plainText != null
-        ? <PreviewRun>[(text: plainText!, style: PreviewStyle.plain)]
-        : previewRuns(markdown);
     final ranges = _matchRanges(previewPlain(runs), highlightWords);
     final base = DefaultTextStyle.of(context).style;
     final accent = context.appColors.accent;

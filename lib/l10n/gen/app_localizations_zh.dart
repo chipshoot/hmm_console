@@ -479,12 +479,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesTitle => '笔记';
 
   @override
-  String get notesSearchHint => '搜索标题';
+  String get notesSearchHint => '搜索笔记';
 
   @override
-  String notesLoadFailed(String error) {
-    return '无法加载笔记：$error';
-  }
+  String get notesLoadFailed => '无法加载笔记';
 
   @override
   String get notesFilter => '筛选';

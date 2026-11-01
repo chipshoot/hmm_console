@@ -17,7 +17,14 @@ class NoteHit {
   final HmmNote note;
   final String title;
   final NoteState state;
+  /// Search matches in [title].
   final List<TextRange> titleMatches;
+
+  /// Search matches in the first 400 characters of the index's plain body
+  /// text (`NoteTextIndex.bodyFolded`) — NOT in the rendered row preview,
+  /// whose text differs (list bullets, task boxes, omitted blocks). The row
+  /// therefore re-finds the query words in its own preview text and does not
+  /// use these offsets.
   final List<TextRange> previewMatches;
 }
 

@@ -75,13 +75,19 @@ class NoteRow extends ConsumerWidget {
     }
     final timeText = format.format(when);
 
+    // The preview runs, computed once for both the text and the label. An
+    // entity note's preview is its display text, never its raw JSON.
     final registry = ref.watch(noteDisplayRegistryProvider);
-    final isEntity = registry.hasEntry(catalogName);
-    final plain = isEntity
-        ? registry.noteDisplay(note, catalogName, l).preview
-        : null;
-    final markdown = note.content ?? '';
-    final hasPreview = isEntity ? plain!.isNotEmpty : markdown.isNotEmpty;
+    final List<PreviewRun> runs;
+    if (registry.hasEntry(catalogName)) {
+      final plain = registry.noteDisplay(note, catalogName, l).preview;
+      runs = plain.isEmpty
+          ? const []
+          : [(text: plain, style: PreviewStyle.plain)];
+    } else {
+      runs = previewRuns(note.content ?? '');
+    }
+    final hasPreview = runs.isNotEmpty;
 
     final flag = hit.state.flag;
     final pinned = hit.state.isPinned;
@@ -89,7 +95,7 @@ class NoteRow extends ConsumerWidget {
       l.notesRowSemantics(hit.title, timeText),
       if (flag != null) l.notesRowSemanticsFlagged(noteFlagColorLabel(flag, l)),
       if (pinned) l.notesRowSemanticsPinned,
-      if (hasPreview) isEntity ? plain! : previewPlain(previewRuns(markdown)),
+      if (hasPreview) previewPlain(runs),
     ].join(', ');
 
     final titleStyle = theme.textTheme.bodyLarge?.copyWith(
@@ -158,8 +164,7 @@ class NoteRow extends ConsumerWidget {
                           child: DefaultTextStyle.merge(
                             style: muted,
                             child: NotePreviewText(
-                              markdown: isEntity ? '' : markdown,
-                              plainText: plain,
+                              runs: runs,
                               maxLines: density == NoteRowDensity.rich ? 4 : 2,
                               highlightWords: highlightWords,
                             ),

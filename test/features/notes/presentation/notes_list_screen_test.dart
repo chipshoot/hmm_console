@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -113,12 +114,13 @@ class _DomainListState extends NotesListState {
 Widget _app({
   NotesListState Function() state = _StubListState.new,
   List<Override> extra = const [],
+  TargetPlatform? platform,
 }) => ProviderScope(
   overrides: [notesListStateProvider.overrideWith(state), ...extra],
   child: MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    theme: ThemeData(extensions: const [AppColors.light]),
+    theme: ThemeData(platform: platform, extensions: const [AppColors.light]),
     home: const NotesListScreen(),
   ),
 );
@@ -273,12 +275,19 @@ void main() {
     expect(find.text('No notes yet'), findsOneWidget);
   });
 
-  testWidgets('load failure shows Retry', (tester) async {
+  testWidgets('load failure shows a generic message and Retry', (tester) async {
+    final logs = <String?>[];
+    final old = debugPrint;
+    debugPrint = (m, {wrapWidth}) => logs.add(m);
     late _FailingListState state;
     await tester.pumpWidget(_app(state: () => state = _FailingListState()));
     await tester.pumpAndSettle();
+    debugPrint = old; // restored before the binding checks its invariants
 
-    expect(find.textContaining('Failed to load notes'), findsOneWidget);
+    expect(find.text("Couldn't load your notes"), findsOneWidget);
+    expect(find.textContaining('disk on fire'), findsNothing);
+    expect(logs.where((m) => m!.contains('StateError')), isNotEmpty);
+    expect(logs.where((m) => m!.contains('disk on fire')), isEmpty);
     await tester.tap(find.widgetWithText(TextButton, 'Retry'));
     await tester.pumpAndSettle();
     expect(state.refreshes, 1);
@@ -309,6 +318,59 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(syncs, 1);
+  });
+
+  testWidgets('iOS pull to refresh triggers a manual sync once', (
+    tester,
+  ) async {
+    var syncs = 0;
+    final controller = SyncController(
+      syncAction: () async {
+        syncs++;
+        return SyncResult(
+          pulledNotes: 0,
+          pulledAttachments: 0,
+          pushedNotes: 0,
+          pushedAttachments: 0,
+          completedAt: DateTime.now().toUtc(),
+        );
+      },
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        platform: TargetPlatform.iOS,
+        extra: [syncControllerProvider.overrideWithValue(controller)],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byType(CupertinoSliverRefreshControl, skipOffstage: false),
+      findsOneWidget,
+    );
+
+    // Past the control's 100 px trigger distance.
+    await tester.drag(find.byType(NoteRow).first, const Offset(0, 300));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(syncs, 1);
+  });
+
+  testWidgets('the search hint covers more than subjects', (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    expect(find.text('Search notes'), findsOneWidget);
+  });
+
+  testWidgets('a long parent title is cut on characters, not code units', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(state: _ParentEmojiListState.new));
+    await tester.pumpAndSettle();
+    final shown = '${'a' * 19}\u{1F600}…';
+    expect(find.textContaining(shown, findRichText: true), findsOneWidget);
   });
 
   testWidgets('drawer and filter sheet still select a domain and its catalog', (
@@ -371,4 +433,28 @@ class _EmptyListState extends NotesListState {
   @override
   Future<NotesListData> build() async =>
       const NotesListData(all: [], catalogsById: {});
+}
+
+class _ParentEmojiListState extends NotesListState {
+  @override
+  Future<NotesListData> build() async => NotesListData(
+    all: [
+      HmmNote(
+        id: 1,
+        uuid: 'u1',
+        subject: '${'a' * 19}\u{1F600}tail',
+        authorId: 1,
+        createDate: DateTime(2026, 1, 1),
+      ),
+      HmmNote(
+        id: 2,
+        uuid: 'u2',
+        subject: 'Child',
+        authorId: 1,
+        parentNoteId: 1,
+        createDate: DateTime(2026, 1, 2),
+      ),
+    ],
+    catalogsById: const {},
+  );
 }

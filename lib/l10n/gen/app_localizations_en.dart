@@ -500,12 +500,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesTitle => 'Notes';
 
   @override
-  String get notesSearchHint => 'Search subjects';
+  String get notesSearchHint => 'Search notes';
 
   @override
-  String notesLoadFailed(String error) {
-    return 'Failed to load notes: $error';
-  }
+  String get notesLoadFailed => 'Couldn\'t load your notes';
 
   @override
   String get notesFilter => 'FILTER';

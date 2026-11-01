@@ -296,15 +296,8 @@
   "domainGeneral": "General",
   "domainOther": "Other",
   "notesTitle": "Notes",
-  "notesSearchHint": "Search subjects",
-  "notesLoadFailed": "Failed to load notes: {error}",
-  "@notesLoadFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "notesSearchHint": "Search notes",
+  "notesLoadFailed": "Couldn't load your notes",
   "notesFilter": "FILTER",
   "notesAll": "All",
   "notesAllNotes": "All notes",

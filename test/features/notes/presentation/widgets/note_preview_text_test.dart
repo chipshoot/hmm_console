@@ -59,11 +59,34 @@ void main() {
     );
   });
 
+  test('only a bounded prefix of a long note is parsed', () {
+    // A reference definition past the first 4,000 characters is never seen,
+    // so the early [foo] stays plain text instead of becoming a link.
+    final md = '[foo] intro\n\n${'filler line\n' * 500}\n[foo]: http://x\n';
+    final runs = previewRuns(md);
+    expect(previewPlain(runs), startsWith('[foo] intro'));
+    expect(runs.where((r) => r.style == PreviewStyle.link), isEmpty);
+    // Short notes still resolve it.
+    final short = previewRuns('[foo] intro\n\n[foo]: http://x\n');
+    expect(short.first, (text: 'foo', style: PreviewStyle.link));
+  });
+
+  test('the prefix cut never splits a surrogate pair', () {
+    final md = '${'a' * 3999}\u{1F600}${'b' * 100}';
+    expect(boundedPreviewSource(md).runes.last, 0x1F600);
+    expect(boundedPreviewSource(md).length, 4001);
+  });
+
+  test('the prefix is cut at a line boundary when there is one', () {
+    final md = '${'x' * 3000}\n${'y' * 2000}';
+    expect(boundedPreviewSource(md), '${'x' * 3000}\n');
+  });
+
   testWidgets('highlights a matched word without changing the text', (t) async {
     await t.pumpWidget(
       _wrap(
-        const NotePreviewText(
-          markdown: 'Buy **Crème**',
+        NotePreviewText(
+          runs: previewRuns('Buy **Crème**'),
           maxLines: 2,
           highlightWords: ['creme'],
         ),
@@ -82,8 +105,8 @@ void main() {
   testWidgets('a match splits a run at its edges', (t) async {
     await t.pumpWidget(
       _wrap(
-        const NotePreviewText(
-          markdown: 'abcdef',
+        NotePreviewText(
+          runs: previewRuns('abcdef'),
           maxLines: 1,
           highlightWords: ['cd'],
         ),
@@ -94,12 +117,11 @@ void main() {
     expect(leaves[1].style?.backgroundColor, isNotNull);
   });
 
-  testWidgets('entity notes render their plain preview', (t) async {
+  testWidgets('plain runs (entity notes) render verbatim', (t) async {
     await t.pumpWidget(
       _wrap(
         const NotePreviewText(
-          markdown: '**ignored**',
-          plainText: 'Plain **text**',
+          runs: [(text: 'Plain **text**', style: PreviewStyle.plain)],
           maxLines: 3,
         ),
       ),
