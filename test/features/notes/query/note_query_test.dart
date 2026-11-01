@@ -100,4 +100,61 @@ void main() {
     expect(q.hashCode, const NoteQuery.initial().hashCode);
     expect(q.copyWith(text: 'a'), isNot(q));
   });
+
+  group('malformed persisted JSON', () {
+    test(
+      'a known type with wrong field types becomes Unknown and survives',
+      () {
+        final raw = <String, Object?>{
+          'source': {'type': 'tag', 'tagId': 'x'},
+          'tokens': [
+            {'type': 'tag', 'tagId': 'x'},
+          ],
+          'text': '',
+          'scope': 'all',
+          'sort': 'dateNewest',
+        };
+        final q = NoteQuery.fromJson(raw);
+        expect(q.source, isA<UnknownSource>());
+        expect(q.tokens.single, isA<UnknownToken>());
+        expect(q.toJson(), raw);
+      },
+    );
+
+    test('an unparseable date does not throw and survives', () {
+      final raw = <String, Object?>{
+        'tokens': [
+          {'type': 'date', 'from': 'garbage'},
+          {'type': 'date', 'to': 5},
+        ],
+      };
+      final q = NoteQuery.fromJson(raw);
+      expect(q.tokens, everyElement(isA<UnknownToken>()));
+      expect(q.toJson()['tokens'], raw['tokens']);
+    });
+
+    test('non-map source and token round-trip verbatim', () {
+      final raw = <String, Object?>{
+        'source': 'oops',
+        'tokens': ['x', 7, null],
+      };
+      final q = NoteQuery.fromJson(raw);
+      expect(q.source, isA<UnknownSource>());
+      expect(q.toJson()['source'], 'oops');
+      expect(q.toJson()['tokens'], ['x', 7, null]);
+    });
+
+    test('wrong-typed text and tokens do not throw and re-emit', () {
+      final raw = <String, Object?>{'text': 5, 'tokens': 'nope'};
+      final q = NoteQuery.fromJson(raw);
+      expect(q.text, '');
+      expect(q.tokens, isEmpty);
+      expect(q.toJson()['text'], 5);
+      expect(q.toJson()['tokens'], 'nope');
+      expect(q.copyWith(text: 'a').toJson()['text'], 'a');
+      expect(q.copyWith(tokens: const [PinnedToken()]).toJson()['tokens'], [
+        {'type': 'pinned'},
+      ]);
+    });
+  });
 }

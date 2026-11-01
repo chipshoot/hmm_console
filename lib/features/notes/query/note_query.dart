@@ -37,19 +37,22 @@ int _deepHash(Object? v) {
   return v.hashCode;
 }
 
-Map<String, Object?> _asMap(Object? v) =>
-    (v as Map).map((k, val) => MapEntry(k as String, val));
+Map<String, Object?>? _stringMap(Object? v) =>
+    v is Map && v.keys.every((k) => k is String)
+    ? v.map((k, val) => MapEntry(k as String, val))
+    : null;
 
 // ---------------------------------------------------------------- sources
 
 sealed class NoteSource {
   const NoteSource();
 
-  Map<String, Object?> toJson();
+  Object? toJson();
 
   static NoteSource fromJson(Object? json) {
-    if (json is! Map) return const AllSource();
-    final m = _asMap(json);
+    if (json == null) return const AllSource();
+    final m = _stringMap(json);
+    if (m == null) return UnknownSource(raw: json);
     try {
       switch (m['type']) {
         case 'all':
@@ -176,9 +179,11 @@ class RecentlyDeletedSource extends NoteSource {
 
 class UnknownSource extends NoteSource {
   const UnknownSource({required this.raw});
-  final Map<String, Object?> raw;
+
+  /// Whatever was persisted, re-emitted verbatim (usually a map).
+  final Object? raw;
   @override
-  Map<String, Object?> toJson() => raw;
+  Object? toJson() => raw;
   @override
   bool operator ==(Object other) =>
       other is UnknownSource && _deepEq(other.raw, raw);
@@ -191,11 +196,11 @@ class UnknownSource extends NoteSource {
 sealed class NoteToken {
   const NoteToken();
 
-  Map<String, Object?> toJson();
+  Object? toJson();
 
   static NoteToken fromJson(Object? json) {
-    if (json is! Map) return UnknownToken({'raw': json});
-    final m = _asMap(json);
+    final m = _stringMap(json);
+    if (m == null) return UnknownToken(json);
     try {
       switch (m['type']) {
         case 'tag':
@@ -215,10 +220,11 @@ sealed class NoteToken {
         case 'hasAttachment':
           return const HasAttachmentToken();
         case 'date':
-          return DateRangeToken(
-            from: _parseDate(m['from']),
-            to: _parseDate(m['to']),
-          );
+          final from = _parseDate(m['from']);
+          final to = _parseDate(m['to']);
+          if (from.ok && to.ok) {
+            return DateRangeToken(from: from.value, to: to.value);
+          }
         case 'relativeDate':
           final range = RelativeRange.values.asNameMap()[m['range']];
           if (range != null) return RelativeDateToken(range);
@@ -231,8 +237,12 @@ sealed class NoteToken {
     return UnknownToken(m);
   }
 
-  static DateTime? _parseDate(Object? v) =>
-      v is String ? DateTime.parse(v).toUtc() : null;
+  // ok is false when a value is present but not a parseable ISO-8601 string.
+  static ({bool ok, DateTime? value}) _parseDate(Object? v) {
+    if (v == null) return (ok: true, value: null);
+    final d = v is String ? DateTime.tryParse(v) : null;
+    return d == null ? (ok: false, value: null) : (ok: true, value: d.toUtc());
+  }
 }
 
 class TagToken extends NoteToken {
@@ -366,9 +376,11 @@ class PinnedToken extends NoteToken {
 
 class UnknownToken extends NoteToken {
   const UnknownToken(this.raw);
-  final Map<String, Object?> raw;
+
+  /// Whatever was persisted, re-emitted verbatim (usually a map).
+  final Object? raw;
   @override
-  Map<String, Object?> toJson() => raw;
+  Object? toJson() => raw;
   @override
   bool operator ==(Object other) =>
       other is UnknownToken && _deepEq(other.raw, raw);
@@ -386,8 +398,8 @@ class NoteQuery {
     this.scope = NoteScope.currentSource,
     this.sort = NoteSort.dateNewest,
     this.extra = const {},
-    String? rawScope,
-    String? rawSort,
+    Object? rawScope,
+    Object? rawSort,
   }) : _rawScope = rawScope,
        _rawSort = rawSort;
 
@@ -399,21 +411,28 @@ class NoteQuery {
     final sortRaw = json['sort'];
     final scope = NoteScope.values.asNameMap()[scopeRaw];
     final sort = NoteSort.values.asNameMap()[sortRaw];
+    final textRaw = json['text'];
+    final tokensRaw = json['tokens'];
+    final textOk = textRaw == null || textRaw is String;
+    final tokensOk = tokensRaw == null || tokensRaw is List;
     return NoteQuery(
       source: NoteSource.fromJson(json['source']),
-      text: json['text'] as String? ?? '',
+      text: textRaw is String ? textRaw : '',
       tokens: [
-        for (final t in (json['tokens'] as List?) ?? const <Object?>[])
-          NoteToken.fromJson(t),
+        if (tokensRaw is List)
+          for (final t in tokensRaw) NoteToken.fromJson(t),
       ],
       scope: scope ?? NoteScope.currentSource,
       sort: sort ?? NoteSort.dateNewest,
       extra: {
         for (final e in json.entries)
           if (!known.contains(e.key)) e.key: e.value,
+        // Wrong-typed values are kept so they re-emit until edited.
+        if (!textOk) 'text': textRaw,
+        if (!tokensOk) 'tokens': tokensRaw,
       },
-      rawScope: scope == null && scopeRaw is String ? scopeRaw : null,
-      rawSort: sort == null && sortRaw is String ? sortRaw : null,
+      rawScope: scope == null ? scopeRaw : null,
+      rawSort: sort == null ? sortRaw : null,
     );
   }
 
@@ -428,8 +447,8 @@ class NoteQuery {
 
   // An unrecognised scope/sort string, kept so it survives until the user
   // changes that setting.
-  final String? _rawScope;
-  final String? _rawSort;
+  final Object? _rawScope;
+  final Object? _rawSort;
 
   NoteQuery copyWith({
     NoteSource? source,
@@ -443,18 +462,23 @@ class NoteQuery {
     tokens: tokens ?? this.tokens,
     scope: scope ?? this.scope,
     sort: sort ?? this.sort,
-    extra: extra,
+    extra: {
+      for (final e in extra.entries)
+        if (!(text != null && e.key == 'text') &&
+            !(tokens != null && e.key == 'tokens'))
+          e.key: e.value,
+    },
     rawScope: scope == null ? _rawScope : null,
     rawSort: sort == null ? _rawSort : null,
   );
 
   Map<String, Object?> toJson() => {
-    ...extra,
     'source': source.toJson(),
     'text': text,
     'tokens': [for (final t in tokens) t.toJson()],
     'scope': _rawScope ?? scope.name,
     'sort': _rawSort ?? sort.name,
+    ...extra, // last: a preserved wrong-typed text/tokens wins until edited
   };
 
   @override
