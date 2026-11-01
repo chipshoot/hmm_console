@@ -44,7 +44,9 @@ class NotesIndexRevisionNotifier extends Notifier<int> {
   void bump() => state++;
 }
 
-/// Bumped each time the warmer indexes a chunk, so results re-evaluate.
+/// Bumped as the warmer makes progress (throttled), so a search in flight
+/// re-evaluates. Watched only while searching: without search text the
+/// results do not read the index.
 final notesIndexRevisionProvider =
     NotifierProvider<NotesIndexRevisionNotifier, int>(
       NotesIndexRevisionNotifier.new,
@@ -67,7 +69,7 @@ final _noteIndexWarmerProvider = Provider<NoteIndexWarmer>((ref) {
     cache: ref.watch(noteTextIndexCacheProvider),
     keyOf: (n) => holder.current!.keyOf(n),
     build: (n) => holder.current!.build(n),
-    onChunk: () => ref.read(notesIndexRevisionProvider.notifier).bump(),
+    onProgress: () => ref.read(notesIndexRevisionProvider.notifier).bump(),
   );
   ref.onDispose(warmer.cancel);
   return warmer;
@@ -164,7 +166,6 @@ final notesResultsProvider = Provider.autoDispose<AsyncValue<NoteResults>>((
   ref,
 ) {
   final env = ref.watch(notesViewEnvProvider);
-  ref.watch(notesIndexRevisionProvider);
   final listAsync = ref.watch(notesListStateProvider);
   final cache = ref.watch(noteTextIndexCacheProvider);
 
@@ -177,12 +178,17 @@ final notesResultsProvider = Provider.autoDispose<AsyncValue<NoteResults>>((
     return const AsyncLoading();
   }
 
-  final indexing = _indexingFor(ref, data, env);
+  if (data.query.text.trim().isNotEmpty) ref.watch(notesIndexRevisionProvider);
 
-  // Re-index when the notes or the env change, not on query edits. The
-  // warmer yields before its first chunk, so this never writes mid-build.
+  // One indexing per corpus + env: query edits reuse it (and its memoized
+  // keys and titles); a new corpus or env builds a new one and re-warms. The
+  // warmer yields before its first slice, so this never writes mid-build.
   final holder = ref.read(_indexingHolderProvider);
-  if (holder.warmedEnv != env || !_sameCorpus(holder.warmedData, data)) {
+  var indexing = holder.current;
+  if (indexing == null ||
+      holder.warmedEnv != env ||
+      !_sameCorpus(holder.warmedData, data)) {
+    indexing = _indexingFor(ref, data, env);
     holder.warmedData = data;
     holder.warmedEnv = env;
     holder.current = indexing;

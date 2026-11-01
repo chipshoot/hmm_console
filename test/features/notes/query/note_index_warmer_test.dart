@@ -30,18 +30,70 @@ NoteTextIndex _build(HmmNote n) => buildNoteTextIndex(
 );
 
 void main() {
-  test('warmer fills the cache in chunks and reports each chunk', () async {
-    final cache = NoteTextIndexCache();
-    var chunks = 0;
+  NoteTextIndex slowBuild(HmmNote n) {
+    final sw = Stopwatch()..start();
+    while (sw.elapsedMicroseconds < 1000) {}
+    return _build(n);
+  }
+
+  test(
+    'warmer fills the cache in time slices, yielding between them',
+    () async {
+      final cache = NoteTextIndexCache();
+      final w = NoteIndexWarmer(
+        cache: cache,
+        keyOf: _key,
+        build: slowBuild,
+        sliceBudget: const Duration(milliseconds: 3),
+      );
+      var done = false;
+      final warming = w
+          .warm([for (var i = 1; i <= 30; i++) _n(i)])
+          .then((_) => done = true);
+      var turns = 0;
+      while (!done) {
+        turns++;
+        await Future<void>.delayed(Duration.zero);
+      }
+      await warming;
+      expect(cache.length, 30);
+      // 30 ms of work in 3 ms slices: the event loop ran between slices.
+      expect(turns, greaterThanOrEqualTo(5));
+    },
+  );
+
+  test(
+    'progress is reported at most every reportEvery, and at the end',
+    () async {
+      final cache = NoteTextIndexCache();
+      var reports = 0;
+      final w = NoteIndexWarmer(
+        cache: cache,
+        keyOf: _key,
+        build: slowBuild,
+        sliceBudget: const Duration(milliseconds: 2),
+        reportEvery: const Duration(hours: 1),
+        onProgress: () => reports++,
+      );
+      await w.warm([for (var i = 1; i <= 20; i++) _n(i)]);
+      expect(reports, 1);
+      await w.warm([for (var i = 1; i <= 20; i++) _n(i)]); // nothing new
+      expect(reports, 1);
+    },
+  );
+
+  test('a zero reportEvery reports every slice', () async {
+    var reports = 0;
     final w = NoteIndexWarmer(
-      cache: cache,
+      cache: NoteTextIndexCache(),
       keyOf: _key,
       build: _build,
-      onChunk: () => chunks++,
+      sliceBudget: Duration.zero,
+      reportEvery: Duration.zero,
+      onProgress: () => reports++,
     );
-    await w.warm([for (var i = 1; i <= 450; i++) _n(i)]);
-    expect(chunks, 3);
-    expect(cache.length, 450);
+    await w.warm([for (var i = 1; i <= 4; i++) _n(i)]);
+    expect(reports, 4);
   });
 
   test('retains only live ids and skips already indexed notes', () async {
@@ -89,7 +141,7 @@ void main() {
       cache: cache,
       keyOf: _key,
       build: _build,
-      chunkSize: 10,
+      sliceBudget: Duration.zero,
     );
     final first = w.warm([for (var i = 1; i <= 100; i++) _n(i)]);
     await w.warm([_n(500)]);

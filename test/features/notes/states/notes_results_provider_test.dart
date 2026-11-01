@@ -1,13 +1,18 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/features/contacts/data/contact_codec.dart';
+import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/presentation/contact_note_display.dart';
 import 'package:hmm_console/features/contacts/domain/pinyin_transcriber.dart';
 import 'package:hmm_console/features/contacts/states/pinyin_transcriber_provider.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
+import 'package:hmm_console/features/notes/query/note_results.dart';
 import 'package:hmm_console/features/notes/rendering/note_display.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 import 'package:hmm_console/features/notes/states/notes_results_provider.dart';
@@ -37,23 +42,61 @@ HmmNote _n(int id, String subject, {String? content}) => HmmNote(
 
 const _env = (locale: Locale('en'), firstDayOfWeek: 1);
 
-ProviderContainer _container(String text) {
+const _counted = NoteCatalog(
+  id: 9,
+  name: 'Test.Counted',
+  schema: '{}',
+  formatType: 0,
+  isDefault: false,
+);
+
+/// Counts title lookups, to tell whether an indexing is reused.
+class _CountingEntry implements NoteDisplayEntry {
+  int titles = 0;
+  @override
+  String title(HmmNote note, l) {
+    titles++;
+    return 'Counted ${note.id}';
+  }
+
+  @override
+  NoteDisplay display(HmmNote note, l) => (title: title(note, l), preview: '');
+
+  @override
+  NoteTarget? target(HmmNote note) => null;
+}
+
+ProviderContainer _container(
+  String text, {
+  List<HmmNote>? notes,
+  Map<int, NoteCatalog> catalogs = const <int, NoteCatalog>{},
+  List<Override> overrides = const [],
+}) {
   final data = NotesListData(
-    all: [
-      _n(1, 'Alpha', content: 'needs **zebra** stripes'),
-      _n(2, 'Beta'),
-    ],
-    catalogsById: const <int, NoteCatalog>{},
+    all:
+        notes ??
+        [_n(1, 'Alpha', content: 'needs **zebra** stripes'), _n(2, 'Beta')],
+    catalogsById: catalogs,
     query: NoteQuery(text: text),
   );
   final c = ProviderContainer(
     overrides: [
       notesListStateProvider.overrideWith(() => _FakeList(data)),
       pinyinTranscriberProvider.overrideWithValue(_Pinyin()),
+      ...overrides,
     ],
   );
   addTearDown(c.dispose);
   return c;
+}
+
+/// Waits until the warmer has indexed [count] notes.
+Future<void> _warmed(ProviderContainer c, int count) async {
+  final cache = c.read(noteTextIndexCacheProvider);
+  for (var i = 0; i < 400 && cache.length < count; i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+  expect(cache.length, count);
 }
 
 List<int> _ids(AsyncValue<dynamic> v) => [
@@ -74,7 +117,111 @@ void main() {
     c.listen(notesResultsProvider, (_, _) {});
     c.read(notesViewEnvProvider.notifier).set(_env);
     expect(_ids(c.read(notesResultsProvider)), isEmpty);
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await _warmed(c, 2);
+    await Future<void>.delayed(Duration.zero);
+    expect(_ids(c.read(notesResultsProvider)), [1]);
+  });
+
+  test('keystrokes reuse the indexing built for the corpus', () async {
+    final entry = _CountingEntry();
+    final c = _container(
+      '',
+      notes: [
+        for (var i = 1; i <= 3; i++)
+          HmmNote(
+            id: i,
+            uuid: 'u$i',
+            subject: 's$i',
+            authorId: 1,
+            catalogId: _counted.id,
+            createDate: DateTime(2026, 1, i),
+          ),
+      ],
+      catalogs: const {9: _counted},
+      overrides: [
+        noteDisplayRegistryProvider.overrideWithValue(
+          NoteDisplayRegistry({_counted.name: entry}),
+        ),
+      ],
+    );
+    await c.read(notesListStateProvider.future);
+    c.listen(notesResultsProvider, (_, _) {});
+    c.read(notesViewEnvProvider.notifier).set(_env);
+    c.read(notesResultsProvider);
+    await _warmed(c, 3);
+    final list = c.read(notesListStateProvider.notifier);
+    list.setText('counted');
+    c.read(notesResultsProvider);
+    final afterFirst = entry.titles;
+    list.setText('counted 2');
+    expect(_ids(c.read(notesResultsProvider)), [2]);
+    list.setText('counted');
+    c.read(notesResultsProvider);
+    expect(entry.titles, afterFirst);
+  });
+
+  test(
+    'warming does not re-evaluate results while nothing is searched',
+    () async {
+      final c = _container(
+        '',
+        notes: [for (var i = 1; i <= 300; i++) _n(i, 'n$i', content: 'b $i')],
+      );
+      await c.read(notesListStateProvider.future);
+      final seen = <AsyncValue<NoteResults>>[];
+      c.listen(notesResultsProvider, (_, v) => seen.add(v));
+      c.read(notesViewEnvProvider.notifier).set(_env);
+      c.read(notesResultsProvider);
+      final before = seen.length;
+      await _warmed(c, 300);
+      await Future<void>.delayed(Duration.zero);
+      c.read(notesResultsProvider);
+      expect(seen.length, before);
+    },
+  );
+
+  test('a contact note is found by its title, never by its raw JSON', () async {
+    const contacts = NoteCatalog(
+      id: 2,
+      name: ContactNoteDisplay.catalogName,
+      schema: '{}',
+      formatType: 0,
+      isDefault: false,
+    );
+    const contact = Contact(
+      id: 'c-1',
+      contactType: ContactType.person,
+      firstName: 'Wei',
+      lastName: 'Zhang',
+      notes: 'qqxyzzy secret token',
+    );
+    final note = HmmNote(
+      id: 1,
+      uuid: 'u1',
+      subject: 'Contact:c-1',
+      authorId: 1,
+      catalogId: 2,
+      createDate: DateTime(2026, 6, 1),
+      content: jsonEncode({
+        'note': {
+          'content': {'Contact': ContactCodec.toMap(contact)},
+        },
+      }),
+    );
+    final c = _container(
+      'qqxyzzy',
+      notes: [note],
+      catalogs: const {2: contacts},
+    );
+    await c.read(notesListStateProvider.future);
+    c.listen(notesResultsProvider, (_, _) {});
+    c.read(notesViewEnvProvider.notifier).set(_env);
+    c.read(notesResultsProvider);
+    await _warmed(c, 1);
+    await Future<void>.delayed(Duration.zero);
+    expect(_ids(c.read(notesResultsProvider)), isEmpty);
+    final list = c.read(notesListStateProvider.notifier);
+    list.setText('wei');
     expect(_ids(c.read(notesResultsProvider)), [1]);
   });
 
