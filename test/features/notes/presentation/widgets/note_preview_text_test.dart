@@ -41,6 +41,10 @@ void main() {
     expect(previewPlain(runs), '☑ done end bold');
   });
 
+  test('loose task list keeps its boxes', () {
+    expect(previewPlain(previewRuns('- [x] a\n\n- [ ] b')), '☑ a ☐ b');
+  });
+
   test('image-only note has an empty preview', () {
     expect(
       previewPlain(previewRuns('![p](hmm-attachment://attachments/a.jpg)')),

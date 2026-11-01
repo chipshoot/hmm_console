@@ -86,17 +86,23 @@ void _blockWalk(List<md.Node> nodes, _RunBuilder b, {bool root = false}) {
 
 void _listItem(md.Element li, _RunBuilder b) {
   final children = li.children ?? const <md.Node>[];
-  final first = children.isEmpty ? null : children.first;
-  final task = first is md.Element && first.tag == 'input';
+  // Tight lists put the checkbox first in the li; loose lists wrap the
+  // content in a <p>, so it is the first child of that paragraph.
+  md.Node? first = children.isEmpty ? null : children.first;
+  if (first is md.Element && first.tag == 'p') {
+    final inner = first.children;
+    first = inner == null || inner.isEmpty ? null : inner.first;
+  }
+  final box = first is md.Element && first.tag == 'input' ? first : null;
   b.blockBreak();
-  if (task) {
-    final checked = first.attributes.containsKey('checked');
+  if (box != null) {
+    final checked = box.attributes.containsKey('checked');
     b.add(checked ? '☑ ' : '☐ ', PreviewStyle.plain);
-    _blockWalk(children.skip(1).toList(), b);
   } else {
     b.add('• ', PreviewStyle.plain);
-    _blockWalk(children, b);
   }
+  // The input element itself is skipped by both walkers.
+  _blockWalk(children, b);
   b.blockBreak();
 }
 
