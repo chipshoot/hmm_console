@@ -155,7 +155,7 @@ Project ID: `home-made-message`. Firebase emulators configured in `firebase.json
 - `flutter_platform_widgets`: **not a pubspec dependency** despite older
   guidance — branch on `Theme.of(context).platform` for platform-specific
   dialogs, switches and sheets; icon buttons use `HmmIconButton` (see Shared Rules)
-  - `flutter_slidable`: swipe actions on list items
+- `flutter_slidable` / `share_plus`: **not pubspec dependencies yet** — the Notes list redesign adds them in later slices (swipe actions; the system share sheet). Do not import them before then.
 - `image_picker` / `file_picker` / `open_filex`: attachment capture (photos / PDFs) and OS-viewer hand-off; `google_mlkit_text_recognition`: on-device receipt OCR (`receipt_scan/`)
 
 ## Backend API integration

@@ -144,6 +144,11 @@ class NoteMarkdownBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MarkdownBody(
+      // flutter_markdown re-parses (and so re-runs the image builder) only
+      // when the text changes. The resolver usually arrives a frame after
+      // the first build; keying on it rebuilds the images then, instead of
+      // leaving the "no resolver yet" placeholder for good.
+      key: ObjectKey(resolver),
       data: data,
       selectable: selectable,
       sizedImageBuilder: (config) => _buildImage(context, config),

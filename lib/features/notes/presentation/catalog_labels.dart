@@ -1,3 +1,4 @@
+import '../states/note_delete_policy.dart';
 import '../../../core/notes/catalog_palette.dart';
 import '../../../l10n/gen/app_localizations.dart';
 
@@ -48,4 +49,13 @@ String domainLabel(String domainKey, AppLocalizations l) => switch (domainKey) {
 String subsystemLabel(String subject, AppLocalizations l) => switch (subject) {
       'Automobile' => l.notesSubsystemAutomobile,
       _ => subject,
+    };
+
+/// Localized name of the screen that manages an entity note (G7).
+String managePlaceLabel(NoteManagePlace place, AppLocalizations l) =>
+    switch (place) {
+      NoteManagePlace.contacts => l.contactsTitle,
+      NoteManagePlace.cheatsheets => l.cheatsheetWalletTitle,
+      NoteManagePlace.automobile => l.domainAutomobile,
+      NoteManagePlace.ownScreen => l.notesManagePlaceOwnScreen,
     };

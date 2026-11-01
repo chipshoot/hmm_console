@@ -2476,6 +2476,335 @@ class NoteTagRefsCompanion extends UpdateCompanion<NoteTagRef> {
   }
 }
 
+class $NoteStatesTable extends NoteStates
+    with TableInfo<$NoteStatesTable, NoteStateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NoteStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _noteUuidMeta = const VerificationMeta(
+    'noteUuid',
+  );
+  @override
+  late final GeneratedColumn<String> noteUuid = GeneratedColumn<String>(
+    'note_uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isPinnedMeta = const VerificationMeta(
+    'isPinned',
+  );
+  @override
+  late final GeneratedColumn<bool> isPinned = GeneratedColumn<bool>(
+    'is_pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _flagColorMeta = const VerificationMeta(
+    'flagColor',
+  );
+  @override
+  late final GeneratedColumn<int> flagColor = GeneratedColumn<int>(
+    'flag_color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastModifiedDateMeta = const VerificationMeta(
+    'lastModifiedDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastModifiedDate =
+      GeneratedColumn<DateTime>(
+        'last_modified_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    noteUuid,
+    isPinned,
+    flagColor,
+    lastModifiedDate,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'note_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NoteStateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('note_uuid')) {
+      context.handle(
+        _noteUuidMeta,
+        noteUuid.isAcceptableOrUnknown(data['note_uuid']!, _noteUuidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_noteUuidMeta);
+    }
+    if (data.containsKey('is_pinned')) {
+      context.handle(
+        _isPinnedMeta,
+        isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta),
+      );
+    }
+    if (data.containsKey('flag_color')) {
+      context.handle(
+        _flagColorMeta,
+        flagColor.isAcceptableOrUnknown(data['flag_color']!, _flagColorMeta),
+      );
+    }
+    if (data.containsKey('last_modified_date')) {
+      context.handle(
+        _lastModifiedDateMeta,
+        lastModifiedDate.isAcceptableOrUnknown(
+          data['last_modified_date']!,
+          _lastModifiedDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastModifiedDateMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {noteUuid};
+  @override
+  NoteStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NoteStateRow(
+      noteUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note_uuid'],
+      )!,
+      isPinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_pinned'],
+      )!,
+      flagColor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}flag_color'],
+      ),
+      lastModifiedDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_modified_date'],
+      )!,
+    );
+  }
+
+  @override
+  $NoteStatesTable createAlias(String alias) {
+    return $NoteStatesTable(attachedDatabase, alias);
+  }
+}
+
+class NoteStateRow extends DataClass implements Insertable<NoteStateRow> {
+  final String noteUuid;
+  final bool isPinned;
+  final int? flagColor;
+  final DateTime lastModifiedDate;
+  const NoteStateRow({
+    required this.noteUuid,
+    required this.isPinned,
+    this.flagColor,
+    required this.lastModifiedDate,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['note_uuid'] = Variable<String>(noteUuid);
+    map['is_pinned'] = Variable<bool>(isPinned);
+    if (!nullToAbsent || flagColor != null) {
+      map['flag_color'] = Variable<int>(flagColor);
+    }
+    map['last_modified_date'] = Variable<DateTime>(lastModifiedDate);
+    return map;
+  }
+
+  NoteStatesCompanion toCompanion(bool nullToAbsent) {
+    return NoteStatesCompanion(
+      noteUuid: Value(noteUuid),
+      isPinned: Value(isPinned),
+      flagColor: flagColor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(flagColor),
+      lastModifiedDate: Value(lastModifiedDate),
+    );
+  }
+
+  factory NoteStateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NoteStateRow(
+      noteUuid: serializer.fromJson<String>(json['noteUuid']),
+      isPinned: serializer.fromJson<bool>(json['isPinned']),
+      flagColor: serializer.fromJson<int?>(json['flagColor']),
+      lastModifiedDate: serializer.fromJson<DateTime>(json['lastModifiedDate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'noteUuid': serializer.toJson<String>(noteUuid),
+      'isPinned': serializer.toJson<bool>(isPinned),
+      'flagColor': serializer.toJson<int?>(flagColor),
+      'lastModifiedDate': serializer.toJson<DateTime>(lastModifiedDate),
+    };
+  }
+
+  NoteStateRow copyWith({
+    String? noteUuid,
+    bool? isPinned,
+    Value<int?> flagColor = const Value.absent(),
+    DateTime? lastModifiedDate,
+  }) => NoteStateRow(
+    noteUuid: noteUuid ?? this.noteUuid,
+    isPinned: isPinned ?? this.isPinned,
+    flagColor: flagColor.present ? flagColor.value : this.flagColor,
+    lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
+  );
+  NoteStateRow copyWithCompanion(NoteStatesCompanion data) {
+    return NoteStateRow(
+      noteUuid: data.noteUuid.present ? data.noteUuid.value : this.noteUuid,
+      isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
+      flagColor: data.flagColor.present ? data.flagColor.value : this.flagColor,
+      lastModifiedDate: data.lastModifiedDate.present
+          ? data.lastModifiedDate.value
+          : this.lastModifiedDate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NoteStateRow(')
+          ..write('noteUuid: $noteUuid, ')
+          ..write('isPinned: $isPinned, ')
+          ..write('flagColor: $flagColor, ')
+          ..write('lastModifiedDate: $lastModifiedDate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(noteUuid, isPinned, flagColor, lastModifiedDate);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NoteStateRow &&
+          other.noteUuid == this.noteUuid &&
+          other.isPinned == this.isPinned &&
+          other.flagColor == this.flagColor &&
+          other.lastModifiedDate == this.lastModifiedDate);
+}
+
+class NoteStatesCompanion extends UpdateCompanion<NoteStateRow> {
+  final Value<String> noteUuid;
+  final Value<bool> isPinned;
+  final Value<int?> flagColor;
+  final Value<DateTime> lastModifiedDate;
+  final Value<int> rowid;
+  const NoteStatesCompanion({
+    this.noteUuid = const Value.absent(),
+    this.isPinned = const Value.absent(),
+    this.flagColor = const Value.absent(),
+    this.lastModifiedDate = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NoteStatesCompanion.insert({
+    required String noteUuid,
+    this.isPinned = const Value.absent(),
+    this.flagColor = const Value.absent(),
+    required DateTime lastModifiedDate,
+    this.rowid = const Value.absent(),
+  }) : noteUuid = Value(noteUuid),
+       lastModifiedDate = Value(lastModifiedDate);
+  static Insertable<NoteStateRow> custom({
+    Expression<String>? noteUuid,
+    Expression<bool>? isPinned,
+    Expression<int>? flagColor,
+    Expression<DateTime>? lastModifiedDate,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (noteUuid != null) 'note_uuid': noteUuid,
+      if (isPinned != null) 'is_pinned': isPinned,
+      if (flagColor != null) 'flag_color': flagColor,
+      if (lastModifiedDate != null) 'last_modified_date': lastModifiedDate,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NoteStatesCompanion copyWith({
+    Value<String>? noteUuid,
+    Value<bool>? isPinned,
+    Value<int?>? flagColor,
+    Value<DateTime>? lastModifiedDate,
+    Value<int>? rowid,
+  }) {
+    return NoteStatesCompanion(
+      noteUuid: noteUuid ?? this.noteUuid,
+      isPinned: isPinned ?? this.isPinned,
+      flagColor: flagColor ?? this.flagColor,
+      lastModifiedDate: lastModifiedDate ?? this.lastModifiedDate,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (noteUuid.present) {
+      map['note_uuid'] = Variable<String>(noteUuid.value);
+    }
+    if (isPinned.present) {
+      map['is_pinned'] = Variable<bool>(isPinned.value);
+    }
+    if (flagColor.present) {
+      map['flag_color'] = Variable<int>(flagColor.value);
+    }
+    if (lastModifiedDate.present) {
+      map['last_modified_date'] = Variable<DateTime>(lastModifiedDate.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NoteStatesCompanion(')
+          ..write('noteUuid: $noteUuid, ')
+          ..write('isPinned: $isPinned, ')
+          ..write('flagColor: $flagColor, ')
+          ..write('lastModifiedDate: $lastModifiedDate, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$HmmDatabase extends GeneratedDatabase {
   _$HmmDatabase(QueryExecutor e) : super(e);
   $HmmDatabaseManager get managers => $HmmDatabaseManager(this);
@@ -2484,6 +2813,7 @@ abstract class _$HmmDatabase extends GeneratedDatabase {
   late final $NotesTable notes = $NotesTable(this);
   late final $TagsTable tags = $TagsTable(this);
   late final $NoteTagRefsTable noteTagRefs = $NoteTagRefsTable(this);
+  late final $NoteStatesTable noteStates = $NoteStatesTable(this);
   late final Index idxNotesLastModified = Index(
     'idx_notes_last_modified',
     'CREATE INDEX idx_notes_last_modified ON notes (last_modified_date)',
@@ -2510,6 +2840,7 @@ abstract class _$HmmDatabase extends GeneratedDatabase {
     notes,
     tags,
     noteTagRefs,
+    noteStates,
     idxNotesLastModified,
     idxNotesCatalog,
     idxNotesParent,
@@ -4634,6 +4965,189 @@ typedef $$NoteTagRefsTableProcessedTableManager =
       NoteTagRef,
       PrefetchHooks Function({bool noteId, bool tagId})
     >;
+typedef $$NoteStatesTableCreateCompanionBuilder =
+    NoteStatesCompanion Function({
+      required String noteUuid,
+      Value<bool> isPinned,
+      Value<int?> flagColor,
+      required DateTime lastModifiedDate,
+      Value<int> rowid,
+    });
+typedef $$NoteStatesTableUpdateCompanionBuilder =
+    NoteStatesCompanion Function({
+      Value<String> noteUuid,
+      Value<bool> isPinned,
+      Value<int?> flagColor,
+      Value<DateTime> lastModifiedDate,
+      Value<int> rowid,
+    });
+
+class $$NoteStatesTableFilterComposer
+    extends Composer<_$HmmDatabase, $NoteStatesTable> {
+  $$NoteStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get noteUuid => $composableBuilder(
+    column: $table.noteUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPinned => $composableBuilder(
+    column: $table.isPinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get flagColor => $composableBuilder(
+    column: $table.flagColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastModifiedDate => $composableBuilder(
+    column: $table.lastModifiedDate,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NoteStatesTableOrderingComposer
+    extends Composer<_$HmmDatabase, $NoteStatesTable> {
+  $$NoteStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get noteUuid => $composableBuilder(
+    column: $table.noteUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isPinned => $composableBuilder(
+    column: $table.isPinned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get flagColor => $composableBuilder(
+    column: $table.flagColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastModifiedDate => $composableBuilder(
+    column: $table.lastModifiedDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NoteStatesTableAnnotationComposer
+    extends Composer<_$HmmDatabase, $NoteStatesTable> {
+  $$NoteStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get noteUuid =>
+      $composableBuilder(column: $table.noteUuid, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPinned =>
+      $composableBuilder(column: $table.isPinned, builder: (column) => column);
+
+  GeneratedColumn<int> get flagColor =>
+      $composableBuilder(column: $table.flagColor, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastModifiedDate => $composableBuilder(
+    column: $table.lastModifiedDate,
+    builder: (column) => column,
+  );
+}
+
+class $$NoteStatesTableTableManager
+    extends
+        RootTableManager<
+          _$HmmDatabase,
+          $NoteStatesTable,
+          NoteStateRow,
+          $$NoteStatesTableFilterComposer,
+          $$NoteStatesTableOrderingComposer,
+          $$NoteStatesTableAnnotationComposer,
+          $$NoteStatesTableCreateCompanionBuilder,
+          $$NoteStatesTableUpdateCompanionBuilder,
+          (
+            NoteStateRow,
+            BaseReferences<_$HmmDatabase, $NoteStatesTable, NoteStateRow>,
+          ),
+          NoteStateRow,
+          PrefetchHooks Function()
+        > {
+  $$NoteStatesTableTableManager(_$HmmDatabase db, $NoteStatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NoteStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NoteStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NoteStatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> noteUuid = const Value.absent(),
+                Value<bool> isPinned = const Value.absent(),
+                Value<int?> flagColor = const Value.absent(),
+                Value<DateTime> lastModifiedDate = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NoteStatesCompanion(
+                noteUuid: noteUuid,
+                isPinned: isPinned,
+                flagColor: flagColor,
+                lastModifiedDate: lastModifiedDate,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String noteUuid,
+                Value<bool> isPinned = const Value.absent(),
+                Value<int?> flagColor = const Value.absent(),
+                required DateTime lastModifiedDate,
+                Value<int> rowid = const Value.absent(),
+              }) => NoteStatesCompanion.insert(
+                noteUuid: noteUuid,
+                isPinned: isPinned,
+                flagColor: flagColor,
+                lastModifiedDate: lastModifiedDate,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NoteStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$HmmDatabase,
+      $NoteStatesTable,
+      NoteStateRow,
+      $$NoteStatesTableFilterComposer,
+      $$NoteStatesTableOrderingComposer,
+      $$NoteStatesTableAnnotationComposer,
+      $$NoteStatesTableCreateCompanionBuilder,
+      $$NoteStatesTableUpdateCompanionBuilder,
+      (
+        NoteStateRow,
+        BaseReferences<_$HmmDatabase, $NoteStatesTable, NoteStateRow>,
+      ),
+      NoteStateRow,
+      PrefetchHooks Function()
+    >;
 
 class $HmmDatabaseManager {
   final _$HmmDatabase _db;
@@ -4647,4 +5161,6 @@ class $HmmDatabaseManager {
   $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$NoteTagRefsTableTableManager get noteTagRefs =>
       $$NoteTagRefsTableTableManager(_db, _db.noteTagRefs);
+  $$NoteStatesTableTableManager get noteStates =>
+      $$NoteStatesTableTableManager(_db, _db.noteStates);
 }

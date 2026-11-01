@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/local/note_purge_scheduler.dart';
 import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/core/i18n/locale_provider.dart';
 import 'package:hmm_console/core/navigation/router.dart';
@@ -52,6 +55,11 @@ class _MainAppState extends ConsumerState<MainApp> {
     // singleton; the orchestrator changing under it (data mode switch)
     // is handled by `ref.onDispose` in the provider.
     ref.read(syncControllerProvider).start();
+    // Daily Recently-Deleted purge. The provider re-checks after each sync;
+    // this first call covers local mode, which never syncs.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(ref.read(notePurgeSchedulerProvider).maybeRun());
+    });
   }
 
   @override
@@ -78,6 +86,9 @@ class _MainAppState extends ConsumerState<MainApp> {
     ref.listen<SyncController>(syncControllerProvider, (previous, next) {
       next.start();
     });
+    // Keep the purge scheduler alive (and re-created with the controller on a
+    // data-mode switch) so its after-sync listener stays attached.
+    ref.listen<NotePurgeScheduler>(notePurgeSchedulerProvider, (previous, next) {});
 
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(

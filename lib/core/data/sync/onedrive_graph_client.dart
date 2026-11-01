@@ -59,16 +59,16 @@ typedef CurrentUserSubResolver = Future<String?> Function();
 /// - `PUT /me/drive/special/approot:/users/{sub}/notes/{id}.json:/content`
 /// - `GET /me/drive/special/approot:/users/{sub}/manifest.json:/content`
 class OneDriveGraphClient {
-  OneDriveGraphClient(
-    this._auth,
-    this._currentUserSub, {
-    Dio? dio,
-  }) : _dio = dio ??
-            Dio(BaseOptions(
+  OneDriveGraphClient(this._auth, this._currentUserSub, {Dio? dio})
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
               baseUrl: 'https://graph.microsoft.com/v1.0',
               responseType: ResponseType.json,
               validateStatus: (_) => true, // Let us branch on status ourselves.
-            )) {
+            ),
+          ) {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -225,6 +225,27 @@ class OneDriveGraphClient {
     _throwIfBad(resp);
   }
 
+  /// Fetch the user's note-state document from `users/{sub}/note-states.json`
+  /// (pins + flags), or null when the file doesn't exist yet.
+  Future<Map<String, dynamic>?> getNoteStates() async {
+    final path = await _userPath('note-states.json', action: 'content');
+    final resp = await _dio.get<Map<String, dynamic>>(path);
+    if (resp.statusCode == 404) return null;
+    _throwIfBad(resp);
+    return resp.data;
+  }
+
+  /// Push the user's note-state document to `users/{sub}/note-states.json`.
+  Future<void> putNoteStates(Map<String, dynamic> body) async {
+    final path = await _userPath('note-states.json', action: 'content');
+    final resp = await _dio.put(
+      path,
+      data: body,
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    _throwIfBad(resp);
+  }
+
   // ---- Attachments (vault bytes) ----
   //
   // Re-introduced for cloudStorage byte sync: the orchestrator's
@@ -285,7 +306,10 @@ class OneDriveGraphClient {
   /// Pagination within ONE folder stays sequential: each page's URL comes
   /// from the previous page's `@odata.nextLink`.
   Future<void> _listInto(
-      Set<String> out, String graphRel, String vaultRel) async {
+    Set<String> out,
+    String graphRel,
+    String vaultRel,
+  ) async {
     var url = await _userPath(graphRel, action: 'children');
     final subfolders = <Future<void>>[];
     while (true) {
@@ -332,8 +356,9 @@ class OneDriveGraphClient {
 
   /// Manifest from the legacy unscoped path (`approot/manifest.json`).
   Future<SyncManifest?> getLegacyManifest() async {
-    final resp = await _dio
-        .get<Map<String, dynamic>>('$_approot:/manifest.json:/content');
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '$_approot:/manifest.json:/content',
+    );
     if (resp.statusCode == 404) return null;
     _throwIfBad(resp);
     return _decodeManifest(resp.data!);
@@ -341,8 +366,9 @@ class OneDriveGraphClient {
 
   /// Note body from the legacy unscoped path (`approot/notes/{id}.json`).
   Future<Map<String, dynamic>?> getLegacyNoteBlob(String id) async {
-    final resp = await _dio
-        .get<Map<String, dynamic>>('$_approot:/notes/$id.json:/content');
+    final resp = await _dio.get<Map<String, dynamic>>(
+      '$_approot:/notes/$id.json:/content',
+    );
     if (resp.statusCode == 404) return null;
     _throwIfBad(resp);
     return resp.data;

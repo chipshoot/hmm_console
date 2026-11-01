@@ -4951,6 +4951,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{group} · {count, plural, =1{1 row} other{{count} rows}}'**
   String notesCheatsheetPreview(String group, int count);
+
+  /// No description provided for @notesPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get notesPin;
+
+  /// No description provided for @notesUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get notesUnpin;
+
+  /// No description provided for @notesFlagAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Flag…'**
+  String get notesFlagAction;
+
+  /// No description provided for @notesFlagSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Flag'**
+  String get notesFlagSheetTitle;
+
+  /// No description provided for @notesClearFlag.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear flag'**
+  String get notesClearFlag;
+
+  /// No description provided for @flagColorRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get flagColorRed;
+
+  /// No description provided for @flagColorOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get flagColorOrange;
+
+  /// No description provided for @flagColorYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get flagColorYellow;
+
+  /// No description provided for @flagColorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get flagColorGreen;
+
+  /// No description provided for @flagColorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get flagColorBlue;
+
+  /// No description provided for @flagColorPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get flagColorPurple;
+
+  /// No description provided for @flagColorGrey.
+  ///
+  /// In en, this message translates to:
+  /// **'Grey'**
+  String get flagColorGrey;
+
+  /// No description provided for @notesPinnedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get notesPinnedLabel;
+
+  /// No description provided for @notesFlaggedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Flagged {color}'**
+  String notesFlaggedLabel(String color);
+
+  /// No description provided for @notesPinFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t pin the note'**
+  String get notesPinFailed;
+
+  /// No description provided for @notesFlagFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t flag the note'**
+  String get notesFlagFailed;
+
+  /// No description provided for @notesMovedToRecentlyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Note deleted'**
+  String get notesMovedToRecentlyDeleted;
+
+  /// No description provided for @notesDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the note'**
+  String get notesDeleteFailed;
+
+  /// No description provided for @notesRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Note restored'**
+  String get notesRestored;
+
+  /// No description provided for @notesRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore the note'**
+  String get notesRestoreFailed;
+
+  /// No description provided for @notesManageIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage in {place}'**
+  String notesManageIn(String place);
+
+  /// No description provided for @notesManagePlaceOwnScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'its own screen'**
+  String get notesManagePlaceOwnScreen;
+
+  /// No description provided for @helpNoteDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get helpNoteDetailTitle;
+
+  /// No description provided for @helpNoteDetailSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Read a note and use the ⋯ menu to pin, flag, edit or delete it.'**
+  String get helpNoteDetailSummary;
+
+  /// No description provided for @helpNoteDetailPinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get helpNoteDetailPinTitle;
+
+  /// No description provided for @helpNoteDetailPinBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Marks the note as pinned. Pins sync to your other devices. Choose Unpin to remove it.'**
+  String get helpNoteDetailPinBody;
+
+  /// No description provided for @helpNoteDetailFlagTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Flag'**
+  String get helpNoteDetailFlagTitle;
+
+  /// No description provided for @helpNoteDetailFlagBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Marks the note with one of seven colours. Choose Clear flag to remove it.'**
+  String get helpNoteDetailFlagBody;
+
+  /// No description provided for @helpNoteDetailDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get helpNoteDetailDeleteTitle;
+
+  /// No description provided for @helpNoteDetailDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes the note. Tap Undo in the message to bring it back right away. Deleted notes are removed for good after 30 days.'**
+  String get helpNoteDetailDeleteBody;
+
+  /// No description provided for @helpNoteDetailManageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage in …'**
+  String get helpNoteDetailManageTitle;
+
+  /// No description provided for @helpNoteDetailManageBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here.'**
+  String get helpNoteDetailManageBody;
 }
 
 class _AppLocalizationsDelegate
