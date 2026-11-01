@@ -517,13 +517,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesNone => '无';
 
   @override
-  String get notesEmpty => '暂无笔记';
+  String get notesEmpty => '还没有笔记';
 
   @override
   String get notesNoUnattached => '没有未关联的笔记';
 
   @override
-  String get notesNoMatches => '没有笔记';
+  String notesNoMatches(String query) {
+    return '没有符合“$query”的笔记';
+  }
 
   @override
   String get notesSearchNotes => '搜索笔记';
@@ -2777,4 +2779,113 @@ class AppLocalizationsZh extends AppLocalizations {
   String notesRowMoreTags(String count) {
     return '+$count';
   }
+
+  @override
+  String get notesViewTooltip => '显示';
+
+  @override
+  String get notesFilterTooltip => '筛选';
+
+  @override
+  String get notesFiltered => '已筛选';
+
+  @override
+  String get notesSearchClearTooltip => '清除搜索';
+
+  @override
+  String get notesSearchClearAction => '清除搜索';
+
+  @override
+  String get notesNoneInView => '这里没有笔记';
+
+  @override
+  String get notesRetry => '重试';
+
+  @override
+  String get notesGroupPinned => '置顶';
+
+  @override
+  String get notesGroupToday => '今天';
+
+  @override
+  String get notesGroupYesterday => '昨天';
+
+  @override
+  String get notesGroupThisWeek => '本周';
+
+  @override
+  String get notesGroupThisMonth => '本月';
+
+  @override
+  String get notesGroupUnflagged => '未标记';
+
+  @override
+  String get notesSortDateNewest => '日期（最新优先）';
+
+  @override
+  String get notesSortDateOldest => '日期（最早优先）';
+
+  @override
+  String get notesSortLastModified => '最近修改';
+
+  @override
+  String get notesSortTitle => '标题（A → Z）';
+
+  @override
+  String get notesSortFlag => '旗标颜色';
+
+  @override
+  String get notesViewRows => '行样式';
+
+  @override
+  String get notesViewSort => '排序';
+
+  @override
+  String get helpNotesListTitle => '笔记';
+
+  @override
+  String get helpNotesListSummary =>
+      '所有笔记都在一个列表里，按日期、标题或旗标分组。可在顶部栏搜索、筛选并选择行的显示方式。下拉即可同步。';
+
+  @override
+  String get helpNotesListViewTitle => '显示';
+
+  @override
+  String get helpNotesListViewBody =>
+      '选择每行显示多少内容（紧凑、标准或丰富），以及列表的排序方式：按日期、最近修改、标题或旗标颜色。行样式只保存在本设备上。';
+
+  @override
+  String get helpNotesListPinnedTitle => '置顶区';
+
+  @override
+  String get helpNotesListPinnedBody =>
+      '符合当前筛选和搜索的置顶笔记在任何排序下都显示在最上方，下方不会重复出现。可在笔记的 ⋯ 菜单中置顶。';
+
+  @override
+  String get helpNotesListDatesTitle => '日期分区';
+
+  @override
+  String get helpNotesListDatesBody =>
+      '按日期排序时，笔记分为今天、昨天、本周、本月，之后按月份分组。滚动浏览某个分区时，它的标题会一直停留在顶部。';
+
+  @override
+  String get helpNotesListFlagsTitle => '旗标';
+
+  @override
+  String get helpNotesListFlagsBody =>
+      '旗标用颜色标记笔记。按旗标颜色排序时，已标记的笔记按颜色分组，未标记的排在最后。';
+
+  @override
+  String get helpNotesListSearchTitle => '搜索';
+
+  @override
+  String get helpNotesListSearchBody =>
+      '输入即可搜索标题、正文、标签以及笔记所附属的对象，匹配内容会高亮显示。返回时搜索仍然生效；点搜索框里的 × 即可清除。';
+
+  @override
+  String get helpNotesListFilterTitle => '筛选';
+
+  @override
+  String get helpNotesListFilterBody =>
+      '显示全部笔记、某个领域（如汽车），或其中的某一类笔记。搜索框下方的标签打开领域列表；筛选按钮列出所有类别。';
 }

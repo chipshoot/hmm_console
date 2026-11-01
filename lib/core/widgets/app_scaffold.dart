@@ -16,6 +16,7 @@ class AppScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.backgroundColor,
     this.drawer,
+    this.onRefresh,
   });
 
   final String title;
@@ -28,6 +29,10 @@ class AppScaffold extends StatelessWidget {
   /// Optional left slide-in panel, opened only via a button (open-drag gesture
   /// is disabled so it never conflicts with the iOS back-swipe).
   final Widget? drawer;
+
+  /// Pull-to-refresh: a [CupertinoSliverRefreshControl] under the iOS/macOS
+  /// nav bar, a [RefreshIndicator] around the scroll view elsewhere.
+  final Future<void> Function()? onRefresh;
 
   bool _isApple(TargetPlatform p) =>
       p == TargetPlatform.iOS || p == TargetPlatform.macOS;
@@ -55,12 +60,24 @@ class AppScaffold extends StatelessWidget {
             pinned: true,
           );
 
+    final refresh = onRefresh;
+    final scrollView = CustomScrollView(
+      slivers: [
+        navBar,
+        if (refresh != null && _isApple(platform))
+          CupertinoSliverRefreshControl(onRefresh: refresh),
+        ...slivers,
+      ],
+    );
+
     return Scaffold(
       backgroundColor: bg,
       drawer: drawer,
       drawerEnableOpenDragGesture: false,
       floatingActionButton: floatingActionButton,
-      body: CustomScrollView(slivers: [navBar, ...slivers]),
+      body: refresh == null || _isApple(platform)
+          ? scrollView
+          : RefreshIndicator(onRefresh: refresh, child: scrollView),
     );
   }
 }

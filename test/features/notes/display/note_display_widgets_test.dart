@@ -130,6 +130,7 @@ void main() {
       await t.pumpWidget(_app(const NotesListScreen()));
       await t.pumpAndSettle();
       await t.enterText(find.byType(TextField), '张伟');
+      await t.pump(const Duration(milliseconds: 200)); // search debounce
       await t.pumpAndSettle();
       expect(find.byType(NoteRow), findsOneWidget);
       expect(
@@ -142,11 +143,11 @@ void main() {
       expect(find.text('Civic'), findsNothing);
       expect(find.text('Grocery list'), findsNothing);
       await t.enterText(find.byType(TextField), 'c-1');
+      await t.pump(const Duration(milliseconds: 200)); // search debounce
       await t.pumpAndSettle();
       expect(find.text('张伟'), findsNothing);
       _noRawSubjects();
     },
-    skip: true, // list body is rebuilt on the query engine in Task 9
   );
 
   testWidgets('tapping a contact row opens contact detail', (t) async {

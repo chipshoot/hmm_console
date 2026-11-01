@@ -13,44 +13,67 @@ import 'package:hmm_console/features/notes/presentation/screens/notes_list_scree
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-NoteCatalog _cat(int id, String name, int fmt) =>
-    NoteCatalog(id: id, name: name, schema: '{}', formatType: fmt, isDefault: false);
+NoteCatalog _cat(int id, String name, int fmt) => NoteCatalog(
+  id: id,
+  name: name,
+  schema: '{}',
+  formatType: fmt,
+  isDefault: false,
+);
 
 class _StubListState extends NotesListState {
   @override
   Future<NotesListData> build() async => NotesListData(
-        all: [
-          HmmNote(
-              id: 1, uuid: 'u1', subject: 'Fuel up', authorId: 1,
-              catalogId: 10, createDate: DateTime(2026, 1, 3)),
-          HmmNote(
-              id: 2, uuid: 'u2', subject: 'Shopping', authorId: 1,
-              catalogId: 30, createDate: DateTime(2026, 1, 2)),
-        ],
-        catalogsById: {
-          10: _cat(10, 'Hmm.AutomobileMan.GasLog', 2),
-          20: _cat(20, 'Hmm.AutomobileMan.AutoInsurancePolicy', 2),
-          30: _cat(30, 'General', 3),
-        },
-      );
+    all: [
+      HmmNote(
+        id: 1,
+        uuid: 'u1',
+        subject: 'Fuel up',
+        authorId: 1,
+        catalogId: 10,
+        createDate: DateTime(2026, 1, 3),
+      ),
+      HmmNote(
+        id: 2,
+        uuid: 'u2',
+        subject: 'Shopping',
+        authorId: 1,
+        catalogId: 30,
+        createDate: DateTime(2026, 1, 2),
+      ),
+    ],
+    catalogsById: {
+      10: _cat(10, 'Hmm.AutomobileMan.GasLog', 2),
+      20: _cat(20, 'Hmm.AutomobileMan.AutoInsurancePolicy', 2),
+      30: _cat(30, 'General', 3),
+    },
+    // What the real build derives from the catalog names; the domain filter
+    // matches notes by it.
+    catalogDomainById: const {
+      10: 'AutomobileMan',
+      20: 'AutomobileMan',
+      30: 'General',
+    },
+  );
 }
 
 Widget _app() => ProviderScope(
-      overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-      child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      
-        theme: ThemeData(extensions: const [AppColors.light]),
-        home: const NotesListScreen(),
-      ),
-    );
+  overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+
+    theme: ThemeData(extensions: const [AppColors.light]),
+    home: const NotesListScreen(),
+  ),
+);
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('filter drawer lists DOMAINS, not individual catalogs',
-      (tester) async {
+  testWidgets('filter drawer lists DOMAINS, not individual catalogs', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
@@ -64,84 +87,88 @@ void main() {
     expect(find.widgetWithText(ListTile, 'Gas Log'), findsNothing);
   });
 
-  testWidgets('picking a domain in the drawer filters the list and closes it',
-      (tester) async {
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'picking a domain in the drawer filters the list and closes it',
+    (tester) async {
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
 
-    expect(find.text('Fuel up'), findsOneWidget);
-    expect(find.text('Shopping'), findsOneWidget);
+      expect(find.text('Fuel up'), findsOneWidget);
+      expect(find.text('Shopping'), findsOneWidget);
 
-    await tester.tap(find.byType(ActionChip)); // open
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Automobile')); // pick
-    await tester.pumpAndSettle(); // filters + closes
+      await tester.tap(find.byType(ActionChip)); // open
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Automobile')); // pick
+      await tester.pumpAndSettle(); // filters + closes
 
-    expect(find.text('Fuel up'), findsOneWidget); // automobile note kept
-    expect(find.text('Shopping'), findsNothing); // general note filtered out
-    // The drawer closed, so its tiles are gone.
-    expect(find.widgetWithText(ListTile, 'General'), findsNothing);
-    // The filter button now reflects the active domain.
-    expect(find.widgetWithText(ActionChip, 'Automobile'), findsOneWidget);
-  },
-    skip: true, // list body is rebuilt on the query engine in Task 9
+      expect(find.text('Fuel up'), findsOneWidget); // automobile note kept
+      expect(find.text('Shopping'), findsNothing); // general note filtered out
+      // The drawer closed, so its tiles are gone.
+      expect(find.widgetWithText(ListTile, 'General'), findsNothing);
+      // The filter button now reflects the active domain.
+      expect(find.widgetWithText(ActionChip, 'Automobile'), findsOneWidget);
+    },
   );
 
-  testWidgets('multi-catalog domain reveals a sub-filter that narrows the list',
-      (tester) async {
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'multi-catalog domain reveals a sub-filter that narrows the list',
+    (tester) async {
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
 
-    // Select the Automobile domain (has Gas Log + Car Info => sub-filter).
-    await tester.tap(find.byType(ActionChip));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
-    await tester.pumpAndSettle();
+      // Select the Automobile domain (has Gas Log + Car Info => sub-filter).
+      await tester.tap(find.byType(ActionChip));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
+      await tester.pumpAndSettle();
 
-    // Sub-filter appears, defaulting to "All Automobile".
-    expect(find.text('All Automobile'), findsOneWidget);
-    expect(find.text('Fuel up'), findsOneWidget); // gas-log note shown
+      // Sub-filter appears, defaulting to "All Automobile".
+      expect(find.text('All Automobile'), findsOneWidget);
+      expect(find.text('Fuel up'), findsOneWidget); // gas-log note shown
 
-    // Open the sub-filter and narrow to Insurance (no notes there).
-    await tester.tap(find.text('All Automobile'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Insurance').last); // menu item
-    await tester.pumpAndSettle();
+      // Open the sub-filter and narrow to Insurance (no notes there).
+      await tester.tap(find.text('All Automobile'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Insurance').last); // menu item
+      await tester.pumpAndSettle();
 
-    expect(find.text('Fuel up'), findsNothing); // gas-log note now filtered out
-  },
-    skip: true, // list body is rebuilt on the query engine in Task 9
+      expect(
+        find.text('Fuel up'),
+        findsNothing,
+      ); // gas-log note now filtered out
+    },
   );
 
-  testWidgets('sub-filter can be reset back to "All <domain>"',
-      (tester) async {
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'sub-filter can be reset back to "All <domain>"',
+    (tester) async {
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
 
-    // Automobile -> narrow to Insurance (no notes) -> list empties.
-    await tester.tap(find.byType(ActionChip));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('All Automobile'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Insurance').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Fuel up'), findsNothing);
+      // Automobile -> narrow to Insurance (no notes) -> list empties.
+      await tester.tap(find.byType(ActionChip));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('All Automobile'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Insurance').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Fuel up'), findsNothing);
 
-    // Reopen the sub-filter (now showing "Insurance") and pick "All
-    // Automobile" -> the gas-log note must come back.
-    await tester.tap(find.text('Insurance'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('All Automobile').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Fuel up'), findsOneWidget);
-  },
-    skip: true, // list body is rebuilt on the query engine in Task 9
+      // Reopen the sub-filter (now showing "Insurance") and pick "All
+      // Automobile" -> the gas-log note must come back.
+      await tester.tap(find.text('Insurance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('All Automobile').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Fuel up'), findsOneWidget);
+    },
   );
 
-  testWidgets('single-catalog domain (General) shows no sub-filter',
-      (tester) async {
+  testWidgets('single-catalog domain (General) shows no sub-filter', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 

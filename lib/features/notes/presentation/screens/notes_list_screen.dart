@@ -1,82 +1,115 @@
-import 'package:flutter/material.dart';
-
-import '../catalog_labels.dart';
-
-import '../../../../l10n/gen/app_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart' show setEquals;
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
-import '../../../../core/notes/note_state.dart';
+import '../../../../core/data/sync/sync_controller.dart';
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
+import '../../../../core/settings/app_settings.dart';
 import '../../../../core/settings/settings_controller.dart';
-import '../../data/models/hmm_note.dart';
-import '../../query/note_results.dart';
-import '../../rendering/note_display.dart';
-import '../../states/filter_usage.dart';
-import '../../query/note_query.dart';
-import '../../states/notes_list_state.dart';
-import '../../states/note_selection.dart'
-    show kNotesWideBreakpoint, selectedNoteIdProvider;
-import '../widgets/catalog_filter_sheet.dart';
-import '../widgets/domain_groups.dart';
-import '../widgets/note_row.dart';
-import '../widgets/sort_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
+import '../../../../core/util/search_normalize.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_row_separator.dart';
 import '../../../../core/widgets/app_scaffold.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
+import '../../../../l10n/gen/app_localizations.dart';
+import '../../data/models/hmm_note.dart';
+import '../../query/note_query.dart';
+import '../../query/note_results.dart';
+import '../../rendering/note_display.dart';
+import '../../states/filter_usage.dart';
+import '../../states/note_selection.dart'
+    show kNotesWideBreakpoint, selectedNoteIdProvider;
+import '../../states/notes_list_state.dart';
+import '../../states/notes_results_provider.dart';
+import '../catalog_labels.dart';
+import '../widgets/catalog_filter_sheet.dart';
+import '../widgets/domain_groups.dart';
+import '../widgets/note_flag_sheet.dart' show noteFlagColorLabel;
+import '../widgets/note_row.dart';
+import '../widgets/notes_view_menu.dart';
 
-class NotesListScreen extends ConsumerWidget {
+class NotesListScreen extends ConsumerStatefulWidget {
   const NotesListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotesListScreen> createState() => _NotesListScreenState();
+}
+
+class _NotesListScreenState extends ConsumerState<NotesListScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // The results depend on the locale and week start, which only the widget
+    // tree knows. Written after the frame: never while providers build.
+    final env = (
+      locale: Localizations.localeOf(context),
+      firstDayOfWeek: MaterialLocalizations.of(context).firstDayOfWeekIndex,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(notesViewEnvProvider.notifier).set(env);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final async = ref.watch(notesListStateProvider);
+    final listAsync = ref.watch(notesListStateProvider);
+    final resultsAsync = ref.watch(notesResultsProvider);
     final notifier = ref.read(notesListStateProvider.notifier);
     final usage = ref.watch(filterUsageProvider).value ?? const {};
+    final density = ref.watch(notesRowDensityProvider);
+    final data = listAsync.value;
+
+    List<DomainGroup> groupsOf(NotesListData d) => groupByDomain(
+      d.catalogsById.values,
+      d.countsByCatalog,
+      usage,
+      domainCounts: d.countsByDomain,
+    );
 
     return AppScaffold(
       title: l.notesTitle,
-      drawer: async.maybeWhen(
-        data: (data) => _FilterDrawer(data: data),
-        orElse: () => null,
-      ),
+      drawer: data == null ? null : _FilterDrawer(data: data),
+      onRefresh: () async {
+        await ref.read(syncControllerProvider).triggerManualSync();
+      },
       actions: [
-        IconButton(
-          tooltip: 'Sort',
-          icon: const Icon(Icons.swap_vert),
-          onPressed: async.hasValue
-              ? () => showModalBottomSheet<void>(
-                  context: context,
-                  builder: (_) => SortSheet(
-                    current: async.value!.query.sort,
-                    onSelected: notifier.setSort,
-                  ),
-                )
-              : null,
+        HmmIconButton(
+          tooltip: l.notesViewTooltip,
+          icon: Icons.tune,
+          onPressed: data == null
+              ? null
+              : () => showNotesViewMenu(
+                  context,
+                  density: density,
+                  sort: data.query.sort,
+                  onDensity: (d) =>
+                      ref.read(settingsProvider.notifier).setNotesRowDensity(d),
+                  onSort: notifier.setSort,
+                ),
         ),
-        IconButton(
-          tooltip: 'Filter',
-          icon: const Icon(Icons.filter_list),
-          onPressed: async.hasValue
-              ? () {
-                  final data = async.value!;
-                  final usage = ref.read(filterUsageProvider).value ?? const {};
-                  final groups = groupByDomain(
-                    data.catalogsById.values,
-                    data.countsByCatalog,
-                    usage,
-                    domainCounts: data.countsByDomain,
-                  );
+        HmmIconButton(
+          tooltip: l.notesFilterTooltip,
+          icon: Icons.filter_list,
+          onPressed: data == null
+              ? null
+              : () {
+                  final groups = groupsOf(data);
                   showModalBottomSheet<void>(
                     context: context,
                     builder: (_) => CatalogFilterSheet(
                       groups: groups,
                       counts: data.countsByCatalog,
                       selected: catalogSelectionFor(data.query.source, groups),
+                      // The sheet only offers All, a whole domain, or one
+                      // catalog — each maps to exactly one source.
                       onApply: (ids) => notifier.setSource(
                         sourceForCatalogSelection(ids, groups),
                       ),
@@ -84,169 +117,287 @@ class NotesListScreen extends ConsumerWidget {
                           ref.read(filterUsageProvider.notifier).record(key),
                     ),
                   );
-                }
-              : null,
+                },
         ),
-        IconButton(
-          tooltip: 'Subsystems',
-          icon: const Icon(Icons.widgets_outlined),
+        HmmIconButton(
+          tooltip: l.notesSubsystemsTitle,
+          icon: Icons.widgets_outlined,
           onPressed: () => context.push('/notes/subsystems'),
         ),
+        const HelpButton(helpId: HelpId.notesList),
       ],
       // No FAB: creating a note now lives in the Quick Access Panel, which
       // surfaces "New Note" while you're on this screen.
-      slivers: async.when<List<Widget>>(
-        loading: () => const [
-          SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator()),
+      slivers: [
+        if (data != null) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: _SearchField(
+                query: data.query.text,
+                hintText: l.notesSearchHint,
+                clearTooltip: l.notesSearchClearTooltip,
+                onChanged: notifier.setText,
+              ),
+            ),
           ),
+          SliverToBoxAdapter(child: _filterBar(data, groupsOf(data), l)),
         ],
-        error: (e, _) => [
-          SliverFillRemaining(
-            child: Center(child: Text(l.notesLoadFailed('$e'))),
-          ),
-        ],
-        data: (data) {
-          // Resolve the active domain (main filter) and, if it has more than
-          // one catalog, the sub-filter selection within it.
-          final registry = ref.watch(noteDisplayRegistryProvider);
-          String titleOf(HmmNote n) =>
-              registry.title(n, data.catalogsById[n.catalogId]?.name, l);
-          // Task 9 replaces this body with the query engine's rows.
-          final visible = data.all;
-          final notesById = {for (final n in data.all) n.id: n};
-          final groups = groupByDomain(
-            data.catalogsById.values,
-            data.countsByCatalog,
-            usage,
-            domainCounts: data.countsByDomain,
-          );
-          final f = catalogSelectionFor(data.query.source, groups);
-          DomainGroup? activeDomain;
-          if (f != null && f.isNotEmpty) {
-            for (final g in groups) {
-              if (f.every(g.catalogIds.contains)) {
-                activeDomain = g;
-                break;
-              }
-            }
-          }
-          final mainLabel =
-              (activeDomain == null
-                  ? null
-                  : domainLabel(activeDomain.key, l)) ??
-              ((f == null || f.isEmpty) ? 'All' : 'Filtered');
-          final subDomain =
-              (activeDomain != null && activeDomain.catalogs.length > 1)
-              ? activeDomain
-              : null;
-          int? subSelected;
-          if (subDomain != null && f != null) {
-            subSelected = setEquals(f, subDomain.catalogIds)
-                ? null // "All <domain>"
-                : (f.length == 1 ? f.first : null);
-          }
+        ...resultsAsync.when<List<Widget>>(
+          loading: () => const [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ],
+          error: (e, _) => [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: AppEmptyState(
+                icon: Icons.error_outline,
+                message: l.notesLoadFailed('$e'),
+                actionLabel: l.notesRetry,
+                onAction: notifier.refresh,
+              ),
+            ),
+          ],
+          data: (results) => data == null
+              ? const []
+              : _body(context, data, results, density, l),
+        ),
+      ],
+    );
+  }
 
-          return [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: _SearchField(
-                  query: data.query.text,
-                  hintText: l.notesSearchHint,
-                  onChanged: notifier.setText,
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: _FilterBar(
-                mainLabel: mainLabel,
-                subDomain: subDomain,
-                subSelectedCatalogId: subSelected,
-                onSubSelected: (catId) => notifier.setSource(
-                  sourceForCatalogSelection(
-                    catId == null ? subDomain!.catalogIds : {catId},
-                    groups,
-                  ),
-                ),
-              ),
-            ),
-            if (visible.isEmpty)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: AppEmptyState(
-                  icon: Icons.note_outlined,
-                  message: 'No notes yet',
-                ),
-              )
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  if (index.isOdd) return const AppRowSeparator();
-                  final i = index ~/ 2;
-                  final note = visible[i];
-                  final domain = data.effectiveDomain(note);
-                  final attached = data.parentDomainOf(note) != null;
-                  final parentNote = note.parentNoteId == null
-                      ? null
-                      : notesById[note.parentNoteId];
-                  final parentSubject = parentNote != null
-                      ? titleOf(parentNote)
-                      : data.contextSubjectOf(note);
-                  // The parent's own words, capped so a long record name
-                  // cannot swallow the row; an anchor has no subject, so it
-                  // falls back to the domain's name.
-                  final titleContext = parentSubject != null
-                      ? (parentSubject.length > 20
-                            ? '${parentSubject.substring(0, 20)}…'
-                            : parentSubject)
-                      : (attached && domain != null
-                            ? domainLabel(domain, l)
-                            : null);
-                  final catalogName = note.catalogId == null
-                      ? null
-                      : data.catalogsById[note.catalogId]?.name;
-                  return NoteRow(
-                    hit: NoteHit(
-                      note: note,
-                      title: titleOf(note),
-                      state: NoteState.none(note.uuid),
-                    ),
-                    density: ref.watch(notesRowDensityProvider),
-                    domainKey: domain,
-                    catalogName: catalogName,
-                    parentTitle: titleContext,
-                    tags: const [],
-                    now: DateTime.now(),
-                    onTap: () {
-                      // Contacts and cheatsheet cards have their own screens;
-                      // the generic note screen would show raw JSON.
-                      if (registry.open(
-                        context,
-                        note,
-                        data.catalogsById[note.catalogId]?.name,
-                      )) {
-                        return;
-                      }
-                      final isWide =
-                          MediaQuery.of(context).size.width >=
-                          kNotesWideBreakpoint;
-                      if (isWide) {
-                        ref
-                            .read(selectedNoteIdProvider.notifier)
-                            .select(note.id);
-                      } else {
-                        context.push('/notes/${note.id}');
-                      }
-                    },
-                  );
-                }, childCount: visible.length * 2 - 1),
-              ),
-          ];
-        },
+  Widget _filterBar(
+    NotesListData data,
+    List<DomainGroup> groups,
+    AppLocalizations l,
+  ) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    // Resolve the active domain (main filter) and, if it has more than one
+    // catalog, the sub-filter selection within it.
+    final f = catalogSelectionFor(data.query.source, groups);
+    DomainGroup? activeDomain;
+    if (f != null && f.isNotEmpty) {
+      for (final g in groups) {
+        if (f.every(g.catalogIds.contains)) {
+          activeDomain = g;
+          break;
+        }
+      }
+    }
+    final mainLabel = activeDomain != null
+        ? domainLabel(activeDomain.key, l)
+        : ((f == null || f.isEmpty) ? l.notesAll : l.notesFiltered);
+    final subDomain = (activeDomain != null && activeDomain.catalogs.length > 1)
+        ? activeDomain
+        : null;
+    int? subSelected;
+    if (subDomain != null && f != null) {
+      subSelected = setEquals(f, subDomain.catalogIds)
+          ? null // "All <domain>"
+          : (f.length == 1 ? f.first : null);
+    }
+    return _FilterBar(
+      mainLabel: mainLabel,
+      subDomain: subDomain,
+      subSelectedCatalogId: subSelected,
+      // A whole domain or one of its catalogs: both map exactly.
+      onSubSelected: (catId) => notifier.setSource(
+        sourceForCatalogSelection(
+          catId == null ? subDomain!.catalogIds : {catId},
+          groups,
+        ),
       ),
     );
   }
+
+  List<Widget> _body(
+    BuildContext context,
+    NotesListData data,
+    NoteResults results,
+    NoteRowDensity density,
+    AppLocalizations l,
+  ) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final text = data.query.text.trim();
+    if (results.isEmpty) {
+      final Widget empty;
+      if (data.all.isEmpty) {
+        empty = AppEmptyState(icon: Icons.note_outlined, message: l.notesEmpty);
+      } else if (text.isNotEmpty) {
+        empty = AppEmptyState(
+          icon: Icons.search_off,
+          message: l.notesNoMatches(text),
+          actionLabel: l.notesSearchClearAction,
+          onAction: () => notifier.setText(''),
+        );
+      } else {
+        empty = AppEmptyState(
+          icon: Icons.note_outlined,
+          message: l.notesNoneInView,
+        );
+      }
+      return [SliverFillRemaining(hasScrollBody: false, child: empty)];
+    }
+
+    final registry = ref.watch(noteDisplayRegistryProvider);
+    final locale = Localizations.localeOf(context).toString();
+    final now = DateTime.now();
+    final notesById = {for (final n in data.all) n.id: n};
+    final highlightWords = [
+      for (final w in normalizeForSearch(data.query.text).split(' '))
+        if (w.isNotEmpty) w,
+    ];
+
+    String? parentTitleOf(HmmNote note, String? domain) {
+      final parentNote = note.parentNoteId == null
+          ? null
+          : notesById[note.parentNoteId];
+      final parentSubject = parentNote != null
+          ? registry.title(
+              parentNote,
+              data.catalogsById[parentNote.catalogId]?.name,
+              l,
+            )
+          : data.contextSubjectOf(note);
+      // The parent's own words, capped so a long record name cannot swallow
+      // the row; an anchor has no subject, so it falls back to the domain.
+      if (parentSubject != null) {
+        return parentSubject.length > 20
+            ? '${parentSubject.substring(0, 20)}…'
+            : parentSubject;
+      }
+      return data.parentDomainOf(note) != null && domain != null
+          ? domainLabel(domain, l)
+          : null;
+    }
+
+    void open(HmmNote note) {
+      // Contacts and cheatsheet cards have their own screens; the generic
+      // note screen would show raw JSON.
+      if (registry.open(
+        context,
+        note,
+        data.catalogsById[note.catalogId]?.name,
+      )) {
+        return;
+      }
+      final isWide = MediaQuery.of(context).size.width >= kNotesWideBreakpoint;
+      if (isWide) {
+        ref.read(selectedNoteIdProvider.notifier).select(note.id);
+      } else {
+        context.push('/notes/${note.id}');
+      }
+    }
+
+    Widget row(NoteHit hit) {
+      final note = hit.note;
+      final domain = data.effectiveDomain(note);
+      return NoteRow(
+        key: ValueKey(note.id),
+        hit: hit,
+        density: density,
+        domainKey: domain,
+        catalogName: note.catalogId == null
+            ? null
+            : data.catalogsById[note.catalogId]?.name,
+        parentTitle: parentTitleOf(note, domain),
+        tags: data.tagsByNoteId[note.id] ?? const [],
+        highlightWords: highlightWords,
+        now: now,
+        onTap: () => open(note),
+      );
+    }
+
+    return [
+      for (final group in results.groups)
+        SliverMainAxisGroup(
+          slivers: [
+            if (_groupTitle(group.key, l, locale) case final title?)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _GroupHeaderDelegate(
+                  title: title,
+                  background: context.appColors.groupedBackground,
+                  color: context.appColors.secondaryLabel,
+                ),
+              ),
+            SliverList.separated(
+              itemCount: group.hits.length,
+              itemBuilder: (_, i) => row(group.hits[i]),
+              separatorBuilder: (_, _) => const AppRowSeparator(),
+            ),
+          ],
+        ),
+      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+    ];
+  }
+}
+
+/// A section's header text; null for an ungrouped list.
+String? _groupTitle(NoteGroupKey key, AppLocalizations l, String locale) =>
+    switch (key) {
+      PinnedGroup() => l.notesGroupPinned,
+      TodayGroup() => l.notesGroupToday,
+      YesterdayGroup() => l.notesGroupYesterday,
+      ThisWeekGroup() => l.notesGroupThisWeek,
+      ThisMonthGroup() => l.notesGroupThisMonth,
+      MonthGroup(:final year, :final month) => DateFormat.yMMM(
+        locale,
+      ).format(DateTime(year, month)),
+      LetterGroup(:final letter) => letter,
+      FlagGroup(:final color) =>
+        color == null ? l.notesGroupUnflagged : noteFlagColorLabel(color, l),
+      FlatGroup() => null,
+    };
+
+/// A section header that sticks to the top while its section scrolls by.
+class _GroupHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _GroupHeaderDelegate({
+    required this.title,
+    required this.background,
+    required this.color,
+  });
+
+  final String title;
+  final Color background;
+  final Color color;
+
+  static const _height = 32.0;
+
+  @override
+  double get minExtent => _height;
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => Semantics(
+    header: true,
+    child: Container(
+      color: background,
+      alignment: AlignmentDirectional.centerStart,
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 16),
+      child: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: DesignTokens.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  );
+
+  @override
+  bool shouldRebuild(_GroupHeaderDelegate old) =>
+      old.title != title || old.background != background || old.color != color;
 }
 
 /// The filter controls that replace the horizontal chip row: a main button
@@ -449,15 +600,20 @@ class _FilterDrawer extends ConsumerWidget {
 /// and therefore also survives leaving the screen. With an uncontrolled
 /// TextField that meant coming back to an empty-looking box silently filtering
 /// the list, which reads as "all my notes are gone".
+///
+/// Typing is debounced: the query is sent [_debounce] after the last
+/// keystroke, so a fast typist does not re-run the search per letter.
 class _SearchField extends StatefulWidget {
   const _SearchField({
     required this.query,
     required this.hintText,
+    required this.clearTooltip,
     required this.onChanged,
   });
 
   final String query;
   final String hintText;
+  final String clearTooltip;
   final ValueChanged<String> onChanged;
 
   @override
@@ -465,21 +621,55 @@ class _SearchField extends StatefulWidget {
 }
 
 class _SearchFieldState extends State<_SearchField> {
+  static const _debounce = Duration(milliseconds: 150);
+
   late final TextEditingController _controller = TextEditingController(
     text: widget.query,
-  );
+  )..addListener(_onControllerChanged);
+  late String _lastSent = widget.query;
+  late bool _hasText = widget.query.isNotEmpty;
+  Timer? _timer;
+
+  void _onControllerChanged() {
+    final hasText = _controller.text.isNotEmpty;
+    if (hasText != _hasText) setState(() => _hasText = hasText);
+  }
+
+  void _send(String text) {
+    _timer?.cancel();
+    _lastSent = text;
+    widget.onChanged(text);
+  }
+
+  void _onTyped(String text) {
+    _timer?.cancel();
+    _timer = Timer(_debounce, () => _send(text));
+  }
+
+  void _clear() {
+    _controller.clear();
+    _send('');
+  }
 
   @override
   void didUpdateWidget(covariant _SearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Guarded on a real difference: assigning on every rebuild would move the
-    // caret to the end mid-typing, since every keystroke round-trips through
-    // the notifier and comes back as a new widget.query.
-    if (widget.query != _controller.text) _controller.text = widget.query;
+    // Only a change made elsewhere (e.g. "Clear search" in the empty state)
+    // is copied into the box. Echoes of what this field sent, and rebuilds
+    // while a keystroke is still pending, must not move the caret or undo
+    // the typing.
+    if (widget.query != oldWidget.query &&
+        widget.query != _lastSent &&
+        widget.query != _controller.text) {
+      _timer?.cancel();
+      _lastSent = widget.query;
+      _controller.text = widget.query;
+    }
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -494,15 +684,16 @@ class _SearchFieldState extends State<_SearchField> {
         isDense: true,
         border: const OutlineInputBorder(),
         // A way out that does not require selecting invisible text.
-        suffixIcon: widget.query.isEmpty
-            ? null
-            : IconButton(
+        suffixIcon: _hasText
+            ? HmmIconButton(
                 key: const Key('notesSearchClear'),
-                icon: const Icon(Icons.clear),
-                onPressed: () => widget.onChanged(''),
-              ),
+                icon: Icons.clear,
+                tooltip: widget.clearTooltip,
+                onPressed: _clear,
+              )
+            : null,
       ),
-      onChanged: widget.onChanged,
+      onChanged: _onTyped,
     );
   }
 }

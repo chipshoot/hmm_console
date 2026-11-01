@@ -41,7 +41,6 @@ const _allowed = <String, int>{
       2,
   'lib/features/gas_log/presentation/widgets/station_dropdown.dart': 2,
   'lib/features/launcher/presentation/launcher_manage_screen.dart': 2,
-  'lib/features/notes/presentation/screens/notes_list_screen.dart': 4,
   'lib/features/notes/presentation/screens/raw_content_screen.dart': 1,
   'lib/features/notes/presentation/widgets/media_toolbar.dart': 6,
   'lib/features/notes/presentation/widgets/note_audio_card.dart': 2,

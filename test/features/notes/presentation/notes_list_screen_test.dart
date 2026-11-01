@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/sync/sync_controller.dart';
+import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/core/widgets/app_row_separator.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_list_screen.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_row.dart';
+import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -35,140 +40,335 @@ class _StubListState extends NotesListState {
   );
 }
 
+class _FailingListState extends NotesListState {
+  int refreshes = 0;
+
+  @override
+  Future<NotesListData> build() async => throw StateError('disk on fire');
+
+  @override
+  Future<void> refresh() async => refreshes++;
+}
+
+class _DomainListState extends NotesListState {
+  @override
+  Future<NotesListData> build() async => NotesListData(
+    all: [
+      HmmNote(
+        id: 1,
+        uuid: 'u1',
+        subject: 'Oil change',
+        authorId: 1,
+        catalogId: 10,
+        createDate: DateTime(2026, 1, 3),
+      ),
+      HmmNote(
+        id: 2,
+        uuid: 'u2',
+        subject: 'Insurance renewal',
+        authorId: 1,
+        catalogId: 11,
+        createDate: DateTime(2026, 1, 2),
+      ),
+      HmmNote(
+        id: 3,
+        uuid: 'u3',
+        subject: 'Grocery list',
+        authorId: 1,
+        catalogId: 20,
+        createDate: DateTime(2026, 1, 1),
+      ),
+    ],
+    catalogsById: const {
+      10: NoteCatalog(
+        id: 10,
+        name: 'Hmm.AutomobileMan.GasLog',
+        schema: '{}',
+        formatType: 0,
+        isDefault: false,
+      ),
+      11: NoteCatalog(
+        id: 11,
+        name: 'Hmm.AutomobileMan.AutoInsurancePolicy',
+        schema: '{}',
+        formatType: 0,
+        isDefault: false,
+      ),
+      20: NoteCatalog(
+        id: 20,
+        name: 'Hmm.General.Notes',
+        schema: '{}',
+        formatType: 0,
+        isDefault: false,
+      ),
+    },
+    catalogDomainById: const {
+      10: 'AutomobileMan',
+      11: 'AutomobileMan',
+      20: 'General',
+    },
+  );
+}
+
+Widget _app({
+  NotesListState Function() state = _StubListState.new,
+  List<Override> extra = const [],
+}) => ProviderScope(
+  overrides: [notesListStateProvider.overrideWith(state), ...extra],
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    theme: ThemeData(extensions: const [AppColors.light]),
+    home: const NotesListScreen(),
+  ),
+);
+
+/// Types into the search box and waits out its debounce.
+Future<void> _search(WidgetTester tester, String text) async {
+  await tester.enterText(find.byType(TextField), text);
+  await tester.pump(const Duration(milliseconds: 200));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets(
-    'shows note tiles and filters by search query',
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
+  testWidgets('shows note tiles and filters by search query', (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
 
-            theme: ThemeData(extensions: const [AppColors.light]),
-            home: const NotesListScreen(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+    expect(find.byType(NoteRow), findsNWidgets(2));
+    expect(find.byType(AppRowSeparator), findsOneWidget);
 
-      expect(find.byType(NoteRow), findsNWidgets(2));
-      expect(find.byType(AppRowSeparator), findsOneWidget);
+    await _search(tester, 'groc');
+    expect(find.byType(NoteRow), findsOneWidget);
+    expect(find.text('Grocery list'), findsOneWidget);
+  });
 
-      await tester.enterText(find.byType(TextField), 'groc');
-      await tester.pumpAndSettle();
-      expect(find.byType(NoteRow), findsOneWidget);
-      expect(find.text('Grocery list'), findsOneWidget);
-    },
-    skip: true, // list body is rebuilt on the query engine in Task 9
-  );
+  testWidgets('search waits for typing to pause before filtering', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
 
-  testWidgets('sort button opens the sort sheet', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+    await tester.enterText(find.byType(TextField), 'groc');
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(NoteRow), findsNWidgets(2), reason: 'still typing');
 
-          theme: ThemeData(extensions: const [AppColors.light]),
-          home: const NotesListScreen(),
-        ),
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteRow), findsOneWidget);
+  });
+
+  testWidgets('a search query left behind is still VISIBLE when you return', (
+    tester,
+  ) async {
+    // Reported as "no notes found" while the gas log list was fine. The query
+    // lives on the notifier so it survives navigation, but the TextField had
+    // no controller — so coming back showed an empty search box filtering an
+    // apparently empty list, with nothing on screen explaining why.
+    //
+    // ONE container across both mounts: rebuilding the ProviderScope would
+    // create a fresh notifier and reset the query, which is exactly what the
+    // app does NOT do.
+    final container = ProviderContainer(
+      overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
+    );
+    addTearDown(container.dispose);
+
+    Widget app(Widget home) => UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: home,
       ),
+    );
+
+    await tester.pumpWidget(app(const NotesListScreen()));
+    await tester.pumpAndSettle();
+
+    await _search(tester, 'zzz-no-match');
+    expect(find.byType(NoteRow), findsNothing);
+
+    // Leave the screen, then come back to a freshly built one.
+    await tester.pumpWidget(app(const SizedBox()));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(app(const NotesListScreen()));
+    await tester.pumpAndSettle();
+
+    // The list is still filtered — that part is by design — but now the box
+    // says so instead of looking empty.
+    expect(find.byType(NoteRow), findsNothing);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(
+      field.controller?.text,
+      'zzz-no-match',
+      reason: 'the box must show the query that is hiding the notes',
+    );
+  });
+
+  testWidgets('the clear button appears only with a query, and empties it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('notesSearchClear')), findsNothing);
+
+    await _search(tester, 'zzz-no-match');
+    expect(find.byType(NoteRow), findsNothing);
+
+    await tester.tap(find.byKey(const Key('notesSearchClear')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NoteRow), findsNWidgets(2));
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      isEmpty,
+    );
+  });
+
+  testWidgets('no matches shows Clear search, which restores the list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    await _search(tester, 'zzz');
+    expect(find.text('No notes match “zzz”'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Clear search'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NoteRow), findsNWidgets(2));
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      isEmpty,
+      reason: 'the box follows the cleared query',
+    );
+  });
+
+  testWidgets('an empty view without a search says so', (tester) async {
+    await tester.pumpWidget(_app(state: _DomainListState.new));
+    await tester.pumpAndSettle();
+
+    // A domain with no notes in it (only reachable programmatically today).
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NotesListScreen)),
+    );
+    container
+        .read(notesListStateProvider.notifier)
+        .setSource(const DomainSource(key: 'Health'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No notes here'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Clear search'), findsNothing);
+  });
+
+  testWidgets('no notes at all shows the first-run message', (tester) async {
+    await tester.pumpWidget(_app(state: _EmptyListState.new));
+    await tester.pumpAndSettle();
+    expect(find.text('No notes yet'), findsOneWidget);
+  });
+
+  testWidgets('load failure shows Retry', (tester) async {
+    late _FailingListState state;
+    await tester.pumpWidget(_app(state: () => state = _FailingListState()));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Failed to load notes'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Retry'));
+    await tester.pumpAndSettle();
+    expect(state.refreshes, 1);
+  });
+
+  testWidgets('pull to refresh triggers a manual sync', (tester) async {
+    var syncs = 0;
+    final controller = SyncController(
+      syncAction: () async {
+        syncs++;
+        return SyncResult(
+          pulledNotes: 0,
+          pulledAttachments: 0,
+          pushedNotes: 0,
+          pushedAttachments: 0,
+          completedAt: DateTime.now().toUtc(),
+        );
+      },
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(extra: [syncControllerProvider.overrideWithValue(controller)]),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.swap_vert));
+    await tester.fling(find.byType(NoteRow).first, const Offset(0, 400), 1000);
     await tester.pumpAndSettle();
-    expect(find.text('Subject — A → Z'), findsOneWidget);
+
+    expect(syncs, 1);
   });
 
-  testWidgets(
-    'a search query left behind is still VISIBLE when you return',
-    (tester) async {
-      // Reported as "no notes found" while the gas log list was fine. The query
-      // lives on the notifier so it survives navigation, but the TextField had
-      // no controller — so coming back showed an empty search box filtering an
-      // apparently empty list, with nothing on screen explaining why.
-      //
-      // ONE container across both mounts: rebuilding the ProviderScope would
-      // create a fresh notifier and reset the query, which is exactly what the
-      // app does NOT do.
-      final container = ProviderContainer(
-        overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-      );
-      addTearDown(container.dispose);
+  testWidgets('drawer and filter sheet still select a domain and its catalog', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(state: _DomainListState.new));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteRow), findsNWidgets(3));
 
-      Widget app(Widget home) => UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: ThemeData(extensions: const [AppColors.light]),
-          home: home,
-        ),
-      );
+    // Drawer: a whole domain.
+    await tester.tap(find.byType(ActionChip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
+    await tester.pumpAndSettle();
+    expect(find.text('Oil change'), findsOneWidget);
+    expect(find.text('Insurance renewal'), findsOneWidget);
+    expect(find.text('Grocery list'), findsNothing);
 
-      await tester.pumpWidget(app(const NotesListScreen()));
-      await tester.pumpAndSettle();
+    // Sheet: one catalog of that domain.
+    await tester.tap(find.byIcon(Icons.filter_list));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Automobile').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gas Log').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Oil change'), findsOneWidget);
+    expect(find.text('Insurance renewal'), findsNothing);
+    expect(find.text('Grocery list'), findsNothing);
 
-      await tester.enterText(find.byType(TextField), 'zzz-no-match');
-      await tester.pumpAndSettle();
-      expect(find.byType(NoteRow), findsNothing);
+    // Sheet: back to all notes.
+    await tester.tap(find.byIcon(Icons.filter_list));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All notes'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteRow), findsNWidgets(3));
+  });
 
-      // Leave the screen, then come back to a freshly built one.
-      await tester.pumpWidget(app(const SizedBox()));
-      await tester.pumpAndSettle();
-      await tester.pumpWidget(app(const NotesListScreen()));
-      await tester.pumpAndSettle();
+  testWidgets('help button opens Notes list help', (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
 
-      // The list is still filtered — that part is by design — but now the box
-      // says so instead of looking empty.
-      expect(find.byType(NoteRow), findsNothing);
-      final field = tester.widget<TextField>(find.byType(TextField));
-      expect(
-        field.controller?.text,
-        'zzz-no-match',
-        reason: 'the box must show the query that is hiding the notes',
-      );
-    },
-    skip: true, // list body is rebuilt on the query engine in Task 9
-  );
+    await tester.tap(find.byTooltip('Help'));
+    await tester.pumpAndSettle();
 
-  testWidgets(
-    'the clear button appears only with a query, and empties it',
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            theme: ThemeData(extensions: const [AppColors.light]),
-            home: const NotesListScreen(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+    final l = lookupAppLocalizations(const Locale('en'));
+    expect(find.text(l.helpNotesListSummary), findsOneWidget);
+    expect(find.text(l.helpNotesListViewTitle), findsOneWidget);
+  });
 
-      expect(find.byKey(const Key('notesSearchClear')), findsNothing);
+  testWidgets('top bar buttons have localized tooltips', (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    for (final t in ['View', 'Filter', 'Subsystems', 'Help']) {
+      expect(find.byTooltip(t), findsOneWidget, reason: t);
+    }
+  });
+}
 
-      await tester.enterText(find.byType(TextField), 'zzz-no-match');
-      await tester.pumpAndSettle();
-      expect(find.byType(NoteRow), findsNothing);
-
-      await tester.tap(find.byKey(const Key('notesSearchClear')));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(NoteRow), findsNWidgets(2));
-      expect(
-        tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        isEmpty,
-      );
-    },
-    skip: true, // list body is rebuilt on the query engine in Task 9
-  );
+class _EmptyListState extends NotesListState {
+  @override
+  Future<NotesListData> build() async =>
+      const NotesListData(all: [], catalogsById: {});
 }
