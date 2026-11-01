@@ -13,6 +13,7 @@ String markdownToPlainText(String markdown) {
   final doc = md.Document(
     extensionSet: md.ExtensionSet.gitHubFlavored,
     encodeHtml: false,
+    inlineSyntaxes: [_DropHtmlTag()],
   );
   final lines = <String>[];
   // Top-level Text nodes are raw HTML blocks.
@@ -56,4 +57,14 @@ String _inline(md.Node n) {
     return (n.children ?? const []).map(_inline).join();
   }
   return '';
+}
+
+/// Consumes an inline HTML tag (`<b>`, `</b>`, `<span class="k">`) and emits
+/// nothing, so tags never reach the searchable text; the text between them
+/// is kept.
+class _DropHtmlTag extends md.InlineSyntax {
+  _DropHtmlTag() : super(r'</?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?/?>');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) => true;
 }

@@ -29,6 +29,15 @@ void main() {
     }
   });
 
+  test('inline raw HTML tags are omitted, their text kept', () {
+    final t = markdownToPlainText('a <b>x</b> <span class="k">y</span>');
+    expect(t, contains('a'));
+    expect(t, contains('x'));
+    expect(t, contains('y'));
+    expect(t, isNot(contains('<')));
+    expect(t, isNot(contains('>')));
+  });
+
   test('empty input', () => expect(markdownToPlainText(''), ''));
 
   test('foldForMatch keeps length', () {
