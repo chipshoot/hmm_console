@@ -5,8 +5,9 @@ import '../../../core/data/repository_providers.dart';
 import '../../../core/notes/catalog_palette.dart';
 import '../data/models/hmm_note.dart';
 import '../data/subsystem_anchor.dart';
+import '../query/note_query.dart';
 
-enum NoteSort { dateNewest, dateOldest, lastModified, subjectAZ }
+export '../query/note_query.dart' show NoteSort;
 
 const Object _unset = Object();
 
@@ -163,6 +164,7 @@ class NotesListData {
     final list = items.toList();
     switch (sort) {
       case NoteSort.dateNewest:
+      case NoteSort.flagColor: // flag ordering is the query engine's job
         list.sort((a, b) => b.effectiveNoteDate.compareTo(a.effectiveNoteDate));
       case NoteSort.dateOldest:
         list.sort((a, b) => a.effectiveNoteDate.compareTo(b.effectiveNoteDate));

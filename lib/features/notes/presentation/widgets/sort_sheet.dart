@@ -13,6 +13,7 @@ class SortSheet extends StatelessWidget {
     NoteSort.dateOldest: 'Date — oldest first',
     NoteSort.lastModified: 'Last modified',
     NoteSort.subjectAZ: 'Subject — A → Z',
+    NoteSort.flagColor: 'Flag colour',
   };
 
   @override
