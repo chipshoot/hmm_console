@@ -404,10 +404,18 @@ void main() {
     );
 
     test('dateNewest / dateOldest', () {
+      // The Pinned section leads every sort; within it and below it the
+      // order follows the sort.
+      final pinned = {pinnedId, groceryId};
+      List<int> unpinned(List<int> l) =>
+          l.where((i) => !pinned.contains(i)).toList();
       final newest = sorted(NoteSort.dateNewest);
-      expect(newest.first, unpinnedOilId);
+      expect(newest.take(2).toSet(), pinned);
+      expect(unpinned(newest).first, unpinnedOilId);
       expect(newest.last, 7);
-      expect(sorted(NoteSort.dateOldest), newest.reversed.toList());
+      final oldest = sorted(NoteSort.dateOldest);
+      expect(oldest.take(2), newest.take(2).toList().reversed);
+      expect(unpinned(oldest), unpinned(newest).reversed.toList());
     });
 
     test(
@@ -441,7 +449,13 @@ void main() {
               now: now,
               firstDayOfWeek: 1,
             );
-        expect([for (final h in r.groups.single.hits) h.note.id], [52, 50, 51]);
+        expect(
+          [
+            for (final g in r.groups)
+              for (final h in g.hits) h.note.id,
+          ],
+          [52, 50, 51],
+        );
       },
     );
 
@@ -451,14 +465,15 @@ void main() {
       // Oil filter shop, Plain, Service, Shopping list, Zebra; 买菜 = mai...,
       // 张三 = zhang... slot between Service/Shopping and Zebra by pinyin.
       expect(order, [
+        // Pinned section first, in A-Z order.
+        groceryId, // mai cai
+        pinnedId, // Shopping list
         contactNoteId, // Alice
         carId, // Honda Civic
-        groceryId, // mai cai
         noteId, // Oil change
         unpinnedOilId, // Oil filter shop
         4, // Plain
         recordId, // Service
-        pinnedId, // Shopping list
         7, // Zebra
         zhangSanId, // zhang san
       ]);
@@ -466,9 +481,10 @@ void main() {
 
     test('flagColor: colour order, unflagged last, ties newest first', () {
       final order = run(sort: NoteSort.flagColor);
-      expect(order.take(3), [pinnedId, 4, 7]); // red, blue, (unknown) grey
+      // Pinned section first (red, then unflagged), then blue, (unknown) grey.
+      expect(order.take(4), [pinnedId, groceryId, 4, 7]);
       // unflagged: newest first
-      expect(order.skip(3).first, noteId);
+      expect(order.skip(4).first, noteId);
     });
 
     test('ties break by note id descending', () {
@@ -489,7 +505,13 @@ void main() {
               now: now,
               firstDayOfWeek: 1,
             );
-        expect([for (final h in r.groups.single.hits) h.note.id], [61, 60]);
+        expect(
+          [
+            for (final g in r.groups)
+              for (final h in g.hits) h.note.id,
+          ],
+          [61, 60],
+        );
       }
     });
   });

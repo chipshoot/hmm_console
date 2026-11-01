@@ -1,3 +1,5 @@
+import 'dart:ui' show TextRange;
+
 import '../../../core/notes/note_flag.dart';
 import '../../../core/notes/note_state.dart';
 import '../../../core/util/search_normalize.dart';
@@ -5,6 +7,7 @@ import '../../contacts/domain/contact_name.dart';
 import '../../contacts/domain/pinyin_transcriber.dart';
 import '../data/models/hmm_note.dart';
 import '../states/notes_list_state.dart';
+import 'note_grouping.dart';
 import 'note_query.dart';
 import 'note_results.dart';
 import 'note_text_index.dart';
@@ -66,15 +69,153 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
         continue;
       }
       if (searching && !_matchesText(words, n, corpus, titleOf(n))) continue;
-      hits.add(NoteHit(note: n, title: titleOf(n), state: state));
+      final title = titleOf(n);
+      hits.add(
+        searching
+            ? NoteHit(
+                note: n,
+                title: title,
+                state: state,
+                titleMatches: _ranges(words, foldForMatch(title)),
+                previewMatches: _ranges(words, _previewFolded(n)),
+              )
+            : NoteHit(note: n, title: title, state: state),
+      );
     }
 
     final sorted = _sort(hits, query.sort);
     return NoteResults(
-      groups: [NoteGroup(key: const FlatGroup(), hits: sorted)],
-      counts: const NoteCounts.zero(),
+      groups: _group(sorted, query, now, firstDayOfWeek),
+      counts: _counts(corpus),
       total: sorted.length,
     );
+  }
+
+  /// Counts describe the library, not the view: every live note, ignoring
+  /// source, tokens and text.
+  NoteCounts _counts(NotesListData c) {
+    var pinned = 0;
+    final byDomain = <String, int>{};
+    final byTag = <int, int>{};
+    final byFlag = <int, int>{};
+    for (final n in c.all) {
+      final state = c.stateOf(n);
+      if (state.isPinned) pinned++;
+      final domain = c.effectiveDomain(n);
+      if (domain != null) byDomain[domain] = (byDomain[domain] ?? 0) + 1;
+      for (final t in c.tagsByNoteId[n.id] ?? const []) {
+        byTag[t.id] = (byTag[t.id] ?? 0) + 1;
+      }
+      final flag = state.flag;
+      if (flag != null) byFlag[flag.index] = (byFlag[flag.index] ?? 0) + 1;
+    }
+    return NoteCounts(
+      all: c.all.length,
+      pinned: pinned,
+      byDomain: byDomain,
+      byTag: byTag,
+      byFlag: byFlag,
+    );
+  }
+
+  /// Pinned section first (unless the source is Pinned), then the sort's own
+  /// groups. Hits keep the sorted order; empty groups are omitted.
+  List<NoteGroup> _group(
+    List<NoteHit> sorted,
+    NoteQuery query,
+    DateTime now,
+    int firstDayOfWeek,
+  ) {
+    final pinned = query.source is PinnedSource
+        ? const <NoteHit>[]
+        : [
+            for (final h in sorted)
+              if (h.state.isPinned) h,
+          ];
+    final rest = query.source is PinnedSource
+        ? sorted
+        : [
+            for (final h in sorted)
+              if (!h.state.isPinned) h,
+          ];
+
+    NoteGroupKey keyOf(NoteHit h) => switch (query.sort) {
+      NoteSort.dateNewest || NoteSort.dateOldest => dateGroupFor(
+        h.note.effectiveNoteDate,
+        now: now,
+        firstDayOfWeek: firstDayOfWeek,
+      ),
+      NoteSort.lastModified => dateGroupFor(
+        h.note.lastModifiedDate ?? h.note.effectiveNoteDate,
+        now: now,
+        firstDayOfWeek: firstDayOfWeek,
+      ),
+      NoteSort.subjectAZ => letterGroupFor(h.title, _pinyin),
+      NoteSort.flagColor => flagGroupFor(h.state.flagColor),
+    };
+
+    final byKey = <NoteGroupKey, List<NoteHit>>{};
+    for (final h in rest) {
+      (byKey[keyOf(h)] ??= []).add(h);
+    }
+    var groups = [
+      for (final e in byKey.entries) NoteGroup(key: e.key, hits: e.value),
+    ];
+    switch (query.sort) {
+      case NoteSort.subjectAZ:
+        // '#' last; letters alphabetical.
+        int rank(NoteGroup g) {
+          final l = (g.key as LetterGroup).letter;
+          return l == '#' ? 1 << 20 : l.codeUnitAt(0);
+        }
+
+        groups = [...groups]..sort((a, b) => rank(a).compareTo(rank(b)));
+      case NoteSort.flagColor:
+        // Red ... grey in enum order, Unflagged last.
+        int rank(NoteGroup g) =>
+            (g.key as FlagGroup).color?.index ?? NoteFlagColor.values.length;
+        groups = [...groups]..sort((a, b) => rank(a).compareTo(rank(b)));
+      case NoteSort.dateNewest || NoteSort.dateOldest || NoteSort.lastModified:
+        break; // already in first-appearance (= sort) order
+    }
+    return [
+      if (pinned.isNotEmpty) NoteGroup(key: const PinnedGroup(), hits: pinned),
+      ...groups,
+    ];
+  }
+
+  /// Folded first 400 characters of the preview text, or '' without an index.
+  String _previewFolded(HmmNote n) {
+    final folded = _cache.lookup(_keyOf(n))?.bodyFolded ?? '';
+    return folded.length > 400 ? folded.substring(0, 400) : folded;
+  }
+
+  /// Every direct occurrence of every word in [folded] (same length as the
+  /// displayed text), overlapping ranges merged, in order.
+  static List<TextRange> _ranges(List<String> words, String folded) {
+    if (folded.isEmpty) return const [];
+    final raw = <TextRange>[];
+    for (final w in words) {
+      var from = 0;
+      while (true) {
+        final i = folded.indexOf(w, from);
+        if (i < 0) break;
+        raw.add(TextRange(start: i, end: i + w.length));
+        from = i + w.length;
+      }
+    }
+    raw.sort((a, b) => a.start.compareTo(b.start));
+    final out = <TextRange>[];
+    for (final r in raw) {
+      if (out.isNotEmpty && r.start <= out.last.end) {
+        if (r.end > out.last.end) {
+          out[out.length - 1] = TextRange(start: out.last.start, end: r.end);
+        }
+      } else {
+        out.add(r);
+      }
+    }
+    return out;
   }
 
   static DateTime _day(DateTime local) =>
