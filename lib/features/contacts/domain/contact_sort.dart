@@ -1,35 +1,14 @@
 // lib/features/contacts/domain/contact_sort.dart
+import '../../../core/util/search_normalize.dart';
+
+export '../../../core/util/search_normalize.dart' show normalizeForSearch;
 import 'contact_name.dart';
 import 'contact_sort_by.dart';
 import 'entities/contact.dart';
 import 'pinyin_transcriber.dart';
 
-final _ws = RegExp(r'\s+');
 final _apostrophes = RegExp("['’]");
 final _phoneNoise = RegExp(r'[\s\-.()]');
-
-const _fold = <String, String>{
-  'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'å': 'a', 'ā': 'a', 'ǎ': 'a',
-  'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ē': 'e', 'ě': 'e',
-  'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i', 'ī': 'i', 'ǐ': 'i',
-  'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'ō': 'o', 'ǒ': 'o',
-  'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u', 'ū': 'u', 'ǔ': 'u',
-  'ǖ': 'u', 'ǘ': 'u', 'ǚ': 'u', 'ǜ': 'u',
-  'ç': 'c', 'ñ': 'n', 'ý': 'y', 'ÿ': 'y',
-  // The key separator; a typed `|` must not split a sort key.
-  '|': ' ',
-};
-
-/// Lowercase, accent-folded, whitespace (U+3000 included) collapsed and
-/// trimmed. Used for sort keys, search terms and queries alike.
-String normalizeForSearch(String s) {
-  final b = StringBuffer();
-  for (final r in s.toLowerCase().runes) {
-    final ch = String.fromCharCode(r);
-    b.write(_fold[ch] ?? ch);
-  }
-  return b.toString().replaceAll(_ws, ' ').trim();
-}
 
 List<String> _words(String s, {bool vForUmlaut = false}) =>
     normalizeForSearch(vForUmlaut ? _umlautToV(s) : s)
