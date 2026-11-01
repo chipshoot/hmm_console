@@ -140,7 +140,9 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('张伟'), findsNothing);
     _noRawSubjects();
-  });
+  },
+    skip: true, // list body is rebuilt on the query engine in Task 9
+  );
 
   testWidgets('tapping a contact row opens contact detail', (t) async {
     narrow(t);

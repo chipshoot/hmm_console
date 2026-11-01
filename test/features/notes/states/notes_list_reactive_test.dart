@@ -70,7 +70,7 @@ void main() {
 
     // Initial state: empty list.
     final initial = await container.read(notesListStateProvider.future);
-    expect(initial.visible, isEmpty);
+    expect(initial.all, isEmpty);
 
     // Another feature writes a note straight through the note repository —
     // NO notesListStateProvider invalidation anywhere.
@@ -84,6 +84,45 @@ void main() {
 
     // The list must update reactively.
     final after = await completer.future.timeout(const Duration(seconds: 2));
-    expect(after.visible.map((n) => n.subject), contains('Shell — May 1'));
+    expect(after.all.map((n) => n.subject), contains('Shell — May 1'));
+  });
+
+  test('the query survives a data emission and pin state reaches the list',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final db = HmmDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final authorId = await db
+        .into(db.authors)
+        .insert(AuthorsCompanion.insert(accountName: 'tester'));
+    final author = await (db.select(db.authors)
+          ..where((a) => a.id.equals(authorId)))
+        .getSingle();
+    final container = ProviderContainer(overrides: [
+      hmmDatabaseProvider.overrideWithValue(db),
+      localHmmNoteRepositoryProvider
+          .overrideWithValue(LocalHmmNoteRepository(db, () async => author)),
+      localNoteCatalogRepositoryProvider
+          .overrideWithValue(LocalNoteCatalogRepository(db)),
+    ]);
+    addTearDown(container.dispose);
+    final sub = container.listen(notesListStateProvider, (_, _) {});
+    addTearDown(sub.close);
+
+    final note = await container
+        .read(hmmNoteRepositoryProvider)
+        .createNote(const HmmNoteCreate(subject: 'milk run', catalogId: 1));
+    await container.read(notesListStateProvider.future);
+    final notifier = container.read(notesListStateProvider.notifier);
+    notifier.setText('milk');
+    await container
+        .read(noteStateRepositoryProvider)
+        .setPinned(note.uuid, true);
+    await pumpEventQueue();
+
+    final d = container.read(notesListStateProvider).value!;
+    expect(d.query.text, 'milk');
+    expect(d.stateOf(d.all.firstWhere((n) => n.id == note.id)).isPinned,
+        isTrue);
   });
 }

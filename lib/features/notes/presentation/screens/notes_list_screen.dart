@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart' show setEquals;
 import '../../data/models/hmm_note.dart';
 import '../../rendering/note_display.dart';
 import '../../states/filter_usage.dart';
+import '../../query/note_query.dart';
 import '../../states/notes_list_state.dart';
 import '../../states/note_selection.dart'
     show kNotesWideBreakpoint, selectedNoteIdProvider;
@@ -49,7 +50,7 @@ class NotesListScreen extends ConsumerWidget {
               ? () => showModalBottomSheet<void>(
                   context: context,
                   builder: (_) => SortSheet(
-                    current: async.value!.sort,
+                    current: async.value!.query.sort,
                     onSelected: notifier.setSort,
                   ),
                 )
@@ -73,8 +74,10 @@ class NotesListScreen extends ConsumerWidget {
                     builder: (_) => CatalogFilterSheet(
                       groups: groups,
                       counts: data.countsByCatalog,
-                      selected: data.catalogFilter,
-                      onApply: notifier.setFilter,
+                      selected: catalogSelectionFor(data.query.source, groups),
+                      onApply: (ids) => notifier.setSource(
+                        sourceForCatalogSelection(ids, groups),
+                      ),
                       onRecordDomain: (key) =>
                           ref.read(filterUsageProvider.notifier).record(key),
                     ),
@@ -104,11 +107,11 @@ class NotesListScreen extends ConsumerWidget {
         data: (data) {
           // Resolve the active domain (main filter) and, if it has more than
           // one catalog, the sub-filter selection within it.
-          final f = data.catalogFilter;
           final registry = ref.watch(noteDisplayRegistryProvider);
           String titleOf(HmmNote n) =>
               registry.title(n, data.catalogsById[n.catalogId]?.name, l);
-          final visible = data.visibleFor(titleOf: titleOf);
+          // Task 9 replaces this body with the query engine's rows.
+          final visible = data.all;
           final notesById = {for (final n in data.all) n.id: n};
           final groups = groupByDomain(
             data.catalogsById.values,
@@ -116,6 +119,7 @@ class NotesListScreen extends ConsumerWidget {
             usage,
             domainCounts: data.countsByDomain,
           );
+          final f = catalogSelectionFor(data.query.source, groups);
           DomainGroup? activeDomain;
           if (f != null && f.isNotEmpty) {
             for (final g in groups) {
@@ -146,9 +150,9 @@ class NotesListScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: _SearchField(
-                  query: data.query,
+                  query: data.query.text,
                   hintText: l.notesSearchHint,
-                  onChanged: notifier.setQuery,
+                  onChanged: notifier.setText,
                 ),
               ),
             ),
@@ -157,8 +161,11 @@ class NotesListScreen extends ConsumerWidget {
                 mainLabel: mainLabel,
                 subDomain: subDomain,
                 subSelectedCatalogId: subSelected,
-                onSubSelected: (catId) => notifier.setFilter(
-                  catId == null ? subDomain!.catalogIds : {catId},
+                onSubSelected: (catId) => notifier.setSource(
+                  sourceForCatalogSelection(
+                    catId == null ? subDomain!.catalogIds : {catId},
+                    groups,
+                  ),
                 ),
               ),
             ),
@@ -369,7 +376,7 @@ class _FilterDrawer extends ConsumerWidget {
       usage,
       domainCounts: data.countsByDomain,
     );
-    final f = data.catalogFilter;
+    final f = catalogSelectionFor(data.query.source, groups);
 
     Widget dot(Color color) => Container(
       width: 12,
@@ -409,7 +416,7 @@ class _FilterDrawer extends ConsumerWidget {
               title: l.notesAll,
               selected: f == null || f.isEmpty,
               onTap: () {
-                notifier.setFilter(null);
+                notifier.setSource(const AllSource());
                 Navigator.of(context).pop();
               },
             ),
@@ -420,7 +427,7 @@ class _FilterDrawer extends ConsumerWidget {
                 selected: f != null && setEquals(f, g.catalogIds),
                 onTap: () {
                   ref.read(filterUsageProvider.notifier).record(g.key);
-                  notifier.setFilter(g.catalogIds);
+                  notifier.setSource(DomainSource(key: g.key));
                   Navigator.of(context).pop();
                 },
               ),

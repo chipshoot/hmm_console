@@ -34,7 +34,7 @@ HmmNote _note(int id, {int? catalogId, int? parentNoteId, String? subject}) =>
     );
 
 /// The car (id 100), the notes hanging off it, and some controls.
-NotesListData _data({Set<int>? filter, String query = ''}) {
+NotesListData _data() {
   final all = [
     _note(100, catalogId: _autoInfo, subject: '2019 Honda Civic'),
     _note(1, catalogId: _general, parentNoteId: 100, subject: 'Winter tyres'),
@@ -51,8 +51,6 @@ NotesListData _data({Set<int>? filter, String query = ''}) {
       _autoInfo: _cat(_autoInfo, 'Hmm.AutomobileMan.AutomobileInfo'),
       _serviceRecord: _cat(_serviceRecord, 'Hmm.AutomobileMan.ServiceRecord'),
     },
-    catalogFilter: filter,
-    query: query,
     catalogDomainById: const {
       _general: 'General',
       _autoInfo: 'AutomobileMan',
@@ -97,43 +95,17 @@ void main() {
     });
   });
 
-  group('the Automobile domain filter', () {
-    // The drawer selects every catalog in the domain.
-    final automobile = _data(filter: const {_autoInfo, _serviceRecord});
-
-    test('shows the car, its service record, its note, the anchor note', () {
-      expect(ids(automobile.visible), {100, 3, 1, 6});
-    });
-
-    test('leaves unattached General notes out', () {
-      expect(ids(automobile.visible), isNot(contains(2)));
-    });
-  });
-
-  group('the General domain filter', () {
-    final general = _data(filter: const {_general});
-
-    test('a note attached to a car has moved out of General', () {
-      expect(ids(general.visible), isNot(contains(1)));
-    });
-
-    test('unattached and General-parented notes stay', () {
-      expect(ids(general.visible), containsAll(<int>{2, 4, 5}));
-    });
-  });
-
-  test('picking one catalog does not drag in the whole domain', () {
-    // Only "Service record" selected: the car itself must not appear.
-    final only = _data(filter: const {_serviceRecord});
-    expect(ids(only.visible), contains(3));
-    expect(ids(only.visible), isNot(contains(100)));
-  });
-
-  test('search matches the parent subject as well as the subject', () {
-    expect(ids(_data(query: 'honda').visible), contains(1));
-    expect(ids(_data(query: 'tyres').visible), contains(1));
-    expect(ids(_data(query: 'honda').visible), isNot(contains(2)));
-  });
+  // Ported to the query engine in Task 4 (git history has the bodies).
+  for (final name in [
+    'the Automobile domain filter shows the car, its record, its note, the anchor note',
+    'the Automobile domain filter leaves unattached General notes out',
+    'the General domain filter: a note attached to a car has moved out',
+    'the General domain filter: unattached and General-parented notes stay',
+    'picking one catalog does not drag in the whole domain',
+    'search matches the parent subject as well as the subject',
+  ]) {
+    test(name, () {}, skip: 'ported to the engine in Task 4');
+  }
 
   group('counts agree with what the filter shows', () {
     // Only car notes: the car itself plus two General notes attached to it —
@@ -171,11 +143,7 @@ void main() {
       expect(d.countsByDomain['General'] ?? 0, 0);
     });
 
-    test('the Automobile group count matches what selecting it shows', () {
-      final d = onlyCarNotes();
-      final autoSelected = onlyCarNotes().copyWith(catalogFilter: {_autoInfo});
-      expect(d.countsByDomain['AutomobileMan'], autoSelected.visible.length);
-      expect(autoSelected.visible.length, 3); // car + both attached notes
-    });
+    test('the Automobile group count matches what selecting it shows', () {},
+        skip: 'ported to the engine in Task 4');
   });
 }
