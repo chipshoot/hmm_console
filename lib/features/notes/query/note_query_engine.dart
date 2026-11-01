@@ -52,7 +52,8 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
     final searching = words.isNotEmpty;
     final useSource = !(searching && query.scope == NoteScope.all);
 
-    final uuidById = {for (final n in corpus.all) n.id: n.uuid};
+    // Only a parent token needs it; built on first use.
+    late final uuidById = {for (final n in corpus.all) n.id: n.uuid};
     final today = _day(now.toLocal());
     final titles = <int, String>{}; // each title computed once per evaluate
     String titleOf(HmmNote n) => titles[n.id] ??= _titleOf(n);
@@ -83,7 +84,11 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
                   words,
                   idx?.titleFolded ?? foldForMatch(title),
                 ),
-                previewMatches: _ranges(words, _previewFolded(idx)),
+                previewMatches: _ranges(
+                  words,
+                  idx?.bodyFolded ?? '',
+                  limit: _previewChars,
+                ),
               )
             : NoteHit(note: n, title: title, state: state),
       );
@@ -97,9 +102,31 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
     );
   }
 
+  NotesListData? _countedCorpus;
+  NoteCounts? _lastCounts;
+
+  /// [_countLibrary], reused while the corpus parts it reads are the same
+  /// objects (query edits only change `query`).
+  NoteCounts _counts(NotesListData c) {
+    final last = _countedCorpus;
+    final counts = _lastCounts;
+    if (counts != null &&
+        last != null &&
+        identical(last.all, c.all) &&
+        identical(last.statesByUuid, c.statesByUuid) &&
+        identical(last.tagsByNoteId, c.tagsByNoteId) &&
+        identical(last.catalogDomainById, c.catalogDomainById) &&
+        identical(last.anchorDomainById, c.anchorDomainById) &&
+        identical(last.targetsById, c.targetsById)) {
+      return counts;
+    }
+    _countedCorpus = c;
+    return _lastCounts = _countLibrary(c);
+  }
+
   /// Counts describe the library, not the view: every live note, ignoring
   /// source, tokens and text.
-  NoteCounts _counts(NotesListData c) {
+  NoteCounts _countLibrary(NotesListData c) {
     var pinned = 0;
     final byDomain = <String, int>{};
     final byTag = <int, int>{};
@@ -183,22 +210,25 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
     ];
   }
 
-  /// Folded first 400 characters of the preview text, or '' without an index.
-  String _previewFolded(NoteTextIndex? idx) {
-    final folded = idx?.bodyFolded ?? '';
-    return folded.length > 400 ? folded.substring(0, 400) : folded;
-  }
+  /// How much of the body text [NoteHit.previewMatches] covers.
+  static const _previewChars = 400;
 
   /// Every direct occurrence of every word in [folded] (same length as the
-  /// displayed text), overlapping ranges merged, in order.
-  static List<TextRange> _ranges(List<String> words, String folded) {
+  /// displayed text) that ends within [limit] characters, overlapping ranges
+  /// merged, in order.
+  static List<TextRange> _ranges(
+    List<String> words,
+    String folded, {
+    int? limit,
+  }) {
     if (folded.isEmpty) return const [];
+    final end = limit == null || limit > folded.length ? folded.length : limit;
     final raw = <TextRange>[];
     for (final w in words) {
       var from = 0;
       while (true) {
         final i = folded.indexOf(w, from);
-        if (i < 0) break;
+        if (i < 0 || i + w.length > end) break;
         raw.add(TextRange(start: i, end: i + w.length));
         from = i + w.length;
       }

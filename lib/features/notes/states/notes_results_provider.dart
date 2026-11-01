@@ -55,6 +55,10 @@ final notesIndexRevisionProvider =
 /// The indexing the warmer currently builds with; replaced per corpus.
 class _IndexingHolder {
   NoteIndexing? current;
+
+  /// Built with [current]; reused with it, so its per-corpus memo (counts)
+  /// survives query edits.
+  InMemoryNoteQueryEngine? engine;
   NotesListData? warmedData;
   NotesViewEnv? warmedEnv;
 }
@@ -192,14 +196,15 @@ final notesResultsProvider = Provider.autoDispose<AsyncValue<NoteResults>>((
     holder.warmedData = data;
     holder.warmedEnv = env;
     holder.current = indexing;
+    holder.engine = InMemoryNoteQueryEngine(
+      cache: cache,
+      keyOf: indexing.keyOf,
+      titleOf: indexing.title,
+      pinyin: ref.read(pinyinTranscriberProvider),
+    );
     ref.read(_noteIndexWarmerProvider).warm(data.all);
   }
-  final engine = InMemoryNoteQueryEngine(
-    cache: cache,
-    keyOf: indexing.keyOf,
-    titleOf: indexing.title,
-    pinyin: ref.read(pinyinTranscriberProvider),
-  );
+  final engine = holder.engine!;
   return AsyncData(
     engine.evaluate(
       data.query,
