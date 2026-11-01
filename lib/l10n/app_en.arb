@@ -1391,5 +1391,36 @@
   "helpNoteDetailDeleteTitle": "Delete",
   "helpNoteDetailDeleteBody": "Deletes the note. Tap Undo in the message to bring it back right away. Deleted notes are removed for good after 30 days.",
   "helpNoteDetailManageTitle": "Manage in …",
-  "helpNoteDetailManageBody": "Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here."
+  "helpNoteDetailManageBody": "Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here.",
+  "notesDensityCompact": "Compact",
+  "notesDensityStandard": "Standard",
+  "notesDensityRich": "Rich",
+  "notesRowSemantics": "{title}, {date}",
+  "@notesRowSemantics": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRowSemanticsFlagged": "flagged {color}",
+  "@notesRowSemanticsFlagged": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRowSemanticsPinned": "pinned",
+  "notesRowMoreTags": "+{count}",
+  "@notesRowMoreTags": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -2750,4 +2750,31 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNoteDetailManageBody =>
       '联系人、速查卡、车辆、加油记录等记录需在各自的页面中删除，而不是在笔记中删除。置顶和旗标在此仍然可用。';
+
+  @override
+  String get notesDensityCompact => '紧凑';
+
+  @override
+  String get notesDensityStandard => '标准';
+
+  @override
+  String get notesDensityRich => '丰富';
+
+  @override
+  String notesRowSemantics(String title, String date) {
+    return '$title，$date';
+  }
+
+  @override
+  String notesRowSemanticsFlagged(String color) {
+    return '已标记$color';
+  }
+
+  @override
+  String get notesRowSemanticsPinned => '已置顶';
+
+  @override
+  String notesRowMoreTags(String count) {
+    return '+$count';
+  }
 }

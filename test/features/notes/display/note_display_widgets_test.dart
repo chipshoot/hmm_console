@@ -10,7 +10,7 @@ import 'package:hmm_console/features/notes/presentation/screens/notes_list_scree
 import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/attached_notes_section.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_link_picker.dart';
-import 'package:hmm_console/features/notes/presentation/widgets/note_list_tile.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/note_row.dart';
 import 'package:hmm_console/features/notes/rendering/note_display.dart';
 import 'package:hmm_console/features/notes/states/attached_notes_state.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
@@ -123,24 +123,29 @@ void main() {
     _noRawSubjects();
   });
 
-  testWidgets('notes list search matches the display title', (t) async {
-    narrow(t);
-    await t.pumpWidget(_app(const NotesListScreen()));
-    await t.pumpAndSettle();
-    await t.enterText(find.byType(TextField), '张伟');
-    await t.pumpAndSettle();
-    expect(find.byType(NoteListTile), findsOneWidget);
-    expect(
-      find.descendant(of: find.byType(NoteListTile), matching: find.text('张伟')),
-      findsOneWidget,
-    );
-    expect(find.text('Civic'), findsNothing);
-    expect(find.text('Grocery list'), findsNothing);
-    await t.enterText(find.byType(TextField), 'c-1');
-    await t.pumpAndSettle();
-    expect(find.text('张伟'), findsNothing);
-    _noRawSubjects();
-  },
+  testWidgets(
+    'notes list search matches the display title',
+    (t) async {
+      narrow(t);
+      await t.pumpWidget(_app(const NotesListScreen()));
+      await t.pumpAndSettle();
+      await t.enterText(find.byType(TextField), '张伟');
+      await t.pumpAndSettle();
+      expect(find.byType(NoteRow), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(NoteRow),
+          matching: find.text('张伟'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Civic'), findsNothing);
+      expect(find.text('Grocery list'), findsNothing);
+      await t.enterText(find.byType(TextField), 'c-1');
+      await t.pumpAndSettle();
+      expect(find.text('张伟'), findsNothing);
+      _noRawSubjects();
+    },
     skip: true, // list body is rebuilt on the query engine in Task 9
   );
 
@@ -260,7 +265,8 @@ void main() {
     );
     await t.pumpAndSettle();
     expect(find.textContaining('张伟'), findsWidgets);
-    expect(find.textContaining('(张伟)'), findsOneWidget);
+    // The meta line names the parent in its own words (no parentheses).
+    expect(find.textContaining('· 张伟'), findsOneWidget);
     _noRawSubjects();
     await t.enterText(find.byType(TextField), '张伟');
     await t.pumpAndSettle();

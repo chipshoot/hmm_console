@@ -2838,4 +2838,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNoteDetailManageBody =>
       'Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here.';
+
+  @override
+  String get notesDensityCompact => 'Compact';
+
+  @override
+  String get notesDensityStandard => 'Standard';
+
+  @override
+  String get notesDensityRich => 'Rich';
+
+  @override
+  String notesRowSemantics(String title, String date) {
+    return '$title, $date';
+  }
+
+  @override
+  String notesRowSemanticsFlagged(String color) {
+    return 'flagged $color';
+  }
+
+  @override
+  String get notesRowSemanticsPinned => 'pinned';
+
+  @override
+  String notesRowMoreTags(String count) {
+    return '+$count';
+  }
 }

@@ -5143,6 +5143,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here.'**
   String get helpNoteDetailManageBody;
+
+  /// No description provided for @notesDensityCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get notesDensityCompact;
+
+  /// No description provided for @notesDensityStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get notesDensityStandard;
+
+  /// No description provided for @notesDensityRich.
+  ///
+  /// In en, this message translates to:
+  /// **'Rich'**
+  String get notesDensityRich;
+
+  /// No description provided for @notesRowSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}, {date}'**
+  String notesRowSemantics(String title, String date);
+
+  /// No description provided for @notesRowSemanticsFlagged.
+  ///
+  /// In en, this message translates to:
+  /// **'flagged {color}'**
+  String notesRowSemanticsFlagged(String color);
+
+  /// No description provided for @notesRowSemanticsPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'pinned'**
+  String get notesRowSemanticsPinned;
+
+  /// No description provided for @notesRowMoreTags.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String notesRowMoreTags(String count);
 }
 
 class _AppLocalizationsDelegate

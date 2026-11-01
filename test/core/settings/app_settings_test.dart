@@ -54,4 +54,15 @@ void main() {
     expect(s.onboardingCompleted, true);
     expect(s.dataMode, DataMode.local);
   });
+
+  test('density round-trips and defaults to standard', () {
+    expect(AppSettings.fromJson({}).notesRowDensity, NoteRowDensity.standard);
+    expect(
+      AppSettings.fromJson({'notesRowDensity': 'bogus'}).notesRowDensity,
+      NoteRowDensity.standard,
+    );
+    final s = const AppSettings().copyWith(notesRowDensity: NoteRowDensity.rich);
+    expect(s.toJson()['notesRowDensity'], 'rich');
+    expect(AppSettings.fromJson(s.toJson()).notesRowDensity, NoteRowDensity.rich);
+  });
 }

@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:flutter/foundation.dart' show setEquals;
 
+import '../../../../core/notes/note_state.dart';
+import '../../../../core/settings/settings_controller.dart';
 import '../../data/models/hmm_note.dart';
+import '../../query/note_results.dart';
 import '../../rendering/note_display.dart';
 import '../../states/filter_usage.dart';
 import '../../query/note_query.dart';
@@ -17,9 +20,8 @@ import '../../states/note_selection.dart'
     show kNotesWideBreakpoint, selectedNoteIdProvider;
 import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
-import '../widgets/note_list_tile.dart';
+import '../widgets/note_row.dart';
 import '../widgets/sort_sheet.dart';
-import '../../../../core/notes/catalog_palette.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -201,18 +203,21 @@ class NotesListScreen extends ConsumerWidget {
                       : (attached && domain != null
                             ? domainLabel(domain, l)
                             : null);
-                  return NoteListTile(
-                    note: note,
-                    catalog: note.catalogId == null
-                        ? null
-                        : data.catalogsById[note.catalogId],
-                    titleContext: titleContext,
-                    contextLabel: attached && domain != null
-                        ? domainLabel(domain, l)
-                        : null,
-                    contextColor: attached && domain != null
-                        ? CatalogPalette.domainStyle(domain).color
-                        : null,
+                  final catalogName = note.catalogId == null
+                      ? null
+                      : data.catalogsById[note.catalogId]?.name;
+                  return NoteRow(
+                    hit: NoteHit(
+                      note: note,
+                      title: titleOf(note),
+                      state: NoteState.none(note.uuid),
+                    ),
+                    density: ref.watch(notesRowDensityProvider),
+                    domainKey: domain,
+                    catalogName: catalogName,
+                    parentTitle: titleContext,
+                    tags: const [],
+                    now: DateTime.now(),
                     onTap: () {
                       // Contacts and cheatsheet cards have their own screens;
                       // the generic note screen would show raw JSON.
