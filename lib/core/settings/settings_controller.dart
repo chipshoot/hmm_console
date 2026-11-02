@@ -68,6 +68,8 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       _update(_current.copyWith(launcherRecents: v));
   Future<void> setNotesFilterUsage(Map<String, int> v) =>
       _update(_current.copyWith(notesFilterUsage: v));
+  Future<void> setNotesRecentSearches(List<Map<String, Object?>> v) =>
+      _update(_current.copyWith(notesRecentSearches: v));
   Future<void> setNotesRowDensity(NoteRowDensity v) =>
       _update(_current.copyWith(notesRowDensity: v));
   Future<void> setDashboardIntroCardSeen(bool v) =>
