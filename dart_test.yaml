@@ -1,0 +1,6 @@
+tags:
+  # Timing tests: a full parallel run starves them of CPU, so they are
+  # skipped there. Run them on their own:
+  #   flutter test --tags benchmark --run-skipped
+  benchmark:
+    skip: "Timing test; run alone with: flutter test --tags benchmark --run-skipped"

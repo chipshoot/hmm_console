@@ -1,10 +1,16 @@
+// A timing test: kept out of the default run (see dart_test.yaml), because
+// every core is busy there. Run it alone:
+//   flutter test --tags benchmark --run-skipped
+@Tags(['benchmark'])
+library;
+
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/local/database.dart' hide Tags;
 import 'package:hmm_console/core/notes/note_state.dart';
 import 'package:hmm_console/features/contacts/data/contact_codec.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
@@ -155,11 +161,9 @@ void main() {
       list.setText('oil');
       c.read(notesResultsProvider).requireValue; // JIT
 
-      // Each keystroke is timed on its own and the fastest kept: in a full
-      // `flutter test` run every core is busy with other test isolates, which
-      // roughly doubles wall time per call, so the fastest call is the
-      // closest measure of the code's own cost. The median is printed too.
-      // The bound itself is never relaxed.
+      // Each keystroke is timed on its own; the median is held to the bound,
+      // so one slow call (a GC pause) does not fail it and one lucky call
+      // does not pass it. The bound itself is never relaxed.
       const runs = 15;
       final times = <int>[];
       for (var i = 0; i < runs; i++) {
@@ -169,14 +173,14 @@ void main() {
         times.add(sw.elapsedMicroseconds);
       }
       times.sort();
-      final perKeystroke = times.first / 1000;
+      final median = times[runs ~/ 2] / 1000;
       // ignore: avoid_print
       print(
-        'notes results per keystroke: fastest '
-        '${perKeystroke.toStringAsFixed(1)} ms, median '
-        '${(times[runs ~/ 2] / 1000).toStringAsFixed(1)} ms of $runs',
+        'notes results per keystroke: median '
+        '${median.toStringAsFixed(1)} ms, fastest '
+        '${(times.first / 1000).toStringAsFixed(1)} ms of $runs',
       );
-      expect(perKeystroke, lessThanOrEqualTo(50));
+      expect(median, lessThanOrEqualTo(50));
     },
   );
 }

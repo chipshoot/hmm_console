@@ -82,6 +82,14 @@ void main() {
     expect(boundedPreviewSource(md), '${'x' * 3000}\n');
   });
 
+  test('an early line break does not cut the preview short', () {
+    // A short title line then one long paragraph: cutting at the only line
+    // break would leave the preview just the title.
+    final md = 'Trip\n${'y' * 5000}';
+    expect(boundedPreviewSource(md).length, previewSourceLimit);
+    expect(previewPlain(previewRuns(md)), startsWith('Trip yyy'));
+  });
+
   testWidgets('highlights a matched word without changing the text', (t) async {
     await t.pumpWidget(
       _wrap(

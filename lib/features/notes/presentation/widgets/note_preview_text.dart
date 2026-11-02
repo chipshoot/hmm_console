@@ -17,13 +17,17 @@ const _blocks = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'};
 /// shows, so a long note costs no more than a short one.
 const previewSourceLimit = 4000;
 
+/// A line-break cut must keep at least this much: a full preview (the
+/// default `maxChars` of [previewRuns]).
+const _minLineCut = 400;
+
 /// The first [previewSourceLimit] characters of [markdown], cut after the
-/// last line break inside them when there is one, never inside a surrogate
-/// pair.
+/// last line break inside them when that keeps at least [_minLineCut]
+/// characters, never inside a surrogate pair.
 String boundedPreviewSource(String markdown) {
   if (markdown.length <= previewSourceLimit) return markdown;
   final newline = markdown.lastIndexOf('\n', previewSourceLimit - 1);
-  if (newline > 0) return markdown.substring(0, newline + 1);
+  if (newline + 1 >= _minLineCut) return markdown.substring(0, newline + 1);
   var end = previewSourceLimit;
   final last = markdown.codeUnitAt(end - 1);
   if (last >= 0xD800 && last <= 0xDBFF) end++; // keep the pair whole
