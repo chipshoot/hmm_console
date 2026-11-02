@@ -882,5 +882,18 @@
   "helpNotesListSearchTitle": "搜索",
   "helpNotesListSearchBody": "输入即可搜索标题、正文、标签以及笔记所附属的对象，匹配内容会高亮显示。返回时搜索仍然生效；点搜索框里的 × 即可清除。",
   "helpNotesListFilterTitle": "筛选",
-  "helpNotesListFilterBody": "显示全部笔记、某个领域（如汽车），或其中的某一类笔记。搜索框下方的标签打开领域列表；筛选按钮列出所有类别。"
+  "helpNotesListFilterBody": "显示全部笔记、某个领域（如汽车），或其中的某一类笔记。搜索框下方的标签打开领域列表；筛选按钮列出所有类别。",
+  "notesTokenHasPhoto": "含照片",
+  "notesTokenHasPlace": "含地点",
+  "notesTokenHasAttachment": "含附件",
+  "notesTokenPinned": "已置顶",
+  "notesTokenLast7d": "最近 7 天",
+  "notesTokenLast30d": "最近 30 天",
+  "notesTokenLast90d": "最近 90 天",
+  "notesTokenFlag": "{color}旗标",
+  "notesTokenParent": "附属于{subject}",
+  "notesTokenTag": "#{name}",
+  "notesTokenDateRange": "{from} – {to}",
+  "notesTokenRemoved": "{label}（已移除）",
+  "notesTokenUnknown": "未知条件"
 }

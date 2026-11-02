@@ -2886,4 +2886,53 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListFilterBody =>
       '显示全部笔记、某个领域（如汽车），或其中的某一类笔记。搜索框下方的标签打开领域列表；筛选按钮列出所有类别。';
+
+  @override
+  String get notesTokenHasPhoto => '含照片';
+
+  @override
+  String get notesTokenHasPlace => '含地点';
+
+  @override
+  String get notesTokenHasAttachment => '含附件';
+
+  @override
+  String get notesTokenPinned => '已置顶';
+
+  @override
+  String get notesTokenLast7d => '最近 7 天';
+
+  @override
+  String get notesTokenLast30d => '最近 30 天';
+
+  @override
+  String get notesTokenLast90d => '最近 90 天';
+
+  @override
+  String notesTokenFlag(String color) {
+    return '$color旗标';
+  }
+
+  @override
+  String notesTokenParent(String subject) {
+    return '附属于$subject';
+  }
+
+  @override
+  String notesTokenTag(String name) {
+    return '#$name';
+  }
+
+  @override
+  String notesTokenDateRange(String from, String to) {
+    return '$from – $to';
+  }
+
+  @override
+  String notesTokenRemoved(String label) {
+    return '$label（已移除）';
+  }
+
+  @override
+  String get notesTokenUnknown => '未知条件';
 }

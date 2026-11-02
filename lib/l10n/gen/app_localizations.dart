@@ -5389,6 +5389,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.'**
   String get helpNotesListFilterBody;
+
+  /// No description provided for @notesTokenHasPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Has photos'**
+  String get notesTokenHasPhoto;
+
+  /// No description provided for @notesTokenHasPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Has place'**
+  String get notesTokenHasPlace;
+
+  /// No description provided for @notesTokenHasAttachment.
+  ///
+  /// In en, this message translates to:
+  /// **'Has attachments'**
+  String get notesTokenHasAttachment;
+
+  /// No description provided for @notesTokenPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get notesTokenPinned;
+
+  /// No description provided for @notesTokenLast7d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get notesTokenLast7d;
+
+  /// No description provided for @notesTokenLast30d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get notesTokenLast30d;
+
+  /// No description provided for @notesTokenLast90d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 90 days'**
+  String get notesTokenLast90d;
+
+  /// No description provided for @notesTokenFlag.
+  ///
+  /// In en, this message translates to:
+  /// **'{color} flag'**
+  String notesTokenFlag(String color);
+
+  /// No description provided for @notesTokenParent.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached to {subject}'**
+  String notesTokenParent(String subject);
+
+  /// No description provided for @notesTokenTag.
+  ///
+  /// In en, this message translates to:
+  /// **'#{name}'**
+  String notesTokenTag(String name);
+
+  /// No description provided for @notesTokenDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{from} – {to}'**
+  String notesTokenDateRange(String from, String to);
+
+  /// No description provided for @notesTokenRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} (removed)'**
+  String notesTokenRemoved(String label);
+
+  /// No description provided for @notesTokenUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown filter'**
+  String get notesTokenUnknown;
 }
 
 class _AppLocalizationsDelegate

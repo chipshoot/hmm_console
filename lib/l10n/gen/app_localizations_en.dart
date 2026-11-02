@@ -2974,4 +2974,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListFilterBody =>
       'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.';
+
+  @override
+  String get notesTokenHasPhoto => 'Has photos';
+
+  @override
+  String get notesTokenHasPlace => 'Has place';
+
+  @override
+  String get notesTokenHasAttachment => 'Has attachments';
+
+  @override
+  String get notesTokenPinned => 'Pinned';
+
+  @override
+  String get notesTokenLast7d => 'Last 7 days';
+
+  @override
+  String get notesTokenLast30d => 'Last 30 days';
+
+  @override
+  String get notesTokenLast90d => 'Last 90 days';
+
+  @override
+  String notesTokenFlag(String color) {
+    return '$color flag';
+  }
+
+  @override
+  String notesTokenParent(String subject) {
+    return 'Attached to $subject';
+  }
+
+  @override
+  String notesTokenTag(String name) {
+    return '#$name';
+  }
+
+  @override
+  String notesTokenDateRange(String from, String to) {
+    return '$from – $to';
+  }
+
+  @override
+  String notesTokenRemoved(String label) {
+    return '$label (removed)';
+  }
+
+  @override
+  String get notesTokenUnknown => 'Unknown filter';
 }
