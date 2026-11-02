@@ -115,6 +115,8 @@ Pin and flag are the **user's own state about a note**, not note content (like a
 - **Save search…** stores the current `NoteQuery` as a smart filter; rename, reorder, delete from the drawer.
 - Query, tokens and scope persist on the notifier and stay visible after leaving and returning (existing tested behaviour).
 
+**2026-11-01 (Slice 3 decisions):** see 'Decisions this plan makes' in `docs/superpowers/plans/2026-11-01-notes-slice3-search-tokens-saved.md` — notably backspace-removes-chip works on hardware keyboards only (Flutter's iOS soft keyboard sends no key event on an empty field; chips have ✕), and built-in smart filters move to slice 4 with the drawer.
+
 ### Performance
 
 - Target: ≤ 50 ms per keystroke for 5,000 notes on a recent iPhone; a benchmark test pins it.
