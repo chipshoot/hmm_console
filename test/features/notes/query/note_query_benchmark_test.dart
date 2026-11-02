@@ -19,7 +19,14 @@ import 'package:hmm_console/features/contacts/domain/pinyin_transcriber.dart';
 import 'package:hmm_console/features/contacts/states/pinyin_transcriber_provider.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
+import 'package:hmm_console/features/notes/query/saved_search.dart';
 import 'package:hmm_console/features/notes/states/notes_results_provider.dart';
+import 'package:hmm_console/features/notes/states/saved_searches_provider.dart';
+
+class _NoSaved extends SavedSearchesNotifier {
+  @override
+  List<SavedSearch> build() => const [];
+}
 
 class _Pinyin implements PinyinTranscriber {
   @override
@@ -136,6 +143,7 @@ void main() {
     () async {
       final c = ProviderContainer(
         overrides: [
+          savedSearchesProvider.overrideWith(_NoSaved.new),
           notesListStateProvider.overrideWith(() => _FakeList(_corpus())),
           pinyinTranscriberProvider.overrideWithValue(_Pinyin()),
         ],

@@ -11,8 +11,11 @@ import '../query/note_index_warmer.dart';
 import '../query/note_query_engine.dart';
 import '../query/note_results.dart';
 import '../query/note_text_index.dart';
+import '../query/note_query.dart';
+import '../query/smart_query.dart';
 import '../rendering/note_display.dart';
 import 'notes_list_state.dart';
+import 'saved_searches_provider.dart';
 
 /// Keep-alive: the folded text of every note, shared by all evaluations.
 final noteTextIndexCacheProvider = Provider<NoteTextIndexCache>(
@@ -164,6 +167,14 @@ NoteIndexing _indexingFor(Ref ref, NotesListData data, NotesViewEnv env) =>
       pinyin: ref.read(pinyinTranscriberProvider),
     );
 
+/// The live query with a saved-search source expanded; null while the list
+/// is loading.
+final notesEffectiveQueryProvider = Provider.autoDispose<NoteQuery?>((ref) {
+  final live = ref.watch(notesListStateProvider).value?.query;
+  if (live == null) return null;
+  return resolveSmartQuery(live, ref.watch(savedSearchesProvider));
+});
+
 /// The single feed the list screen reads. Loading until the list data and
 /// the view env are both known.
 final notesResultsProvider = Provider.autoDispose<AsyncValue<NoteResults>>((
@@ -174,7 +185,8 @@ final notesResultsProvider = Provider.autoDispose<AsyncValue<NoteResults>>((
   final cache = ref.watch(noteTextIndexCacheProvider);
 
   final data = listAsync.value;
-  if (env == null || data == null) {
+  final query = ref.watch(notesEffectiveQueryProvider);
+  if (env == null || data == null || query == null) {
     final error = listAsync.error;
     if (env != null && error != null) {
       return AsyncError(error, listAsync.stackTrace ?? StackTrace.empty);
@@ -182,7 +194,7 @@ final notesResultsProvider = Provider.autoDispose<AsyncValue<NoteResults>>((
     return const AsyncLoading();
   }
 
-  if (data.query.text.trim().isNotEmpty) ref.watch(notesIndexRevisionProvider);
+  if (query.text.trim().isNotEmpty) ref.watch(notesIndexRevisionProvider);
 
   // One indexing per corpus + env: query edits reuse it (and its memoized
   // keys and titles); a new corpus or env builds a new one and re-warms. The
@@ -207,7 +219,7 @@ final notesResultsProvider = Provider.autoDispose<AsyncValue<NoteResults>>((
   final engine = holder.engine!;
   return AsyncData(
     engine.evaluate(
-      data.query,
+      query,
       data,
       now: DateTime.now(),
       firstDayOfWeek: env.firstDayOfWeek,

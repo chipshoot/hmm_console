@@ -13,6 +13,8 @@ import 'package:hmm_console/features/contacts/states/pinyin_transcriber_provider
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/query/note_results.dart';
+import 'package:hmm_console/features/notes/query/saved_search.dart';
+import 'package:hmm_console/features/notes/states/saved_searches_provider.dart';
 import 'package:hmm_console/features/notes/rendering/note_display.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 import 'package:hmm_console/features/notes/states/notes_results_provider.dart';
@@ -71,18 +73,21 @@ ProviderContainer _container(
   List<HmmNote>? notes,
   Map<int, NoteCatalog> catalogs = const <int, NoteCatalog>{},
   List<Override> overrides = const [],
+  NoteQuery? query,
+  List<SavedSearch> saved = const [],
 }) {
   final data = NotesListData(
     all:
         notes ??
         [_n(1, 'Alpha', content: 'needs **zebra** stripes'), _n(2, 'Beta')],
     catalogsById: catalogs,
-    query: NoteQuery(text: text),
+    query: query ?? NoteQuery(text: text),
   );
   final c = ProviderContainer(
     overrides: [
       notesListStateProvider.overrideWith(() => _FakeList(data)),
       pinyinTranscriberProvider.overrideWithValue(_Pinyin()),
+      savedSearchesProvider.overrideWith(() => _FakeSaved(saved)),
       ...overrides,
     ],
   );
@@ -104,7 +109,36 @@ List<int> _ids(AsyncValue<dynamic> v) => [
     for (final h in g.hits) h.note.id,
 ];
 
+class _FakeSaved extends SavedSearchesNotifier {
+  _FakeSaved(this.items);
+  final List<SavedSearch> items;
+  @override
+  List<SavedSearch> build() => items;
+}
+
 void main() {
+  test('a smart source lists the saved search\'s notes', () async {
+    final c = _container(
+      '',
+      query: const NoteQuery(source: SmartSource(savedId: 's1')),
+      saved: const [
+        SavedSearch(
+          id: 's1',
+          name: 'S',
+          order: 0,
+          query: NoteQuery(text: 'alpha'),
+        ),
+      ],
+    );
+    await c.read(notesListStateProvider.future);
+    c.listen(notesResultsProvider, (_, _) {});
+    c.read(notesViewEnvProvider.notifier).set(_env);
+    c.read(notesResultsProvider);
+    await _warmed(c, 2);
+    await Future<void>.delayed(Duration.zero);
+    expect(_ids(c.read(notesResultsProvider)), [1]);
+  });
+
   test('results wait for the view env', () async {
     final c = _container('');
     await c.read(notesListStateProvider.future);
