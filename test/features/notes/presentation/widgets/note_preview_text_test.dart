@@ -90,6 +90,13 @@ void main() {
     expect(previewPlain(previewRuns(md)), startsWith('Trip yyy'));
   });
 
+  test('a line-break cut must keep at least 400 characters', () {
+    final keeps400 = '${'x' * 399}\n${'y' * 5000}';
+    expect(boundedPreviewSource(keeps400).length, 400);
+    final keeps399 = '${'x' * 398}\n${'y' * 5000}';
+    expect(boundedPreviewSource(keeps399).length, previewSourceLimit);
+  });
+
   testWidgets('highlights a matched word without changing the text', (t) async {
     await t.pumpWidget(
       _wrap(
