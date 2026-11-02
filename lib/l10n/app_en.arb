@@ -1474,5 +1474,7 @@
   "@notesTokenDateRange": {"placeholders": {"from": {"type": "String"}, "to": {"type": "String"}}},
   "notesTokenRemoved": "{label} (removed)",
   "@notesTokenRemoved": {"placeholders": {"label": {"type": "String"}}},
+  "notesTokenRemoveTooltip": "Remove {label}",
+  "@notesTokenRemoveTooltip": {"placeholders": {"label": {"type": "String"}}},
   "notesTokenUnknown": "Unknown filter"
 }

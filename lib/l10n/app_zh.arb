@@ -895,5 +895,6 @@
   "notesTokenTag": "#{name}",
   "notesTokenDateRange": "{from} – {to}",
   "notesTokenRemoved": "{label}（已移除）",
+  "notesTokenRemoveTooltip": "移除{label}",
   "notesTokenUnknown": "未知条件"
 }

@@ -5462,6 +5462,12 @@ abstract class AppLocalizations {
   /// **'{label} (removed)'**
   String notesTokenRemoved(String label);
 
+  /// No description provided for @notesTokenRemoveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {label}'**
+  String notesTokenRemoveTooltip(String label);
+
   /// No description provided for @notesTokenUnknown.
   ///
   /// In en, this message translates to:

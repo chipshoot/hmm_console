@@ -3022,5 +3022,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String notesTokenRemoveTooltip(String label) {
+    return 'Remove $label';
+  }
+
+  @override
   String get notesTokenUnknown => 'Unknown filter';
 }

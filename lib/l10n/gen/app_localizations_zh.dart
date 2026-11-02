@@ -2934,5 +2934,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String notesTokenRemoveTooltip(String label) {
+    return '移除$label';
+  }
+
+  @override
   String get notesTokenUnknown => '未知条件';
 }
