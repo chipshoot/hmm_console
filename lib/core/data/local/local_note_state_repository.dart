@@ -21,6 +21,10 @@ abstract interface class INoteStateRepository {
   /// Every stored state, by note uuid.
   Future<Map<String, NoteState>> getAllStates();
 
+  /// Every stored state, by note uuid — again after every change to the
+  /// table, including writes made by sync.
+  Stream<Map<String, NoteState>> watchAllStates();
+
   /// Pin or unpin. Unpin writes `isPinned = false` (never deletes) so the
   /// change propagates. Keeps the flag.
   Future<NoteState> setPinned(String noteUuid, bool pinned);
@@ -56,6 +60,12 @@ class LocalNoteStateRepository implements INoteStateRepository {
     final rows = await _db.select(_db.noteStates).get();
     return {for (final r in rows) r.noteUuid: _fromRow(r)};
   }
+
+  @override
+  Stream<Map<String, NoteState>> watchAllStates() => _db
+      .select(_db.noteStates)
+      .watch()
+      .map((rows) => {for (final r in rows) r.noteUuid: _fromRow(r)});
 
   @override
   Future<NoteState> setPinned(String noteUuid, bool pinned) async {

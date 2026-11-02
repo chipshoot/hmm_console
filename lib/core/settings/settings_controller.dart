@@ -68,6 +68,8 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       _update(_current.copyWith(launcherRecents: v));
   Future<void> setNotesFilterUsage(Map<String, int> v) =>
       _update(_current.copyWith(notesFilterUsage: v));
+  Future<void> setNotesRowDensity(NoteRowDensity v) =>
+      _update(_current.copyWith(notesRowDensity: v));
   Future<void> setDashboardIntroCardSeen(bool v) =>
       _update(_current.copyWith(dashboardIntroCardSeen: v));
   Future<void> setOnboardingCompleted(bool v) =>
@@ -85,3 +87,8 @@ class SettingsController extends AsyncNotifier<AppSettings> {
 final settingsProvider =
     AsyncNotifierProvider<SettingsController, AppSettings>(
         SettingsController.new);
+
+/// The device's Notes row density; `standard` until settings load.
+final notesRowDensityProvider = Provider<NoteRowDensity>((ref) =>
+    ref.watch(settingsProvider).value?.notesRowDensity ??
+    NoteRowDensity.standard);

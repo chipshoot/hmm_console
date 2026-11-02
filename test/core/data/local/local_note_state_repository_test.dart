@@ -106,4 +106,18 @@ void main() {
     expect(await states.getAllStates(), isEmpty);
     expect(stateWrites, 0);
   });
+
+  test('watchAllStates emits after a sync putState', () async {
+    final seen = <Map<String, NoteState>>[];
+    final sub = states.watchAllStates().listen(seen.add);
+    await pumpEventQueue();
+    await states.putState(NoteState(
+        noteUuid: 'u1',
+        isPinned: true,
+        flagColor: 2,
+        lastModifiedDate: DateTime.utc(2026, 11, 1)));
+    await pumpEventQueue();
+    expect(seen.last['u1']!.isPinned, isTrue);
+    await sub.cancel();
+  });
 }

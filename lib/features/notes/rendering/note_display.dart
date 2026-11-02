@@ -47,6 +47,10 @@ class NoteDisplayRegistry {
     return entry.display(note, l);
   }
 
+  /// Whether [catalogName] has its own presentation (an entity note).
+  bool hasEntry(String? catalogName) =>
+      catalogName != null && _byCatalog.containsKey(catalogName);
+
   /// The title only. Zero work for a catalog without an entry, so the search
   /// and sort paths can call it per note.
   String title(HmmNote note, String? catalogName, AppLocalizations l) {

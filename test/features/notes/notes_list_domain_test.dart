@@ -8,6 +8,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
+import 'package:hmm_console/features/contacts/domain/pinyin_transcriber.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/domain_groups.dart';
+import 'package:hmm_console/features/notes/query/note_query.dart';
+import 'package:hmm_console/features/notes/query/note_query_engine.dart';
+import 'package:hmm_console/features/notes/query/note_text_index.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 
 const _general = 1;
@@ -34,7 +39,7 @@ HmmNote _note(int id, {int? catalogId, int? parentNoteId, String? subject}) =>
     );
 
 /// The car (id 100), the notes hanging off it, and some controls.
-NotesListData _data({Set<int>? filter, String query = ''}) {
+NotesListData _data({NoteQuery query = const NoteQuery.initial()}) {
   final all = [
     _note(100, catalogId: _autoInfo, subject: '2019 Honda Civic'),
     _note(1, catalogId: _general, parentNoteId: 100, subject: 'Winter tyres'),
@@ -51,7 +56,6 @@ NotesListData _data({Set<int>? filter, String query = ''}) {
       _autoInfo: _cat(_autoInfo, 'Hmm.AutomobileMan.AutomobileInfo'),
       _serviceRecord: _cat(_serviceRecord, 'Hmm.AutomobileMan.ServiceRecord'),
     },
-    catalogFilter: filter,
     query: query,
     catalogDomainById: const {
       _general: 'General',
@@ -66,7 +70,44 @@ NotesListData _data({Set<int>? filter, String query = ''}) {
   );
 }
 
-Set<int> ids(List<HmmNote> notes) => notes.map((n) => n.id).toSet();
+Set<int> ids(NotesListData d) {
+  final engine = InMemoryNoteQueryEngine(
+    cache: NoteTextIndexCache(),
+    keyOf: (n) =>
+        (noteId: n.id, version: '', locale: '', parentTitle: '', tags: ''),
+    titleOf: (n) => n.subject,
+    pinyin: _NoPinyin(),
+  );
+  final r = engine.evaluate(
+    d.query,
+    d,
+    now: DateTime(2026, 6, 1),
+    firstDayOfWeek: 1,
+  );
+  return {
+    for (final g in r.groups)
+      for (final h in g.hits) h.note.id,
+  };
+}
+
+class _NoPinyin implements PinyinTranscriber {
+  @override
+  List<String> given(String text) => [text];
+  @override
+  List<String> family(String text) => [text];
+}
+
+final _groups = [
+  DomainGroup('General', [_cat(_general, 'General')], 5),
+  DomainGroup('AutomobileMan', [
+    _cat(_autoInfo, 'Hmm.AutomobileMan.AutomobileInfo'),
+    _cat(_serviceRecord, 'Hmm.AutomobileMan.ServiceRecord'),
+  ], 2),
+];
+
+/// The query the drawer builds for a catalog selection.
+NotesListData _filtered(Set<int> ids) =>
+    _data(query: NoteQuery(source: sourceForCatalogSelection(ids, _groups)));
 
 void main() {
   group('effectiveDomain', () {
@@ -99,40 +140,43 @@ void main() {
 
   group('the Automobile domain filter', () {
     // The drawer selects every catalog in the domain.
-    final automobile = _data(filter: const {_autoInfo, _serviceRecord});
+    final automobile = _filtered(const {_autoInfo, _serviceRecord});
 
     test('shows the car, its service record, its note, the anchor note', () {
-      expect(ids(automobile.visible), {100, 3, 1, 6});
+      expect(ids(automobile), {100, 3, 1, 6});
     });
 
     test('leaves unattached General notes out', () {
-      expect(ids(automobile.visible), isNot(contains(2)));
+      expect(ids(automobile), isNot(contains(2)));
     });
   });
 
   group('the General domain filter', () {
-    final general = _data(filter: const {_general});
+    final general = _filtered(const {_general});
 
     test('a note attached to a car has moved out of General', () {
-      expect(ids(general.visible), isNot(contains(1)));
+      expect(ids(general), isNot(contains(1)));
     });
 
     test('unattached and General-parented notes stay', () {
-      expect(ids(general.visible), containsAll(<int>{2, 4, 5}));
+      expect(ids(general), containsAll(<int>{2, 4, 5}));
     });
   });
 
   test('picking one catalog does not drag in the whole domain', () {
     // Only "Service record" selected: the car itself must not appear.
-    final only = _data(filter: const {_serviceRecord});
-    expect(ids(only.visible), contains(3));
-    expect(ids(only.visible), isNot(contains(100)));
+    final only = _filtered(const {_serviceRecord});
+    expect(ids(only), contains(3));
+    expect(ids(only), isNot(contains(100)));
   });
 
   test('search matches the parent subject as well as the subject', () {
-    expect(ids(_data(query: 'honda').visible), contains(1));
-    expect(ids(_data(query: 'tyres').visible), contains(1));
-    expect(ids(_data(query: 'honda').visible), isNot(contains(2)));
+    expect(ids(_data(query: const NoteQuery(text: 'honda'))), contains(1));
+    expect(ids(_data(query: const NoteQuery(text: 'tyres'))), contains(1));
+    expect(
+      ids(_data(query: const NoteQuery(text: 'honda'))),
+      isNot(contains(2)),
+    );
   });
 
   group('counts agree with what the filter shows', () {
@@ -173,9 +217,13 @@ void main() {
 
     test('the Automobile group count matches what selecting it shows', () {
       final d = onlyCarNotes();
-      final autoSelected = onlyCarNotes().copyWith(catalogFilter: {_autoInfo});
-      expect(d.countsByDomain['AutomobileMan'], autoSelected.visible.length);
-      expect(autoSelected.visible.length, 3); // car + both attached notes
+      final autoSelected = d.copyWith(
+        query: NoteQuery(
+          source: sourceForCatalogSelection({_autoInfo}, _groups),
+        ),
+      );
+      expect(d.countsByDomain['AutomobileMan'], ids(autoSelected).length);
+      expect(ids(autoSelected).length, 3); // car + both attached notes
     });
   });
 }

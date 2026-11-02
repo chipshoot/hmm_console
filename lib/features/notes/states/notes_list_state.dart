@@ -1,14 +1,18 @@
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/local/database.dart';
+import '../../../core/data/local/local_tag_repository.dart' show NoteTagLabel;
 import '../../../core/data/repository_providers.dart';
+import '../../../core/notes/note_state.dart';
 import '../../../core/notes/catalog_palette.dart';
 import '../data/models/hmm_note.dart';
 import '../data/subsystem_anchor.dart';
+import '../presentation/widgets/domain_groups.dart';
+import '../query/note_query.dart';
 
-enum NoteSort { dateNewest, dateOldest, lastModified, subjectAZ }
-
-const Object _unset = Object();
+export '../query/note_query.dart' show NoteSort;
+export '../../../core/data/local/local_tag_repository.dart' show NoteTagLabel;
 
 /// Normalizes a domain key to its subsystem-anchor key form, mirroring how
 /// [CatalogPalette.domainStyle] strips a trailing "Man": `AutomobileMan` ->
@@ -27,9 +31,9 @@ class NotesListData {
   const NotesListData({
     required this.all,
     required this.catalogsById,
-    this.catalogFilter,
-    this.sort = NoteSort.dateNewest,
-    this.query = '',
+    this.statesByUuid = const {},
+    this.tagsByNoteId = const {},
+    this.query = const NoteQuery.initial(),
     this.catalogDomainById = const {},
     this.anchorDomainById = const {},
     this.targetsById = const {},
@@ -37,9 +41,18 @@ class NotesListData {
 
   final List<HmmNote> all;
   final Map<int, NoteCatalog> catalogsById;
-  final Set<int>? catalogFilter; // null = all
-  final NoteSort sort;
-  final String query;
+
+  /// Pin + flag per note uuid (G14); a note without a row has none.
+  final Map<String, NoteState> statesByUuid;
+
+  /// Note id -> its active tags, by name.
+  final Map<int, List<NoteTagLabel>> tagsByNoteId;
+
+  /// What the list is asked to show; lives on the notifier.
+  final NoteQuery query;
+
+  NoteState stateOf(HmmNote n) =>
+      statesByUuid[n.uuid] ?? NoteState.none(n.uuid);
 
   /// catalog id -> its domain key (e.g. `Hmm.AutomobileMan.GasLog` ->
   /// `AutomobileMan`). Lets the filter resolve a selection back to domains.
@@ -57,8 +70,7 @@ class NotesListData {
 
   /// Per-catalog counts, for the filter sheet's individual catalog rows.
   /// A note attached to something in another domain no longer tallies under
-  /// its own catalog here (it filters under that domain instead — see
-  /// [visible] — so counting it here would show a catalog whose filter
+  /// its own catalog here (it filters under that domain instead, so counting it here would show a catalog whose filter
   /// returns nothing); use [countsByDomain] for domain-level aggregates.
   Map<int, int> get countsByCatalog {
     final m = <int, int>{};
@@ -72,7 +84,7 @@ class NotesListData {
     return m;
   }
 
-  /// Per-domain counts, agreeing with what [visible] returns when a whole
+  /// Per-domain counts, agreeing with what selecting a whole domain shows when a whole
   /// domain is selected: each note counts under [effectiveDomain], not its
   /// own catalog's domain. Drives the filter sheet's domain subtitle and the
   /// drawer's sort order, so a domain's displayed count never disagrees with
@@ -109,84 +121,12 @@ class NotesListData {
     return p == null ? null : targetsById[p]?.subject;
   }
 
-  List<HmmNote> get visible => visibleFor();
-
-  /// [visible], matching and sorting by [titleOf] (the title the row shows)
-  /// instead of the raw subject. The subject of a contact or cheatsheet note
-  /// is an id, so searching it would hide the note behind text nobody sees.
-  List<HmmNote> visibleFor({String Function(HmmNote)? titleOf}) {
-    // Each title is computed once per call; the sort comparator and the
-    // search would otherwise recompute (and re-decode) it per comparison.
-    final titles = titleOf == null
-        ? null
-        : {for (final n in all) n.id: titleOf(n)};
-    String titleFor(HmmNote n) => titles?[n.id] ?? n.subject;
-    String? contextTitleOf(HmmNote n) {
-      final p = n.parentNoteId;
-      return (p == null ? null : titles?[p]) ?? contextSubjectOf(n);
-    }
-    Iterable<HmmNote> items = all;
-    final f = catalogFilter;
-    if (f != null && f.isNotEmpty) {
-      // Domains represented by the selected catalogs. A note matches if its
-      // catalog is selected OR it's attached to something whose domain is
-      // among them (so "Automobile" surfaces notes attached to the
-      // automobile subsystem, not just automobile-catalog notes).
-      final selectedDomains = <String>{
-        for (final id in f)
-          if (catalogDomainById[id] != null) catalogDomainById[id]!,
-      };
-      items = items.where((n) {
-        final own = ownDomainOf(n);
-        final parent = parentDomainOf(n);
-        // Attached to something in ANOTHER domain — a General note under a
-        // car. It lives there and nowhere else, so General keeps meaning
-        // "attached to nothing in particular". This is what the code already
-        // did for notes attached to a subsystem anchor; cars now count too.
-        if (parent != null && parent != own) {
-          return selectedDomains.contains(parent);
-        }
-        // Otherwise the note is a record of its own domain, so it filters by
-        // its exact catalog: picking "Insurance" must not drag in every note
-        // that happens to hang off a car.
-        return n.catalogId != null && f.contains(n.catalogId);
-      });
-    }
-    final q = query.trim().toLowerCase();
-    if (q.isNotEmpty) {
-      items = items.where(
-        (n) =>
-            titleFor(n).toLowerCase().contains(q) ||
-            (contextTitleOf(n)?.toLowerCase().contains(q) ?? false),
-      );
-    }
-    final list = items.toList();
-    switch (sort) {
-      case NoteSort.dateNewest:
-        list.sort((a, b) => b.effectiveNoteDate.compareTo(a.effectiveNoteDate));
-      case NoteSort.dateOldest:
-        list.sort((a, b) => a.effectiveNoteDate.compareTo(b.effectiveNoteDate));
-      case NoteSort.lastModified:
-        list.sort(
-          (a, b) => (b.lastModifiedDate ?? b.effectiveNoteDate).compareTo(
-            a.lastModifiedDate ?? a.effectiveNoteDate,
-          ),
-        );
-      case NoteSort.subjectAZ:
-        list.sort(
-          (a, b) =>
-              titleFor(a).toLowerCase().compareTo(titleFor(b).toLowerCase()),
-        );
-    }
-    return list;
-  }
-
   NotesListData copyWith({
     List<HmmNote>? all,
     Map<int, NoteCatalog>? catalogsById,
-    Object? catalogFilter = _unset,
-    NoteSort? sort,
-    String? query,
+    Map<String, NoteState>? statesByUuid,
+    Map<int, List<NoteTagLabel>>? tagsByNoteId,
+    NoteQuery? query,
     Map<int, String>? catalogDomainById,
     Map<int, String>? anchorDomainById,
     Map<int, AttachTarget>? targetsById,
@@ -194,16 +134,43 @@ class NotesListData {
     return NotesListData(
       all: all ?? this.all,
       catalogsById: catalogsById ?? this.catalogsById,
-      catalogFilter: identical(catalogFilter, _unset)
-          ? this.catalogFilter
-          : catalogFilter as Set<int>?,
-      sort: sort ?? this.sort,
+      statesByUuid: statesByUuid ?? this.statesByUuid,
+      tagsByNoteId: tagsByNoteId ?? this.tagsByNoteId,
       query: query ?? this.query,
       catalogDomainById: catalogDomainById ?? this.catalogDomainById,
       anchorDomainById: anchorDomainById ?? this.anchorDomainById,
       targetsById: targetsById ?? this.targetsById,
     );
   }
+}
+
+/// The query source for a catalog multi-selection from the filter UI: none
+/// is [AllSource]; a whole group is its domain; one catalog of a group is
+/// that catalog within the domain; anything else cannot be expressed.
+NoteSource sourceForCatalogSelection(Set<int>? ids, List<DomainGroup> groups) {
+  if (ids == null || ids.isEmpty) return const AllSource();
+  for (final g in groups) {
+    if (setEquals(ids, g.catalogIds)) return DomainSource(key: g.key);
+  }
+  if (ids.length == 1) {
+    final id = ids.first;
+    for (final g in groups) {
+      if (g.catalogIds.contains(id)) {
+        return DomainSource(key: g.key, catalogId: id);
+      }
+    }
+  }
+  return const AllSource();
+}
+
+/// Inverse of [sourceForCatalogSelection]; null for non-domain sources.
+Set<int>? catalogSelectionFor(NoteSource s, List<DomainGroup> groups) {
+  if (s is! DomainSource) return null;
+  if (s.catalogId != null) return {s.catalogId!};
+  for (final g in groups) {
+    if (g.key == s.key) return g.catalogIds;
+  }
+  return null;
 }
 
 /// Reactive feed of the current author's live notes. Emits on every change to
@@ -221,17 +188,27 @@ final _catalogsStreamProvider = StreamProvider.autoDispose<List<NoteCatalog>>((
   return ref.watch(noteCatalogRepositoryProvider).watchCatalogs();
 });
 
+final _statesStreamProvider =
+    StreamProvider.autoDispose<Map<String, NoteState>>((ref) {
+      return ref.watch(noteStateRepositoryProvider).watchAllStates();
+    });
+
+final _noteTagsStreamProvider =
+    StreamProvider.autoDispose<Map<int, List<NoteTagLabel>>>((ref) {
+      return ref.watch(tagRepositoryProvider).watchNoteTags();
+    });
+
 class NotesListState extends AsyncNotifier<NotesListData> {
   // View criteria live on the notifier so they survive reactive data
   // emissions (which refresh the data, not the user's filter/sort/search).
-  Set<int>? _filter;
-  NoteSort _sort = NoteSort.dateNewest;
-  String _query = '';
+  NoteQuery _query = const NoteQuery.initial();
 
   @override
   Future<NotesListData> build() async {
     final notes = await ref.watch(_notesStreamProvider.future);
     final catalogs = await ref.watch(_catalogsStreamProvider.future);
+    final states = await ref.watch(_statesStreamProvider.future);
+    final tags = await ref.watch(_noteTagsStreamProvider.future);
     final anchorMatches = catalogs.where(
       (c) => c.name == kSubsystemAnchorCatalogName,
     );
@@ -281,8 +258,8 @@ class NotesListState extends AsyncNotifier<NotesListData> {
     return NotesListData(
       all: visibleNotes,
       catalogsById: byId,
-      catalogFilter: _filter,
-      sort: _sort,
+      statesByUuid: states,
+      tagsByNoteId: tags,
       query: _query,
       catalogDomainById: catalogDomainById,
       anchorDomainById: anchorDomainById,
@@ -290,29 +267,26 @@ class NotesListState extends AsyncNotifier<NotesListData> {
     );
   }
 
-  void setSort(NoteSort sort) {
-    _sort = sort;
-    final v = state.value;
-    if (v != null) state = AsyncData(v.copyWith(sort: sort));
-  }
-
-  void setQuery(String query) {
+  void setQuery(NoteQuery query) {
     _query = query;
     final v = state.value;
     if (v != null) state = AsyncData(v.copyWith(query: query));
   }
 
-  void setFilter(Set<int>? catalogIds) {
-    _filter = catalogIds;
-    final v = state.value;
-    if (v != null) state = AsyncData(v.copyWith(catalogFilter: catalogIds));
-  }
+  void setText(String text) => setQuery(_query.copyWith(text: text));
+
+  void setSort(NoteSort sort) => setQuery(_query.copyWith(sort: sort));
+
+  void setSource(NoteSource source) =>
+      setQuery(_query.copyWith(source: source));
 
   /// Pull-to-refresh hook. The list already updates reactively, so this just
   /// re-subscribes the underlying streams; harmless if invoked.
   Future<void> refresh() async {
     ref.invalidate(_notesStreamProvider);
     ref.invalidate(_catalogsStreamProvider);
+    ref.invalidate(_statesStreamProvider);
+    ref.invalidate(_noteTagsStreamProvider);
   }
 }
 

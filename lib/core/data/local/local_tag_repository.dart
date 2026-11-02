@@ -3,7 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'database.dart';
 
+/// A tag as the notes list shows it.
+typedef NoteTagLabel = ({int id, String name});
+
 abstract interface class ITagRepository {
+  /// Note id -> its active, non-deleted tags sorted by name; re-emits when
+  /// tags or tag references change.
+  Stream<Map<int, List<NoteTagLabel>>> watchNoteTags();
+
   Future<List<Tag>> getTags();
 
   Future<Tag?> getTagById(int id);
@@ -27,6 +34,27 @@ class LocalTagRepository implements ITagRepository {
   LocalTagRepository(this._db);
 
   final HmmDatabase _db;
+
+  @override
+  Stream<Map<int, List<NoteTagLabel>>> watchNoteTags() {
+    final query = _db.select(_db.noteTagRefs).join([
+      innerJoin(_db.tags, _db.tags.id.equalsExp(_db.noteTagRefs.tagId)),
+    ])
+      ..where(_db.tags.isActivated.equals(true) & _db.tags.deletedAt.isNull());
+    return query.watch().map((rows) {
+      final byNote = <int, List<NoteTagLabel>>{};
+      for (final r in rows) {
+        final tag = r.readTable(_db.tags);
+        byNote
+            .putIfAbsent(r.readTable(_db.noteTagRefs).noteId, () => [])
+            .add((id: tag.id, name: tag.name));
+      }
+      for (final l in byNote.values) {
+        l.sort((a, b) => a.name.compareTo(b.name));
+      }
+      return byNote;
+    });
+  }
 
   @override
   Future<List<Tag>> getTags() async {

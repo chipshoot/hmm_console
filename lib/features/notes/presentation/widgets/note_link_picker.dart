@@ -86,8 +86,12 @@ class _NoteLinkPickerState extends ConsumerState<_NoteLinkPicker> {
         .toList();
     if (items.isEmpty) {
       return Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(child: Text(l.notesNoMatches)),
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Text(
+            q.isEmpty ? l.notesEmpty : l.notesNoMatches(_query.trim()),
+          ),
+        ),
       );
     }
     return ListView.builder(

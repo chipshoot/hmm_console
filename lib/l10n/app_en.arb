@@ -296,15 +296,8 @@
   "domainGeneral": "General",
   "domainOther": "Other",
   "notesTitle": "Notes",
-  "notesSearchHint": "Search subjects",
-  "notesLoadFailed": "Failed to load notes: {error}",
-  "@notesLoadFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
+  "notesSearchHint": "Search notes",
+  "notesLoadFailed": "Couldn't load your notes",
   "notesFilter": "FILTER",
   "notesAll": "All",
   "notesAllNotes": "All notes",
@@ -328,7 +321,14 @@
   "notesNone": "None",
   "notesEmpty": "No notes yet",
   "notesNoUnattached": "No unattached notes",
-  "notesNoMatches": "No notes",
+  "notesNoMatches": "No notes match “{query}”",
+  "@notesNoMatches": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "notesSearchNotes": "Search notes",
   "notesLinkedUnavailable": "Linked note unavailable",
   "notesGenericFailure": "Failed: {error}",
@@ -1391,5 +1391,70 @@
   "helpNoteDetailDeleteTitle": "Delete",
   "helpNoteDetailDeleteBody": "Deletes the note. Tap Undo in the message to bring it back right away. Deleted notes are removed for good after 30 days.",
   "helpNoteDetailManageTitle": "Manage in …",
-  "helpNoteDetailManageBody": "Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here."
+  "helpNoteDetailManageBody": "Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here.",
+  "notesDensityCompact": "Compact",
+  "notesDensityStandard": "Standard",
+  "notesDensityRich": "Rich",
+  "notesRowSemantics": "{title}, {date}",
+  "@notesRowSemantics": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRowSemanticsFlagged": "flagged {color}",
+  "@notesRowSemanticsFlagged": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRowSemanticsPinned": "pinned",
+  "notesRowMoreTags": "+{count}",
+  "@notesRowMoreTags": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "notesViewTooltip": "View",
+  "notesFilterTooltip": "Filter",
+  "notesFiltered": "Filtered",
+  "notesSearchClearTooltip": "Clear search",
+  "notesSearchClearAction": "Clear search",
+  "notesNoneInView": "No notes here",
+  "notesRetry": "Retry",
+  "notesGroupPinned": "Pinned",
+  "notesGroupToday": "Today",
+  "notesGroupYesterday": "Yesterday",
+  "notesGroupThisWeek": "This week",
+  "notesGroupThisMonth": "This month",
+  "notesGroupUnflagged": "Unflagged",
+  "notesSortDateNewest": "Date — newest first",
+  "notesSortDateOldest": "Date — oldest first",
+  "notesSortLastModified": "Last modified",
+  "notesSortTitle": "Title — A → Z",
+  "notesSortFlag": "Flag colour",
+  "notesViewRows": "Rows",
+  "notesViewSort": "Sort",
+  "helpNotesListTitle": "Notes",
+  "helpNotesListSummary": "Every note in one list, grouped by date, title or flag. Search, filter and choose how rows look from the top bar. Pull down to sync.",
+  "helpNotesListViewTitle": "View",
+  "helpNotesListViewBody": "Choose how much each row shows (compact, standard or rich) and how the list is sorted: by date, last modified, title or flag colour. Row style is kept on this device.",
+  "helpNotesListPinnedTitle": "Pinned section",
+  "helpNotesListPinnedBody": "Pinned notes that match the current filter and search sit at the top of every sort, and are not repeated further down. Pin a note from its ⋯ menu.",
+  "helpNotesListDatesTitle": "Date sections",
+  "helpNotesListDatesBody": "When sorted by date, notes are grouped into Today, Yesterday, This week, This month and then by month. The section header stays at the top while you scroll through it.",
+  "helpNotesListFlagsTitle": "Flags",
+  "helpNotesListFlagsBody": "A flag marks a note with a colour. Sort by flag colour to group flagged notes by colour, with unflagged notes last.",
+  "helpNotesListSearchTitle": "Search",
+  "helpNotesListSearchBody": "Type to search titles, text, tags and what a note is attached to. Matches are highlighted. The search stays applied when you come back; clear it with the × in the box.",
+  "helpNotesListFilterTitle": "Filter",
+  "helpNotesListFilterBody": "Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind."
 }

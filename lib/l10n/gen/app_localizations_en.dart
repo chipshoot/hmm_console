@@ -500,12 +500,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesTitle => 'Notes';
 
   @override
-  String get notesSearchHint => 'Search subjects';
+  String get notesSearchHint => 'Search notes';
 
   @override
-  String notesLoadFailed(String error) {
-    return 'Failed to load notes: $error';
-  }
+  String get notesLoadFailed => 'Couldn\'t load your notes';
 
   @override
   String get notesFilter => 'FILTER';
@@ -545,7 +543,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesNoUnattached => 'No unattached notes';
 
   @override
-  String get notesNoMatches => 'No notes';
+  String notesNoMatches(String query) {
+    return 'No notes match “$query”';
+  }
 
   @override
   String get notesSearchNotes => 'Search notes';
@@ -2838,4 +2838,140 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNoteDetailManageBody =>
       'Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here.';
+
+  @override
+  String get notesDensityCompact => 'Compact';
+
+  @override
+  String get notesDensityStandard => 'Standard';
+
+  @override
+  String get notesDensityRich => 'Rich';
+
+  @override
+  String notesRowSemantics(String title, String date) {
+    return '$title, $date';
+  }
+
+  @override
+  String notesRowSemanticsFlagged(String color) {
+    return 'flagged $color';
+  }
+
+  @override
+  String get notesRowSemanticsPinned => 'pinned';
+
+  @override
+  String notesRowMoreTags(String count) {
+    return '+$count';
+  }
+
+  @override
+  String get notesViewTooltip => 'View';
+
+  @override
+  String get notesFilterTooltip => 'Filter';
+
+  @override
+  String get notesFiltered => 'Filtered';
+
+  @override
+  String get notesSearchClearTooltip => 'Clear search';
+
+  @override
+  String get notesSearchClearAction => 'Clear search';
+
+  @override
+  String get notesNoneInView => 'No notes here';
+
+  @override
+  String get notesRetry => 'Retry';
+
+  @override
+  String get notesGroupPinned => 'Pinned';
+
+  @override
+  String get notesGroupToday => 'Today';
+
+  @override
+  String get notesGroupYesterday => 'Yesterday';
+
+  @override
+  String get notesGroupThisWeek => 'This week';
+
+  @override
+  String get notesGroupThisMonth => 'This month';
+
+  @override
+  String get notesGroupUnflagged => 'Unflagged';
+
+  @override
+  String get notesSortDateNewest => 'Date — newest first';
+
+  @override
+  String get notesSortDateOldest => 'Date — oldest first';
+
+  @override
+  String get notesSortLastModified => 'Last modified';
+
+  @override
+  String get notesSortTitle => 'Title — A → Z';
+
+  @override
+  String get notesSortFlag => 'Flag colour';
+
+  @override
+  String get notesViewRows => 'Rows';
+
+  @override
+  String get notesViewSort => 'Sort';
+
+  @override
+  String get helpNotesListTitle => 'Notes';
+
+  @override
+  String get helpNotesListSummary =>
+      'Every note in one list, grouped by date, title or flag. Search, filter and choose how rows look from the top bar. Pull down to sync.';
+
+  @override
+  String get helpNotesListViewTitle => 'View';
+
+  @override
+  String get helpNotesListViewBody =>
+      'Choose how much each row shows (compact, standard or rich) and how the list is sorted: by date, last modified, title or flag colour. Row style is kept on this device.';
+
+  @override
+  String get helpNotesListPinnedTitle => 'Pinned section';
+
+  @override
+  String get helpNotesListPinnedBody =>
+      'Pinned notes that match the current filter and search sit at the top of every sort, and are not repeated further down. Pin a note from its ⋯ menu.';
+
+  @override
+  String get helpNotesListDatesTitle => 'Date sections';
+
+  @override
+  String get helpNotesListDatesBody =>
+      'When sorted by date, notes are grouped into Today, Yesterday, This week, This month and then by month. The section header stays at the top while you scroll through it.';
+
+  @override
+  String get helpNotesListFlagsTitle => 'Flags';
+
+  @override
+  String get helpNotesListFlagsBody =>
+      'A flag marks a note with a colour. Sort by flag colour to group flagged notes by colour, with unflagged notes last.';
+
+  @override
+  String get helpNotesListSearchTitle => 'Search';
+
+  @override
+  String get helpNotesListSearchBody =>
+      'Type to search titles, text, tags and what a note is attached to. Matches are highlighted. The search stays applied when you come back; clear it with the × in the box.';
+
+  @override
+  String get helpNotesListFilterTitle => 'Filter';
+
+  @override
+  String get helpNotesListFilterBody =>
+      'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.';
 }

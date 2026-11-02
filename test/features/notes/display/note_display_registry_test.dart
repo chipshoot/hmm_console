@@ -6,6 +6,10 @@ import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.d
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/features/contacts/domain/pinyin_transcriber.dart';
+import 'package:hmm_console/features/notes/query/note_query.dart';
+import 'package:hmm_console/features/notes/query/note_query_engine.dart';
+import 'package:hmm_console/features/notes/query/note_text_index.dart';
 import 'package:hmm_console/features/notes/rendering/note_display.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -135,13 +139,22 @@ void main() {
       final data = NotesListData(
         all: notes,
         catalogsById: const {1: generalCatalog, 2: xCatalog},
-        sort: NoteSort.subjectAZ,
-        query: 't',
+        query: const NoteQuery(sort: NoteSort.subjectAZ, text: 't'),
       );
-      final out = data.visibleFor(
+      final engine = InMemoryNoteQueryEngine(
+        cache: NoteTextIndexCache(),
+        keyOf: (n) =>
+            (noteId: n.id, version: '', locale: '', parentTitle: '', tags: ''),
         titleOf: (n) => r.title(n, data.catalogsById[n.catalogId]?.name, l),
+        pinyin: _NoPinyin(),
       );
-      expect(out, hasLength(10));
+      final out = engine.evaluate(
+        data.query,
+        data,
+        now: DateTime(2026, 6, 1),
+        firstDayOfWeek: 1,
+      );
+      expect(out.total, 10);
       expect(counting.calls, 10); // once per X note, not per comparison
       expect(r.title(notes.first, 'General', l), 's0');
       expect(counting.calls, 10);
@@ -156,6 +169,13 @@ const xCatalog = NoteCatalog(
   formatType: 0,
   isDefault: false,
 );
+
+class _NoPinyin implements PinyinTranscriber {
+  @override
+  List<String> given(String text) => [text];
+  @override
+  List<String> family(String text) => [text];
+}
 
 class _CountingEntry implements NoteDisplayEntry {
   int calls = 0;

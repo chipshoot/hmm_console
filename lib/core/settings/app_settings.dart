@@ -1,6 +1,9 @@
 import '../data/data_mode.dart';
 import '../../features/receipt_scan/domain/receipt_draft.dart';
 
+/// How much each Notes list row shows. Per device.
+enum NoteRowDensity { compact, standard, rich }
+
 /// One immutable, typed document holding every device-local setting. Persisted
 /// as a single JSON blob (see SettingsController). Roaming settings and secrets
 /// are NOT here.
@@ -13,6 +16,7 @@ class AppSettings {
     this.receiptCloudConsent = false,
     this.launcherRecents = const [],
     this.notesFilterUsage = const {},
+    this.notesRowDensity = NoteRowDensity.standard,
     this.dashboardIntroCardSeen = false,
     this.onboardingCompleted = false,
     this.quickPanelEnabled = true,
@@ -32,6 +36,7 @@ class AppSettings {
   final bool receiptCloudConsent;
   final List<String> launcherRecents;
   final Map<String, int> notesFilterUsage;
+  final NoteRowDensity notesRowDensity;
   final bool dashboardIntroCardSeen;
   final bool onboardingCompleted;
   final bool quickPanelEnabled;
@@ -65,6 +70,10 @@ class AppSettings {
       receiptCloudConsent: j['receiptCloudConsent'] as bool? ?? false,
       launcherRecents: recents,
       notesFilterUsage: usage,
+      notesRowDensity: NoteRowDensity.values.firstWhere(
+        (d) => d.name == j['notesRowDensity'],
+        orElse: () => NoteRowDensity.standard,
+      ),
       dashboardIntroCardSeen: j['dashboardIntroCardSeen'] as bool? ?? false,
       onboardingCompleted: j['onboardingCompleted'] as bool? ?? false,
       quickPanelEnabled: j['quickPanelEnabled'] as bool? ?? true,
@@ -84,6 +93,7 @@ class AppSettings {
         'receiptCloudConsent': receiptCloudConsent,
         'launcherRecents': launcherRecents,
         'notesFilterUsage': notesFilterUsage,
+        'notesRowDensity': notesRowDensity.name,
         'dashboardIntroCardSeen': dashboardIntroCardSeen,
         'onboardingCompleted': onboardingCompleted,
         'quickPanelEnabled': quickPanelEnabled,
@@ -102,6 +112,7 @@ class AppSettings {
     bool? receiptCloudConsent,
     List<String>? launcherRecents,
     Map<String, int>? notesFilterUsage,
+    NoteRowDensity? notesRowDensity,
     bool? dashboardIntroCardSeen,
     bool? onboardingCompleted,
     bool? quickPanelEnabled,
@@ -117,6 +128,7 @@ class AppSettings {
         receiptCloudConsent: receiptCloudConsent ?? this.receiptCloudConsent,
         launcherRecents: launcherRecents ?? this.launcherRecents,
         notesFilterUsage: notesFilterUsage ?? this.notesFilterUsage,
+        notesRowDensity: notesRowDensity ?? this.notesRowDensity,
         dashboardIntroCardSeen:
             dashboardIntroCardSeen ?? this.dashboardIntroCardSeen,
         onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,

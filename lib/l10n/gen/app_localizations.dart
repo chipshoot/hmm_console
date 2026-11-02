@@ -899,14 +899,14 @@ abstract class AppLocalizations {
   /// No description provided for @notesSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search subjects'**
+  /// **'Search notes'**
   String get notesSearchHint;
 
   /// No description provided for @notesLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Failed to load notes: {error}'**
-  String notesLoadFailed(String error);
+  /// **'Couldn\'t load your notes'**
+  String get notesLoadFailed;
 
   /// No description provided for @notesFilter.
   ///
@@ -965,8 +965,8 @@ abstract class AppLocalizations {
   /// No description provided for @notesNoMatches.
   ///
   /// In en, this message translates to:
-  /// **'No notes'**
-  String get notesNoMatches;
+  /// **'No notes match “{query}”'**
+  String notesNoMatches(String query);
 
   /// No description provided for @notesSearchNotes.
   ///
@@ -5143,6 +5143,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contacts, cheatsheet cards, cars, gas logs and other records are deleted from their own screens, not from Notes. Pin and flag still work here.'**
   String get helpNoteDetailManageBody;
+
+  /// No description provided for @notesDensityCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get notesDensityCompact;
+
+  /// No description provided for @notesDensityStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get notesDensityStandard;
+
+  /// No description provided for @notesDensityRich.
+  ///
+  /// In en, this message translates to:
+  /// **'Rich'**
+  String get notesDensityRich;
+
+  /// No description provided for @notesRowSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}, {date}'**
+  String notesRowSemantics(String title, String date);
+
+  /// No description provided for @notesRowSemanticsFlagged.
+  ///
+  /// In en, this message translates to:
+  /// **'flagged {color}'**
+  String notesRowSemanticsFlagged(String color);
+
+  /// No description provided for @notesRowSemanticsPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'pinned'**
+  String get notesRowSemanticsPinned;
+
+  /// No description provided for @notesRowMoreTags.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String notesRowMoreTags(String count);
+
+  /// No description provided for @notesViewTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get notesViewTooltip;
+
+  /// No description provided for @notesFilterTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get notesFilterTooltip;
+
+  /// No description provided for @notesFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'Filtered'**
+  String get notesFiltered;
+
+  /// No description provided for @notesSearchClearTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get notesSearchClearTooltip;
+
+  /// No description provided for @notesSearchClearAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get notesSearchClearAction;
+
+  /// No description provided for @notesNoneInView.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes here'**
+  String get notesNoneInView;
+
+  /// No description provided for @notesRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get notesRetry;
+
+  /// No description provided for @notesGroupPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get notesGroupPinned;
+
+  /// No description provided for @notesGroupToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get notesGroupToday;
+
+  /// No description provided for @notesGroupYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get notesGroupYesterday;
+
+  /// No description provided for @notesGroupThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get notesGroupThisWeek;
+
+  /// No description provided for @notesGroupThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get notesGroupThisMonth;
+
+  /// No description provided for @notesGroupUnflagged.
+  ///
+  /// In en, this message translates to:
+  /// **'Unflagged'**
+  String get notesGroupUnflagged;
+
+  /// No description provided for @notesSortDateNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Date — newest first'**
+  String get notesSortDateNewest;
+
+  /// No description provided for @notesSortDateOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Date — oldest first'**
+  String get notesSortDateOldest;
+
+  /// No description provided for @notesSortLastModified.
+  ///
+  /// In en, this message translates to:
+  /// **'Last modified'**
+  String get notesSortLastModified;
+
+  /// No description provided for @notesSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title — A → Z'**
+  String get notesSortTitle;
+
+  /// No description provided for @notesSortFlag.
+  ///
+  /// In en, this message translates to:
+  /// **'Flag colour'**
+  String get notesSortFlag;
+
+  /// No description provided for @notesViewRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows'**
+  String get notesViewRows;
+
+  /// No description provided for @notesViewSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get notesViewSort;
+
+  /// No description provided for @helpNotesListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get helpNotesListTitle;
+
+  /// No description provided for @helpNotesListSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Every note in one list, grouped by date, title or flag. Search, filter and choose how rows look from the top bar. Pull down to sync.'**
+  String get helpNotesListSummary;
+
+  /// No description provided for @helpNotesListViewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get helpNotesListViewTitle;
+
+  /// No description provided for @helpNotesListViewBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how much each row shows (compact, standard or rich) and how the list is sorted: by date, last modified, title or flag colour. Row style is kept on this device.'**
+  String get helpNotesListViewBody;
+
+  /// No description provided for @helpNotesListPinnedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned section'**
+  String get helpNotesListPinnedTitle;
+
+  /// No description provided for @helpNotesListPinnedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned notes that match the current filter and search sit at the top of every sort, and are not repeated further down. Pin a note from its ⋯ menu.'**
+  String get helpNotesListPinnedBody;
+
+  /// No description provided for @helpNotesListDatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Date sections'**
+  String get helpNotesListDatesTitle;
+
+  /// No description provided for @helpNotesListDatesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When sorted by date, notes are grouped into Today, Yesterday, This week, This month and then by month. The section header stays at the top while you scroll through it.'**
+  String get helpNotesListDatesBody;
+
+  /// No description provided for @helpNotesListFlagsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Flags'**
+  String get helpNotesListFlagsTitle;
+
+  /// No description provided for @helpNotesListFlagsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A flag marks a note with a colour. Sort by flag colour to group flagged notes by colour, with unflagged notes last.'**
+  String get helpNotesListFlagsBody;
+
+  /// No description provided for @helpNotesListSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get helpNotesListSearchTitle;
+
+  /// No description provided for @helpNotesListSearchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to search titles, text, tags and what a note is attached to. Matches are highlighted. The search stays applied when you come back; clear it with the × in the box.'**
+  String get helpNotesListSearchBody;
+
+  /// No description provided for @helpNotesListFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get helpNotesListFilterTitle;
+
+  /// No description provided for @helpNotesListFilterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.'**
+  String get helpNotesListFilterBody;
 }
 
 class _AppLocalizationsDelegate
