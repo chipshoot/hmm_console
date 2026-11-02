@@ -3,6 +3,8 @@
 /// [extra] and re-emitted.
 library;
 
+import 'package:flutter/foundation.dart';
+
 import 'note_query.dart';
 
 class SavedSearch {
@@ -67,7 +69,12 @@ List<SavedSearch> parseSavedSearches(Object? json) {
     if (e is! Map) continue;
     if (e['id'] is! String || e['name'] is! String) continue;
     if (e.keys.any((k) => k is! String)) continue;
-    out.add(SavedSearch.fromJson(e.map((k, v) => MapEntry(k as String, v))));
+    try {
+      out.add(SavedSearch.fromJson(e.map((k, v) => MapEntry(k as String, v))));
+    } catch (err) {
+      // One corrupt entry must not lose the rest. Type only: user content.
+      debugPrint('SavedSearches: skipped entry (${err.runtimeType})');
+    }
   }
   return out;
 }

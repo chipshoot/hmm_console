@@ -14,11 +14,16 @@ import '../query/saved_search.dart';
 /// `ContactSortByNotifier`: a synchronous `[]`, hydrated from prefs, and
 /// re-read when a pulled settings bundle bumps the bus.
 class SavedSearchesNotifier extends Notifier<List<SavedSearch>> {
+  /// The last list published; the notifier instance outlives rebuilds.
+  List<SavedSearch> _shown = const [];
+
   @override
   List<SavedSearch> build() {
     ref.watch(settingsBusProvider);
     _hydrate();
-    return const [];
+    // Keep what is shown while a rebuild re-reads, so an open saved search
+    // does not flash as deleted.
+    return _shown;
   }
 
   Future<List<SavedSearch>> _readPrefs() async {
@@ -39,6 +44,7 @@ class SavedSearchesNotifier extends Notifier<List<SavedSearch>> {
   Future<void> _hydrate() async {
     final list = await _readPrefs();
     if (!ref.mounted) return;
+    _shown = list;
     state = list;
   }
 
@@ -51,6 +57,7 @@ class SavedSearchesNotifier extends Notifier<List<SavedSearch>> {
       for (var i = 0; i < list.length; i++)
         list[i].order == i ? list[i] : list[i].copyWith(order: i),
     ];
+    _shown = renumbered;
     state = renumbered;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(

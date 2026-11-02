@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
+import 'package:hmm_console/features/settings/providers/settings_bus_provider.dart';
 import 'package:hmm_console/features/notes/states/saved_searches_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -79,5 +80,19 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 5));
     await n.rename(a.id, 'A2');
     expect(await _stamp(), isNot(first));
+  });
+
+  test('a settings-bus rebuild keeps the list while it re-reads', () async {
+    final c = await _make();
+    final n = c.read(savedSearchesProvider.notifier);
+    await n.add('A', const NoteQuery.initial());
+    expect(c.read(savedSearchesProvider), hasLength(1));
+
+    c.read(settingsBusProvider.notifier).bump();
+    // Synchronously after the bump: the previous list, not a transient [].
+    expect(c.read(savedSearchesProvider), hasLength(1));
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(c.read(savedSearchesProvider).map((s) => s.name), ['A']);
   });
 }
