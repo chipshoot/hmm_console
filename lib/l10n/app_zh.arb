@@ -910,6 +910,8 @@
   "notesSaveSearchNameLabel": "名称",
   "notesSaveSearchSave": "保存",
   "notesSavedSearchSaved": "已保存“{name}”",
+  "notesSavedSearchSaveFailed": "无法保存搜索",
+  "notesSavedSearchUpdateFailed": "无法更新已保存的搜索",
   "notesSavedSearchesHeader": "已保存的搜索",
   "notesSavedSearchRename": "重命名",
   "notesSavedSearchRenameTitle": "重命名已保存的搜索",

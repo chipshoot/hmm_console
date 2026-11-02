@@ -5552,6 +5552,18 @@ abstract class AppLocalizations {
   /// **'Saved \"{name}\"'**
   String notesSavedSearchSaved(String name);
 
+  /// No description provided for @notesSavedSearchSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the search'**
+  String get notesSavedSearchSaveFailed;
+
+  /// No description provided for @notesSavedSearchUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the saved search'**
+  String get notesSavedSearchUpdateFailed;
+
   /// No description provided for @notesSavedSearchesHeader.
   ///
   /// In en, this message translates to:

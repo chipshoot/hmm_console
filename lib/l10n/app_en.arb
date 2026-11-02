@@ -1492,6 +1492,8 @@
   "notesSaveSearchSave": "Save",
   "notesSavedSearchSaved": "Saved \"{name}\"",
   "@notesSavedSearchSaved": {"placeholders": {"name": {"type": "String"}}},
+  "notesSavedSearchSaveFailed": "Couldn't save the search",
+  "notesSavedSearchUpdateFailed": "Couldn't update the saved search",
   "notesSavedSearchesHeader": "Saved searches",
   "notesSavedSearchRename": "Rename",
   "notesSavedSearchRenameTitle": "Rename saved search",

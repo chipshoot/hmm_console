@@ -3074,6 +3074,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notesSavedSearchSaveFailed => 'Couldn\'t save the search';
+
+  @override
+  String get notesSavedSearchUpdateFailed =>
+      'Couldn\'t update the saved search';
+
+  @override
   String get notesSavedSearchesHeader => 'Saved searches';
 
   @override

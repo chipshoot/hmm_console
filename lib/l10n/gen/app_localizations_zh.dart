@@ -2986,6 +2986,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get notesSavedSearchSaveFailed => '无法保存搜索';
+
+  @override
+  String get notesSavedSearchUpdateFailed => '无法更新已保存的搜索';
+
+  @override
   String get notesSavedSearchesHeader => '已保存的搜索';
 
   @override

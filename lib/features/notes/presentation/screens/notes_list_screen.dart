@@ -101,6 +101,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   /// Whether there is anything worth saving: text, tokens or a narrowed source.
   bool _canSave(NoteQuery? q) =>
       q != null &&
+      // A SmartSource left after resolution is a deleted saved search.
+      q.source is! SmartSource &&
       (q.text.trim().isNotEmpty ||
           q.tokens.isNotEmpty ||
           q.source is! AllSource);
@@ -133,10 +135,21 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     if (name == null || name.isEmpty) return;
     // The effective query, so a search saved while a saved search is open
     // holds that search's content and no SmartSource.
-    await saved.add(name, effective.copyWith(scope: NoteScope.currentSource));
+    final String message;
+    try {
+      await saved.add(name, effective.copyWith(scope: NoteScope.currentSource));
+      message = l.notesSavedSearchSaved(name);
+    } catch (e) {
+      // Type only: the saved search is user content.
+      debugPrint('NotesListScreen: save search failed (${e.runtimeType})');
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l.notesSavedSearchSaveFailed)));
+      return;
+    }
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(l.notesSavedSearchSaved(name))));
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -263,8 +276,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           ),
           ..._suggestionsAndRecents(data, l),
           SliverToBoxAdapter(child: _filterBar(data, groupsOf(data), l)),
-          if (_showScope(data.query))
-            SliverToBoxAdapter(child: _scopeToggle(data, l)),
+          if (_showScope(effective))
+            SliverToBoxAdapter(child: _scopeToggle(data, effective!, l)),
         ],
         ...resultsAsync.when<List<Widget>>(
           loading: () => const [
@@ -411,7 +424,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   }
 
   /// The scope choice only matters while searching inside a narrower source.
-  bool _showScope(NoteQuery q) =>
+  /// Judged on the effective query, so an open saved search counts.
+  bool _showScope(NoteQuery? q) =>
+      q != null &&
       (q.text.trim().isNotEmpty || q.tokens.isNotEmpty) &&
       q.source is! AllSource;
 
@@ -420,7 +435,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     AppLocalizations l, [
     NoteSource? source,
   ]) {
-    switch (source ?? data.query.source) {
+    final src = source ?? data.query.source;
+    switch (src) {
       case DomainSource(:final key, :final catalogId):
         final cat = catalogId == null ? null : data.catalogsById[catalogId];
         return cat != null ? catalogLabel(cat.name, l) : domainLabel(key, l);
@@ -434,20 +450,25 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         final name = tagNameOf(data, tagId);
         return name == null ? l.notesFiltered : l.notesTokenTag(name);
       case SmartSource():
-        final found = savedSearchFor(
-          data.query.source,
-          ref.watch(savedSearchesProvider),
-        );
+        // ref.read: this also runs from event handlers; the build path
+        // already rebuilds on saved-search changes via the effective query.
+        final found = savedSearchFor(src, ref.read(savedSearchesProvider));
         return found?.name ?? l.notesFiltered;
       default:
         return l.notesFiltered;
     }
   }
 
-  Widget _scopeToggle(NotesListData data, AppLocalizations l) {
+  Widget _scopeToggle(
+    NotesListData data,
+    NoteQuery effective,
+    AppLocalizations l,
+  ) {
     final notifier = ref.read(notesListStateProvider.notifier);
     final all = l.notesScopeAll;
-    final current = l.notesScopeCurrent(_sourceLabel(data, l));
+    final current = l.notesScopeCurrent(
+      _sourceLabel(data, l, effective.source),
+    );
     final scope = data.query.scope;
     final ios = Theme.of(context).platform == TargetPlatform.iOS;
     return Padding(
@@ -499,7 +520,11 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         }
       }
     }
-    final mainLabel = activeDomain != null
+    final source = data.query.source;
+    final mainLabel = source is SmartSource
+        ? (savedSearchFor(source, ref.watch(savedSearchesProvider))?.name ??
+              l.notesFiltered)
+        : activeDomain != null
         ? domainLabel(activeDomain.key, l)
         : ((f == null || f.isEmpty) ? l.notesAll : l.notesFiltered);
     final subDomain = (activeDomain != null && activeDomain.catalogs.length > 1)
@@ -871,6 +896,22 @@ class _FilterDrawer extends ConsumerWidget {
     final saved = ref.watch(savedSearchesProvider);
     final savedNotifier = ref.read(savedSearchesProvider.notifier);
 
+    Future<void> guarded(Future<void> Function() run) async {
+      final messenger = ScaffoldMessenger.of(context);
+      final failed = l.notesSavedSearchUpdateFailed;
+      try {
+        await run();
+      } catch (e) {
+        // Type only: the saved search is user content.
+        debugPrint(
+          'NotesListScreen: saved search update failed (${e.runtimeType})',
+        );
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(failed)));
+      }
+    }
+
     Future<void> onSavedMenu(SavedSearch s, int index) async {
       final action = await showSavedSearchMenu(
         context,
@@ -886,12 +927,12 @@ class _FilterDrawer extends ConsumerWidget {
             initial: s.name,
           );
           if (name != null && name.isNotEmpty) {
-            await savedNotifier.rename(s.id, name);
+            await guarded(() => savedNotifier.rename(s.id, name));
           }
         case SavedSearchAction.moveUp:
-          await savedNotifier.move(s.id, -1);
+          await guarded(() => savedNotifier.move(s.id, -1));
         case SavedSearchAction.moveDown:
-          await savedNotifier.move(s.id, 1);
+          await guarded(() => savedNotifier.move(s.id, 1));
         case SavedSearchAction.delete:
           // The snackbar (with Undo) sits under the drawer's scrim.
           Navigator.of(context).pop();
@@ -991,7 +1032,9 @@ class _FilterDrawer extends ConsumerWidget {
                     notifier.setQuery(
                       NoteQuery(
                         source: SmartSource(savedId: saved[i].id),
-                        scope: live.scope,
+                        // A sticky "All notes" would make the saved search's
+                        // source a no-op; start from its own source.
+                        scope: NoteScope.currentSource,
                         sort: live.sort,
                       ),
                     );

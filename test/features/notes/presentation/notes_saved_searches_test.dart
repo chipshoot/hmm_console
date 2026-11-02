@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart'
     show CupertinoActionSheet, CupertinoAlertDialog, CupertinoTextField;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/local/database.dart';
@@ -67,6 +68,35 @@ class _Saved extends SavedSearchesNotifier {
   final List<SavedSearch> initial;
   @override
   List<SavedSearch> build() => initial;
+}
+
+class _FailingSaved extends SavedSearchesNotifier {
+  @override
+  Future<SavedSearch> add(String name, NoteQuery query) =>
+      throw StateError('disk full');
+}
+
+Future<ProviderContainer> _openWith(
+  WidgetTester tester,
+  List<Override> overrides,
+) async {
+  final c = ProviderContainer(
+    overrides: [notesListStateProvider.overrideWith(_State.new), ...overrides],
+  );
+  addTearDown(c.dispose);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: c,
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: const NotesListScreen(),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return c;
 }
 
 SavedSearch _s(String id, String name, int order, NoteQuery q) =>
@@ -349,7 +379,13 @@ void main() {
       expect(find.byType(NoteRow), findsOneWidget);
 
       await _openDrawer(tester);
-      await tester.longPress(find.text('Oil photos'));
+      // The name is also in the filter bar now; press the drawer's tile.
+      await tester.longPress(
+        find.descendant(
+          of: find.byType(Drawer),
+          matching: find.text('Oil photos'),
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
@@ -434,5 +470,71 @@ void main() {
       expect(find.text(title), findsOneWidget);
     }
     expect(find.byIcon(Icons.bookmark_add_outlined), findsWidgets);
+  });
+
+  testWidgets('opening a domain saved search resets a sticky All-notes scope', (
+    tester,
+  ) async {
+    final saved = _s(
+      's1',
+      'Auto photos',
+      0,
+      const NoteQuery(
+        source: DomainSource(key: 'AutomobileMan'),
+        tokens: [HasPhotoToken()],
+      ),
+    );
+    final c = await _openWith(tester, [
+      savedSearchesProvider.overrideWith(() => _Saved([saved])),
+    ]);
+    c.read(notesListStateProvider.notifier).setScope(NoteScope.all);
+    await tester.pumpAndSettle();
+
+    await _openDrawer(tester);
+    await tester.tap(find.text('Auto photos'));
+    await tester.pumpAndSettle();
+
+    // Only the automobile photo note, not the General one.
+    expect(find.byType(NoteRow), findsOneWidget);
+    expect(find.text('Oil change'), findsWidgets);
+    expect(find.text('Grocery list'), findsNothing);
+    expect(find.byType(SegmentedButton<NoteScope>), findsOneWidget);
+  });
+
+  testWidgets('an open saved search is named in the filter bar', (
+    tester,
+  ) async {
+    await _openWith(tester, [
+      savedSearchesProvider.overrideWith(
+        () => _Saved([_s('s1', 'Oil photos', 0, _oilPhotos)]),
+      ),
+    ]);
+    await _openDrawer(tester);
+    await tester.tap(find.text('Oil photos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Oil photos'), findsOneWidget);
+  });
+
+  testWidgets('a deleted saved search offers no Save button', (tester) async {
+    final c = await _openWith(tester, [
+      savedSearchesProvider.overrideWith(() => _Saved(const [])),
+    ]);
+    c
+        .read(notesListStateProvider.notifier)
+        .setQuery(const NoteQuery(source: SmartSource(savedId: 'gone')));
+    await tester.pumpAndSettle();
+    expect(find.text('This saved search was deleted'), findsOneWidget);
+    expect(find.byTooltip('Save search'), findsNothing);
+  });
+
+  testWidgets('a failing save shows the failure snackbar', (tester) async {
+    final c = await _openWith(tester, [
+      savedSearchesProvider.overrideWith(_FailingSaved.new),
+    ]);
+    c.read(notesListStateProvider.notifier).setText('oil');
+    await tester.pumpAndSettle();
+    await _saveAs(tester, 'Oil');
+    expect(find.text("Couldn't save the search"), findsOneWidget);
+    expect(find.text('Saved "Oil"'), findsNothing);
   });
 }
