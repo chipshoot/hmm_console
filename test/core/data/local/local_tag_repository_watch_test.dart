@@ -38,4 +38,11 @@ void main() {
     expect(byNote[5]!.map((t) => t.name), ['a', 'b']);
     expect(byNote[5]!.first.id, a);
   });
+
+  test('watchLiveTagNames emits active tags only', () async {
+    final a = await tag('alpha');
+    await tag('off', active: false);
+    await tag('gone', deleted: DateTime.utc(2026, 1, 1));
+    expect(await tags.watchLiveTagNames().first, {a: 'alpha'});
+  });
 }

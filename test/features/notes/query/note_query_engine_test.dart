@@ -184,9 +184,77 @@ List<int> run({
   ];
 }
 
+/// Evaluates against an explicit corpus (the shared one cannot carry
+/// `liveTagNames` or extra notes).
+List<int> _runOn(NotesListData corpus, NoteQuery q) {
+  final r = _engine(
+    indexed: false,
+  ).evaluate(q, corpus, now: now, firstDayOfWeek: DateTime.monday);
+  return [
+    for (final g in r.groups)
+      for (final h in g.hits) h.note.id,
+  ];
+}
+
 Set<int> ids(List<int> l) => l.toSet();
 
 void main() {
+  group('removed tokens and scope over tokens', () {
+    test('a tag token for a removed tag is ignored', () {
+      final c = _corpus().copyWith(liveTagNames: const {1: 'car'});
+      final withGone = _runOn(
+        c,
+        NoteQuery(tokens: const [TagToken(1), TagToken(99)]),
+      );
+      final onlyLive = _runOn(c, NoteQuery(tokens: const [TagToken(1)]));
+      expect(withGone, onlyLive);
+      expect(isRemovedToken(const TagToken(99), c), isTrue);
+      expect(isRemovedToken(const TagToken(1), c), isFalse);
+    });
+
+    test('a removed tag token alone leaves every note', () {
+      final c = _corpus().copyWith(liveTagNames: const {1: 'car'});
+      expect(
+        _runOn(c, NoteQuery(tokens: const [TagToken(99)])),
+        hasLength(_notes.length),
+      );
+    });
+
+    test('with unknown live tags every tag token filters', () {
+      final c = _corpus();
+      expect(c.liveTagNames, isNull);
+      expect(_runOn(c, NoteQuery(tokens: const [TagToken(99)])), isEmpty);
+      expect(isRemovedToken(const TagToken(99), c), isFalse);
+    });
+
+    test('a parent token for a note not in the corpus is ignored', () {
+      final c = _corpus();
+      expect(
+        _runOn(c, NoteQuery(tokens: const [ParentToken('gone')])),
+        hasLength(_notes.length),
+      );
+      expect(isRemovedToken(const ParentToken('gone'), c), isTrue);
+      expect(isRemovedToken(ParentToken('u$carId'), c), isFalse);
+    });
+
+    test('scope all with only tokens ignores the source', () {
+      final photoGeneral = _note(
+        50,
+        'Receipt',
+        attachments: NoteAttachments(primaryImage: _vault),
+      );
+      final base = _corpus();
+      final c = base.copyWith(all: [..._notes, photoGeneral]);
+      NoteQuery q(NoteScope scope) => NoteQuery(
+        source: const DomainSource(key: 'AutomobileMan'),
+        tokens: const [HasPhotoToken()],
+        scope: scope,
+      );
+      expect(_runOn(c, q(NoteScope.all)), contains(50));
+      expect(_runOn(c, q(NoteScope.currentSource)), isNot(contains(50)));
+    });
+  });
+
   group('sources', () {
     test('source all', () => expect(run(), hasLength(_notes.length)));
     test('source pinned', () {

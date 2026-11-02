@@ -11,6 +11,9 @@ abstract interface class ITagRepository {
   /// tags or tag references change.
   Stream<Map<int, List<NoteTagLabel>>> watchNoteTags();
 
+  /// Active, non-deleted tag id -> name, whether or not any note carries it.
+  Stream<Map<int, String>> watchLiveTagNames();
+
   Future<List<Tag>> getTags();
 
   Future<Tag?> getTagById(int id);
@@ -39,15 +42,15 @@ class LocalTagRepository implements ITagRepository {
   Stream<Map<int, List<NoteTagLabel>>> watchNoteTags() {
     final query = _db.select(_db.noteTagRefs).join([
       innerJoin(_db.tags, _db.tags.id.equalsExp(_db.noteTagRefs.tagId)),
-    ])
-      ..where(_db.tags.isActivated.equals(true) & _db.tags.deletedAt.isNull());
+    ])..where(_db.tags.isActivated.equals(true) & _db.tags.deletedAt.isNull());
     return query.watch().map((rows) {
       final byNote = <int, List<NoteTagLabel>>{};
       for (final r in rows) {
         final tag = r.readTable(_db.tags);
-        byNote
-            .putIfAbsent(r.readTable(_db.noteTagRefs).noteId, () => [])
-            .add((id: tag.id, name: tag.name));
+        byNote.putIfAbsent(r.readTable(_db.noteTagRefs).noteId, () => []).add((
+          id: tag.id,
+          name: tag.name,
+        ));
       }
       for (final l in byNote.values) {
         l.sort((a, b) => a.name.compareTo(b.name));
@@ -57,16 +60,24 @@ class LocalTagRepository implements ITagRepository {
   }
 
   @override
+  Stream<Map<int, String>> watchLiveTagNames() {
+    final query = _db.select(_db.tags)
+      ..where((t) => t.isActivated.equals(true) & t.deletedAt.isNull());
+    return query.watch().map((rows) => {for (final t in rows) t.id: t.name});
+  }
+
+  @override
   Future<List<Tag>> getTags() async {
-    return await (_db.select(_db.tags)
-          ..where((t) => t.isActivated.equals(true)))
-        .get();
+    return await (_db.select(
+      _db.tags,
+    )..where((t) => t.isActivated.equals(true))).get();
   }
 
   @override
   Future<Tag?> getTagById(int id) async {
-    return await (_db.select(_db.tags)..where((t) => t.id.equals(id)))
-        .getSingleOrNull();
+    return await (_db.select(
+      _db.tags,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   @override
@@ -90,35 +101,38 @@ class LocalTagRepository implements ITagRepository {
 
   @override
   Future<void> deactivateTag(int id) async {
-    await (_db.update(_db.tags)..where((t) => t.id.equals(id)))
-        .write(const TagsCompanion(isActivated: Value(false)));
-  }
-
-  @override
-  Future<List<Tag>> getTagsForNote(int noteId) async {
-    final refs = await (_db.select(_db.noteTagRefs)
-          ..where((r) => r.noteId.equals(noteId)))
-        .get();
-    if (refs.isEmpty) return [];
-
-    final tagIds = refs.map((r) => r.tagId).toList();
-    return await (_db.select(_db.tags)
-          ..where((t) => t.id.isIn(tagIds) & t.isActivated.equals(true)))
-        .get();
-  }
-
-  @override
-  Future<void> applyTagToNote(int noteId, int tagId) async {
-    await _db.into(_db.noteTagRefs).insertOnConflictUpdate(
-      NoteTagRefsCompanion.insert(noteId: noteId, tagId: tagId),
+    await (_db.update(_db.tags)..where((t) => t.id.equals(id))).write(
+      const TagsCompanion(isActivated: Value(false)),
     );
   }
 
   @override
+  Future<List<Tag>> getTagsForNote(int noteId) async {
+    final refs = await (_db.select(
+      _db.noteTagRefs,
+    )..where((r) => r.noteId.equals(noteId))).get();
+    if (refs.isEmpty) return [];
+
+    final tagIds = refs.map((r) => r.tagId).toList();
+    return await (_db.select(
+      _db.tags,
+    )..where((t) => t.id.isIn(tagIds) & t.isActivated.equals(true))).get();
+  }
+
+  @override
+  Future<void> applyTagToNote(int noteId, int tagId) async {
+    await _db
+        .into(_db.noteTagRefs)
+        .insertOnConflictUpdate(
+          NoteTagRefsCompanion.insert(noteId: noteId, tagId: tagId),
+        );
+  }
+
+  @override
   Future<void> removeTagFromNote(int noteId, int tagId) async {
-    await (_db.delete(_db.noteTagRefs)
-          ..where((r) => r.noteId.equals(noteId) & r.tagId.equals(tagId)))
-        .go();
+    await (_db.delete(
+      _db.noteTagRefs,
+    )..where((r) => r.noteId.equals(noteId) & r.tagId.equals(tagId))).go();
   }
 
   // ---- Sync support (cloudStorage tag sync) ----
@@ -136,21 +150,28 @@ class LocalTagRepository implements ITagRepository {
   }) async {
     final existing = await getTagByName(name);
     if (existing == null) {
-      await _db.into(_db.tags).insert(TagsCompanion.insert(
-            name: name.trim(),
-            description: Value(description),
-            isActivated: Value(isActivated),
-            lastModified: Value(lastModified),
-            deletedAt: Value(deletedAt),
-          ));
+      await _db
+          .into(_db.tags)
+          .insert(
+            TagsCompanion.insert(
+              name: name.trim(),
+              description: Value(description),
+              isActivated: Value(isActivated),
+              lastModified: Value(lastModified),
+              deletedAt: Value(deletedAt),
+            ),
+          );
     } else {
-      await (_db.update(_db.tags)..where((t) => t.id.equals(existing.id)))
-          .write(TagsCompanion(
-        description: Value(description),
-        isActivated: Value(isActivated),
-        lastModified: Value(lastModified),
-        deletedAt: Value(deletedAt),
-      ));
+      await (_db.update(
+        _db.tags,
+      )..where((t) => t.id.equals(existing.id))).write(
+        TagsCompanion(
+          description: Value(description),
+          isActivated: Value(isActivated),
+          lastModified: Value(lastModified),
+          deletedAt: Value(deletedAt),
+        ),
+      );
     }
   }
 
@@ -158,11 +179,12 @@ class LocalTagRepository implements ITagRepository {
   Future<void> tombstoneTagByName(String name, DateTime deletedAt) async {
     final existing = await getTagByName(name);
     if (existing == null) return;
-    await (_db.update(_db.tags)..where((t) => t.id.equals(existing.id)))
-        .write(TagsCompanion(
-      deletedAt: Value(deletedAt),
-      lastModified: Value(deletedAt),
-    ));
+    await (_db.update(_db.tags)..where((t) => t.id.equals(existing.id))).write(
+      TagsCompanion(
+        deletedAt: Value(deletedAt),
+        lastModified: Value(deletedAt),
+      ),
+    );
   }
 
   /// Active (non-deleted, activated) tag names applied to a note.
@@ -179,31 +201,37 @@ class LocalTagRepository implements ITagRepository {
     for (final raw in names) {
       final name = raw.trim();
       if (name.isEmpty) continue;
-      final tag = await getTagByName(name) ??
-          await createTag(TagsCompanion.insert(
-            name: name,
-            // Auto-created from a note body before its real definition has
-            // synced: stamp at epoch 0 so any real tags.json definition
-            // (with a real timestamp) always wins the merge.
-            lastModified: Value(
-                DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)),
-          ));
+      final tag =
+          await getTagByName(name) ??
+          await createTag(
+            TagsCompanion.insert(
+              name: name,
+              // Auto-created from a note body before its real definition has
+              // synced: stamp at epoch 0 so any real tags.json definition
+              // (with a real timestamp) always wins the merge.
+              lastModified: Value(
+                DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+              ),
+            ),
+          );
       desiredIds.add(tag.id);
     }
 
-    final currentRefs = await (_db.select(_db.noteTagRefs)
-          ..where((r) => r.noteId.equals(noteId)))
-        .get();
+    final currentRefs = await (_db.select(
+      _db.noteTagRefs,
+    )..where((r) => r.noteId.equals(noteId))).get();
     final currentIds = currentRefs.map((r) => r.tagId).toSet();
 
     final toRemove = currentIds.difference(desiredIds);
     if (toRemove.isNotEmpty) {
-      await (_db.delete(_db.noteTagRefs)
-            ..where((r) => r.noteId.equals(noteId) & r.tagId.isIn(toRemove)))
-          .go();
+      await (_db.delete(
+        _db.noteTagRefs,
+      )..where((r) => r.noteId.equals(noteId) & r.tagId.isIn(toRemove))).go();
     }
     for (final tagId in desiredIds.difference(currentIds)) {
-      await _db.into(_db.noteTagRefs).insertOnConflictUpdate(
+      await _db
+          .into(_db.noteTagRefs)
+          .insertOnConflictUpdate(
             NoteTagRefsCompanion.insert(noteId: noteId, tagId: tagId),
           );
     }
