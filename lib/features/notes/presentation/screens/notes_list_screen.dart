@@ -468,12 +468,16 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       final Widget empty;
       if (data.all.isEmpty) {
         empty = AppEmptyState(icon: Icons.note_outlined, message: l.notesEmpty);
-      } else if (text.isNotEmpty) {
+      } else if (text.isNotEmpty || data.query.tokens.isNotEmpty) {
         empty = AppEmptyState(
           icon: Icons.search_off,
-          message: l.notesNoMatches(text),
+          message: text.isNotEmpty
+              ? l.notesNoMatches(text)
+              : l.notesNoMatchesFilters,
           actionLabel: l.notesSearchClearAction,
-          onAction: () => notifier.setText(''),
+          onAction: () => notifier.setQuery(
+            data.query.copyWith(text: '', tokens: const []),
+          ),
         );
       } else {
         empty = AppEmptyState(

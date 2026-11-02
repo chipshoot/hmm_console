@@ -5515,6 +5515,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.'**
   String get helpNotesListTokensBody;
+
+  /// No description provided for @notesNoMatchesFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes match this search'**
+  String get notesNoMatchesFilters;
 }
 
 class _AppLocalizationsDelegate

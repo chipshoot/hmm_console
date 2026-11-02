@@ -287,6 +287,37 @@ void main() {
     expect(recents.map((r) => r.text), ['tyres']);
   });
 
+  testWidgets('tokens-only with no match offers Clear search', (tester) async {
+    await _open(tester);
+    // Tag 5 (car) AND the home-tagged note's pinned state: no note has both.
+    _notifier(tester).setTokens(const [TagToken(5), TagToken(6)]);
+    await tester.pumpAndSettle();
+    expect(find.text('No notes match this search'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Clear search'));
+    await tester.pumpAndSettle();
+    expect(_chip, findsNothing);
+    expect(find.byType(NoteRow), findsNWidgets(4));
+  });
+
+  testWidgets('text plus tokens with no match: Clear search clears both', (
+    tester,
+  ) async {
+    await _open(tester);
+    _notifier(tester).setTokens(const [TagToken(5)]);
+    await _type(tester, 'zzz');
+    expect(find.text('No notes match “zzz”'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Clear search'));
+    await tester.pumpAndSettle();
+    expect(_chip, findsNothing);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      isEmpty,
+    );
+    expect(find.byType(NoteRow), findsNWidgets(4));
+  });
+
   for (final platform in [TargetPlatform.iOS, TargetPlatform.android]) {
     testWidgets('chips and scope toggle render on $platform', (tester) async {
       await tester.pumpWidget(
