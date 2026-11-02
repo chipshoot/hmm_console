@@ -1,5 +1,5 @@
-import 'dart:async';
-
+import 'package:flutter/cupertino.dart'
+    show CupertinoIcons, CupertinoSlidingSegmentedControl;
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,16 +23,20 @@ import '../../data/models/hmm_note.dart';
 import '../../query/note_grouping.dart';
 import '../../query/note_query.dart';
 import '../../query/note_results.dart';
+import '../../query/note_token_labels.dart';
+import '../../query/note_token_suggestions.dart';
 import '../../rendering/note_display.dart';
 import '../../states/filter_usage.dart';
 import '../../states/note_selection.dart'
     show kNotesWideBreakpoint, selectedNoteIdProvider;
 import '../../states/notes_list_state.dart';
 import '../../states/notes_results_provider.dart';
+import '../../states/recent_searches.dart';
 import '../catalog_labels.dart';
 import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
 import '../widgets/note_flag_sheet.dart' show noteFlagColorLabel;
+import '../widgets/note_search_field.dart';
 import '../widgets/note_row.dart';
 import '../widgets/notes_view_menu.dart';
 
@@ -44,6 +48,51 @@ class NotesListScreen extends ConsumerStatefulWidget {
 }
 
 class _NotesListScreenState extends ConsumerState<NotesListScreen> {
+  final _fieldKey = GlobalKey<NoteSearchFieldState>();
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  /// The note's display title: the same one the search results use, never the
+  /// raw subject (contacts and cheatsheets keep JSON there).
+  String Function(HmmNote) _titleOf(NotesListData data, AppLocalizations l) {
+    final registry = ref.read(noteDisplayRegistryProvider);
+    return (n) => registry.title(n, data.catalogsById[n.catalogId]?.name, l);
+  }
+
+  void _recordRecent() {
+    final q = ref.read(notesListStateProvider).value?.query;
+    if (q == null || (q.text.trim().isEmpty && q.tokens.isEmpty)) return;
+    ref.read(recentSearchesProvider.notifier).record(q);
+  }
+
+  void _applySuggestion(NoteToken token) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final q = ref.read(notesListStateProvider).value?.query;
+    if (q == null) return;
+    // Token and empty text in ONE update, then empty the box: the box never
+    // looks empty while the notifier still filters by the old text.
+    notifier.setQuery(q.copyWith(text: '', tokens: [...q.tokens, token]));
+    _fieldKey.currentState?.clearAndCancel();
+  }
+
+  void _applyRecent(RecentSearch r) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final q = ref.read(notesListStateProvider).value?.query;
+    if (q == null) return;
+    notifier.setQuery(q.copyWith(text: r.text, tokens: r.tokens));
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -134,15 +183,28 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: _SearchField(
-                query: data.query.text,
+              child: NoteSearchField(
+                key: _fieldKey,
+                focusNode: _focus,
+                text: data.query.text,
+                chips: _chips(data, l),
                 hintText: l.notesSearchHint,
                 clearTooltip: l.notesSearchClearTooltip,
-                onChanged: notifier.setText,
+                onTextChanged: notifier.setText,
+                onRemoveLastToken: () {
+                  final t = data.query.tokens;
+                  if (t.isNotEmpty) {
+                    notifier.setTokens(t.sublist(0, t.length - 1));
+                  }
+                },
+                onSubmitted: (_) => _recordRecent(),
               ),
             ),
           ),
+          ..._suggestionsAndRecents(data, l),
           SliverToBoxAdapter(child: _filterBar(data, groupsOf(data), l)),
+          if (_showScope(data.query))
+            SliverToBoxAdapter(child: _scopeToggle(data, l)),
         ],
         ...resultsAsync.when<List<Widget>>(
           loading: () => const [
@@ -171,6 +233,181 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               : _body(context, data, results, density, l),
         ),
       ],
+    );
+  }
+
+  List<Widget> _chips(NotesListData data, AppLocalizations l) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final titleOf = _titleOf(data, l);
+    final format = DateFormat.yMd(Localizations.localeOf(context).toString());
+    final ios = Theme.of(context).platform == TargetPlatform.iOS;
+    final tokens = data.query.tokens;
+    return [
+      for (var i = 0; i < tokens.length; i++)
+        Builder(
+          builder: (_) {
+            final label = tokenLabel(
+              tokens[i],
+              data,
+              l,
+              titleOf: titleOf,
+              dateFormat: format,
+            );
+            final text = Text(
+              label.text,
+              style: label.removed
+                  ? TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                      color: context.appColors.secondaryLabel,
+                    )
+                  : null,
+            );
+            void remove() => notifier.setTokens([
+              for (var j = 0; j < tokens.length; j++)
+                if (j != i) tokens[j],
+            ]);
+            final tooltip = l.notesTokenRemoveTooltip(label.text);
+            return ios
+                ? Chip(
+                    label: text,
+                    deleteIcon: const Icon(CupertinoIcons.xmark_circle_fill),
+                    deleteButtonTooltipMessage: tooltip,
+                    onDeleted: remove,
+                  )
+                : InputChip(
+                    label: text,
+                    deleteButtonTooltipMessage: tooltip,
+                    onDeleted: remove,
+                  );
+          },
+        ),
+    ];
+  }
+
+  List<Widget> _suggestionsAndRecents(NotesListData data, AppLocalizations l) {
+    final q = data.query;
+    if (q.text.trim().isNotEmpty) {
+      final suggestions = suggestTokens(
+        q.text,
+        data,
+        q.tokens,
+        l,
+        titleOf: _titleOf(data, l),
+      );
+      if (suggestions.isEmpty) return const [];
+      return [
+        SliverToBoxAdapter(
+          child: _SectionBox(
+            header: l.notesSuggestionsHeader,
+            headerIcon: Icons.manage_search,
+            children: [
+              for (final s in suggestions)
+                ListTile(
+                  dense: true,
+                  leading: Icon(s.icon),
+                  title: Text(s.label),
+                  onTap: () => _applySuggestion(s.token),
+                ),
+            ],
+          ),
+        ),
+      ];
+    }
+    if (!_focus.hasFocus || q.tokens.isNotEmpty) return const [];
+    final recents = ref.watch(recentSearchesProvider).value ?? const [];
+    if (recents.isEmpty) return const [];
+    final titleOf = _titleOf(data, l);
+    final format = DateFormat.yMd(Localizations.localeOf(context).toString());
+    String describe(RecentSearch r) => [
+      if (r.text.isNotEmpty) r.text,
+      for (final t in r.tokens)
+        tokenLabel(t, data, l, titleOf: titleOf, dateFormat: format).text,
+    ].join(' · ');
+    return [
+      SliverToBoxAdapter(
+        // Taps in here count as inside the text field, so they do not unfocus
+        // it (which would remove this section before the tap lands).
+        child: TextFieldTapRegion(
+          child: _SectionBox(
+            header: l.notesRecentSearches,
+            trailing: TextButton(
+              onPressed: () =>
+                  ref.read(recentSearchesProvider.notifier).clear(),
+              child: Text(l.notesRecentSearchesClear),
+            ),
+            children: [
+              for (final r in recents)
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.history),
+                  title: Text(describe(r)),
+                  onTap: () => _applyRecent(r),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
+
+  /// The scope choice only matters while searching inside a narrower source.
+  bool _showScope(NoteQuery q) =>
+      (q.text.trim().isNotEmpty || q.tokens.isNotEmpty) &&
+      q.source is! AllSource;
+
+  String _sourceLabel(NotesListData data, AppLocalizations l) {
+    switch (data.query.source) {
+      case DomainSource(:final key, :final catalogId):
+        final cat = catalogId == null ? null : data.catalogsById[catalogId];
+        return cat != null ? catalogLabel(cat.name, l) : domainLabel(key, l);
+      case PinnedSource():
+        return l.notesGroupPinned;
+      case TodaySource():
+        return l.notesGroupToday;
+      case FlaggedSource(:final color):
+        return color == null ? l.notesFiltered : flagName(color, l);
+      case TagSource(:final tagId):
+        final name = tagNameOf(data, tagId);
+        return name == null ? l.notesFiltered : l.notesTokenTag(name);
+      default:
+        return l.notesFiltered;
+    }
+  }
+
+  Widget _scopeToggle(NotesListData data, AppLocalizations l) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final all = l.notesScopeAll;
+    final current = l.notesScopeCurrent(_sourceLabel(data, l));
+    final scope = data.query.scope;
+    final ios = Theme.of(context).platform == TargetPlatform.iOS;
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
+      child: ios
+          ? SizedBox(
+              width: double.infinity,
+              child: CupertinoSlidingSegmentedControl<NoteScope>(
+                groupValue: scope,
+                onValueChanged: (v) {
+                  if (v != null) notifier.setScope(v);
+                },
+                children: {
+                  NoteScope.currentSource: Text(current),
+                  NoteScope.all: Text(all),
+                },
+              ),
+            )
+          : SegmentedButton<NoteScope>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: NoteScope.currentSource,
+                  label: Text(current),
+                ),
+                ButtonSegment(value: NoteScope.all, label: Text(all)),
+              ],
+              selected: {scope},
+              onSelectionChanged: (s) => notifier.setScope(s.first),
+            ),
     );
   }
 
@@ -252,7 +489,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final now = DateTime.now();
     final notesById = {for (final n in data.all) n.id: n};
     final highlightWords = [
-      for (final w in normalizeForSearch(data.query.text).split(' '))
+      for (final w in normalizeForSearch(
+        ref.watch(notesEffectiveQueryProvider)?.text ?? data.query.text,
+      ).split(' '))
         if (w.isNotEmpty) w,
     ];
 
@@ -279,6 +518,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     }
 
     void open(HmmNote note) {
+      _recordRecent();
       // Contacts and cheatsheet cards have their own screens; the generic
       // note screen would show raw JSON.
       if (registry.open(
@@ -599,106 +839,52 @@ class _FilterDrawer extends ConsumerWidget {
   }
 }
 
-/// The search box, showing the query that is actually being applied.
-///
-/// The query lives on the notifier so it survives reactive data emissions —
-/// and therefore also survives leaving the screen. With an uncontrolled
-/// TextField that meant coming back to an empty-looking box silently filtering
-/// the list, which reads as "all my notes are gone".
-///
-/// Typing is debounced: the query is sent [_debounce] after the last
-/// keystroke, so a fast typist does not re-run the search per letter.
-class _SearchField extends StatefulWidget {
-  const _SearchField({
-    required this.query,
-    required this.hintText,
-    required this.clearTooltip,
-    required this.onChanged,
+/// A titled list section between the search box and the results.
+class _SectionBox extends StatelessWidget {
+  const _SectionBox({
+    required this.header,
+    required this.children,
+    this.headerIcon,
+    this.trailing,
   });
 
-  final String query;
-  final String hintText;
-  final String clearTooltip;
-  final ValueChanged<String> onChanged;
-
-  @override
-  State<_SearchField> createState() => _SearchFieldState();
-}
-
-class _SearchFieldState extends State<_SearchField> {
-  static const _debounce = Duration(milliseconds: 150);
-
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.query,
-  )..addListener(_onControllerChanged);
-  late String _lastSent = widget.query;
-  late bool _hasText = widget.query.isNotEmpty;
-  Timer? _timer;
-
-  void _onControllerChanged() {
-    final hasText = _controller.text.isNotEmpty;
-    if (hasText != _hasText) setState(() => _hasText = hasText);
-  }
-
-  void _send(String text) {
-    _timer?.cancel();
-    _lastSent = text;
-    widget.onChanged(text);
-  }
-
-  void _onTyped(String text) {
-    _timer?.cancel();
-    _timer = Timer(_debounce, () => _send(text));
-  }
-
-  void _clear() {
-    _controller.clear();
-    _send('');
-  }
-
-  @override
-  void didUpdateWidget(covariant _SearchField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Only a change made elsewhere (e.g. "Clear search" in the empty state)
-    // is copied into the box. Echoes of what this field sent, and rebuilds
-    // while a keystroke is still pending, must not move the caret or undo
-    // the typing.
-    if (widget.query != oldWidget.query &&
-        widget.query != _lastSent &&
-        widget.query != _controller.text) {
-      _timer?.cancel();
-      _lastSent = widget.query;
-      _controller.text = widget.query;
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
+  final String header;
+  final IconData? headerIcon;
+  final Widget? trailing;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.search),
-        hintText: widget.hintText,
-        isDense: true,
-        border: const OutlineInputBorder(),
-        // A way out that does not require selecting invisible text.
-        suffixIcon: _hasText
-            ? HmmIconButton(
-                key: const Key('notesSearchClear'),
-                icon: Icons.clear,
-                tooltip: widget.clearTooltip,
-                onPressed: _clear,
-              )
-            : null,
-      ),
-      onChanged: _onTyped,
+    final c = context.appColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 8, 0),
+          child: Row(
+            children: [
+              if (headerIcon != null) ...[
+                Icon(headerIcon, size: 16, color: c.secondaryLabel),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    header,
+                    style: DesignTokens.caption.copyWith(
+                      color: c.secondaryLabel,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              ?trailing,
+            ],
+          ),
+        ),
+        ...children,
+      ],
     );
   }
 }

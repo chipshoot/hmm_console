@@ -310,6 +310,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         body: l.helpNotesListSearchBody,
       ),
       HelpEntry(
+        icon: Icons.manage_search,
+        title: l.helpNotesListTokensTitle,
+        body: l.helpNotesListTokensBody,
+      ),
+      HelpEntry(
         icon: Icons.filter_list,
         title: l.helpNotesListFilterTitle,
         body: l.helpNotesListFilterBody,

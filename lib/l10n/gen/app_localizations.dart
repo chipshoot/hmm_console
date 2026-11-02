@@ -5473,6 +5473,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown filter'**
   String get notesTokenUnknown;
+
+  /// No description provided for @notesRecentSearches.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent searches'**
+  String get notesRecentSearches;
+
+  /// No description provided for @notesRecentSearchesClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get notesRecentSearchesClear;
+
+  /// No description provided for @notesScopeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All notes'**
+  String get notesScopeAll;
+
+  /// No description provided for @notesScopeCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'In {source}'**
+  String notesScopeCurrent(String source);
+
+  /// No description provided for @notesSuggestionsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get notesSuggestionsHeader;
+
+  /// No description provided for @helpNotesListTokensTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search tokens'**
+  String get helpNotesListTokensTitle;
+
+  /// No description provided for @helpNotesListTokensBody.
+  ///
+  /// In en, this message translates to:
+  /// **'As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.'**
+  String get helpNotesListTokensBody;
 }
 
 class _AppLocalizationsDelegate

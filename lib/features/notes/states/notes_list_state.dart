@@ -289,6 +289,11 @@ class NotesListState extends AsyncNotifier<NotesListData> {
 
   void setText(String text) => setQuery(_query.copyWith(text: text));
 
+  void setTokens(List<NoteToken> tokens) =>
+      setQuery(_query.copyWith(tokens: tokens));
+
+  void setScope(NoteScope scope) => setQuery(_query.copyWith(scope: scope));
+
   void setSort(NoteSort sort) => setQuery(_query.copyWith(sort: sort));
 
   void setSource(NoteSource source) =>

@@ -1476,5 +1476,13 @@
   "@notesTokenRemoved": {"placeholders": {"label": {"type": "String"}}},
   "notesTokenRemoveTooltip": "Remove {label}",
   "@notesTokenRemoveTooltip": {"placeholders": {"label": {"type": "String"}}},
-  "notesTokenUnknown": "Unknown filter"
+  "notesTokenUnknown": "Unknown filter",
+  "notesRecentSearches": "Recent searches",
+  "notesRecentSearchesClear": "Clear",
+  "notesScopeAll": "All notes",
+  "notesScopeCurrent": "In {source}",
+  "@notesScopeCurrent": {"placeholders": {"source": {"type": "String"}}},
+  "notesSuggestionsHeader": "Suggestions",
+  "helpNotesListTokensTitle": "Search tokens",
+  "helpNotesListTokensBody": "As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip's ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches."
 }

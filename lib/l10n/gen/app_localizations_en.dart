@@ -3028,4 +3028,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesTokenUnknown => 'Unknown filter';
+
+  @override
+  String get notesRecentSearches => 'Recent searches';
+
+  @override
+  String get notesRecentSearchesClear => 'Clear';
+
+  @override
+  String get notesScopeAll => 'All notes';
+
+  @override
+  String notesScopeCurrent(String source) {
+    return 'In $source';
+  }
+
+  @override
+  String get notesSuggestionsHeader => 'Suggestions';
+
+  @override
+  String get helpNotesListTokensTitle => 'Search tokens';
+
+  @override
+  String get helpNotesListTokensBody =>
+      'As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.';
 }

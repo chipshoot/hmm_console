@@ -2940,4 +2940,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesTokenUnknown => '未知条件';
+
+  @override
+  String get notesRecentSearches => '最近搜索';
+
+  @override
+  String get notesRecentSearchesClear => '清除';
+
+  @override
+  String get notesScopeAll => '全部笔记';
+
+  @override
+  String notesScopeCurrent(String source) {
+    return '在$source中';
+  }
+
+  @override
+  String get notesSuggestionsHeader => '建议';
+
+  @override
+  String get helpNotesListTokensTitle => '搜索条件';
+
+  @override
+  String get helpNotesListTokensBody =>
+      '输入时会出现标签、领域、旗标、所属笔记、照片、地点和日期范围的建议。点按建议即可添加为条件；点按条件上的 ✕（或在外接键盘上于空白搜索框中按退格键）即可移除。启用筛选时，可选择在全部笔记或仅在该筛选中搜索。点按空白搜索框可查看最近的搜索。';
 }
