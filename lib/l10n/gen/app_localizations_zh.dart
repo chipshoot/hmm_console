@@ -2967,4 +2967,68 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesNoMatchesFilters => '没有符合此搜索的笔记';
+
+  @override
+  String get notesSaveSearchTooltip => '保存搜索';
+
+  @override
+  String get notesSaveSearchTitle => '保存搜索';
+
+  @override
+  String get notesSaveSearchNameLabel => '名称';
+
+  @override
+  String get notesSaveSearchSave => '保存';
+
+  @override
+  String notesSavedSearchSaved(String name) {
+    return '已保存“$name”';
+  }
+
+  @override
+  String get notesSavedSearchesHeader => '已保存的搜索';
+
+  @override
+  String get notesSavedSearchRename => '重命名';
+
+  @override
+  String get notesSavedSearchRenameTitle => '重命名已保存的搜索';
+
+  @override
+  String get notesSavedSearchMoveUp => '上移';
+
+  @override
+  String get notesSavedSearchMoveDown => '下移';
+
+  @override
+  String get notesSavedSearchDelete => '删除';
+
+  @override
+  String notesSavedSearchDeleted(String name) {
+    return '已删除“$name”';
+  }
+
+  @override
+  String get notesSavedSearchDeleteFailed => '无法删除已保存的搜索';
+
+  @override
+  String notesSavedSearchRestored(String name) {
+    return '已恢复“$name”';
+  }
+
+  @override
+  String get notesSavedSearchRestoreFailed => '无法恢复已保存的搜索';
+
+  @override
+  String get notesSavedSearchMissing => '此已保存的搜索已被删除';
+
+  @override
+  String get notesShowAllNotes => '显示全部笔记';
+
+  @override
+  String get helpNotesListSavedTitle => '已保存的搜索';
+
+  @override
+  String get helpNotesListSavedBody =>
+      '点按搜索框旁的书签图标即可保存当前搜索，包括筛选和条件。已保存的搜索显示在侧边栏中；点按即可打开，长按可重命名、移动或删除。它们会同步到你的其他设备。';
 }

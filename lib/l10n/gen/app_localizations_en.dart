@@ -3055,4 +3055,70 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesNoMatchesFilters => 'No notes match this search';
+
+  @override
+  String get notesSaveSearchTooltip => 'Save search';
+
+  @override
+  String get notesSaveSearchTitle => 'Save search';
+
+  @override
+  String get notesSaveSearchNameLabel => 'Name';
+
+  @override
+  String get notesSaveSearchSave => 'Save';
+
+  @override
+  String notesSavedSearchSaved(String name) {
+    return 'Saved \"$name\"';
+  }
+
+  @override
+  String get notesSavedSearchesHeader => 'Saved searches';
+
+  @override
+  String get notesSavedSearchRename => 'Rename';
+
+  @override
+  String get notesSavedSearchRenameTitle => 'Rename saved search';
+
+  @override
+  String get notesSavedSearchMoveUp => 'Move up';
+
+  @override
+  String get notesSavedSearchMoveDown => 'Move down';
+
+  @override
+  String get notesSavedSearchDelete => 'Delete';
+
+  @override
+  String notesSavedSearchDeleted(String name) {
+    return 'Deleted \"$name\"';
+  }
+
+  @override
+  String get notesSavedSearchDeleteFailed =>
+      'Couldn\'t delete the saved search';
+
+  @override
+  String notesSavedSearchRestored(String name) {
+    return 'Restored \"$name\"';
+  }
+
+  @override
+  String get notesSavedSearchRestoreFailed =>
+      'Couldn\'t restore the saved search';
+
+  @override
+  String get notesSavedSearchMissing => 'This saved search was deleted';
+
+  @override
+  String get notesShowAllNotes => 'Show all notes';
+
+  @override
+  String get helpNotesListSavedTitle => 'Saved searches';
+
+  @override
+  String get helpNotesListSavedBody =>
+      'Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.';
 }

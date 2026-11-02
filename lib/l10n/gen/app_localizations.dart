@@ -5521,6 +5521,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No notes match this search'**
   String get notesNoMatchesFilters;
+
+  /// No description provided for @notesSaveSearchTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Save search'**
+  String get notesSaveSearchTooltip;
+
+  /// No description provided for @notesSaveSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save search'**
+  String get notesSaveSearchTitle;
+
+  /// No description provided for @notesSaveSearchNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get notesSaveSearchNameLabel;
+
+  /// No description provided for @notesSaveSearchSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get notesSaveSearchSave;
+
+  /// No description provided for @notesSavedSearchSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved \"{name}\"'**
+  String notesSavedSearchSaved(String name);
+
+  /// No description provided for @notesSavedSearchesHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches'**
+  String get notesSavedSearchesHeader;
+
+  /// No description provided for @notesSavedSearchRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get notesSavedSearchRename;
+
+  /// No description provided for @notesSavedSearchRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename saved search'**
+  String get notesSavedSearchRenameTitle;
+
+  /// No description provided for @notesSavedSearchMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get notesSavedSearchMoveUp;
+
+  /// No description provided for @notesSavedSearchMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get notesSavedSearchMoveDown;
+
+  /// No description provided for @notesSavedSearchDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get notesSavedSearchDelete;
+
+  /// No description provided for @notesSavedSearchDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted \"{name}\"'**
+  String notesSavedSearchDeleted(String name);
+
+  /// No description provided for @notesSavedSearchDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the saved search'**
+  String get notesSavedSearchDeleteFailed;
+
+  /// No description provided for @notesSavedSearchRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored \"{name}\"'**
+  String notesSavedSearchRestored(String name);
+
+  /// No description provided for @notesSavedSearchRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore the saved search'**
+  String get notesSavedSearchRestoreFailed;
+
+  /// No description provided for @notesSavedSearchMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This saved search was deleted'**
+  String get notesSavedSearchMissing;
+
+  /// No description provided for @notesShowAllNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all notes'**
+  String get notesShowAllNotes;
+
+  /// No description provided for @helpNotesListSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches'**
+  String get helpNotesListSavedTitle;
+
+  /// No description provided for @helpNotesListSavedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.'**
+  String get helpNotesListSavedBody;
 }
 
 class _AppLocalizationsDelegate
