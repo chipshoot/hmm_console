@@ -172,6 +172,8 @@ Pin and flag are the **user's own state about a note**, not note content (like a
 
 All · Pinned · Flagged (with a sub-row per colour in use, showing its name) · Today · **Domains** (counts) · **Tags** (counts; Manage tags…) · **Smart filters** (saved + built-in With photos / With place / Last 7 days; reorder and rename by long-press) · Recently Deleted.
 
+**2026-11-02 (Slice 4 decisions):** see 'Decisions this plan makes' in `docs/superpowers/plans/2026-11-02-notes-slice4-drawer-chips-sidebar.md` — built-in smart filters are fixed saved searches; the funnel and sub-filter popup are gone (the per-catalog filter is a `catalog` token); an open saved search's tokens show as read-only chips; ☰ is an action so the iOS back button stays.
+
 ### Tags
 
 - Note editor gains a tag field with autocomplete; new tags are created inline.
