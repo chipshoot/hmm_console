@@ -3058,4 +3058,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesSidebarFlagged => '已标记';
+
+  @override
+  String get notesMenuTooltip => '筛选和列表';
+
+  @override
+  String get notesChipMoreTooltip => '更多筛选';
+
+  @override
+  String get helpNotesListChipsTitle => '快速筛选';
+
+  @override
+  String get helpNotesListChipsBody =>
+      '搜索框下方的一行可在全部、已置顶、已标记以及你最常用的领域和标签之间切换；它会根据你的选择自动调整。再次点按已选中的条件即可回到全部，点按 ＋ 打开包含所有筛选的侧边栏。';
 }

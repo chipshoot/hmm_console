@@ -358,15 +358,14 @@ void main() {
     expect(find.textContaining(shown, findRichText: true), findsOneWidget);
   });
 
-  testWidgets('drawer and filter sheet still select a domain and its catalog', (
+  testWidgets('the side panel still selects a domain, then All', (
     tester,
   ) async {
     await tester.pumpWidget(_app(state: _DomainListState.new));
     await tester.pumpAndSettle();
     expect(find.byType(NoteRow), findsNWidgets(3));
 
-    // Drawer: a whole domain.
-    await tester.tap(find.byType(ActionChip));
+    await tester.tap(find.byTooltip('Filters and lists'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
     await tester.pumpAndSettle();
@@ -374,21 +373,9 @@ void main() {
     expect(find.text('Insurance renewal'), findsOneWidget);
     expect(find.text('Grocery list'), findsNothing);
 
-    // Sheet: one catalog of that domain.
-    await tester.tap(find.byIcon(Icons.filter_list));
+    await tester.tap(find.byTooltip('Filters and lists'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Automobile').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Gas Log').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Oil change'), findsOneWidget);
-    expect(find.text('Insurance renewal'), findsNothing);
-    expect(find.text('Grocery list'), findsNothing);
-
-    // Sheet: back to all notes.
-    await tester.tap(find.byIcon(Icons.filter_list));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('All notes'));
+    await tester.tap(find.widgetWithText(ListTile, 'All'));
     await tester.pumpAndSettle();
     expect(find.byType(NoteRow), findsNWidgets(3));
   });
@@ -408,7 +395,7 @@ void main() {
   testWidgets('top bar buttons have localized tooltips', (tester) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    for (final t in ['View', 'Filter', 'Subsystems', 'Help']) {
+    for (final t in ['Filters and lists', 'View', 'Subsystems', 'Help']) {
       expect(find.byTooltip(t), findsOneWidget, reason: t);
     }
   });

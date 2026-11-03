@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart'
     show CupertinoIcons, CupertinoSlidingSegmentedControl;
-import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,7 +27,6 @@ import '../../query/note_token_labels.dart';
 import '../../query/note_token_suggestions.dart';
 import '../../query/smart_query.dart';
 import '../../rendering/note_display.dart';
-import '../../states/filter_usage.dart';
 import '../../states/note_selection.dart'
     show kNotesWideBreakpoint, selectedNoteIdProvider;
 import '../../states/notes_list_state.dart';
@@ -36,8 +34,7 @@ import '../../states/notes_results_provider.dart';
 import '../../states/recent_searches.dart';
 import '../../states/saved_searches_provider.dart';
 import '../catalog_labels.dart';
-import '../widgets/catalog_filter_sheet.dart';
-import '../widgets/domain_groups.dart';
+import '../widgets/note_chip_bar.dart';
 import '../widgets/note_flag_sheet.dart' show noteFlagColorLabel;
 import '../widgets/note_search_field.dart';
 import '../widgets/notes_sidebar.dart';
@@ -46,7 +43,11 @@ import '../widgets/saved_search_dialogs.dart';
 import '../widgets/notes_view_menu.dart';
 
 class NotesListScreen extends ConsumerStatefulWidget {
-  const NotesListScreen({super.key});
+  const NotesListScreen({super.key, this.sidebarDocked = false});
+
+  /// True when the side panel is docked beside the list: no drawer, no ☰,
+  /// no ＋.
+  final bool sidebarDocked;
 
   @override
   ConsumerState<NotesListScreen> createState() => _NotesListScreenState();
@@ -172,21 +173,13 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final listAsync = ref.watch(notesListStateProvider);
     final resultsAsync = ref.watch(notesResultsProvider);
     final notifier = ref.read(notesListStateProvider.notifier);
-    final usage = ref.watch(filterUsageProvider).value ?? const {};
     final density = ref.watch(notesRowDensityProvider);
     final data = listAsync.value;
     final effective = ref.watch(notesEffectiveQueryProvider);
 
-    List<DomainGroup> groupsOf(NotesListData d) => groupByDomain(
-      d.catalogsById.values,
-      d.countsByCatalog,
-      usage,
-      domainCounts: d.countsByDomain,
-    );
-
     return AppScaffold(
       title: l.notesTitle,
-      drawer: data == null
+      drawer: data == null || widget.sidebarDocked
           ? null
           : Drawer(
               child: NotesSidebar(
@@ -198,6 +191,15 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         await ref.read(syncControllerProvider).triggerManualSync();
       },
       actions: [
+        if (!widget.sidebarDocked)
+          // A Builder: this context is above the Scaffold AppScaffold builds.
+          Builder(
+            builder: (context) => HmmIconButton(
+              tooltip: l.notesMenuTooltip,
+              icon: Icons.menu,
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
         HmmIconButton(
           tooltip: l.notesViewTooltip,
           icon: Icons.tune,
@@ -211,30 +213,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                       ref.read(settingsProvider.notifier).setNotesRowDensity(d),
                   onSort: notifier.setSort,
                 ),
-        ),
-        HmmIconButton(
-          tooltip: l.notesFilterTooltip,
-          icon: Icons.filter_list,
-          onPressed: data == null
-              ? null
-              : () {
-                  final groups = groupsOf(data);
-                  showModalBottomSheet<void>(
-                    context: context,
-                    builder: (_) => CatalogFilterSheet(
-                      groups: groups,
-                      counts: data.countsByCatalog,
-                      selected: catalogSelectionFor(data.query.source, groups),
-                      // The sheet only offers All, a whole domain, or one
-                      // catalog — each maps to exactly one source.
-                      onApply: (ids) => notifier.setSource(
-                        sourceForCatalogSelection(ids, groups),
-                      ),
-                      onRecordDomain: (key) =>
-                          ref.read(filterUsageProvider.notifier).record(key),
-                    ),
-                  );
-                },
         ),
         HmmIconButton(
           tooltip: l.notesSubsystemsTitle,
@@ -282,7 +260,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             ),
           ),
           ..._suggestionsAndRecents(data, l),
-          SliverToBoxAdapter(child: _filterBar(data, groupsOf(data), l)),
+          SliverToBoxAdapter(
+            child: NoteChipBar(data: data, sidebarDocked: widget.sidebarDocked),
+          ),
           if (_showScope(effective))
             SliverToBoxAdapter(child: _scopeToggle(data, effective!, l)),
         ],
@@ -511,59 +491,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
   }
 
-  Widget _filterBar(
-    NotesListData data,
-    List<DomainGroup> groups,
-    AppLocalizations l,
-  ) {
-    final notifier = ref.read(notesListStateProvider.notifier);
-    // Resolve the active domain (main filter) and, if it has more than one
-    // catalog, the sub-filter selection within it.
-    final f = catalogSelectionFor(data.query.source, groups);
-    DomainGroup? activeDomain;
-    if (f != null && f.isNotEmpty) {
-      for (final g in groups) {
-        if (f.every(g.catalogIds.contains)) {
-          activeDomain = g;
-          break;
-        }
-      }
-    }
-    final source = data.query.source;
-    final mainLabel = source is SmartSource
-        ? switch (savedSearchFor(
-            source,
-            ref.watch(notesSmartFiltersProvider),
-          )) {
-            final found? => smartFilterDisplayName(found, l),
-            null => l.notesFiltered,
-          }
-        : activeDomain != null
-        ? domainLabel(activeDomain.key, l)
-        : ((f == null || f.isEmpty) ? l.notesAll : l.notesFiltered);
-    final subDomain = (activeDomain != null && activeDomain.catalogs.length > 1)
-        ? activeDomain
-        : null;
-    int? subSelected;
-    if (subDomain != null && f != null) {
-      subSelected = setEquals(f, subDomain.catalogIds)
-          ? null // "All <domain>"
-          : (f.length == 1 ? f.first : null);
-    }
-    return _FilterBar(
-      mainLabel: mainLabel,
-      subDomain: subDomain,
-      subSelectedCatalogId: subSelected,
-      // A whole domain or one of its catalogs: both map exactly.
-      onSubSelected: (catId) => notifier.setSource(
-        sourceForCatalogSelection(
-          catId == null ? subDomain!.catalogIds : {catId},
-          groups,
-        ),
-      ),
-    );
-  }
-
   List<Widget> _body(
     BuildContext context,
     NotesListData data,
@@ -772,119 +699,6 @@ class _GroupHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_GroupHeaderDelegate old) =>
       old.title != title || old.background != background || old.color != color;
-}
-
-/// The filter controls that replace the horizontal chip row: a main button
-/// (shows the active domain, opens the category drawer) and — only when the
-/// active domain has more than one catalog — a compact sub-filter dropdown.
-class _FilterBar extends StatelessWidget {
-  const _FilterBar({
-    required this.mainLabel,
-    this.subDomain,
-    this.subSelectedCatalogId,
-    this.onSubSelected,
-  });
-
-  final String mainLabel;
-  final DomainGroup? subDomain;
-  final int? subSelectedCatalogId;
-  final void Function(int? catalogId)? onSubSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.appColors;
-    return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
-      child: Row(
-        children: [
-          ActionChip(
-            avatar: Icon(Icons.tune, size: 18, color: c.accent),
-            label: Text(mainLabel),
-            // Opens the AppScaffold drawer; this context is under the Scaffold
-            // so Scaffold.of resolves it.
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-          if (subDomain != null && onSubSelected != null) ...[
-            const SizedBox(width: 8),
-            _SubFilterButton(
-              domain: subDomain!,
-              selectedCatalogId: subSelectedCatalogId,
-              onSelected: onSubSelected!,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Compact dropdown for filtering within a domain. The first option is
-/// `All [domain]` (the default); the rest are the domain's catalogs.
-class _SubFilterButton extends StatelessWidget {
-  const _SubFilterButton({
-    required this.domain,
-    required this.selectedCatalogId,
-    required this.onSelected,
-  });
-
-  // Sentinel for the "All <domain>" option. PopupMenuButton treats a tapped
-  // null-value item as a *cancel* (never firing onSelected), so the "All"
-  // option must carry a non-null value. Real catalog ids are positive.
-  static const int _allValue = -1;
-
-  final DomainGroup domain;
-  final int? selectedCatalogId;
-  final void Function(int? catalogId) onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final c = context.appColors;
-    final allLabel = l.notesAllInDomain(domainLabel(domain.key, l));
-    String label = allLabel;
-    if (selectedCatalogId != null) {
-      for (final cat in domain.catalogs) {
-        if (cat.id == selectedCatalogId) {
-          label = catalogLabel(cat.name, l);
-          break;
-        }
-      }
-    }
-    return PopupMenuButton<int>(
-      initialValue: selectedCatalogId ?? _allValue,
-      onSelected: (v) => onSelected(v == _allValue ? null : v),
-      itemBuilder: (_) => [
-        PopupMenuItem<int>(value: _allValue, child: Text(allLabel)),
-        for (final cat in domain.catalogs)
-          PopupMenuItem<int>(
-            value: cat.id,
-            child: Text(catalogLabel(cat.name, l)),
-          ),
-      ],
-      child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(12, 7, 8, 7),
-        decoration: BoxDecoration(
-          color: c.secondaryGroupedBackground,
-          borderRadius: BorderRadius.circular(DesignTokens.radiusSmall),
-          border: Border.all(color: c.separator),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: DesignTokens.rowSecondary.copyWith(
-                color: c.label,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.expand_more, size: 18, color: c.secondaryLabel),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// A titled list section between the search box and the results.

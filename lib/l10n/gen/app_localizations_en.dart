@@ -3149,4 +3149,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesSidebarFlagged => 'Flagged';
+
+  @override
+  String get notesMenuTooltip => 'Filters and lists';
+
+  @override
+  String get notesChipMoreTooltip => 'More filters';
+
+  @override
+  String get helpNotesListChipsTitle => 'Quick filters';
+
+  @override
+  String get helpNotesListChipsBody =>
+      'The row under the search box switches between All, Pinned, Flagged and the domains and tags you use most; it learns from what you pick. Tap a selected chip again to go back to All, or tap ＋ to open the side panel with every filter.';
 }

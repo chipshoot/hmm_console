@@ -1516,5 +1516,9 @@
   "notesSidebarDomains": "Domains",
   "notesSidebarTags": "Tags",
   "notesSidebarSmartFilters": "Smart filters",
-  "notesSidebarFlagged": "Flagged"
+  "notesSidebarFlagged": "Flagged",
+  "notesMenuTooltip": "Filters and lists",
+  "notesChipMoreTooltip": "More filters",
+  "helpNotesListChipsTitle": "Quick filters",
+  "helpNotesListChipsBody": "The row under the search box switches between All, Pinned, Flagged and the domains and tags you use most; it learns from what you pick. Tap a selected chip again to go back to All, or tap ＋ to open the side panel with every filter."
 }

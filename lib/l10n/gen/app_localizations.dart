@@ -5689,6 +5689,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Flagged'**
   String get notesSidebarFlagged;
+
+  /// No description provided for @notesMenuTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters and lists'**
+  String get notesMenuTooltip;
+
+  /// No description provided for @notesChipMoreTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More filters'**
+  String get notesChipMoreTooltip;
+
+  /// No description provided for @helpNotesListChipsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick filters'**
+  String get helpNotesListChipsTitle;
+
+  /// No description provided for @helpNotesListChipsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The row under the search box switches between All, Pinned, Flagged and the domains and tags you use most; it learns from what you pick. Tap a selected chip again to go back to All, or tap ＋ to open the side panel with every filter.'**
+  String get helpNotesListChipsBody;
 }
 
 class _AppLocalizationsDelegate

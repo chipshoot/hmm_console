@@ -135,7 +135,7 @@ Future<void> _openDrawer(WidgetTester tester) async {
   tester.view.physicalSize = const Size(800, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+  await tester.tap(find.byTooltip('Filters and lists'));
   await tester.pumpAndSettle();
 }
 
