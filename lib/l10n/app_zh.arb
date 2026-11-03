@@ -925,5 +925,8 @@
   "notesSavedSearchMissing": "此已保存的搜索已被删除",
   "notesShowAllNotes": "显示全部笔记",
   "helpNotesListSavedTitle": "已保存的搜索",
-  "helpNotesListSavedBody": "点按搜索框旁的书签图标即可保存当前搜索，包括筛选和条件。已保存的搜索显示在侧边栏中；点按即可打开，长按可重命名、移动或删除。它们会同步到你的其他设备。"
+  "helpNotesListSavedBody": "点按搜索框旁的书签图标即可保存当前搜索，包括筛选和条件。已保存的搜索显示在侧边栏中；点按即可打开，长按可重命名、移动或删除。它们会同步到你的其他设备。",
+  "notesSmartWithPhotos": "含照片",
+  "notesSmartWithPlace": "含地点",
+  "notesSmartLast7d": "最近 7 天"
 }

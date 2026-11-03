@@ -10,6 +10,7 @@ import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
 import 'package:hmm_console/features/contacts/presentation/contact_note_display.dart';
 import 'package:hmm_console/features/contacts/domain/pinyin_transcriber.dart';
 import 'package:hmm_console/features/contacts/states/pinyin_transcriber_provider.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/query/note_results.dart';
@@ -117,6 +118,37 @@ class _FakeSaved extends SavedSearchesNotifier {
 }
 
 void main() {
+  test('a built-in smart filter lists only notes with photos', () async {
+    final c = _container(
+      '',
+      notes: [
+        _n(1, 'Plain'),
+        HmmNote(
+          id: 2,
+          uuid: 'u2',
+          subject: 'Pic',
+          authorId: 1,
+          createDate: DateTime(2026, 1, 2),
+          attachments: NoteAttachments(
+            primaryImage: VaultRef(
+              path: 'a/b.jpg',
+              contentType: 'image/jpeg',
+              byteSize: 1,
+            ),
+          ),
+        ),
+      ],
+      query: const NoteQuery(
+        source: SmartSource(savedId: 'builtin.withPhotos'),
+      ),
+    );
+    await c.read(notesListStateProvider.future);
+    c.listen(notesResultsProvider, (_, _) {});
+    c.read(notesViewEnvProvider.notifier).set(_env);
+    c.read(notesResultsProvider);
+    expect(_ids(c.read(notesResultsProvider)), [2]);
+  });
+
   test('a smart source lists the saved search\'s notes', () async {
     final c = _container(
       '',

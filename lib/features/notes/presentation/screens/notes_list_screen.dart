@@ -21,6 +21,7 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/models/hmm_note.dart';
+import '../../query/built_in_smart_filters.dart';
 import '../../query/note_grouping.dart';
 import '../../query/note_query.dart';
 import '../../query/note_results.dart';
@@ -452,12 +453,18 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       case SmartSource():
         // ref.read: this also runs from event handlers; the build path
         // already rebuilds on saved-search changes via the effective query.
-        final found = savedSearchFor(src, ref.read(savedSearchesProvider));
-        return found?.name ?? l.notesFiltered;
+        final found = savedSearchFor(src, ref.read(notesSmartFiltersProvider));
+        return found == null ? l.notesFiltered : _smartName(found, l);
       default:
         return l.notesFiltered;
     }
   }
+
+  static String _smartName(SavedSearch s, AppLocalizations l) =>
+      isBuiltInSmartFilter(s.id) ? builtInSmartFilterName(s.id, l) : s.name;
+
+  static String _smartNameOr(SavedSearch? s, AppLocalizations l) =>
+      s == null ? l.notesFiltered : _smartName(s, l);
 
   Widget _scopeToggle(
     NotesListData data,
@@ -522,8 +529,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     }
     final source = data.query.source;
     final mainLabel = source is SmartSource
-        ? (savedSearchFor(source, ref.watch(savedSearchesProvider))?.name ??
-              l.notesFiltered)
+        ? _smartNameOr(
+            savedSearchFor(source, ref.watch(notesSmartFiltersProvider)),
+            l,
+          )
         : activeDomain != null
         ? domainLabel(activeDomain.key, l)
         : ((f == null || f.isEmpty) ? l.notesAll : l.notesFiltered);
@@ -561,7 +570,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final text = data.query.text.trim();
     final source = data.query.source;
     if (source is SmartSource &&
-        savedSearchFor(source, ref.watch(savedSearchesProvider)) == null) {
+        savedSearchFor(source, ref.watch(notesSmartFiltersProvider)) == null) {
       // Deleted here or on another device while open.
       return [
         SliverFillRemaining(

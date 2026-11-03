@@ -5647,6 +5647,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.'**
   String get helpNotesListSavedBody;
+
+  /// No description provided for @notesSmartWithPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'With photos'**
+  String get notesSmartWithPhotos;
+
+  /// No description provided for @notesSmartWithPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'With place'**
+  String get notesSmartWithPlace;
+
+  /// No description provided for @notesSmartLast7d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get notesSmartLast7d;
 }
 
 class _AppLocalizationsDelegate

@@ -3128,4 +3128,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListSavedBody =>
       'Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.';
+
+  @override
+  String get notesSmartWithPhotos => 'With photos';
+
+  @override
+  String get notesSmartWithPlace => 'With place';
+
+  @override
+  String get notesSmartLast7d => 'Last 7 days';
 }

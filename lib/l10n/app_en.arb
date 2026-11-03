@@ -1509,5 +1509,8 @@
   "notesSavedSearchMissing": "This saved search was deleted",
   "notesShowAllNotes": "Show all notes",
   "helpNotesListSavedTitle": "Saved searches",
-  "helpNotesListSavedBody": "Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices."
+  "helpNotesListSavedBody": "Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.",
+  "notesSmartWithPhotos": "With photos",
+  "notesSmartWithPlace": "With place",
+  "notesSmartLast7d": "Last 7 days"
 }

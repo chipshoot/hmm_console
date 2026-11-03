@@ -3037,4 +3037,13 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListSavedBody =>
       '点按搜索框旁的书签图标即可保存当前搜索，包括筛选和条件。已保存的搜索显示在侧边栏中；点按即可打开，长按可重命名、移动或删除。它们会同步到你的其他设备。';
+
+  @override
+  String get notesSmartWithPhotos => '含照片';
+
+  @override
+  String get notesSmartWithPlace => '含地点';
+
+  @override
+  String get notesSmartLast7d => '最近 7 天';
 }

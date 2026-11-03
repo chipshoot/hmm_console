@@ -172,7 +172,7 @@ NoteIndexing _indexingFor(Ref ref, NotesListData data, NotesViewEnv env) =>
 final notesEffectiveQueryProvider = Provider.autoDispose<NoteQuery?>((ref) {
   final live = ref.watch(notesListStateProvider).value?.query;
   if (live == null) return null;
-  return resolveSmartQuery(live, ref.watch(savedSearchesProvider));
+  return resolveSmartQuery(live, ref.watch(notesSmartFiltersProvider));
 });
 
 /// The single feed the list screen reads. Loading until the list data and
