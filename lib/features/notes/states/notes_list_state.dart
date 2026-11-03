@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/local/database.dart';
@@ -8,7 +7,6 @@ import '../../../core/notes/note_state.dart';
 import '../../../core/notes/catalog_palette.dart';
 import '../data/models/hmm_note.dart';
 import '../data/subsystem_anchor.dart';
-import '../presentation/widgets/domain_groups.dart';
 import '../query/note_query.dart';
 
 export '../query/note_query.dart' show NoteSort;
@@ -149,35 +147,6 @@ class NotesListData {
       liveTagNames: liveTagNames ?? this.liveTagNames,
     );
   }
-}
-
-/// The query source for a catalog multi-selection from the filter UI: none
-/// is [AllSource]; a whole group is its domain; one catalog of a group is
-/// that catalog within the domain; anything else cannot be expressed.
-NoteSource sourceForCatalogSelection(Set<int>? ids, List<DomainGroup> groups) {
-  if (ids == null || ids.isEmpty) return const AllSource();
-  for (final g in groups) {
-    if (setEquals(ids, g.catalogIds)) return DomainSource(key: g.key);
-  }
-  if (ids.length == 1) {
-    final id = ids.first;
-    for (final g in groups) {
-      if (g.catalogIds.contains(id)) {
-        return DomainSource(key: g.key, catalogId: id);
-      }
-    }
-  }
-  return const AllSource();
-}
-
-/// Inverse of [sourceForCatalogSelection]; null for non-domain sources.
-Set<int>? catalogSelectionFor(NoteSource s, List<DomainGroup> groups) {
-  if (s is! DomainSource) return null;
-  if (s.catalogId != null) return {s.catalogId!};
-  for (final g in groups) {
-    if (g.key == s.key) return g.catalogIds;
-  }
-  return null;
 }
 
 /// Reactive feed of the current author's live notes. Emits on every change to

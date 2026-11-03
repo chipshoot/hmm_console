@@ -9,7 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/contacts/domain/pinyin_transcriber.dart';
-import 'package:hmm_console/features/notes/presentation/widgets/domain_groups.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/query/note_query_engine.dart';
 import 'package:hmm_console/features/notes/query/note_text_index.dart';
@@ -97,17 +96,8 @@ class _NoPinyin implements PinyinTranscriber {
   List<String> family(String text) => [text];
 }
 
-final _groups = [
-  DomainGroup('General', [_cat(_general, 'General')], 5),
-  DomainGroup('AutomobileMan', [
-    _cat(_autoInfo, 'Hmm.AutomobileMan.AutomobileInfo'),
-    _cat(_serviceRecord, 'Hmm.AutomobileMan.ServiceRecord'),
-  ], 2),
-];
-
-/// The query the drawer builds for a catalog selection.
-NotesListData _filtered(Set<int> ids) =>
-    _data(query: NoteQuery(source: sourceForCatalogSelection(ids, _groups)));
+NotesListData _filtered(NoteSource source) =>
+    _data(query: NoteQuery(source: source));
 
 void main() {
   group('effectiveDomain', () {
@@ -140,7 +130,7 @@ void main() {
 
   group('the Automobile domain filter', () {
     // The drawer selects every catalog in the domain.
-    final automobile = _filtered(const {_autoInfo, _serviceRecord});
+    final automobile = _filtered(const DomainSource(key: 'AutomobileMan'));
 
     test('shows the car, its service record, its note, the anchor note', () {
       expect(ids(automobile), {100, 3, 1, 6});
@@ -152,7 +142,7 @@ void main() {
   });
 
   group('the General domain filter', () {
-    final general = _filtered(const {_general});
+    final general = _filtered(const DomainSource(key: 'General'));
 
     test('a note attached to a car has moved out of General', () {
       expect(ids(general), isNot(contains(1)));
@@ -165,7 +155,9 @@ void main() {
 
   test('picking one catalog does not drag in the whole domain', () {
     // Only "Service record" selected: the car itself must not appear.
-    final only = _filtered(const {_serviceRecord});
+    final only = _filtered(
+      const DomainSource(key: 'AutomobileMan', catalogId: _serviceRecord),
+    );
     expect(ids(only), contains(3));
     expect(ids(only), isNot(contains(100)));
   });
@@ -218,9 +210,7 @@ void main() {
     test('the Automobile group count matches what selecting it shows', () {
       final d = onlyCarNotes();
       final autoSelected = d.copyWith(
-        query: NoteQuery(
-          source: sourceForCatalogSelection({_autoInfo}, _groups),
-        ),
+        query: NoteQuery(source: const DomainSource(key: 'AutomobileMan')),
       );
       expect(d.countsByDomain['AutomobileMan'], ids(autoSelected).length);
       expect(ids(autoSelected).length, 3); // car + both attached notes

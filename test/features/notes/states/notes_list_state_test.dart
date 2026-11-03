@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
-import 'package:hmm_console/features/notes/presentation/widgets/domain_groups.dart';
 import 'package:hmm_console/features/contacts/domain/pinyin_transcriber.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/query/note_query_engine.dart';
@@ -54,17 +52,6 @@ void main() {
     _n(2, 'apple', 20, DateTime(2026, 1, 3)),
     _n(3, 'Cherry', 10, DateTime(2026, 1, 2)),
   ];
-  NoteCatalog cat(int id) => NoteCatalog(
-    id: id,
-    name: 'C$id',
-    schema: '{}',
-    formatType: 0,
-    isDefault: false,
-  );
-  final groups = [
-    DomainGroup('A', [cat(10)], 2),
-    DomainGroup('B', [cat(20)], 1),
-  ];
   NotesListData data([NoteQuery q = const NoteQuery.initial()]) =>
       NotesListData(
         all: notes,
@@ -83,9 +70,7 @@ void main() {
   });
 
   test('catalog filter restricts to selected catalogs', () {
-    final v = _evaluate(
-      data(NoteQuery(source: sourceForCatalogSelection({10}, groups))),
-    );
+    final v = _evaluate(data(NoteQuery(source: const DomainSource(key: 'A'))));
     expect(v.map((n) => n.id).toList()..sort(), [1, 3]);
   });
 
