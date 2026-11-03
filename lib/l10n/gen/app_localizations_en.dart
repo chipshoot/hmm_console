@@ -506,29 +506,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesLoadFailed => 'Couldn\'t load your notes';
 
   @override
-  String get notesFilter => 'FILTER';
-
-  @override
   String get notesAll => 'All';
-
-  @override
-  String get notesAllNotes => 'All notes';
-
-  @override
-  String notesAllInDomain(String domain) {
-    return 'All $domain';
-  }
-
-  @override
-  String notesNoteCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count notes',
-      one: '1 note',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get notesSelectNote => 'Select a note';
@@ -2870,9 +2848,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesViewTooltip => 'View';
 
   @override
-  String get notesFilterTooltip => 'Filter';
-
-  @override
   String get notesFiltered => 'Filtered';
 
   @override
@@ -3051,7 +3026,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNotesListTokensBody =>
-      'As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.';
+      'As you type, suggestions appear for tags, domains, kinds of note (such as Gas Log), flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.';
 
   @override
   String get notesNoMatchesFilters => 'No notes match this search';

@@ -485,28 +485,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesLoadFailed => '无法加载笔记';
 
   @override
-  String get notesFilter => '筛选';
-
-  @override
   String get notesAll => '全部';
-
-  @override
-  String get notesAllNotes => '所有笔记';
-
-  @override
-  String notesAllInDomain(String domain) {
-    return '全部$domain';
-  }
-
-  @override
-  String notesNoteCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count 条笔记',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get notesSelectNote => '请选择一条笔记';
@@ -2782,9 +2761,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesViewTooltip => '显示';
 
   @override
-  String get notesFilterTooltip => '筛选';
-
-  @override
   String get notesFiltered => '已筛选';
 
   @override
@@ -2963,7 +2939,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNotesListTokensBody =>
-      '输入时会出现标签、领域、旗标、所属笔记、照片、地点和日期范围的建议。点按建议即可添加为条件；点按条件上的 ✕（或在外接键盘上于空白搜索框中按退格键）即可移除。启用筛选时，可选择在全部笔记或仅在该筛选中搜索。点按空白搜索框可查看最近的搜索。';
+      '输入时会出现标签、领域、笔记类型（如加油记录）、旗标、所属笔记、照片、地点和日期范围的建议。点按建议即可添加为条件；点按条件上的 ✕（或在外接键盘上于空白搜索框中按退格键）即可移除。启用筛选时，可选择在全部笔记或仅在该筛选中搜索。点按空白搜索框可查看最近的搜索。';
 
   @override
   String get notesNoMatchesFilters => '没有符合此搜索的笔记';

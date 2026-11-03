@@ -298,25 +298,7 @@
   "notesTitle": "Notes",
   "notesSearchHint": "Search notes",
   "notesLoadFailed": "Couldn't load your notes",
-  "notesFilter": "FILTER",
   "notesAll": "All",
-  "notesAllNotes": "All notes",
-  "notesAllInDomain": "All {domain}",
-  "@notesAllInDomain": {
-    "placeholders": {
-      "domain": {
-        "type": "String"
-      }
-    }
-  },
-  "notesNoteCount": "{count, plural, =1{1 note} other{{count} notes}}",
-  "@notesNoteCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "notesSelectNote": "Select a note",
   "notesNone": "None",
   "notesEmpty": "No notes yet",
@@ -1424,7 +1406,6 @@
     }
   },
   "notesViewTooltip": "View",
-  "notesFilterTooltip": "Filter",
   "notesFiltered": "Filtered",
   "notesSearchClearTooltip": "Clear search",
   "notesSearchClearAction": "Clear search",
@@ -1484,7 +1465,7 @@
   "@notesScopeCurrent": {"placeholders": {"source": {"type": "String"}}},
   "notesSuggestionsHeader": "Suggestions",
   "helpNotesListTokensTitle": "Search tokens",
-  "helpNotesListTokensBody": "As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip's ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.",
+  "helpNotesListTokensBody": "As you type, suggestions appear for tags, domains, kinds of note (such as Gas Log), flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip's ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.",
   "notesNoMatchesFilters": "No notes match this search",
   "notesSaveSearchTooltip": "Save search",
   "notesSaveSearchTitle": "Save search",

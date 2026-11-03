@@ -328,6 +328,23 @@ void main() {
     final e = help.entries.firstWhere((e) => e.title == 'Side panel');
     expect(e.icon, Icons.menu);
   });
+
+  testWidgets('the tokens help body mentions kinds of note', (tester) async {
+    late ScreenHelp help;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) {
+            help = helpFor(HelpId.notesList, AppLocalizations.of(context));
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+    expect(help.entries.any((e) => e.body.contains('kinds of note')), isTrue);
+  });
 }
 
 class _Recording extends SavedSearchesNotifier {
