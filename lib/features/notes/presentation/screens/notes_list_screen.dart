@@ -302,7 +302,34 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final format = DateFormat.yMd(Localizations.localeOf(context).toString());
     final ios = Theme.of(context).platform == TargetPlatform.iOS;
     final tokens = data.query.tokens;
+    final struck = TextStyle(
+      decoration: TextDecoration.lineThrough,
+      color: context.appColors.secondaryLabel,
+    );
+    // The open saved search's own text and tokens: read-only, before the live
+    // chips, and never touched by Backspace.
+    final saved = savedSearchFor(
+      data.query.source,
+      ref.watch(notesSmartFiltersProvider),
+    );
+    final savedChips = <({String text, bool removed})>[
+      if (saved != null && saved.query.text.trim().isNotEmpty)
+        (text: '"${saved.query.text.trim()}"', removed: false),
+      if (saved != null)
+        for (final t in saved.query.tokens)
+          tokenLabel(t, data, l, titleOf: titleOf, dateFormat: format),
+    ];
     return [
+      for (var i = 0; i < savedChips.length; i++)
+        Chip(
+          avatar: i == 0 ? const Icon(Icons.bookmark_outline) : null,
+          label: Text(
+            savedChips[i].text,
+            style: savedChips[i].removed ? struck : null,
+          ),
+          backgroundColor: Colors.transparent,
+          side: BorderSide(color: context.appColors.secondaryLabel),
+        ),
       for (var i = 0; i < tokens.length; i++)
         Builder(
           builder: (_) {
@@ -313,15 +340,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               titleOf: titleOf,
               dateFormat: format,
             );
-            final text = Text(
-              label.text,
-              style: label.removed
-                  ? TextStyle(
-                      decoration: TextDecoration.lineThrough,
-                      color: context.appColors.secondaryLabel,
-                    )
-                  : null,
-            );
+            final text = Text(label.text, style: label.removed ? struck : null);
             void remove() => notifier.setTokens([
               for (var j = 0; j < tokens.length; j++)
                 if (j != i) tokens[j],

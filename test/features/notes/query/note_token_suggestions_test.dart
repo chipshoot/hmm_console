@@ -2,6 +2,7 @@ import 'dart:ui' show Locale;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
+import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/query/note_token_labels.dart';
@@ -27,9 +28,10 @@ NotesListData _c({
   Map<int, List<NoteTagLabel>> tags = const {},
   Map<int, String>? live,
   Map<int, String> domains = const {1: 'General'},
+  Map<int, NoteCatalog> catalogs = const {},
 }) => NotesListData(
   all: all ?? [_n(1, 'One')],
-  catalogsById: const {},
+  catalogsById: catalogs,
   catalogDomainById: domains,
   tagsByNoteId: tags,
   liveTagNames: live,
@@ -43,7 +45,29 @@ List<NoteToken> _s(
   for (final s in suggestTokens(text, c, existing, l, titleOf: _title)) s.token,
 ];
 
+NoteCatalog _cat(int id, String name) => NoteCatalog(
+  id: id,
+  name: name,
+  schema: '{}',
+  formatType: 0,
+  isDefault: false,
+);
+
 void main() {
+  test('suggests a catalog by its label, only when it has notes', () {
+    final c = _c(
+      all: [_n(1, 'a', catalog: 10)],
+      catalogs: {
+        10: _cat(10, 'Hmm.AutomobileMan.GasLog'),
+        11: _cat(11, 'Hmm.AutomobileMan.ServiceRecord'),
+      },
+    );
+    expect(_s('gas', c), [const CatalogToken(10)]);
+    expect(_s('service', c), isEmpty);
+    expect(_s('gas', c, [const CatalogToken(10)]), isEmpty);
+    expect(tokenText(const CatalogToken(10), c, l, _title), 'Gas Log');
+  });
+
   test('suggests a tag by a substring, case- and accent-insensitive', () {
     final c = _c(
       tags: {

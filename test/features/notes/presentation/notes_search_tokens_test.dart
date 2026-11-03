@@ -10,7 +10,9 @@ import 'package:hmm_console/features/notes/presentation/widgets/note_row.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/states/note_selection.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
+import 'package:hmm_console/features/notes/query/saved_search.dart';
 import 'package:hmm_console/features/notes/states/recent_searches.dart';
+import 'package:hmm_console/features/notes/states/saved_searches_provider.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -96,6 +98,33 @@ Future<void> _open(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+class _Saved extends SavedSearchesNotifier {
+  _Saved(this.initial);
+  final List<SavedSearch> initial;
+  @override
+  List<SavedSearch> build() => initial;
+}
+
+Future<void> _openSaved(WidgetTester tester, NoteQuery saved) async {
+  final c = ProviderContainer(
+    overrides: [
+      notesListStateProvider.overrideWith(_State.new),
+      savedSearchesProvider.overrideWith(
+        () => _Saved([
+          SavedSearch(id: 's1', name: 'Mine', order: 0, query: saved),
+        ]),
+      ),
+    ],
+  );
+  addTearDown(c.dispose);
+  await tester.pumpWidget(_app(const NotesListScreen(), container: c));
+  await tester.pumpAndSettle();
+  c
+      .read(notesListStateProvider.notifier)
+      .setQuery(const NoteQuery(source: SmartSource(savedId: 's1')));
+  await tester.pumpAndSettle();
+}
+
 final _chip = find.byWidgetPredicate((w) => w is Chip || w is InputChip);
 
 void main() {
@@ -138,6 +167,67 @@ void main() {
       );
     },
   );
+
+  testWidgets('a catalog token filters to that catalog', (tester) async {
+    await _open(tester);
+    await _type(tester, 'gas');
+    await tester.tap(find.widgetWithText(ListTile, 'Gas Log'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: _chip, matching: find.text('Gas Log')),
+      findsOneWidget,
+    );
+    expect(find.byType(NoteRow), findsNWidgets(2));
+    expect(find.text('Oil change'), findsOneWidget);
+    expect(find.text('Grocery list'), findsNothing);
+  });
+
+  testWidgets('an open saved search shows its tokens as read-only chips', (
+    tester,
+  ) async {
+    await _openSaved(tester, const NoteQuery(tokens: [TagToken(5)]));
+    _notifier(tester).setTokens(const [TagToken(6)]);
+    await tester.pumpAndSettle();
+
+    expect(_chip, findsNWidgets(2));
+    final saved = tester.widget<Chip>(find.widgetWithText(Chip, '#car').first);
+    expect(saved.onDeleted, isNull);
+    expect(
+      find.descendant(of: _chip, matching: find.byIcon(Icons.bookmark_outline)),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Remove #car'), findsNothing);
+    expect(find.byTooltip('Remove #home'), findsOneWidget);
+    // Saved chips come first.
+    expect(
+      tester.getTopLeft(find.widgetWithText(Chip, '#car')).dx,
+      lessThan(tester.getTopLeft(find.widgetWithText(InputChip, '#home')).dx),
+    );
+  });
+
+  testWidgets("an open saved search's removed tag shows (removed)", (
+    tester,
+  ) async {
+    await _openSaved(tester, const NoteQuery(tokens: [TagToken(99)]));
+    final label = find.textContaining('(removed)');
+    expect(label, findsOneWidget);
+    expect(
+      tester.widget<Text>(label).style?.decoration,
+      TextDecoration.lineThrough,
+    );
+  });
+
+  testWidgets('the saved text shows as one quoted read-only chip', (
+    tester,
+  ) async {
+    await _openSaved(tester, const NoteQuery(text: 'oil'));
+    expect(find.text('"oil"'), findsOneWidget);
+    expect(_chip, findsOneWidget);
+    expect(
+      tester.widget<Chip>(find.widgetWithText(Chip, '"oil"')).onDeleted,
+      isNull,
+    );
+  });
 
   testWidgets('removing a chip restores the list', (tester) async {
     await _open(tester);
