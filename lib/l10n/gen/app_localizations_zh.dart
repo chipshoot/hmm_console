@@ -2886,4 +2886,155 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListFilterBody =>
       '显示全部笔记、某个领域（如汽车），或其中的某一类笔记。搜索框下方的标签打开领域列表；筛选按钮列出所有类别。';
+
+  @override
+  String get notesTokenHasPhoto => '含照片';
+
+  @override
+  String get notesTokenHasPlace => '含地点';
+
+  @override
+  String get notesTokenHasAttachment => '含附件';
+
+  @override
+  String get notesTokenPinned => '已置顶';
+
+  @override
+  String get notesTokenLast7d => '最近 7 天';
+
+  @override
+  String get notesTokenLast30d => '最近 30 天';
+
+  @override
+  String get notesTokenLast90d => '最近 90 天';
+
+  @override
+  String notesTokenFlag(String color) {
+    return '$color旗标';
+  }
+
+  @override
+  String notesTokenParent(String subject) {
+    return '附属于$subject';
+  }
+
+  @override
+  String notesTokenTag(String name) {
+    return '#$name';
+  }
+
+  @override
+  String notesTokenDateRange(String from, String to) {
+    return '$from – $to';
+  }
+
+  @override
+  String notesTokenRemoved(String label) {
+    return '$label（已移除）';
+  }
+
+  @override
+  String notesTokenRemoveTooltip(String label) {
+    return '移除$label';
+  }
+
+  @override
+  String get notesTokenUnknown => '未知条件';
+
+  @override
+  String get notesRecentSearches => '最近搜索';
+
+  @override
+  String get notesRecentSearchesClear => '清除';
+
+  @override
+  String get notesScopeAll => '全部笔记';
+
+  @override
+  String notesScopeCurrent(String source) {
+    return '在$source中';
+  }
+
+  @override
+  String get notesSuggestionsHeader => '建议';
+
+  @override
+  String get helpNotesListTokensTitle => '搜索条件';
+
+  @override
+  String get helpNotesListTokensBody =>
+      '输入时会出现标签、领域、旗标、所属笔记、照片、地点和日期范围的建议。点按建议即可添加为条件；点按条件上的 ✕（或在外接键盘上于空白搜索框中按退格键）即可移除。启用筛选时，可选择在全部笔记或仅在该筛选中搜索。点按空白搜索框可查看最近的搜索。';
+
+  @override
+  String get notesNoMatchesFilters => '没有符合此搜索的笔记';
+
+  @override
+  String get notesSaveSearchTooltip => '保存搜索';
+
+  @override
+  String get notesSaveSearchTitle => '保存搜索';
+
+  @override
+  String get notesSaveSearchNameLabel => '名称';
+
+  @override
+  String get notesSaveSearchSave => '保存';
+
+  @override
+  String notesSavedSearchSaved(String name) {
+    return '已保存“$name”';
+  }
+
+  @override
+  String get notesSavedSearchSaveFailed => '无法保存搜索';
+
+  @override
+  String get notesSavedSearchUpdateFailed => '无法更新已保存的搜索';
+
+  @override
+  String get notesSavedSearchesHeader => '已保存的搜索';
+
+  @override
+  String get notesSavedSearchRename => '重命名';
+
+  @override
+  String get notesSavedSearchRenameTitle => '重命名已保存的搜索';
+
+  @override
+  String get notesSavedSearchMoveUp => '上移';
+
+  @override
+  String get notesSavedSearchMoveDown => '下移';
+
+  @override
+  String get notesSavedSearchDelete => '删除';
+
+  @override
+  String notesSavedSearchDeleted(String name) {
+    return '已删除“$name”';
+  }
+
+  @override
+  String get notesSavedSearchDeleteFailed => '无法删除已保存的搜索';
+
+  @override
+  String notesSavedSearchRestored(String name) {
+    return '已恢复“$name”';
+  }
+
+  @override
+  String get notesSavedSearchRestoreFailed => '无法恢复已保存的搜索';
+
+  @override
+  String get notesSavedSearchMissing => '此已保存的搜索已被删除';
+
+  @override
+  String get notesShowAllNotes => '显示全部笔记';
+
+  @override
+  String get helpNotesListSavedTitle => '已保存的搜索';
+
+  @override
+  String get helpNotesListSavedBody =>
+      '点按搜索框旁的书签图标即可保存当前搜索，包括筛选和条件。已保存的搜索显示在侧边栏中；点按即可打开，长按可重命名、移动或删除。它们会同步到你的其他设备。';
 }

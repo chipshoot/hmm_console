@@ -1,5 +1,5 @@
-import 'dart:async';
-
+import 'package:flutter/cupertino.dart'
+    show CupertinoIcons, CupertinoSlidingSegmentedControl;
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
+import '../../../../core/help/undoable_action.dart';
 import '../../../../core/settings/app_settings.dart';
 import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -23,17 +24,25 @@ import '../../data/models/hmm_note.dart';
 import '../../query/note_grouping.dart';
 import '../../query/note_query.dart';
 import '../../query/note_results.dart';
+import '../../query/note_token_labels.dart';
+import '../../query/note_token_suggestions.dart';
+import '../../query/saved_search.dart';
+import '../../query/smart_query.dart';
 import '../../rendering/note_display.dart';
 import '../../states/filter_usage.dart';
 import '../../states/note_selection.dart'
     show kNotesWideBreakpoint, selectedNoteIdProvider;
 import '../../states/notes_list_state.dart';
 import '../../states/notes_results_provider.dart';
+import '../../states/recent_searches.dart';
+import '../../states/saved_searches_provider.dart';
 import '../catalog_labels.dart';
 import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
 import '../widgets/note_flag_sheet.dart' show noteFlagColorLabel;
+import '../widgets/note_search_field.dart';
 import '../widgets/note_row.dart';
+import '../widgets/saved_search_dialogs.dart';
 import '../widgets/notes_view_menu.dart';
 
 class NotesListScreen extends ConsumerStatefulWidget {
@@ -44,6 +53,105 @@ class NotesListScreen extends ConsumerStatefulWidget {
 }
 
 class _NotesListScreenState extends ConsumerState<NotesListScreen> {
+  final _fieldKey = GlobalKey<NoteSearchFieldState>();
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  /// The note's display title: the same one the search results use, never the
+  /// raw subject (contacts and cheatsheets keep JSON there).
+  String Function(HmmNote) _titleOf(NotesListData data, AppLocalizations l) {
+    final registry = ref.read(noteDisplayRegistryProvider);
+    return (n) => registry.title(n, data.catalogsById[n.catalogId]?.name, l);
+  }
+
+  void _recordRecent() {
+    final q = ref.read(notesListStateProvider).value?.query;
+    if (q == null || (q.text.trim().isEmpty && q.tokens.isEmpty)) return;
+    ref.read(recentSearchesProvider.notifier).record(q);
+  }
+
+  void _applySuggestion(NoteToken token) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final q = ref.read(notesListStateProvider).value?.query;
+    if (q == null) return;
+    // Token and empty text in ONE update, then empty the box: the box never
+    // looks empty while the notifier still filters by the old text.
+    notifier.setQuery(q.copyWith(text: '', tokens: [...q.tokens, token]));
+    _fieldKey.currentState?.clearAndCancel();
+  }
+
+  void _applyRecent(RecentSearch r) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final q = ref.read(notesListStateProvider).value?.query;
+    if (q == null) return;
+    notifier.setQuery(q.copyWith(text: r.text, tokens: r.tokens));
+  }
+
+  /// Whether there is anything worth saving: text, tokens or a narrowed source.
+  bool _canSave(NoteQuery? q) =>
+      q != null &&
+      // A SmartSource left after resolution is a deleted saved search.
+      q.source is! SmartSource &&
+      (q.text.trim().isNotEmpty ||
+          q.tokens.isNotEmpty ||
+          q.source is! AllSource);
+
+  Future<void> _saveSearch(NotesListData data, AppLocalizations l) async {
+    final effective = ref.read(notesEffectiveQueryProvider);
+    if (effective == null) return;
+    final saved = ref.read(savedSearchesProvider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
+    final text = effective.text.trim();
+    final String initial;
+    if (text.isNotEmpty) {
+      initial = text;
+    } else if (effective.tokens.isNotEmpty) {
+      initial = tokenLabel(
+        effective.tokens.first,
+        data,
+        l,
+        titleOf: _titleOf(data, l),
+        dateFormat: DateFormat.yMd(Localizations.localeOf(context).toString()),
+      ).text;
+    } else {
+      initial = _sourceLabel(data, l, effective.source);
+    }
+    final name = await showSavedSearchNameDialog(
+      context,
+      title: l.notesSaveSearchTitle,
+      initial: initial,
+    );
+    if (name == null || name.isEmpty) return;
+    // The effective query, so a search saved while a saved search is open
+    // holds that search's content and no SmartSource.
+    final String message;
+    try {
+      await saved.add(name, effective.copyWith(scope: NoteScope.currentSource));
+      message = l.notesSavedSearchSaved(name);
+    } catch (e) {
+      // Type only: the saved search is user content.
+      debugPrint('NotesListScreen: save search failed (${e.runtimeType})');
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l.notesSavedSearchSaveFailed)));
+      return;
+    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -67,6 +175,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final usage = ref.watch(filterUsageProvider).value ?? const {};
     final density = ref.watch(notesRowDensityProvider);
     final data = listAsync.value;
+    final effective = ref.watch(notesEffectiveQueryProvider);
 
     List<DomainGroup> groupsOf(NotesListData d) => groupByDomain(
       d.catalogsById.values,
@@ -134,15 +243,41 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: _SearchField(
-                query: data.query.text,
-                hintText: l.notesSearchHint,
-                clearTooltip: l.notesSearchClearTooltip,
-                onChanged: notifier.setText,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: NoteSearchField(
+                      key: _fieldKey,
+                      focusNode: _focus,
+                      text: data.query.text,
+                      chips: _chips(data, l),
+                      hintText: l.notesSearchHint,
+                      clearTooltip: l.notesSearchClearTooltip,
+                      onTextChanged: notifier.setText,
+                      onRemoveLastToken: () {
+                        final t = data.query.tokens;
+                        if (t.isNotEmpty) {
+                          notifier.setTokens(t.sublist(0, t.length - 1));
+                        }
+                      },
+                      onSubmitted: (_) => _recordRecent(),
+                    ),
+                  ),
+                  if (_canSave(effective))
+                    HmmIconButton(
+                      tooltip: l.notesSaveSearchTooltip,
+                      icon: Icons.bookmark_add_outlined,
+                      onPressed: () => _saveSearch(data, l),
+                    ),
+                ],
               ),
             ),
           ),
+          ..._suggestionsAndRecents(data, l),
           SliverToBoxAdapter(child: _filterBar(data, groupsOf(data), l)),
+          if (_showScope(effective))
+            SliverToBoxAdapter(child: _scopeToggle(data, effective!, l)),
         ],
         ...resultsAsync.when<List<Widget>>(
           loading: () => const [
@@ -174,6 +309,199 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
   }
 
+  List<Widget> _chips(NotesListData data, AppLocalizations l) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final titleOf = _titleOf(data, l);
+    final format = DateFormat.yMd(Localizations.localeOf(context).toString());
+    final ios = Theme.of(context).platform == TargetPlatform.iOS;
+    final tokens = data.query.tokens;
+    return [
+      for (var i = 0; i < tokens.length; i++)
+        Builder(
+          builder: (_) {
+            final label = tokenLabel(
+              tokens[i],
+              data,
+              l,
+              titleOf: titleOf,
+              dateFormat: format,
+            );
+            final text = Text(
+              label.text,
+              style: label.removed
+                  ? TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                      color: context.appColors.secondaryLabel,
+                    )
+                  : null,
+            );
+            void remove() => notifier.setTokens([
+              for (var j = 0; j < tokens.length; j++)
+                if (j != i) tokens[j],
+            ]);
+            final tooltip = l.notesTokenRemoveTooltip(label.text);
+            return ios
+                ? Chip(
+                    label: text,
+                    deleteIcon: const Icon(CupertinoIcons.xmark_circle_fill),
+                    deleteButtonTooltipMessage: tooltip,
+                    onDeleted: remove,
+                  )
+                : InputChip(
+                    label: text,
+                    deleteButtonTooltipMessage: tooltip,
+                    onDeleted: remove,
+                  );
+          },
+        ),
+    ];
+  }
+
+  List<Widget> _suggestionsAndRecents(NotesListData data, AppLocalizations l) {
+    final q = data.query;
+    if (q.text.trim().isNotEmpty) {
+      final suggestions = suggestTokens(
+        q.text,
+        data,
+        q.tokens,
+        l,
+        titleOf: _titleOf(data, l),
+      );
+      if (suggestions.isEmpty) return const [];
+      return [
+        SliverToBoxAdapter(
+          child: _SectionBox(
+            header: l.notesSuggestionsHeader,
+            headerIcon: Icons.manage_search,
+            children: [
+              for (final s in suggestions)
+                ListTile(
+                  dense: true,
+                  leading: Icon(s.icon),
+                  title: Text(s.label),
+                  onTap: () => _applySuggestion(s.token),
+                ),
+            ],
+          ),
+        ),
+      ];
+    }
+    if (!_focus.hasFocus || q.tokens.isNotEmpty) return const [];
+    final recents = ref.watch(recentSearchesProvider).value ?? const [];
+    if (recents.isEmpty) return const [];
+    final titleOf = _titleOf(data, l);
+    final format = DateFormat.yMd(Localizations.localeOf(context).toString());
+    String describe(RecentSearch r) => [
+      if (r.text.isNotEmpty) r.text,
+      for (final t in r.tokens)
+        tokenLabel(t, data, l, titleOf: titleOf, dateFormat: format).text,
+    ].join(' · ');
+    return [
+      SliverToBoxAdapter(
+        // Taps in here count as inside the text field, so they do not unfocus
+        // it (which would remove this section before the tap lands).
+        child: TextFieldTapRegion(
+          child: _SectionBox(
+            header: l.notesRecentSearches,
+            trailing: TextButton(
+              onPressed: () =>
+                  ref.read(recentSearchesProvider.notifier).clear(),
+              child: Text(l.notesRecentSearchesClear),
+            ),
+            children: [
+              for (final r in recents)
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.history),
+                  title: Text(describe(r)),
+                  onTap: () => _applyRecent(r),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
+
+  /// The scope choice only matters while searching inside a narrower source.
+  /// Judged on the effective query, so an open saved search counts.
+  bool _showScope(NoteQuery? q) =>
+      q != null &&
+      (q.text.trim().isNotEmpty || q.tokens.isNotEmpty) &&
+      q.source is! AllSource;
+
+  String _sourceLabel(
+    NotesListData data,
+    AppLocalizations l, [
+    NoteSource? source,
+  ]) {
+    final src = source ?? data.query.source;
+    switch (src) {
+      case DomainSource(:final key, :final catalogId):
+        final cat = catalogId == null ? null : data.catalogsById[catalogId];
+        return cat != null ? catalogLabel(cat.name, l) : domainLabel(key, l);
+      case PinnedSource():
+        return l.notesGroupPinned;
+      case TodaySource():
+        return l.notesGroupToday;
+      case FlaggedSource(:final color):
+        return color == null ? l.notesFiltered : flagName(color, l);
+      case TagSource(:final tagId):
+        final name = tagNameOf(data, tagId);
+        return name == null ? l.notesFiltered : l.notesTokenTag(name);
+      case SmartSource():
+        // ref.read: this also runs from event handlers; the build path
+        // already rebuilds on saved-search changes via the effective query.
+        final found = savedSearchFor(src, ref.read(savedSearchesProvider));
+        return found?.name ?? l.notesFiltered;
+      default:
+        return l.notesFiltered;
+    }
+  }
+
+  Widget _scopeToggle(
+    NotesListData data,
+    NoteQuery effective,
+    AppLocalizations l,
+  ) {
+    final notifier = ref.read(notesListStateProvider.notifier);
+    final all = l.notesScopeAll;
+    final current = l.notesScopeCurrent(
+      _sourceLabel(data, l, effective.source),
+    );
+    final scope = data.query.scope;
+    final ios = Theme.of(context).platform == TargetPlatform.iOS;
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
+      child: ios
+          ? SizedBox(
+              width: double.infinity,
+              child: CupertinoSlidingSegmentedControl<NoteScope>(
+                groupValue: scope,
+                onValueChanged: (v) {
+                  if (v != null) notifier.setScope(v);
+                },
+                children: {
+                  NoteScope.currentSource: Text(current),
+                  NoteScope.all: Text(all),
+                },
+              ),
+            )
+          : SegmentedButton<NoteScope>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: NoteScope.currentSource,
+                  label: Text(current),
+                ),
+                ButtonSegment(value: NoteScope.all, label: Text(all)),
+              ],
+              selected: {scope},
+              onSelectionChanged: (s) => notifier.setScope(s.first),
+            ),
+    );
+  }
+
   Widget _filterBar(
     NotesListData data,
     List<DomainGroup> groups,
@@ -192,7 +520,11 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         }
       }
     }
-    final mainLabel = activeDomain != null
+    final source = data.query.source;
+    final mainLabel = source is SmartSource
+        ? (savedSearchFor(source, ref.watch(savedSearchesProvider))?.name ??
+              l.notesFiltered)
+        : activeDomain != null
         ? domainLabel(activeDomain.key, l)
         : ((f == null || f.isEmpty) ? l.notesAll : l.notesFiltered);
     final subDomain = (activeDomain != null && activeDomain.catalogs.length > 1)
@@ -227,16 +559,36 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   ) {
     final notifier = ref.read(notesListStateProvider.notifier);
     final text = data.query.text.trim();
+    final source = data.query.source;
+    if (source is SmartSource &&
+        savedSearchFor(source, ref.watch(savedSearchesProvider)) == null) {
+      // Deleted here or on another device while open.
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: AppEmptyState(
+            icon: Icons.bookmark_remove_outlined,
+            message: l.notesSavedSearchMissing,
+            actionLabel: l.notesShowAllNotes,
+            onAction: () => notifier.setSource(const AllSource()),
+          ),
+        ),
+      ];
+    }
     if (results.isEmpty) {
       final Widget empty;
       if (data.all.isEmpty) {
         empty = AppEmptyState(icon: Icons.note_outlined, message: l.notesEmpty);
-      } else if (text.isNotEmpty) {
+      } else if (text.isNotEmpty || data.query.tokens.isNotEmpty) {
         empty = AppEmptyState(
           icon: Icons.search_off,
-          message: l.notesNoMatches(text),
+          message: text.isNotEmpty
+              ? l.notesNoMatches(text)
+              : l.notesNoMatchesFilters,
           actionLabel: l.notesSearchClearAction,
-          onAction: () => notifier.setText(''),
+          onAction: () => notifier.setQuery(
+            data.query.copyWith(text: '', tokens: const []),
+          ),
         );
       } else {
         empty = AppEmptyState(
@@ -252,7 +604,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final now = DateTime.now();
     final notesById = {for (final n in data.all) n.id: n};
     final highlightWords = [
-      for (final w in normalizeForSearch(data.query.text).split(' '))
+      for (final w in normalizeForSearch(
+        ref.watch(notesEffectiveQueryProvider)?.text ?? data.query.text,
+      ).split(' '))
         if (w.isNotEmpty) w,
     ];
 
@@ -279,6 +633,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     }
 
     void open(HmmNote note) {
+      _recordRecent();
       // Contacts and cheatsheet cards have their own screens; the generic
       // note screen would show raw JSON.
       if (registry.open(
@@ -538,6 +893,61 @@ class _FilterDrawer extends ConsumerWidget {
       domainCounts: data.countsByDomain,
     );
     final f = catalogSelectionFor(data.query.source, groups);
+    final saved = ref.watch(savedSearchesProvider);
+    final savedNotifier = ref.read(savedSearchesProvider.notifier);
+
+    Future<void> guarded(Future<void> Function() run) async {
+      final messenger = ScaffoldMessenger.of(context);
+      final failed = l.notesSavedSearchUpdateFailed;
+      try {
+        await run();
+      } catch (e) {
+        // Type only: the saved search is user content.
+        debugPrint(
+          'NotesListScreen: saved search update failed (${e.runtimeType})',
+        );
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(failed)));
+      }
+    }
+
+    Future<void> onSavedMenu(SavedSearch s, int index) async {
+      final action = await showSavedSearchMenu(
+        context,
+        canMoveUp: index > 0,
+        canMoveDown: index < saved.length - 1,
+      );
+      if (action == null || !context.mounted) return;
+      switch (action) {
+        case SavedSearchAction.rename:
+          final name = await showSavedSearchNameDialog(
+            context,
+            title: l.notesSavedSearchRenameTitle,
+            initial: s.name,
+          );
+          if (name != null && name.isNotEmpty) {
+            await guarded(() => savedNotifier.rename(s.id, name));
+          }
+        case SavedSearchAction.moveUp:
+          await guarded(() => savedNotifier.move(s.id, -1));
+        case SavedSearchAction.moveDown:
+          await guarded(() => savedNotifier.move(s.id, 1));
+        case SavedSearchAction.delete:
+          // The snackbar (with Undo) sits under the drawer's scrim.
+          Navigator.of(context).pop();
+          await showUndoableAction(
+            context,
+            run: () => savedNotifier.remove(s.id),
+            undo: () => savedNotifier.restore(s),
+            done: l.notesSavedSearchDeleted(s.name),
+            failed: l.notesSavedSearchDeleteFailed,
+            undone: l.notesSavedSearchRestored(s.name),
+            undoFailed: l.notesSavedSearchRestoreFailed,
+            busyKey: ('deleteSavedSearch', s.id),
+          );
+      }
+    }
 
     Widget dot(Color color) => Container(
       width: 12,
@@ -550,12 +960,14 @@ class _FilterDrawer extends ConsumerWidget {
       required String title,
       required bool selected,
       required VoidCallback onTap,
+      VoidCallback? onLongPress,
     }) => ListTile(
       leading: leading,
       title: Text(title),
       selected: selected,
       trailing: selected ? Icon(Icons.check, color: c.accent) : null,
       onTap: onTap,
+      onLongPress: onLongPress,
     );
 
     return Drawer(
@@ -575,7 +987,8 @@ class _FilterDrawer extends ConsumerWidget {
             tile(
               leading: dot(c.tertiaryLabel),
               title: l.notesAll,
-              selected: f == null || f.isEmpty,
+              selected:
+                  (f == null || f.isEmpty) && data.query.source is! SmartSource,
               onTap: () {
                 notifier.setSource(const AllSource());
                 Navigator.of(context).pop();
@@ -592,6 +1005,44 @@ class _FilterDrawer extends ConsumerWidget {
                   Navigator.of(context).pop();
                 },
               ),
+            if (saved.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 8),
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    l.notesSavedSearchesHeader,
+                    style: DesignTokens.caption.copyWith(
+                      color: c.secondaryLabel,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              for (var i = 0; i < saved.length; i++)
+                tile(
+                  leading: Icon(Icons.bookmark_outline, color: c.accent),
+                  title: saved[i].name,
+                  selected:
+                      data.query.source == SmartSource(savedId: saved[i].id),
+                  onTap: () {
+                    // The saved search's own text and tokens apply through
+                    // the source, so what is typed next narrows it.
+                    final live = data.query;
+                    notifier.setQuery(
+                      NoteQuery(
+                        source: SmartSource(savedId: saved[i].id),
+                        // A sticky "All notes" would make the saved search's
+                        // source a no-op; start from its own source.
+                        scope: NoteScope.currentSource,
+                        sort: live.sort,
+                      ),
+                    );
+                    Navigator.of(context).pop();
+                  },
+                  onLongPress: () => onSavedMenu(saved[i], i),
+                ),
+            ],
           ],
         ),
       ),
@@ -599,106 +1050,52 @@ class _FilterDrawer extends ConsumerWidget {
   }
 }
 
-/// The search box, showing the query that is actually being applied.
-///
-/// The query lives on the notifier so it survives reactive data emissions —
-/// and therefore also survives leaving the screen. With an uncontrolled
-/// TextField that meant coming back to an empty-looking box silently filtering
-/// the list, which reads as "all my notes are gone".
-///
-/// Typing is debounced: the query is sent [_debounce] after the last
-/// keystroke, so a fast typist does not re-run the search per letter.
-class _SearchField extends StatefulWidget {
-  const _SearchField({
-    required this.query,
-    required this.hintText,
-    required this.clearTooltip,
-    required this.onChanged,
+/// A titled list section between the search box and the results.
+class _SectionBox extends StatelessWidget {
+  const _SectionBox({
+    required this.header,
+    required this.children,
+    this.headerIcon,
+    this.trailing,
   });
 
-  final String query;
-  final String hintText;
-  final String clearTooltip;
-  final ValueChanged<String> onChanged;
-
-  @override
-  State<_SearchField> createState() => _SearchFieldState();
-}
-
-class _SearchFieldState extends State<_SearchField> {
-  static const _debounce = Duration(milliseconds: 150);
-
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.query,
-  )..addListener(_onControllerChanged);
-  late String _lastSent = widget.query;
-  late bool _hasText = widget.query.isNotEmpty;
-  Timer? _timer;
-
-  void _onControllerChanged() {
-    final hasText = _controller.text.isNotEmpty;
-    if (hasText != _hasText) setState(() => _hasText = hasText);
-  }
-
-  void _send(String text) {
-    _timer?.cancel();
-    _lastSent = text;
-    widget.onChanged(text);
-  }
-
-  void _onTyped(String text) {
-    _timer?.cancel();
-    _timer = Timer(_debounce, () => _send(text));
-  }
-
-  void _clear() {
-    _controller.clear();
-    _send('');
-  }
-
-  @override
-  void didUpdateWidget(covariant _SearchField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Only a change made elsewhere (e.g. "Clear search" in the empty state)
-    // is copied into the box. Echoes of what this field sent, and rebuilds
-    // while a keystroke is still pending, must not move the caret or undo
-    // the typing.
-    if (widget.query != oldWidget.query &&
-        widget.query != _lastSent &&
-        widget.query != _controller.text) {
-      _timer?.cancel();
-      _lastSent = widget.query;
-      _controller.text = widget.query;
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
+  final String header;
+  final IconData? headerIcon;
+  final Widget? trailing;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.search),
-        hintText: widget.hintText,
-        isDense: true,
-        border: const OutlineInputBorder(),
-        // A way out that does not require selecting invisible text.
-        suffixIcon: _hasText
-            ? HmmIconButton(
-                key: const Key('notesSearchClear'),
-                icon: Icons.clear,
-                tooltip: widget.clearTooltip,
-                onPressed: _clear,
-              )
-            : null,
-      ),
-      onChanged: _onTyped,
+    final c = context.appColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 8, 0),
+          child: Row(
+            children: [
+              if (headerIcon != null) ...[
+                Icon(headerIcon, size: 16, color: c.secondaryLabel),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    header,
+                    style: DesignTokens.caption.copyWith(
+                      color: c.secondaryLabel,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              ?trailing,
+            ],
+          ),
+        ),
+        ...children,
+      ],
     );
   }
 }

@@ -2974,4 +2974,158 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListFilterBody =>
       'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.';
+
+  @override
+  String get notesTokenHasPhoto => 'Has photos';
+
+  @override
+  String get notesTokenHasPlace => 'Has place';
+
+  @override
+  String get notesTokenHasAttachment => 'Has attachments';
+
+  @override
+  String get notesTokenPinned => 'Pinned';
+
+  @override
+  String get notesTokenLast7d => 'Last 7 days';
+
+  @override
+  String get notesTokenLast30d => 'Last 30 days';
+
+  @override
+  String get notesTokenLast90d => 'Last 90 days';
+
+  @override
+  String notesTokenFlag(String color) {
+    return '$color flag';
+  }
+
+  @override
+  String notesTokenParent(String subject) {
+    return 'Attached to $subject';
+  }
+
+  @override
+  String notesTokenTag(String name) {
+    return '#$name';
+  }
+
+  @override
+  String notesTokenDateRange(String from, String to) {
+    return '$from – $to';
+  }
+
+  @override
+  String notesTokenRemoved(String label) {
+    return '$label (removed)';
+  }
+
+  @override
+  String notesTokenRemoveTooltip(String label) {
+    return 'Remove $label';
+  }
+
+  @override
+  String get notesTokenUnknown => 'Unknown filter';
+
+  @override
+  String get notesRecentSearches => 'Recent searches';
+
+  @override
+  String get notesRecentSearchesClear => 'Clear';
+
+  @override
+  String get notesScopeAll => 'All notes';
+
+  @override
+  String notesScopeCurrent(String source) {
+    return 'In $source';
+  }
+
+  @override
+  String get notesSuggestionsHeader => 'Suggestions';
+
+  @override
+  String get helpNotesListTokensTitle => 'Search tokens';
+
+  @override
+  String get helpNotesListTokensBody =>
+      'As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.';
+
+  @override
+  String get notesNoMatchesFilters => 'No notes match this search';
+
+  @override
+  String get notesSaveSearchTooltip => 'Save search';
+
+  @override
+  String get notesSaveSearchTitle => 'Save search';
+
+  @override
+  String get notesSaveSearchNameLabel => 'Name';
+
+  @override
+  String get notesSaveSearchSave => 'Save';
+
+  @override
+  String notesSavedSearchSaved(String name) {
+    return 'Saved \"$name\"';
+  }
+
+  @override
+  String get notesSavedSearchSaveFailed => 'Couldn\'t save the search';
+
+  @override
+  String get notesSavedSearchUpdateFailed =>
+      'Couldn\'t update the saved search';
+
+  @override
+  String get notesSavedSearchesHeader => 'Saved searches';
+
+  @override
+  String get notesSavedSearchRename => 'Rename';
+
+  @override
+  String get notesSavedSearchRenameTitle => 'Rename saved search';
+
+  @override
+  String get notesSavedSearchMoveUp => 'Move up';
+
+  @override
+  String get notesSavedSearchMoveDown => 'Move down';
+
+  @override
+  String get notesSavedSearchDelete => 'Delete';
+
+  @override
+  String notesSavedSearchDeleted(String name) {
+    return 'Deleted \"$name\"';
+  }
+
+  @override
+  String get notesSavedSearchDeleteFailed =>
+      'Couldn\'t delete the saved search';
+
+  @override
+  String notesSavedSearchRestored(String name) {
+    return 'Restored \"$name\"';
+  }
+
+  @override
+  String get notesSavedSearchRestoreFailed =>
+      'Couldn\'t restore the saved search';
+
+  @override
+  String get notesSavedSearchMissing => 'This saved search was deleted';
+
+  @override
+  String get notesShowAllNotes => 'Show all notes';
+
+  @override
+  String get helpNotesListSavedTitle => 'Saved searches';
+
+  @override
+  String get helpNotesListSavedBody =>
+      'Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.';
 }

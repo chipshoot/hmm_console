@@ -37,6 +37,7 @@ class NotesListData {
     this.catalogDomainById = const {},
     this.anchorDomainById = const {},
     this.targetsById = const {},
+    this.liveTagNames,
   });
 
   final List<HmmNote> all;
@@ -67,6 +68,10 @@ class NotesListData {
   /// car, a policy, a book). Every typed record carries its domain in its
   /// own catalog name, so this needs no per-domain knowledge.
   final Map<int, AttachTarget> targetsById;
+
+  /// Active tag id -> name, so a token for a deleted tag can be told apart
+  /// from a live tag no note carries. Null means unknown: every tag is live.
+  final Map<int, String>? liveTagNames;
 
   /// Per-catalog counts, for the filter sheet's individual catalog rows.
   /// A note attached to something in another domain no longer tallies under
@@ -130,6 +135,7 @@ class NotesListData {
     Map<int, String>? catalogDomainById,
     Map<int, String>? anchorDomainById,
     Map<int, AttachTarget>? targetsById,
+    Map<int, String>? liveTagNames,
   }) {
     return NotesListData(
       all: all ?? this.all,
@@ -140,6 +146,7 @@ class NotesListData {
       catalogDomainById: catalogDomainById ?? this.catalogDomainById,
       anchorDomainById: anchorDomainById ?? this.anchorDomainById,
       targetsById: targetsById ?? this.targetsById,
+      liveTagNames: liveTagNames ?? this.liveTagNames,
     );
   }
 }
@@ -198,6 +205,11 @@ final _noteTagsStreamProvider =
       return ref.watch(tagRepositoryProvider).watchNoteTags();
     });
 
+final _liveTagNamesStreamProvider =
+    StreamProvider.autoDispose<Map<int, String>>((ref) {
+      return ref.watch(tagRepositoryProvider).watchLiveTagNames();
+    });
+
 class NotesListState extends AsyncNotifier<NotesListData> {
   // View criteria live on the notifier so they survive reactive data
   // emissions (which refresh the data, not the user's filter/sort/search).
@@ -209,6 +221,7 @@ class NotesListState extends AsyncNotifier<NotesListData> {
     final catalogs = await ref.watch(_catalogsStreamProvider.future);
     final states = await ref.watch(_statesStreamProvider.future);
     final tags = await ref.watch(_noteTagsStreamProvider.future);
+    final liveTagNames = await ref.watch(_liveTagNamesStreamProvider.future);
     final anchorMatches = catalogs.where(
       (c) => c.name == kSubsystemAnchorCatalogName,
     );
@@ -264,6 +277,7 @@ class NotesListState extends AsyncNotifier<NotesListData> {
       catalogDomainById: catalogDomainById,
       anchorDomainById: anchorDomainById,
       targetsById: targetsById,
+      liveTagNames: liveTagNames,
     );
   }
 
@@ -274,6 +288,11 @@ class NotesListState extends AsyncNotifier<NotesListData> {
   }
 
   void setText(String text) => setQuery(_query.copyWith(text: text));
+
+  void setTokens(List<NoteToken> tokens) =>
+      setQuery(_query.copyWith(tokens: tokens));
+
+  void setScope(NoteScope scope) => setQuery(_query.copyWith(scope: scope));
 
   void setSort(NoteSort sort) => setQuery(_query.copyWith(sort: sort));
 
@@ -287,6 +306,7 @@ class NotesListState extends AsyncNotifier<NotesListData> {
     ref.invalidate(_catalogsStreamProvider);
     ref.invalidate(_statesStreamProvider);
     ref.invalidate(_noteTagsStreamProvider);
+    ref.invalidate(_liveTagNamesStreamProvider);
   }
 }
 

@@ -23,6 +23,21 @@ abstract interface class NoteQueryEngine {
   });
 }
 
+/// A token that points at something that no longer exists: a tag that is gone
+/// (only known when [NotesListData.liveTagNames] is loaded) or a parent note
+/// that is not in the corpus. The engine ignores such tokens rather than
+/// emptying the list.
+bool isRemovedToken(NoteToken t, NotesListData c) =>
+    _isRemoved(t, c, () => {for (final n in c.all) n.uuid});
+
+bool _isRemoved(NoteToken t, NotesListData c, Set<String> Function() uuids) =>
+    switch (t) {
+      TagToken(:final tagId) =>
+        c.liveTagNames != null && !c.liveTagNames!.containsKey(tagId),
+      ParentToken(:final noteUuid) => !uuids().contains(noteUuid),
+      _ => false,
+    };
+
 class InMemoryNoteQueryEngine implements NoteQueryEngine {
   InMemoryNoteQueryEngine({
     required NoteTextIndexCache cache,
@@ -50,10 +65,16 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
       query.text,
     ).split(' ').where((w) => w.isNotEmpty).toList();
     final searching = words.isNotEmpty;
-    final useSource = !(searching && query.scope == NoteScope.all);
 
-    // Only a parent token needs it; built on first use.
+    // Only a parent token needs these; built on first use.
     late final uuidById = {for (final n in corpus.all) n.id: n.uuid};
+    late final uuidSet = uuidById.values.toSet();
+    final tokens = [
+      for (final t in query.tokens)
+        if (!_isRemoved(t, corpus, () => uuidSet)) t,
+    ];
+    final useSource =
+        !((searching || tokens.isNotEmpty) && query.scope == NoteScope.all);
     final today = _day(now.toLocal());
     final titles = <int, String>{}; // each title computed once per evaluate
     String titleOf(HmmNote n) => titles[n.id] ??= _titleOf(n);
@@ -64,7 +85,7 @@ class InMemoryNoteQueryEngine implements NoteQueryEngine {
       if (useSource && !_inSource(query.source, n, state, corpus, today)) {
         continue;
       }
-      if (!query.tokens.every(
+      if (!tokens.every(
         (t) => _passesToken(t, n, state, corpus, uuidById, today),
       )) {
         continue;

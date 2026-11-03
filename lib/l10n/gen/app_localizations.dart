@@ -5389,6 +5389,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.'**
   String get helpNotesListFilterBody;
+
+  /// No description provided for @notesTokenHasPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Has photos'**
+  String get notesTokenHasPhoto;
+
+  /// No description provided for @notesTokenHasPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Has place'**
+  String get notesTokenHasPlace;
+
+  /// No description provided for @notesTokenHasAttachment.
+  ///
+  /// In en, this message translates to:
+  /// **'Has attachments'**
+  String get notesTokenHasAttachment;
+
+  /// No description provided for @notesTokenPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get notesTokenPinned;
+
+  /// No description provided for @notesTokenLast7d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get notesTokenLast7d;
+
+  /// No description provided for @notesTokenLast30d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get notesTokenLast30d;
+
+  /// No description provided for @notesTokenLast90d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 90 days'**
+  String get notesTokenLast90d;
+
+  /// No description provided for @notesTokenFlag.
+  ///
+  /// In en, this message translates to:
+  /// **'{color} flag'**
+  String notesTokenFlag(String color);
+
+  /// No description provided for @notesTokenParent.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached to {subject}'**
+  String notesTokenParent(String subject);
+
+  /// No description provided for @notesTokenTag.
+  ///
+  /// In en, this message translates to:
+  /// **'#{name}'**
+  String notesTokenTag(String name);
+
+  /// No description provided for @notesTokenDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{from} – {to}'**
+  String notesTokenDateRange(String from, String to);
+
+  /// No description provided for @notesTokenRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} (removed)'**
+  String notesTokenRemoved(String label);
+
+  /// No description provided for @notesTokenRemoveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {label}'**
+  String notesTokenRemoveTooltip(String label);
+
+  /// No description provided for @notesTokenUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown filter'**
+  String get notesTokenUnknown;
+
+  /// No description provided for @notesRecentSearches.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent searches'**
+  String get notesRecentSearches;
+
+  /// No description provided for @notesRecentSearchesClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get notesRecentSearchesClear;
+
+  /// No description provided for @notesScopeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All notes'**
+  String get notesScopeAll;
+
+  /// No description provided for @notesScopeCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'In {source}'**
+  String notesScopeCurrent(String source);
+
+  /// No description provided for @notesSuggestionsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get notesSuggestionsHeader;
+
+  /// No description provided for @helpNotesListTokensTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search tokens'**
+  String get helpNotesListTokensTitle;
+
+  /// No description provided for @helpNotesListTokensBody.
+  ///
+  /// In en, this message translates to:
+  /// **'As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.'**
+  String get helpNotesListTokensBody;
+
+  /// No description provided for @notesNoMatchesFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes match this search'**
+  String get notesNoMatchesFilters;
+
+  /// No description provided for @notesSaveSearchTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Save search'**
+  String get notesSaveSearchTooltip;
+
+  /// No description provided for @notesSaveSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save search'**
+  String get notesSaveSearchTitle;
+
+  /// No description provided for @notesSaveSearchNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get notesSaveSearchNameLabel;
+
+  /// No description provided for @notesSaveSearchSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get notesSaveSearchSave;
+
+  /// No description provided for @notesSavedSearchSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved \"{name}\"'**
+  String notesSavedSearchSaved(String name);
+
+  /// No description provided for @notesSavedSearchSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the search'**
+  String get notesSavedSearchSaveFailed;
+
+  /// No description provided for @notesSavedSearchUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the saved search'**
+  String get notesSavedSearchUpdateFailed;
+
+  /// No description provided for @notesSavedSearchesHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches'**
+  String get notesSavedSearchesHeader;
+
+  /// No description provided for @notesSavedSearchRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get notesSavedSearchRename;
+
+  /// No description provided for @notesSavedSearchRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename saved search'**
+  String get notesSavedSearchRenameTitle;
+
+  /// No description provided for @notesSavedSearchMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get notesSavedSearchMoveUp;
+
+  /// No description provided for @notesSavedSearchMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get notesSavedSearchMoveDown;
+
+  /// No description provided for @notesSavedSearchDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get notesSavedSearchDelete;
+
+  /// No description provided for @notesSavedSearchDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted \"{name}\"'**
+  String notesSavedSearchDeleted(String name);
+
+  /// No description provided for @notesSavedSearchDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the saved search'**
+  String get notesSavedSearchDeleteFailed;
+
+  /// No description provided for @notesSavedSearchRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored \"{name}\"'**
+  String notesSavedSearchRestored(String name);
+
+  /// No description provided for @notesSavedSearchRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore the saved search'**
+  String get notesSavedSearchRestoreFailed;
+
+  /// No description provided for @notesSavedSearchMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This saved search was deleted'**
+  String get notesSavedSearchMissing;
+
+  /// No description provided for @notesShowAllNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all notes'**
+  String get notesShowAllNotes;
+
+  /// No description provided for @helpNotesListSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches'**
+  String get helpNotesListSavedTitle;
+
+  /// No description provided for @helpNotesListSavedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.'**
+  String get helpNotesListSavedBody;
 }
 
 class _AppLocalizationsDelegate

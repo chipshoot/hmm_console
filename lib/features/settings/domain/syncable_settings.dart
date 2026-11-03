@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../contacts/domain/contact_sort_by.dart';
 import '../../launcher/domain/launcher_prefs.dart';
+import '../../notes/query/saved_search.dart';
 import 'gas_log_settings.dart';
 import 'sync_settings.dart';
 
@@ -37,6 +38,7 @@ class SyncableSettings {
     required this.lastModified,
     this.launcher = LauncherPrefs.empty,
     this.contactSortBy = ContactSortBy.family,
+    this.notesSavedSearches,
   });
 
   final GasLogSettings gasLog;
@@ -48,6 +50,11 @@ class SyncableSettings {
   /// Contacts list order (Settings → Sort contacts by). Absent in older
   /// bundles, which read as [ContactSortBy.family].
   final ContactSortBy contactSortBy;
+
+  /// Notes saved searches. Null = the bundle did not carry the key (an older
+  /// client), so applying it must leave local saved searches alone; an
+  /// explicit empty list clears them.
+  final List<SavedSearch>? notesSavedSearches;
 
   /// User-selected UI locale code (e.g. 'en', 'zh'). Null = follow
   /// system. Stored as the raw language code rather than a `Locale`
@@ -73,6 +80,10 @@ class SyncableSettings {
         'launcher': launcher.toJson(),
         if (contactSortBy != ContactSortBy.family)
           'contactSortBy': contactSortBy.name,
+        'notesSavedSearches': [
+          for (final s in notesSavedSearches ?? const <SavedSearch>[])
+            s.toJson(),
+        ],
         'lastModified': lastModified.toUtc().toIso8601String(),
         '_v': 1,
       };
@@ -99,6 +110,9 @@ class SyncableSettings {
         return l != null ? LauncherPrefs.fromJson(l) : LauncherPrefs.empty;
       }(),
       contactSortBy: ContactSortBy.fromName(json['contactSortBy']),
+      notesSavedSearches: json.containsKey('notesSavedSearches')
+          ? parseSavedSearches(json['notesSavedSearches'])
+          : null,
       lastModified: () {
         final raw = json['lastModified'] as String?;
         if (raw == null) return epochZero;
@@ -127,6 +141,7 @@ class SyncableSettings {
     DateTime? lastModified,
     LauncherPrefs? launcher,
     ContactSortBy? contactSortBy,
+    List<SavedSearch>? notesSavedSearches,
   }) {
     return SyncableSettings(
       gasLog: gasLog ?? this.gasLog,
@@ -136,6 +151,7 @@ class SyncableSettings {
       lastModified: lastModified ?? this.lastModified,
       launcher: launcher ?? this.launcher,
       contactSortBy: contactSortBy ?? this.contactSortBy,
+      notesSavedSearches: notesSavedSearches ?? this.notesSavedSearches,
     );
   }
 }

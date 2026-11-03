@@ -147,21 +147,6 @@ void main() {
     expect(find.text('Grocery list'), findsOneWidget);
   });
 
-  testWidgets('search waits for typing to pause before filtering', (
-    tester,
-  ) async {
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextField), 'groc');
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byType(NoteRow), findsNWidgets(2), reason: 'still typing');
-
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
-    expect(find.byType(NoteRow), findsOneWidget);
-  });
-
   testWidgets('a search query left behind is still VISIBLE when you return', (
     tester,
   ) async {

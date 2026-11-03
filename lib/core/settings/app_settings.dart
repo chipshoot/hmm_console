@@ -17,6 +17,7 @@ class AppSettings {
     this.launcherRecents = const [],
     this.notesFilterUsage = const {},
     this.notesRowDensity = NoteRowDensity.standard,
+    this.notesRecentSearches = const [],
     this.dashboardIntroCardSeen = false,
     this.onboardingCompleted = false,
     this.quickPanelEnabled = true,
@@ -37,6 +38,10 @@ class AppSettings {
   final List<String> launcherRecents;
   final Map<String, int> notesFilterUsage;
   final NoteRowDensity notesRowDensity;
+
+  /// Per-device recent notes searches, stored as raw JSON maps (core/ must not
+  /// import features/; the notes-side notifier converts them).
+  final List<Map<String, Object?>> notesRecentSearches;
   final bool dashboardIntroCardSeen;
   final bool onboardingCompleted;
   final bool quickPanelEnabled;
@@ -58,6 +63,11 @@ class AppSettings {
           (k, v) => MapEntry(k as String, (v as num).toInt()),
         ) ??
         const <String, int>{};
+    final recentSearches = [
+      if (j['notesRecentSearches'] case final List l)
+        for (final e in l)
+          if (e is Map) Map<String, Object?>.from(e),
+    ];
     return AppSettings(
       dataMode: dataMode(),
       cloudProvider: CloudProvider.values.firstWhere(
@@ -74,6 +84,7 @@ class AppSettings {
         (d) => d.name == j['notesRowDensity'],
         orElse: () => NoteRowDensity.standard,
       ),
+      notesRecentSearches: recentSearches,
       dashboardIntroCardSeen: j['dashboardIntroCardSeen'] as bool? ?? false,
       onboardingCompleted: j['onboardingCompleted'] as bool? ?? false,
       quickPanelEnabled: j['quickPanelEnabled'] as bool? ?? true,
@@ -94,6 +105,7 @@ class AppSettings {
         'launcherRecents': launcherRecents,
         'notesFilterUsage': notesFilterUsage,
         'notesRowDensity': notesRowDensity.name,
+        'notesRecentSearches': notesRecentSearches,
         'dashboardIntroCardSeen': dashboardIntroCardSeen,
         'onboardingCompleted': onboardingCompleted,
         'quickPanelEnabled': quickPanelEnabled,
@@ -113,6 +125,7 @@ class AppSettings {
     List<String>? launcherRecents,
     Map<String, int>? notesFilterUsage,
     NoteRowDensity? notesRowDensity,
+    List<Map<String, Object?>>? notesRecentSearches,
     bool? dashboardIntroCardSeen,
     bool? onboardingCompleted,
     bool? quickPanelEnabled,
@@ -129,6 +142,7 @@ class AppSettings {
         launcherRecents: launcherRecents ?? this.launcherRecents,
         notesFilterUsage: notesFilterUsage ?? this.notesFilterUsage,
         notesRowDensity: notesRowDensity ?? this.notesRowDensity,
+        notesRecentSearches: notesRecentSearches ?? this.notesRecentSearches,
         dashboardIntroCardSeen:
             dashboardIntroCardSeen ?? this.dashboardIntroCardSeen,
         onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,

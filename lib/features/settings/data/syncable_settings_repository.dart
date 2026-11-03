@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../contacts/domain/contact_sort_by.dart';
 import '../../launcher/domain/launcher_prefs.dart';
+import '../../notes/query/saved_search.dart';
 import '../domain/gas_log_settings.dart';
 import '../domain/sync_settings.dart';
 import '../domain/syncable_settings.dart';
@@ -36,6 +40,9 @@ class SyncableSettingsRepository {
 
   /// Public: `ContactSortByNotifier` owns the same key.
   static const contactSortKey = 'contacts.sort_by';
+
+  /// Public: `SavedSearchesNotifier` owns the same key (a JSON string).
+  static const notesSavedSearchesKey = 'notes.saved_searches';
 
   /// Reads the current local snapshot. Missing keys fall back to
   /// defaults — same behaviour as the per-feature notifiers' first-
@@ -84,6 +91,16 @@ class SyncableSettingsRepository {
       launcher = LauncherPrefs.empty;
     }
 
+    var savedSearches = <SavedSearch>[];
+    final savedRaw = prefs.getString(notesSavedSearchesKey);
+    if (savedRaw != null) {
+      try {
+        savedSearches = parseSavedSearches(jsonDecode(savedRaw));
+      } catch (e) {
+        debugPrint('SyncableSettings: saved searches unreadable (${e.runtimeType})');
+      }
+    }
+
     return SyncableSettings(
       gasLog: gasLog,
       syncSettings: syncSettings,
@@ -91,6 +108,7 @@ class SyncableSettingsRepository {
       lastModified: lastModified,
       launcher: launcher,
       contactSortBy: ContactSortBy.fromName(prefs.getString(contactSortKey)),
+      notesSavedSearches: savedSearches,
     );
   }
 
@@ -115,6 +133,14 @@ class SyncableSettingsRepository {
     }
     await prefs.setString(_launcherKey, settings.launcher.toJsonString());
     await prefs.setString(contactSortKey, settings.contactSortBy.name);
+    // Null = the bundle predates this field: keep local saved searches.
+    final saved = settings.notesSavedSearches;
+    if (saved != null) {
+      await prefs.setString(
+        notesSavedSearchesKey,
+        jsonEncode([for (final s in saved) s.toJson()]),
+      );
+    }
     await prefs.setString(
       _lastModifiedKey,
       settings.lastModified.toUtc().toIso8601String(),
