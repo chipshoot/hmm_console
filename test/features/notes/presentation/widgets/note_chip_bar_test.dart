@@ -66,6 +66,21 @@ Widget _app(_Usage usage, {bool docked = false, Widget? home}) => ProviderScope(
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  // The override is reset in a finally: the binding's invariant check runs
+  // before addTearDown callbacks, so a teardown would fail the test itself.
+  void platformTest(
+    String name,
+    TargetPlatform platform,
+    Future<void> Function(WidgetTester) body,
+  ) => testWidgets(name, (tester) async {
+    debugDefaultTargetPlatformOverride = platform;
+    try {
+      await body(tester);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
   Future<void> pump(WidgetTester tester, Widget app) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1;
@@ -169,8 +184,7 @@ void main() {
     expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
   });
 
-  testWidgets('iOS keeps its back button', (tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+  platformTest('iOS keeps its back button', TargetPlatform.iOS, (tester) async {
     await pump(
       tester,
       _app(
@@ -196,8 +210,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NotesListScreen), findsOneWidget);
     expect(find.byType(CupertinoNavigationBarBackButton), findsOneWidget);
-    debugDefaultTargetPlatformOverride = null;
   });
+
+  Widget pushHome() => Builder(
+    builder: (context) => Scaffold(
+      body: TextButton(
+        key: const Key('open'),
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const NotesListScreen()),
+        ),
+        child: const Text('open'),
+      ),
+    ),
+  );
+
+  platformTest(
+    'Android pushed: one menu icon and the back button',
+    TargetPlatform.android,
+    (tester) async {
+      await pump(tester, _app(_Usage(), home: pushHome()));
+      await tester.tap(find.byKey(const Key('open')));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.menu), findsOneWidget);
+      expect(find.byType(BackButton), findsOneWidget);
+    },
+  );
+
+  platformTest(
+    'Android root: one menu icon and no back button',
+    TargetPlatform.android,
+    (tester) async {
+      await pump(tester, _app(_Usage()));
+      expect(find.byIcon(Icons.menu), findsOneWidget);
+      expect(find.byType(BackButton), findsNothing);
+    },
+  );
 
   testWidgets('the help entry "Quick filters" uses Icons.add', (tester) async {
     late AppLocalizations l;
