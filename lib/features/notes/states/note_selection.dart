@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Minimum width (logical px) at which the notes UI uses a two-pane layout.
 const double kNotesWideBreakpoint = 720;
 
+/// At or above this width the notes side panel is docked beside the list.
+const double kNotesSidebarBreakpoint = 1000;
+
 /// Selected note id for the wide-screen detail pane (null = nothing selected).
 class _SelectedNoteNotifier extends Notifier<int?> {
   @override
