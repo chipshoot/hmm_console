@@ -29,3 +29,6 @@ final filterUsageProvider =
     AsyncNotifierProvider<FilterUsageNotifier, Map<String, int>>(
   FilterUsageNotifier.new,
 );
+
+/// Usage key for a tag; domains keep using their bare domain key.
+String usageKeyForTag(int tagId) => 'tag:$tagId';
