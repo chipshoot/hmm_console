@@ -2969,11 +2969,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Type to search titles, text, tags and what a note is attached to. Matches are highlighted. The search stays applied when you come back; clear it with the × in the box.';
 
   @override
-  String get helpNotesListFilterTitle => 'Filter';
+  String get helpNotesListFilterTitle => 'Side panel';
 
   @override
   String get helpNotesListFilterBody =>
-      'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.';
+      'Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list.';
 
   @override
   String get notesTokenHasPhoto => 'Has photos';
@@ -3137,4 +3137,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesSmartLast7d => 'Last 7 days';
+
+  @override
+  String get notesSidebarDomains => 'Domains';
+
+  @override
+  String get notesSidebarTags => 'Tags';
+
+  @override
+  String get notesSidebarSmartFilters => 'Smart filters';
+
+  @override
+  String get notesSidebarFlagged => 'Flagged';
 }

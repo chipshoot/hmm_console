@@ -2881,11 +2881,11 @@ class AppLocalizationsZh extends AppLocalizations {
       '输入即可搜索标题、正文、标签以及笔记所附属的对象，匹配内容会高亮显示。返回时搜索仍然生效；点搜索框里的 × 即可清除。';
 
   @override
-  String get helpNotesListFilterTitle => '筛选';
+  String get helpNotesListFilterTitle => '侧边栏';
 
   @override
   String get helpNotesListFilterBody =>
-      '显示全部笔记、某个领域（如汽车），或其中的某一类笔记。搜索框下方的标签打开领域列表；筛选按钮列出所有类别。';
+      '打开侧边栏（☰）即可按已置顶、已标记（按颜色）、今天、领域、标签或智能筛选来筛选；数字表示各项包含的笔记数。长按你保存的搜索可重命名、移动或删除。在宽屏上，侧边栏会一直显示在列表旁。';
 
   @override
   String get notesTokenHasPhoto => '含照片';
@@ -3046,4 +3046,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesSmartLast7d => '最近 7 天';
+
+  @override
+  String get notesSidebarDomains => '领域';
+
+  @override
+  String get notesSidebarTags => '标签';
+
+  @override
+  String get notesSidebarSmartFilters => '智能筛选';
+
+  @override
+  String get notesSidebarFlagged => '已标记';
 }

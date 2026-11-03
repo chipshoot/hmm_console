@@ -5381,13 +5381,13 @@ abstract class AppLocalizations {
   /// No description provided for @helpNotesListFilterTitle.
   ///
   /// In en, this message translates to:
-  /// **'Filter'**
+  /// **'Side panel'**
   String get helpNotesListFilterTitle;
 
   /// No description provided for @helpNotesListFilterBody.
   ///
   /// In en, this message translates to:
-  /// **'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.'**
+  /// **'Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list.'**
   String get helpNotesListFilterBody;
 
   /// No description provided for @notesTokenHasPhoto.
@@ -5665,6 +5665,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Last 7 days'**
   String get notesSmartLast7d;
+
+  /// No description provided for @notesSidebarDomains.
+  ///
+  /// In en, this message translates to:
+  /// **'Domains'**
+  String get notesSidebarDomains;
+
+  /// No description provided for @notesSidebarTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get notesSidebarTags;
+
+  /// No description provided for @notesSidebarSmartFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart filters'**
+  String get notesSidebarSmartFilters;
+
+  /// No description provided for @notesSidebarFlagged.
+  ///
+  /// In en, this message translates to:
+  /// **'Flagged'**
+  String get notesSidebarFlagged;
 }
 
 class _AppLocalizationsDelegate

@@ -38,3 +38,7 @@ String builtInSmartFilterName(String id, AppLocalizations l) => switch (id) {
   'builtin.last7d' => l.notesSmartLast7d,
   _ => '',
 };
+
+/// The name to show for a built-in or user-saved smart filter.
+String smartFilterDisplayName(SavedSearch s, AppLocalizations l) =>
+    isBuiltInSmartFilter(s.id) ? builtInSmartFilterName(s.id, l) : s.name;

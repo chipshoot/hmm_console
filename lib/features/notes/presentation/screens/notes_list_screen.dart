@@ -9,7 +9,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
-import '../../../../core/help/undoable_action.dart';
 import '../../../../core/settings/app_settings.dart';
 import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -27,7 +26,6 @@ import '../../query/note_query.dart';
 import '../../query/note_results.dart';
 import '../../query/note_token_labels.dart';
 import '../../query/note_token_suggestions.dart';
-import '../../query/saved_search.dart';
 import '../../query/smart_query.dart';
 import '../../rendering/note_display.dart';
 import '../../states/filter_usage.dart';
@@ -42,6 +40,7 @@ import '../widgets/catalog_filter_sheet.dart';
 import '../widgets/domain_groups.dart';
 import '../widgets/note_flag_sheet.dart' show noteFlagColorLabel;
 import '../widgets/note_search_field.dart';
+import '../widgets/notes_sidebar.dart';
 import '../widgets/note_row.dart';
 import '../widgets/saved_search_dialogs.dart';
 import '../widgets/notes_view_menu.dart';
@@ -187,7 +186,14 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 
     return AppScaffold(
       title: l.notesTitle,
-      drawer: data == null ? null : _FilterDrawer(data: data),
+      drawer: data == null
+          ? null
+          : Drawer(
+              child: NotesSidebar(
+                data: data,
+                onPicked: () => Navigator.of(context).pop(),
+              ),
+            ),
       onRefresh: () async {
         await ref.read(syncControllerProvider).triggerManualSync();
       },
@@ -454,17 +460,13 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         // ref.read: this also runs from event handlers; the build path
         // already rebuilds on saved-search changes via the effective query.
         final found = savedSearchFor(src, ref.read(notesSmartFiltersProvider));
-        return found == null ? l.notesFiltered : _smartName(found, l);
+        return found == null
+            ? l.notesFiltered
+            : smartFilterDisplayName(found, l);
       default:
         return l.notesFiltered;
     }
   }
-
-  static String _smartName(SavedSearch s, AppLocalizations l) =>
-      isBuiltInSmartFilter(s.id) ? builtInSmartFilterName(s.id, l) : s.name;
-
-  static String _smartNameOr(SavedSearch? s, AppLocalizations l) =>
-      s == null ? l.notesFiltered : _smartName(s, l);
 
   Widget _scopeToggle(
     NotesListData data,
@@ -529,10 +531,13 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     }
     final source = data.query.source;
     final mainLabel = source is SmartSource
-        ? _smartNameOr(
-            savedSearchFor(source, ref.watch(notesSmartFiltersProvider)),
-            l,
-          )
+        ? switch (savedSearchFor(
+            source,
+            ref.watch(notesSmartFiltersProvider),
+          )) {
+            final found? => smartFilterDisplayName(found, l),
+            null => l.notesFiltered,
+          }
         : activeDomain != null
         ? domainLabel(activeDomain.key, l)
         : ((f == null || f.isEmpty) ? l.notesAll : l.notesFiltered);
@@ -875,183 +880,6 @@ class _SubFilterButton extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Icon(Icons.expand_more, size: 18, color: c.secondaryLabel),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Category panel (a left drawer) listing "All" + the note DOMAINS. Picking one
-/// applies the filter and closes the panel. Replaces the old inline chips; the
-/// per-catalog funnel sheet stays available from the nav bar.
-class _FilterDrawer extends ConsumerWidget {
-  const _FilterDrawer({required this.data});
-  final NotesListData data;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final c = context.appColors;
-    final notifier = ref.read(notesListStateProvider.notifier);
-    final usage = ref.watch(filterUsageProvider).value ?? const {};
-    final groups = groupByDomain(
-      data.catalogsById.values,
-      data.countsByCatalog,
-      usage,
-      domainCounts: data.countsByDomain,
-    );
-    final f = catalogSelectionFor(data.query.source, groups);
-    final saved = ref.watch(savedSearchesProvider);
-    final savedNotifier = ref.read(savedSearchesProvider.notifier);
-
-    Future<void> guarded(Future<void> Function() run) async {
-      final messenger = ScaffoldMessenger.of(context);
-      final failed = l.notesSavedSearchUpdateFailed;
-      try {
-        await run();
-      } catch (e) {
-        // Type only: the saved search is user content.
-        debugPrint(
-          'NotesListScreen: saved search update failed (${e.runtimeType})',
-        );
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(failed)));
-      }
-    }
-
-    Future<void> onSavedMenu(SavedSearch s, int index) async {
-      final action = await showSavedSearchMenu(
-        context,
-        canMoveUp: index > 0,
-        canMoveDown: index < saved.length - 1,
-      );
-      if (action == null || !context.mounted) return;
-      switch (action) {
-        case SavedSearchAction.rename:
-          final name = await showSavedSearchNameDialog(
-            context,
-            title: l.notesSavedSearchRenameTitle,
-            initial: s.name,
-          );
-          if (name != null && name.isNotEmpty) {
-            await guarded(() => savedNotifier.rename(s.id, name));
-          }
-        case SavedSearchAction.moveUp:
-          await guarded(() => savedNotifier.move(s.id, -1));
-        case SavedSearchAction.moveDown:
-          await guarded(() => savedNotifier.move(s.id, 1));
-        case SavedSearchAction.delete:
-          // The snackbar (with Undo) sits under the drawer's scrim.
-          Navigator.of(context).pop();
-          await showUndoableAction(
-            context,
-            run: () => savedNotifier.remove(s.id),
-            undo: () => savedNotifier.restore(s),
-            done: l.notesSavedSearchDeleted(s.name),
-            failed: l.notesSavedSearchDeleteFailed,
-            undone: l.notesSavedSearchRestored(s.name),
-            undoFailed: l.notesSavedSearchRestoreFailed,
-            busyKey: ('deleteSavedSearch', s.id),
-          );
-      }
-    }
-
-    Widget dot(Color color) => Container(
-      width: 12,
-      height: 12,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-
-    Widget tile({
-      required Widget leading,
-      required String title,
-      required bool selected,
-      required VoidCallback onTap,
-      VoidCallback? onLongPress,
-    }) => ListTile(
-      leading: leading,
-      title: Text(title),
-      selected: selected,
-      trailing: selected ? Icon(Icons.check, color: c.accent) : null,
-      onTap: onTap,
-      onLongPress: onLongPress,
-    );
-
-    return Drawer(
-      child: SafeArea(
-        child: ListView(
-          children: [
-            Padding(
-              padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 8),
-              child: Text(
-                l.notesFilter,
-                style: DesignTokens.caption.copyWith(
-                  color: c.secondaryLabel,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-            tile(
-              leading: dot(c.tertiaryLabel),
-              title: l.notesAll,
-              selected:
-                  (f == null || f.isEmpty) && data.query.source is! SmartSource,
-              onTap: () {
-                notifier.setSource(const AllSource());
-                Navigator.of(context).pop();
-              },
-            ),
-            for (final g in groups)
-              tile(
-                leading: dot(g.style.color),
-                title: domainLabel(g.key, l),
-                selected: f != null && setEquals(f, g.catalogIds),
-                onTap: () {
-                  ref.read(filterUsageProvider.notifier).record(g.key);
-                  notifier.setSource(DomainSource(key: g.key));
-                  Navigator.of(context).pop();
-                },
-              ),
-            if (saved.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 8),
-                child: Semantics(
-                  header: true,
-                  child: Text(
-                    l.notesSavedSearchesHeader,
-                    style: DesignTokens.caption.copyWith(
-                      color: c.secondaryLabel,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ),
-              for (var i = 0; i < saved.length; i++)
-                tile(
-                  leading: Icon(Icons.bookmark_outline, color: c.accent),
-                  title: saved[i].name,
-                  selected:
-                      data.query.source == SmartSource(savedId: saved[i].id),
-                  onTap: () {
-                    // The saved search's own text and tokens apply through
-                    // the source, so what is typed next narrows it.
-                    final live = data.query;
-                    notifier.setQuery(
-                      NoteQuery(
-                        source: SmartSource(savedId: saved[i].id),
-                        // A sticky "All notes" would make the saved search's
-                        // source a no-op; start from its own source.
-                        scope: NoteScope.currentSource,
-                        sort: live.sort,
-                      ),
-                    );
-                    Navigator.of(context).pop();
-                  },
-                  onLongPress: () => onSavedMenu(saved[i], i),
-                ),
-            ],
           ],
         ),
       ),

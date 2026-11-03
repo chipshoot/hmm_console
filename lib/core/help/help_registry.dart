@@ -320,7 +320,7 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         body: l.helpNotesListSavedBody,
       ),
       HelpEntry(
-        icon: Icons.filter_list,
+        icon: Icons.menu,
         title: l.helpNotesListFilterTitle,
         body: l.helpNotesListFilterBody,
       ),

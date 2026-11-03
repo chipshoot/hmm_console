@@ -881,8 +881,8 @@
   "helpNotesListFlagsBody": "旗标用颜色标记笔记。按旗标颜色排序时，已标记的笔记按颜色分组，未标记的排在最后。",
   "helpNotesListSearchTitle": "搜索",
   "helpNotesListSearchBody": "输入即可搜索标题、正文、标签以及笔记所附属的对象，匹配内容会高亮显示。返回时搜索仍然生效；点搜索框里的 × 即可清除。",
-  "helpNotesListFilterTitle": "筛选",
-  "helpNotesListFilterBody": "显示全部笔记、某个领域（如汽车），或其中的某一类笔记。搜索框下方的标签打开领域列表；筛选按钮列出所有类别。",
+  "helpNotesListFilterTitle": "侧边栏",
+  "helpNotesListFilterBody": "打开侧边栏（☰）即可按已置顶、已标记（按颜色）、今天、领域、标签或智能筛选来筛选；数字表示各项包含的笔记数。长按你保存的搜索可重命名、移动或删除。在宽屏上，侧边栏会一直显示在列表旁。",
   "notesTokenHasPhoto": "含照片",
   "notesTokenHasPlace": "含地点",
   "notesTokenHasAttachment": "含附件",
@@ -928,5 +928,9 @@
   "helpNotesListSavedBody": "点按搜索框旁的书签图标即可保存当前搜索，包括筛选和条件。已保存的搜索显示在侧边栏中；点按即可打开，长按可重命名、移动或删除。它们会同步到你的其他设备。",
   "notesSmartWithPhotos": "含照片",
   "notesSmartWithPlace": "含地点",
-  "notesSmartLast7d": "最近 7 天"
+  "notesSmartLast7d": "最近 7 天",
+  "notesSidebarDomains": "领域",
+  "notesSidebarTags": "标签",
+  "notesSidebarSmartFilters": "智能筛选",
+  "notesSidebarFlagged": "已标记"
 }
