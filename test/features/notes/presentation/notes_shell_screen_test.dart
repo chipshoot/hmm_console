@@ -48,6 +48,24 @@ class _DomainListState extends NotesListState {
   );
 }
 
+class _ManyNotesState extends NotesListState {
+  @override
+  Future<NotesListData> build() async => NotesListData(
+    all: [
+      for (var i = 1; i <= 60; i++)
+        HmmNote(
+          id: i,
+          uuid: 'u$i',
+          subject: 'Note $i',
+          authorId: 1,
+          catalogId: 10,
+          createDate: DateTime(2026, 1, 1).add(Duration(days: i)),
+        ),
+    ],
+    catalogsById: const {},
+  );
+}
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -109,6 +127,7 @@ void main() {
       WidgetTester tester,
       double w, {
       bool pushed = false,
+      NotesListState Function() listState = _DomainListState.new,
     }) async {
       size(tester, w);
       addTearDown(tester.view.reset);
@@ -130,7 +149,7 @@ void main() {
       );
       final container = ProviderContainer(
         overrides: [
-          notesListStateProvider.overrideWith(_DomainListState.new),
+          notesListStateProvider.overrideWith(listState),
           noteDetailProvider(
             1,
           ).overrideWith((ref) async => NoteDetailData(note, catalog)),
@@ -174,19 +193,13 @@ void main() {
       expect(find.byType(NotesSidebar), findsOneWidget);
       expect(find.byIcon(Icons.menu), findsNothing);
       expect(
-        tester
-            .getSize(
-              find
-                  .ancestor(
-                    of: find.byType(NotesSidebar),
-                    matching: find.byType(SizedBox),
-                  )
-                  .first,
-            )
-            .width,
+        tester.getSize(find.byKey(const ValueKey('notes-sidebar-pane'))).width,
         240,
       );
-      expect(tester.getSize(find.byType(NotesListScreen)).width, 360);
+      expect(
+        tester.getSize(find.byKey(const ValueKey('notes-list-pane'))).width,
+        360,
+      );
     });
 
     testWidgets('at 800 pt it is list and detail; menu opens the drawer', (
@@ -233,6 +246,32 @@ void main() {
         Navigator.of(tester.element(find.byType(NotesShellScreen))).canPop(),
         canPop,
       );
+    });
+
+    testWidgets('crossing 1000 pt keeps the list pane State and scroll', (
+      tester,
+    ) async {
+      await pump(tester, 800, listState: _ManyNotesState.new);
+      final before = tester.state(find.byType(NotesListScreen));
+      final scrollable = find.descendant(
+        of: find.byType(NotesListScreen),
+        matching: find.byType(Scrollable),
+      );
+      ScrollPosition position() =>
+          tester.state<ScrollableState>(scrollable.first).position;
+      position().jumpTo(position().maxScrollExtent);
+      await tester.pumpAndSettle();
+      final offset = position().pixels;
+      expect(offset, greaterThan(0));
+
+      size(tester, 1100);
+      await tester.pumpAndSettle();
+      expect(find.byType(NotesSidebar), findsOneWidget);
+      size(tester, 800);
+      await tester.pumpAndSettle();
+
+      expect(tester.state(find.byType(NotesListScreen)), same(before));
+      expect(position().pixels, offset);
     });
 
     testWidgets('resizing 1100 to 800 to 1100 keeps tokens and selection', (

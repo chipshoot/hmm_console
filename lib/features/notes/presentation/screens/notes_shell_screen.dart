@@ -28,19 +28,21 @@ class NotesShellScreen extends ConsumerWidget {
             children: [
               if (docked) ...[
                 SizedBox(
+                  key: const ValueKey('notes-sidebar-pane'),
                   width: 240,
-                  child: data == null
-                      ? null
-                      : Material(
-                          child: SafeArea(
+                  child: Material(
+                    child: data == null
+                        ? null
+                        : SafeArea(
                             right: false,
                             child: NotesSidebar(data: data, onPicked: () {}),
                           ),
-                        ),
+                  ),
                 ),
                 const VerticalDivider(width: 1),
               ],
               SizedBox(
+                key: const ValueKey('notes-list-pane'),
                 width: 360,
                 child: NotesListScreen(sidebarDocked: docked),
               ),
