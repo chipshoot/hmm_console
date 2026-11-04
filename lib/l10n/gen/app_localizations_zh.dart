@@ -2629,6 +2629,22 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get notesFlag => '旗标';
+
+  @override
+  String get notesUnflag => '移除旗标';
+
+  @override
+  String get notesManageShort => '管理';
+
+  @override
+  String get helpNotesListSwipesTitle => '滑动笔记';
+
+  @override
+  String get helpNotesListSwipesBody =>
+      '向右滑动可置顶或取消置顶。向左滑动可用上次使用的颜色加旗标，或删除笔记。删除的笔记会在“最近删除”中保留 30 天。属于通讯录、卡片或汽车的笔记显示“管理”而不是“删除”。';
+
+  @override
   String get notesPin => '置顶';
 
   @override

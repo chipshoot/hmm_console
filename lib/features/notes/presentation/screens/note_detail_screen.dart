@@ -10,7 +10,6 @@ import '../../../../core/data/local/database.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
-import '../../../../core/help/undoable_action.dart';
 import '../../../../core/notes/editing/edit_dispatch.dart';
 import '../../../../core/notes/note_state.dart';
 import '../../../../core/widgets/app_scaffold.dart';
@@ -22,6 +21,7 @@ import '../../states/mutate_note_state.dart';
 import '../../states/note_delete_policy.dart';
 import '../../states/note_selection.dart';
 import '../catalog_labels.dart';
+import '../widgets/note_swipe_actions.dart' show deleteNoteWithUndo;
 import '../widgets/markdown_view.dart';
 import '../widgets/note_file_card_list.dart';
 import '../widgets/note_flag_sheet.dart';
@@ -203,37 +203,16 @@ class NoteDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// Delete = move to Recently Deleted, with Undo (restore). Everything the
-  /// snackbar's Undo needs is captured before the first await.
+  /// Delete = move to Recently Deleted, with Undo (restore); the undoable
+  /// part is shared with the list ([deleteNoteWithUndo], which also clears the
+  /// wide-screen selection). Narrow screens pop back to the list afterwards.
   Future<void> _delete(
       BuildContext context, WidgetRef ref, AppLocalizations l) async {
-    final mutate = ref.read(mutateNoteProvider);
-    final selection = ref.read(selectedNoteIdProvider.notifier);
     final navigator = Navigator.of(context);
     final isWide =
         MediaQuery.of(context).size.width >= kNotesWideBreakpoint;
-    var moved = false;
-    await showUndoableAction(
-      context,
-      busyKey: ('deleteNote', noteId),
-      run: () async {
-        await mutate.delete(noteId);
-        moved = true;
-      },
-      undo: () async {
-        await mutate.restore(noteId);
-      },
-      done: l.notesMovedToRecentlyDeleted,
-      failed: l.notesDeleteFailed,
-      undone: l.notesRestored,
-      undoFailed: l.notesRestoreFailed,
-    );
-    if (!moved) return;
-    if (isWide) {
-      selection.select(null);
-    } else {
-      unawaited(navigator.maybePop());
-    }
+    final moved = await deleteNoteWithUndo(context, ref, noteId);
+    if (moved && !isWide) unawaited(navigator.maybePop());
   }
 
   Future<void> _togglePin(BuildContext context, WidgetRef ref,

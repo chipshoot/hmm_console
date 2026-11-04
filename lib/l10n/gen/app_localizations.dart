@@ -4928,6 +4928,36 @@ abstract class AppLocalizations {
   /// **'{group} · {count, plural, =1{1 row} other{{count} rows}}'**
   String notesCheatsheetPreview(String group, int count);
 
+  /// No description provided for @notesFlag.
+  ///
+  /// In en, this message translates to:
+  /// **'Flag'**
+  String get notesFlag;
+
+  /// No description provided for @notesUnflag.
+  ///
+  /// In en, this message translates to:
+  /// **'Unflag'**
+  String get notesUnflag;
+
+  /// No description provided for @notesManageShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get notesManageShort;
+
+  /// No description provided for @helpNotesListSwipesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe a note'**
+  String get helpNotesListSwipesTitle;
+
+  /// No description provided for @helpNotesListSwipesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe right to pin or unpin. Swipe left to flag it in your last-used colour, or to delete it. Deleted notes go to Recently Deleted for 30 days. Notes that belong to Contacts, Cheatsheets or Automobile show Manage instead of Delete.'**
+  String get helpNotesListSwipesBody;
+
   /// No description provided for @notesPin.
   ///
   /// In en, this message translates to:

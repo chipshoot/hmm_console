@@ -39,6 +39,7 @@ import '../widgets/note_flag_sheet.dart' show noteFlagColorLabel;
 import '../widgets/note_search_field.dart';
 import '../widgets/notes_sidebar.dart';
 import '../widgets/note_row.dart';
+import '../widgets/note_swipe_actions.dart';
 import '../widgets/saved_search_dialogs.dart';
 import '../widgets/notes_view_menu.dart';
 
@@ -614,20 +615,29 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     Widget row(NoteHit hit) {
       final note = hit.note;
       final domain = data.effectiveDomain(note);
-      return NoteRow(
+      final catalogName = note.catalogId == null
+          ? null
+          : data.catalogsById[note.catalogId]?.name;
+      final rowWidget = NoteRow(
         key: ValueKey(note.id),
         hit: hit,
         density: density,
         domainKey: domain,
-        catalogName: note.catalogId == null
-            ? null
-            : data.catalogsById[note.catalogId]?.name,
+        catalogName: catalogName,
         parentTitle: parentTitleOf(note, domain),
         tags: data.tagsByNoteId[note.id] ?? const [],
         date: groupingDateOf(note, data.query.sort),
         highlightWords: highlightWords,
         now: now,
         onTap: () => open(note),
+      );
+      return NoteSwipeActions(
+        key: ValueKey(note.id),
+        note: note,
+        state: data.stateOf(note),
+        catalogName: catalogName,
+        enabled: true,
+        child: rowWidget,
       );
     }
 

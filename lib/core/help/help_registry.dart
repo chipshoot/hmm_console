@@ -329,6 +329,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpNotesListChipsTitle,
         body: l.helpNotesListChipsBody,
       ),
+      HelpEntry(
+        icon: Icons.swipe,
+        title: l.helpNotesListSwipesTitle,
+        body: l.helpNotesListSwipesBody,
+      ),
     ],
   ),
 };

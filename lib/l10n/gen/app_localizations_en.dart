@@ -2713,6 +2713,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notesFlag => 'Flag';
+
+  @override
+  String get notesUnflag => 'Unflag';
+
+  @override
+  String get notesManageShort => 'Manage';
+
+  @override
+  String get helpNotesListSwipesTitle => 'Swipe a note';
+
+  @override
+  String get helpNotesListSwipesBody =>
+      'Swipe right to pin or unpin. Swipe left to flag it in your last-used colour, or to delete it. Deleted notes go to Recently Deleted for 30 days. Notes that belong to Contacts, Cheatsheets or Automobile show Manage instead of Delete.';
+
+  @override
   String get notesPin => 'Pin';
 
   @override
