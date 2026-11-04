@@ -908,35 +908,11 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load your notes'**
   String get notesLoadFailed;
 
-  /// No description provided for @notesFilter.
-  ///
-  /// In en, this message translates to:
-  /// **'FILTER'**
-  String get notesFilter;
-
   /// No description provided for @notesAll.
   ///
   /// In en, this message translates to:
   /// **'All'**
   String get notesAll;
-
-  /// No description provided for @notesAllNotes.
-  ///
-  /// In en, this message translates to:
-  /// **'All notes'**
-  String get notesAllNotes;
-
-  /// No description provided for @notesAllInDomain.
-  ///
-  /// In en, this message translates to:
-  /// **'All {domain}'**
-  String notesAllInDomain(String domain);
-
-  /// No description provided for @notesNoteCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 note} other{{count} notes}}'**
-  String notesNoteCount(int count);
 
   /// No description provided for @notesSelectNote.
   ///
@@ -5192,12 +5168,6 @@ abstract class AppLocalizations {
   /// **'View'**
   String get notesViewTooltip;
 
-  /// No description provided for @notesFilterTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Filter'**
-  String get notesFilterTooltip;
-
   /// No description provided for @notesFiltered.
   ///
   /// In en, this message translates to:
@@ -5381,13 +5351,13 @@ abstract class AppLocalizations {
   /// No description provided for @helpNotesListFilterTitle.
   ///
   /// In en, this message translates to:
-  /// **'Filter'**
+  /// **'Side panel'**
   String get helpNotesListFilterTitle;
 
   /// No description provided for @helpNotesListFilterBody.
   ///
   /// In en, this message translates to:
-  /// **'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.'**
+  /// **'Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list.'**
   String get helpNotesListFilterBody;
 
   /// No description provided for @notesTokenHasPhoto.
@@ -5513,7 +5483,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNotesListTokensBody.
   ///
   /// In en, this message translates to:
-  /// **'As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.'**
+  /// **'As you type, suggestions appear for tags, domains, kinds of note (such as Gas Log), flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.'**
   String get helpNotesListTokensBody;
 
   /// No description provided for @notesNoMatchesFilters.
@@ -5647,6 +5617,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.'**
   String get helpNotesListSavedBody;
+
+  /// No description provided for @notesSmartWithPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'With photos'**
+  String get notesSmartWithPhotos;
+
+  /// No description provided for @notesSmartWithPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'With place'**
+  String get notesSmartWithPlace;
+
+  /// No description provided for @notesSmartLast7d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get notesSmartLast7d;
+
+  /// No description provided for @notesSidebarDomains.
+  ///
+  /// In en, this message translates to:
+  /// **'Domains'**
+  String get notesSidebarDomains;
+
+  /// No description provided for @notesSidebarTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get notesSidebarTags;
+
+  /// No description provided for @notesSidebarSmartFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart filters'**
+  String get notesSidebarSmartFilters;
+
+  /// No description provided for @notesSidebarFlagged.
+  ///
+  /// In en, this message translates to:
+  /// **'Flagged'**
+  String get notesSidebarFlagged;
+
+  /// No description provided for @notesMenuTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters and lists'**
+  String get notesMenuTooltip;
+
+  /// No description provided for @notesChipMoreTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More filters'**
+  String get notesChipMoreTooltip;
+
+  /// No description provided for @helpNotesListChipsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick filters'**
+  String get helpNotesListChipsTitle;
+
+  /// No description provided for @helpNotesListChipsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The row under the search box switches between All, Pinned, Flagged and the domains and tags you use most; it learns from what you pick. Tap a selected chip again to go back to All, or tap ＋ to open the side panel with every filter.'**
+  String get helpNotesListChipsBody;
 }
 
 class _AppLocalizationsDelegate

@@ -51,7 +51,10 @@ TokenLabel tokenLabel(
       return (text: domainLabel(key, l), removed: false);
     case CatalogToken(:final catalogId):
       return (
-        text: c.catalogsById[catalogId]?.name ?? '#$catalogId',
+        text: switch (c.catalogsById[catalogId]) {
+          final cat? => catalogLabel(cat.name, l),
+          null => '#$catalogId',
+        },
         removed: false,
       );
     case ParentToken(:final noteUuid):

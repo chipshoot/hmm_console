@@ -90,7 +90,9 @@ Widget _app(NotesListState Function() state, {Locale? locale}) => ProviderScope(
   ),
 );
 
-double _top(WidgetTester t, String text) => t.getTopLeft(find.text(text)).dy;
+// `.last`: the chip bar also has a "Pinned" chip, above the list header.
+double _top(WidgetTester t, String text) =>
+    t.getTopLeft(find.text(text).last).dy;
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));

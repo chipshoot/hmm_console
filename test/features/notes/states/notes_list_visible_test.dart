@@ -3,9 +3,7 @@
 // parentNoteId), not only notes whose catalog is in the automobile domain.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
-import 'package:hmm_console/features/notes/presentation/widgets/domain_groups.dart';
 import 'package:hmm_console/features/contacts/domain/pinyin_transcriber.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/query/note_query_engine.dart';
@@ -34,19 +32,6 @@ final _attached = _n(1, catalog: _general, parent: _autoAnchor);
 final _gas = _n(2, catalog: _gasLog);
 // An unrelated General note (no parent).
 final _plain = _n(3, catalog: _general);
-
-NoteCatalog _cat(int id, String name) => NoteCatalog(
-  id: id,
-  name: name,
-  schema: '{}',
-  formatType: 0,
-  isDefault: false,
-);
-
-final _groups = [
-  DomainGroup('General', [_cat(_general, 'General')], 2),
-  DomainGroup('AutomobileMan', [_cat(_gasLog, 'Hmm.AutomobileMan.GasLog')], 1),
-];
 
 NotesListData _data({NoteSource source = const AllSource()}) => NotesListData(
   all: [_attached, _gas, _plain],
@@ -85,7 +70,7 @@ void main() {
     'Automobile filter includes notes attached to the automobile subsystem',
     () {
       final ids = _evaluate(
-        _data(source: sourceForCatalogSelection({_gasLog}, _groups)),
+        _data(source: const DomainSource(key: 'AutomobileMan')),
       ).map((n) => n.id).toSet();
       expect(ids.contains(2), isTrue, reason: 'the automobile-catalog note');
       expect(
@@ -108,7 +93,7 @@ void main() {
   test('General filter shows only unattached General notes (attached belong to '
       'their subsystem, not General)', () {
     final ids = _evaluate(
-      _data(source: sourceForCatalogSelection({_general}, _groups)),
+      _data(source: const DomainSource(key: 'General')),
     ).map((n) => n.id).toSet();
     // note 1 is a General note attached to the automobile subsystem -> it
     // belongs to Automobile, NOT General. Only note 3 (unattached) shows.

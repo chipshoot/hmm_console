@@ -1,6 +1,6 @@
-// The notes-list domain filter is a tap-toggle drawer (replacing the old
-// horizontal chip row): a single "filter" button opens a category panel;
-// picking a domain filters the list and closes the panel.
+// The notes-list domain filter lives in the side panel: the menu button opens
+// it; picking a domain filters the list and closes the panel. The chip bar
+// reflects the active domain.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,7 +78,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Open the filter panel.
-    await tester.tap(find.byType(ActionChip));
+    await tester.tap(find.byTooltip('Filters and lists'));
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(ListTile, 'Automobile'), findsOneWidget);
@@ -87,84 +87,43 @@ void main() {
     expect(find.widgetWithText(ListTile, 'Gas Log'), findsNothing);
   });
 
-  testWidgets(
-    'picking a domain in the drawer filters the list and closes it',
-    (tester) async {
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
+  testWidgets('picking a domain in the drawer filters the list and closes it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
 
-      expect(find.text('Fuel up'), findsOneWidget);
-      expect(find.text('Shopping'), findsOneWidget);
+    expect(find.text('Fuel up'), findsOneWidget);
+    expect(find.text('Shopping'), findsOneWidget);
 
-      await tester.tap(find.byType(ActionChip)); // open
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ListTile, 'Automobile')); // pick
-      await tester.pumpAndSettle(); // filters + closes
+    await tester.tap(find.byTooltip('Filters and lists')); // open
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Automobile')); // pick
+    await tester.pumpAndSettle(); // filters + closes
 
-      expect(find.text('Fuel up'), findsOneWidget); // automobile note kept
-      expect(find.text('Shopping'), findsNothing); // general note filtered out
-      // The drawer closed, so its tiles are gone.
-      expect(find.widgetWithText(ListTile, 'General'), findsNothing);
-      // The filter button now reflects the active domain.
-      expect(find.widgetWithText(ActionChip, 'Automobile'), findsOneWidget);
-    },
-  );
+    expect(find.text('Fuel up'), findsOneWidget); // automobile note kept
+    expect(find.text('Shopping'), findsNothing); // general note filtered out
+    // The drawer closed, so its tiles are gone.
+    expect(find.widgetWithText(ListTile, 'General'), findsNothing);
+    // The chip bar now shows the active domain as selected.
+    expect(find.widgetWithText(ChoiceChip, 'Automobile'), findsOneWidget);
+  });
 
-  testWidgets(
-    'multi-catalog domain reveals a sub-filter that narrows the list',
-    (tester) async {
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
+  testWidgets('there is no sub-filter popup for a multi-catalog domain', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
 
-      // Select the Automobile domain (has Gas Log + Car Info => sub-filter).
-      await tester.tap(find.byType(ActionChip));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filters and lists'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
+    await tester.pumpAndSettle();
 
-      // Sub-filter appears, defaulting to "All Automobile".
-      expect(find.text('All Automobile'), findsOneWidget);
-      expect(find.text('Fuel up'), findsOneWidget); // gas-log note shown
-
-      // Open the sub-filter and narrow to Insurance (no notes there).
-      await tester.tap(find.text('All Automobile'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Insurance').last); // menu item
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('Fuel up'),
-        findsNothing,
-      ); // gas-log note now filtered out
-    },
-  );
-
-  testWidgets(
-    'sub-filter can be reset back to "All <domain>"',
-    (tester) async {
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
-
-      // Automobile -> narrow to Insurance (no notes) -> list empties.
-      await tester.tap(find.byType(ActionChip));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ListTile, 'Automobile'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('All Automobile'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Insurance').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Fuel up'), findsNothing);
-
-      // Reopen the sub-filter (now showing "Insurance") and pick "All
-      // Automobile" -> the gas-log note must come back.
-      await tester.tap(find.text('Insurance'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('All Automobile').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Fuel up'), findsOneWidget);
-    },
-  );
+    expect(find.text('Fuel up'), findsOneWidget);
+    expect(find.text('All Automobile'), findsNothing);
+    expect(find.byType(PopupMenuButton<int>), findsNothing);
+  });
 
   testWidgets('single-catalog domain (General) shows no sub-filter', (
     tester,
@@ -172,12 +131,12 @@ void main() {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(ActionChip));
+    await tester.tap(find.byTooltip('Filters and lists'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, 'General'));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(ActionChip, 'General'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'General'), findsOneWidget);
     // No "All General" sub control.
     expect(find.text('All General'), findsNothing);
   });

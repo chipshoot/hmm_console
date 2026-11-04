@@ -131,7 +131,11 @@ Future<ProviderContainer> _open(
 }
 
 Future<void> _openDrawer(WidgetTester tester) async {
-  tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+  // The side panel lists more sections now; keep its rows on screen.
+  tester.view.physicalSize = const Size(800, 2400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.tap(find.byTooltip('Filters and lists'));
   await tester.pumpAndSettle();
 }
 

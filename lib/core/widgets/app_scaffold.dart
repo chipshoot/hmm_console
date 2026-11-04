@@ -54,7 +54,14 @@ class AppScaffold extends StatelessWidget {
           )
         : SliverAppBar.large(
             title: Text(title),
-            leading: leading,
+            // With a drawer, Material would put its own menu button here and
+            // drop the back arrow; the page owns its menu action instead.
+            automaticallyImplyLeading: drawer == null || leading != null,
+            leading:
+                leading ??
+                (drawer != null && ModalRoute.of(context)?.canPop == true
+                    ? const BackButton()
+                    : null),
             actions: actions,
             backgroundColor: bg,
             pinned: true,

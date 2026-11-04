@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart'
     show CupertinoIcons, CupertinoSlidingSegmentedControl;
-import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +8,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
-import '../../../../core/help/undoable_action.dart';
 import '../../../../core/settings/app_settings.dart';
 import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -21,15 +19,14 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/models/hmm_note.dart';
+import '../../query/built_in_smart_filters.dart';
 import '../../query/note_grouping.dart';
 import '../../query/note_query.dart';
 import '../../query/note_results.dart';
 import '../../query/note_token_labels.dart';
 import '../../query/note_token_suggestions.dart';
-import '../../query/saved_search.dart';
 import '../../query/smart_query.dart';
 import '../../rendering/note_display.dart';
-import '../../states/filter_usage.dart';
 import '../../states/note_selection.dart'
     show kNotesWideBreakpoint, selectedNoteIdProvider;
 import '../../states/notes_list_state.dart';
@@ -37,16 +34,20 @@ import '../../states/notes_results_provider.dart';
 import '../../states/recent_searches.dart';
 import '../../states/saved_searches_provider.dart';
 import '../catalog_labels.dart';
-import '../widgets/catalog_filter_sheet.dart';
-import '../widgets/domain_groups.dart';
+import '../widgets/note_chip_bar.dart';
 import '../widgets/note_flag_sheet.dart' show noteFlagColorLabel;
 import '../widgets/note_search_field.dart';
+import '../widgets/notes_sidebar.dart';
 import '../widgets/note_row.dart';
 import '../widgets/saved_search_dialogs.dart';
 import '../widgets/notes_view_menu.dart';
 
 class NotesListScreen extends ConsumerStatefulWidget {
-  const NotesListScreen({super.key});
+  const NotesListScreen({super.key, this.sidebarDocked = false});
+
+  /// True when the side panel is docked beside the list: no drawer, no ☰,
+  /// no ＋.
+  final bool sidebarDocked;
 
   @override
   ConsumerState<NotesListScreen> createState() => _NotesListScreenState();
@@ -172,25 +173,33 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final listAsync = ref.watch(notesListStateProvider);
     final resultsAsync = ref.watch(notesResultsProvider);
     final notifier = ref.read(notesListStateProvider.notifier);
-    final usage = ref.watch(filterUsageProvider).value ?? const {};
     final density = ref.watch(notesRowDensityProvider);
     final data = listAsync.value;
     final effective = ref.watch(notesEffectiveQueryProvider);
 
-    List<DomainGroup> groupsOf(NotesListData d) => groupByDomain(
-      d.catalogsById.values,
-      d.countsByCatalog,
-      usage,
-      domainCounts: d.countsByDomain,
-    );
-
     return AppScaffold(
       title: l.notesTitle,
-      drawer: data == null ? null : _FilterDrawer(data: data),
+      drawer: data == null || widget.sidebarDocked
+          ? null
+          : Drawer(
+              child: NotesSidebar(
+                data: data,
+                onPicked: () => Navigator.of(context).pop(),
+              ),
+            ),
       onRefresh: () async {
         await ref.read(syncControllerProvider).triggerManualSync();
       },
       actions: [
+        if (!widget.sidebarDocked)
+          // A Builder: this context is above the Scaffold AppScaffold builds.
+          Builder(
+            builder: (context) => HmmIconButton(
+              tooltip: l.notesMenuTooltip,
+              icon: Icons.menu,
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
         HmmIconButton(
           tooltip: l.notesViewTooltip,
           icon: Icons.tune,
@@ -204,30 +213,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                       ref.read(settingsProvider.notifier).setNotesRowDensity(d),
                   onSort: notifier.setSort,
                 ),
-        ),
-        HmmIconButton(
-          tooltip: l.notesFilterTooltip,
-          icon: Icons.filter_list,
-          onPressed: data == null
-              ? null
-              : () {
-                  final groups = groupsOf(data);
-                  showModalBottomSheet<void>(
-                    context: context,
-                    builder: (_) => CatalogFilterSheet(
-                      groups: groups,
-                      counts: data.countsByCatalog,
-                      selected: catalogSelectionFor(data.query.source, groups),
-                      // The sheet only offers All, a whole domain, or one
-                      // catalog — each maps to exactly one source.
-                      onApply: (ids) => notifier.setSource(
-                        sourceForCatalogSelection(ids, groups),
-                      ),
-                      onRecordDomain: (key) =>
-                          ref.read(filterUsageProvider.notifier).record(key),
-                    ),
-                  );
-                },
         ),
         HmmIconButton(
           tooltip: l.notesSubsystemsTitle,
@@ -275,7 +260,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             ),
           ),
           ..._suggestionsAndRecents(data, l),
-          SliverToBoxAdapter(child: _filterBar(data, groupsOf(data), l)),
+          SliverToBoxAdapter(
+            child: NoteChipBar(data: data, sidebarDocked: widget.sidebarDocked),
+          ),
           if (_showScope(effective))
             SliverToBoxAdapter(child: _scopeToggle(data, effective!, l)),
         ],
@@ -315,7 +302,34 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final format = DateFormat.yMd(Localizations.localeOf(context).toString());
     final ios = Theme.of(context).platform == TargetPlatform.iOS;
     final tokens = data.query.tokens;
+    final struck = TextStyle(
+      decoration: TextDecoration.lineThrough,
+      color: context.appColors.secondaryLabel,
+    );
+    // The open saved search's own text and tokens: read-only, before the live
+    // chips, and never touched by Backspace.
+    final saved = savedSearchFor(
+      data.query.source,
+      ref.watch(notesSmartFiltersProvider),
+    );
+    final savedChips = <({String text, bool removed})>[
+      if (saved != null && saved.query.text.trim().isNotEmpty)
+        (text: '"${saved.query.text.trim()}"', removed: false),
+      if (saved != null)
+        for (final t in saved.query.tokens)
+          tokenLabel(t, data, l, titleOf: titleOf, dateFormat: format),
+    ];
     return [
+      for (var i = 0; i < savedChips.length; i++)
+        Chip(
+          avatar: i == 0 ? const Icon(Icons.bookmark_outline) : null,
+          label: Text(
+            savedChips[i].text,
+            style: savedChips[i].removed ? struck : null,
+          ),
+          backgroundColor: Colors.transparent,
+          side: BorderSide(color: context.appColors.secondaryLabel),
+        ),
       for (var i = 0; i < tokens.length; i++)
         Builder(
           builder: (_) {
@@ -326,15 +340,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               titleOf: titleOf,
               dateFormat: format,
             );
-            final text = Text(
-              label.text,
-              style: label.removed
-                  ? TextStyle(
-                      decoration: TextDecoration.lineThrough,
-                      color: context.appColors.secondaryLabel,
-                    )
-                  : null,
-            );
+            final text = Text(label.text, style: label.removed ? struck : null);
             void remove() => notifier.setTokens([
               for (var j = 0; j < tokens.length; j++)
                 if (j != i) tokens[j],
@@ -452,8 +458,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       case SmartSource():
         // ref.read: this also runs from event handlers; the build path
         // already rebuilds on saved-search changes via the effective query.
-        final found = savedSearchFor(src, ref.read(savedSearchesProvider));
-        return found?.name ?? l.notesFiltered;
+        final found = savedSearchFor(src, ref.read(notesSmartFiltersProvider));
+        return found == null
+            ? l.notesFiltered
+            : smartFilterDisplayName(found, l);
       default:
         return l.notesFiltered;
     }
@@ -502,54 +510,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     );
   }
 
-  Widget _filterBar(
-    NotesListData data,
-    List<DomainGroup> groups,
-    AppLocalizations l,
-  ) {
-    final notifier = ref.read(notesListStateProvider.notifier);
-    // Resolve the active domain (main filter) and, if it has more than one
-    // catalog, the sub-filter selection within it.
-    final f = catalogSelectionFor(data.query.source, groups);
-    DomainGroup? activeDomain;
-    if (f != null && f.isNotEmpty) {
-      for (final g in groups) {
-        if (f.every(g.catalogIds.contains)) {
-          activeDomain = g;
-          break;
-        }
-      }
-    }
-    final source = data.query.source;
-    final mainLabel = source is SmartSource
-        ? (savedSearchFor(source, ref.watch(savedSearchesProvider))?.name ??
-              l.notesFiltered)
-        : activeDomain != null
-        ? domainLabel(activeDomain.key, l)
-        : ((f == null || f.isEmpty) ? l.notesAll : l.notesFiltered);
-    final subDomain = (activeDomain != null && activeDomain.catalogs.length > 1)
-        ? activeDomain
-        : null;
-    int? subSelected;
-    if (subDomain != null && f != null) {
-      subSelected = setEquals(f, subDomain.catalogIds)
-          ? null // "All <domain>"
-          : (f.length == 1 ? f.first : null);
-    }
-    return _FilterBar(
-      mainLabel: mainLabel,
-      subDomain: subDomain,
-      subSelectedCatalogId: subSelected,
-      // A whole domain or one of its catalogs: both map exactly.
-      onSubSelected: (catId) => notifier.setSource(
-        sourceForCatalogSelection(
-          catId == null ? subDomain!.catalogIds : {catId},
-          groups,
-        ),
-      ),
-    );
-  }
-
   List<Widget> _body(
     BuildContext context,
     NotesListData data,
@@ -561,7 +521,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final text = data.query.text.trim();
     final source = data.query.source;
     if (source is SmartSource &&
-        savedSearchFor(source, ref.watch(savedSearchesProvider)) == null) {
+        savedSearchFor(source, ref.watch(notesSmartFiltersProvider)) == null) {
       // Deleted here or on another device while open.
       return [
         SliverFillRemaining(
@@ -758,296 +718,6 @@ class _GroupHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_GroupHeaderDelegate old) =>
       old.title != title || old.background != background || old.color != color;
-}
-
-/// The filter controls that replace the horizontal chip row: a main button
-/// (shows the active domain, opens the category drawer) and — only when the
-/// active domain has more than one catalog — a compact sub-filter dropdown.
-class _FilterBar extends StatelessWidget {
-  const _FilterBar({
-    required this.mainLabel,
-    this.subDomain,
-    this.subSelectedCatalogId,
-    this.onSubSelected,
-  });
-
-  final String mainLabel;
-  final DomainGroup? subDomain;
-  final int? subSelectedCatalogId;
-  final void Function(int? catalogId)? onSubSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.appColors;
-    return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
-      child: Row(
-        children: [
-          ActionChip(
-            avatar: Icon(Icons.tune, size: 18, color: c.accent),
-            label: Text(mainLabel),
-            // Opens the AppScaffold drawer; this context is under the Scaffold
-            // so Scaffold.of resolves it.
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-          if (subDomain != null && onSubSelected != null) ...[
-            const SizedBox(width: 8),
-            _SubFilterButton(
-              domain: subDomain!,
-              selectedCatalogId: subSelectedCatalogId,
-              onSelected: onSubSelected!,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Compact dropdown for filtering within a domain. The first option is
-/// `All [domain]` (the default); the rest are the domain's catalogs.
-class _SubFilterButton extends StatelessWidget {
-  const _SubFilterButton({
-    required this.domain,
-    required this.selectedCatalogId,
-    required this.onSelected,
-  });
-
-  // Sentinel for the "All <domain>" option. PopupMenuButton treats a tapped
-  // null-value item as a *cancel* (never firing onSelected), so the "All"
-  // option must carry a non-null value. Real catalog ids are positive.
-  static const int _allValue = -1;
-
-  final DomainGroup domain;
-  final int? selectedCatalogId;
-  final void Function(int? catalogId) onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final c = context.appColors;
-    final allLabel = l.notesAllInDomain(domainLabel(domain.key, l));
-    String label = allLabel;
-    if (selectedCatalogId != null) {
-      for (final cat in domain.catalogs) {
-        if (cat.id == selectedCatalogId) {
-          label = catalogLabel(cat.name, l);
-          break;
-        }
-      }
-    }
-    return PopupMenuButton<int>(
-      initialValue: selectedCatalogId ?? _allValue,
-      onSelected: (v) => onSelected(v == _allValue ? null : v),
-      itemBuilder: (_) => [
-        PopupMenuItem<int>(value: _allValue, child: Text(allLabel)),
-        for (final cat in domain.catalogs)
-          PopupMenuItem<int>(
-            value: cat.id,
-            child: Text(catalogLabel(cat.name, l)),
-          ),
-      ],
-      child: Container(
-        padding: const EdgeInsetsDirectional.fromSTEB(12, 7, 8, 7),
-        decoration: BoxDecoration(
-          color: c.secondaryGroupedBackground,
-          borderRadius: BorderRadius.circular(DesignTokens.radiusSmall),
-          border: Border.all(color: c.separator),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: DesignTokens.rowSecondary.copyWith(
-                color: c.label,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.expand_more, size: 18, color: c.secondaryLabel),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Category panel (a left drawer) listing "All" + the note DOMAINS. Picking one
-/// applies the filter and closes the panel. Replaces the old inline chips; the
-/// per-catalog funnel sheet stays available from the nav bar.
-class _FilterDrawer extends ConsumerWidget {
-  const _FilterDrawer({required this.data});
-  final NotesListData data;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    final c = context.appColors;
-    final notifier = ref.read(notesListStateProvider.notifier);
-    final usage = ref.watch(filterUsageProvider).value ?? const {};
-    final groups = groupByDomain(
-      data.catalogsById.values,
-      data.countsByCatalog,
-      usage,
-      domainCounts: data.countsByDomain,
-    );
-    final f = catalogSelectionFor(data.query.source, groups);
-    final saved = ref.watch(savedSearchesProvider);
-    final savedNotifier = ref.read(savedSearchesProvider.notifier);
-
-    Future<void> guarded(Future<void> Function() run) async {
-      final messenger = ScaffoldMessenger.of(context);
-      final failed = l.notesSavedSearchUpdateFailed;
-      try {
-        await run();
-      } catch (e) {
-        // Type only: the saved search is user content.
-        debugPrint(
-          'NotesListScreen: saved search update failed (${e.runtimeType})',
-        );
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(failed)));
-      }
-    }
-
-    Future<void> onSavedMenu(SavedSearch s, int index) async {
-      final action = await showSavedSearchMenu(
-        context,
-        canMoveUp: index > 0,
-        canMoveDown: index < saved.length - 1,
-      );
-      if (action == null || !context.mounted) return;
-      switch (action) {
-        case SavedSearchAction.rename:
-          final name = await showSavedSearchNameDialog(
-            context,
-            title: l.notesSavedSearchRenameTitle,
-            initial: s.name,
-          );
-          if (name != null && name.isNotEmpty) {
-            await guarded(() => savedNotifier.rename(s.id, name));
-          }
-        case SavedSearchAction.moveUp:
-          await guarded(() => savedNotifier.move(s.id, -1));
-        case SavedSearchAction.moveDown:
-          await guarded(() => savedNotifier.move(s.id, 1));
-        case SavedSearchAction.delete:
-          // The snackbar (with Undo) sits under the drawer's scrim.
-          Navigator.of(context).pop();
-          await showUndoableAction(
-            context,
-            run: () => savedNotifier.remove(s.id),
-            undo: () => savedNotifier.restore(s),
-            done: l.notesSavedSearchDeleted(s.name),
-            failed: l.notesSavedSearchDeleteFailed,
-            undone: l.notesSavedSearchRestored(s.name),
-            undoFailed: l.notesSavedSearchRestoreFailed,
-            busyKey: ('deleteSavedSearch', s.id),
-          );
-      }
-    }
-
-    Widget dot(Color color) => Container(
-      width: 12,
-      height: 12,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-
-    Widget tile({
-      required Widget leading,
-      required String title,
-      required bool selected,
-      required VoidCallback onTap,
-      VoidCallback? onLongPress,
-    }) => ListTile(
-      leading: leading,
-      title: Text(title),
-      selected: selected,
-      trailing: selected ? Icon(Icons.check, color: c.accent) : null,
-      onTap: onTap,
-      onLongPress: onLongPress,
-    );
-
-    return Drawer(
-      child: SafeArea(
-        child: ListView(
-          children: [
-            Padding(
-              padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 8),
-              child: Text(
-                l.notesFilter,
-                style: DesignTokens.caption.copyWith(
-                  color: c.secondaryLabel,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-            tile(
-              leading: dot(c.tertiaryLabel),
-              title: l.notesAll,
-              selected:
-                  (f == null || f.isEmpty) && data.query.source is! SmartSource,
-              onTap: () {
-                notifier.setSource(const AllSource());
-                Navigator.of(context).pop();
-              },
-            ),
-            for (final g in groups)
-              tile(
-                leading: dot(g.style.color),
-                title: domainLabel(g.key, l),
-                selected: f != null && setEquals(f, g.catalogIds),
-                onTap: () {
-                  ref.read(filterUsageProvider.notifier).record(g.key);
-                  notifier.setSource(DomainSource(key: g.key));
-                  Navigator.of(context).pop();
-                },
-              ),
-            if (saved.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(20, 16, 20, 8),
-                child: Semantics(
-                  header: true,
-                  child: Text(
-                    l.notesSavedSearchesHeader,
-                    style: DesignTokens.caption.copyWith(
-                      color: c.secondaryLabel,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ),
-              for (var i = 0; i < saved.length; i++)
-                tile(
-                  leading: Icon(Icons.bookmark_outline, color: c.accent),
-                  title: saved[i].name,
-                  selected:
-                      data.query.source == SmartSource(savedId: saved[i].id),
-                  onTap: () {
-                    // The saved search's own text and tokens apply through
-                    // the source, so what is typed next narrows it.
-                    final live = data.query;
-                    notifier.setQuery(
-                      NoteQuery(
-                        source: SmartSource(savedId: saved[i].id),
-                        // A sticky "All notes" would make the saved search's
-                        // source a no-op; start from its own source.
-                        scope: NoteScope.currentSource,
-                        sort: live.sort,
-                      ),
-                    );
-                    Navigator.of(context).pop();
-                  },
-                  onLongPress: () => onSavedMenu(saved[i], i),
-                ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// A titled list section between the search box and the results.

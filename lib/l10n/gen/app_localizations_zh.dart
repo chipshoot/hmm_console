@@ -485,28 +485,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesLoadFailed => '无法加载笔记';
 
   @override
-  String get notesFilter => '筛选';
-
-  @override
   String get notesAll => '全部';
-
-  @override
-  String get notesAllNotes => '所有笔记';
-
-  @override
-  String notesAllInDomain(String domain) {
-    return '全部$domain';
-  }
-
-  @override
-  String notesNoteCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count 条笔记',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get notesSelectNote => '请选择一条笔记';
@@ -2782,9 +2761,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesViewTooltip => '显示';
 
   @override
-  String get notesFilterTooltip => '筛选';
-
-  @override
   String get notesFiltered => '已筛选';
 
   @override
@@ -2881,11 +2857,11 @@ class AppLocalizationsZh extends AppLocalizations {
       '输入即可搜索标题、正文、标签以及笔记所附属的对象，匹配内容会高亮显示。返回时搜索仍然生效；点搜索框里的 × 即可清除。';
 
   @override
-  String get helpNotesListFilterTitle => '筛选';
+  String get helpNotesListFilterTitle => '侧边栏';
 
   @override
   String get helpNotesListFilterBody =>
-      '显示全部笔记、某个领域（如汽车），或其中的某一类笔记。搜索框下方的标签打开领域列表；筛选按钮列出所有类别。';
+      '打开侧边栏（☰）即可按已置顶、已标记（按颜色）、今天、领域、标签或智能筛选来筛选；数字表示各项包含的笔记数。长按你保存的搜索可重命名、移动或删除。在宽屏上，侧边栏会一直显示在列表旁。';
 
   @override
   String get notesTokenHasPhoto => '含照片';
@@ -2963,7 +2939,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNotesListTokensBody =>
-      '输入时会出现标签、领域、旗标、所属笔记、照片、地点和日期范围的建议。点按建议即可添加为条件；点按条件上的 ✕（或在外接键盘上于空白搜索框中按退格键）即可移除。启用筛选时，可选择在全部笔记或仅在该筛选中搜索。点按空白搜索框可查看最近的搜索。';
+      '输入时会出现标签、领域、笔记类型（如加油记录）、旗标、所属笔记、照片、地点和日期范围的建议。点按建议即可添加为条件；点按条件上的 ✕（或在外接键盘上于空白搜索框中按退格键）即可移除。启用筛选时，可选择在全部笔记或仅在该筛选中搜索。点按空白搜索框可查看最近的搜索。';
 
   @override
   String get notesNoMatchesFilters => '没有符合此搜索的笔记';
@@ -3037,4 +3013,38 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListSavedBody =>
       '点按搜索框旁的书签图标即可保存当前搜索，包括筛选和条件。已保存的搜索显示在侧边栏中；点按即可打开，长按可重命名、移动或删除。它们会同步到你的其他设备。';
+
+  @override
+  String get notesSmartWithPhotos => '含照片';
+
+  @override
+  String get notesSmartWithPlace => '含地点';
+
+  @override
+  String get notesSmartLast7d => '最近 7 天';
+
+  @override
+  String get notesSidebarDomains => '领域';
+
+  @override
+  String get notesSidebarTags => '标签';
+
+  @override
+  String get notesSidebarSmartFilters => '智能筛选';
+
+  @override
+  String get notesSidebarFlagged => '已标记';
+
+  @override
+  String get notesMenuTooltip => '筛选和列表';
+
+  @override
+  String get notesChipMoreTooltip => '更多筛选';
+
+  @override
+  String get helpNotesListChipsTitle => '快速筛选';
+
+  @override
+  String get helpNotesListChipsBody =>
+      '搜索框下方的一行可在全部、已置顶、已标记以及你最常用的领域和标签之间切换；它会根据你的选择自动调整。再次点按已选中的条件即可回到全部，点按 ＋ 打开包含所有筛选的侧边栏。';
 }

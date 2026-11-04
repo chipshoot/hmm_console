@@ -298,25 +298,7 @@
   "notesTitle": "Notes",
   "notesSearchHint": "Search notes",
   "notesLoadFailed": "Couldn't load your notes",
-  "notesFilter": "FILTER",
   "notesAll": "All",
-  "notesAllNotes": "All notes",
-  "notesAllInDomain": "All {domain}",
-  "@notesAllInDomain": {
-    "placeholders": {
-      "domain": {
-        "type": "String"
-      }
-    }
-  },
-  "notesNoteCount": "{count, plural, =1{1 note} other{{count} notes}}",
-  "@notesNoteCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "notesSelectNote": "Select a note",
   "notesNone": "None",
   "notesEmpty": "No notes yet",
@@ -1424,7 +1406,6 @@
     }
   },
   "notesViewTooltip": "View",
-  "notesFilterTooltip": "Filter",
   "notesFiltered": "Filtered",
   "notesSearchClearTooltip": "Clear search",
   "notesSearchClearAction": "Clear search",
@@ -1455,8 +1436,8 @@
   "helpNotesListFlagsBody": "A flag marks a note with a colour. Sort by flag colour to group flagged notes by colour, with unflagged notes last.",
   "helpNotesListSearchTitle": "Search",
   "helpNotesListSearchBody": "Type to search titles, text, tags and what a note is attached to. Matches are highlighted. The search stays applied when you come back; clear it with the × in the box.",
-  "helpNotesListFilterTitle": "Filter",
-  "helpNotesListFilterBody": "Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.",
+  "helpNotesListFilterTitle": "Side panel",
+  "helpNotesListFilterBody": "Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list.",
   "notesTokenHasPhoto": "Has photos",
   "notesTokenHasPlace": "Has place",
   "notesTokenHasAttachment": "Has attachments",
@@ -1484,7 +1465,7 @@
   "@notesScopeCurrent": {"placeholders": {"source": {"type": "String"}}},
   "notesSuggestionsHeader": "Suggestions",
   "helpNotesListTokensTitle": "Search tokens",
-  "helpNotesListTokensBody": "As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip's ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.",
+  "helpNotesListTokensBody": "As you type, suggestions appear for tags, domains, kinds of note (such as Gas Log), flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip's ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.",
   "notesNoMatchesFilters": "No notes match this search",
   "notesSaveSearchTooltip": "Save search",
   "notesSaveSearchTitle": "Save search",
@@ -1509,5 +1490,16 @@
   "notesSavedSearchMissing": "This saved search was deleted",
   "notesShowAllNotes": "Show all notes",
   "helpNotesListSavedTitle": "Saved searches",
-  "helpNotesListSavedBody": "Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices."
+  "helpNotesListSavedBody": "Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.",
+  "notesSmartWithPhotos": "With photos",
+  "notesSmartWithPlace": "With place",
+  "notesSmartLast7d": "Last 7 days",
+  "notesSidebarDomains": "Domains",
+  "notesSidebarTags": "Tags",
+  "notesSidebarSmartFilters": "Smart filters",
+  "notesSidebarFlagged": "Flagged",
+  "notesMenuTooltip": "Filters and lists",
+  "notesChipMoreTooltip": "More filters",
+  "helpNotesListChipsTitle": "Quick filters",
+  "helpNotesListChipsBody": "The row under the search box switches between All, Pinned, Flagged and the domains and tags you use most; it learns from what you pick. Tap a selected chip again to go back to All, or tap ＋ to open the side panel with every filter."
 }

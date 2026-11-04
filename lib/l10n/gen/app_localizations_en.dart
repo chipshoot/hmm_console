@@ -506,29 +506,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesLoadFailed => 'Couldn\'t load your notes';
 
   @override
-  String get notesFilter => 'FILTER';
-
-  @override
   String get notesAll => 'All';
-
-  @override
-  String get notesAllNotes => 'All notes';
-
-  @override
-  String notesAllInDomain(String domain) {
-    return 'All $domain';
-  }
-
-  @override
-  String notesNoteCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count notes',
-      one: '1 note',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get notesSelectNote => 'Select a note';
@@ -2870,9 +2848,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesViewTooltip => 'View';
 
   @override
-  String get notesFilterTooltip => 'Filter';
-
-  @override
   String get notesFiltered => 'Filtered';
 
   @override
@@ -2969,11 +2944,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Type to search titles, text, tags and what a note is attached to. Matches are highlighted. The search stays applied when you come back; clear it with the × in the box.';
 
   @override
-  String get helpNotesListFilterTitle => 'Filter';
+  String get helpNotesListFilterTitle => 'Side panel';
 
   @override
   String get helpNotesListFilterBody =>
-      'Show all notes, one area such as Automobile, or a single kind of note within it. The chip under the search box opens the areas; the filter button lists every kind.';
+      'Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list.';
 
   @override
   String get notesTokenHasPhoto => 'Has photos';
@@ -3051,7 +3026,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNotesListTokensBody =>
-      'As you type, suggestions appear for tags, domains, flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.';
+      'As you type, suggestions appear for tags, domains, kinds of note (such as Gas Log), flags, attached-to notes, photos, places and date ranges. Tap one to add it as a chip; tap a chip\'s ✕ (or press Backspace in an empty box on a keyboard) to remove it. While a filter is active, choose whether the search covers all notes or only that filter. Tap the empty search box to see your recent searches.';
 
   @override
   String get notesNoMatchesFilters => 'No notes match this search';
@@ -3128,4 +3103,38 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListSavedBody =>
       'Tap the bookmark beside the search box to save the current search, filters and tokens included. Saved searches appear in the side panel; tap one to open it, or long-press it to rename, move or delete it. They sync to your other devices.';
+
+  @override
+  String get notesSmartWithPhotos => 'With photos';
+
+  @override
+  String get notesSmartWithPlace => 'With place';
+
+  @override
+  String get notesSmartLast7d => 'Last 7 days';
+
+  @override
+  String get notesSidebarDomains => 'Domains';
+
+  @override
+  String get notesSidebarTags => 'Tags';
+
+  @override
+  String get notesSidebarSmartFilters => 'Smart filters';
+
+  @override
+  String get notesSidebarFlagged => 'Flagged';
+
+  @override
+  String get notesMenuTooltip => 'Filters and lists';
+
+  @override
+  String get notesChipMoreTooltip => 'More filters';
+
+  @override
+  String get helpNotesListChipsTitle => 'Quick filters';
+
+  @override
+  String get helpNotesListChipsBody =>
+      'The row under the search box switches between All, Pinned, Flagged and the domains and tags you use most; it learns from what you pick. Tap a selected chip again to go back to All, or tap ＋ to open the side panel with every filter.';
 }

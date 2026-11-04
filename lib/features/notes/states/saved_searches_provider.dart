@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/util/uuid.dart';
 import '../../settings/data/syncable_settings_repository.dart';
 import '../../settings/providers/settings_bus_provider.dart';
+import '../query/built_in_smart_filters.dart';
 import '../query/note_query.dart';
 import '../query/saved_search.dart';
 
@@ -118,3 +119,9 @@ final savedSearchesProvider =
     NotifierProvider<SavedSearchesNotifier, List<SavedSearch>>(
       SavedSearchesNotifier.new,
     );
+
+/// Built-in smart filters followed by the user's saved searches: everything a
+/// [SmartSource] can point at.
+final notesSmartFiltersProvider = Provider<List<SavedSearch>>(
+  (ref) => [...builtInSmartFilters, ...ref.watch(savedSearchesProvider)],
+);

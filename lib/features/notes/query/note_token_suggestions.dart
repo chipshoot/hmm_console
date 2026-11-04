@@ -5,6 +5,7 @@ import '../../../core/notes/note_flag.dart';
 import '../../../core/util/search_normalize.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../data/models/hmm_note.dart';
+import '../presentation/catalog_labels.dart';
 import '../states/notes_list_state.dart';
 import 'note_query.dart';
 import 'note_token_labels.dart';
@@ -20,7 +21,7 @@ const _maxSuggestions = 8;
 const _maxParents = 3;
 
 /// Tokens whose label contains what the user typed, in kind order (tags,
-/// domains, flags, parents, attributes, dates), minus those already applied.
+/// domains, catalogs, flags, parents, attributes, dates), minus those already applied.
 /// Pure: no BuildContext, no Riverpod.
 List<TokenSuggestion> suggestTokens(
   String text,
@@ -55,6 +56,15 @@ List<TokenSuggestion> suggestTokens(
       DomainToken(key),
       tokenText(DomainToken(key), c, l, titleOf),
       Icons.folder_outlined,
+    );
+  }
+  final usedCatalogs = {for (final n in c.all) n.catalogId};
+  for (final e in c.catalogsById.entries) {
+    if (!usedCatalogs.contains(e.key)) continue;
+    offer(
+      CatalogToken(e.key),
+      catalogLabel(e.value.name, l),
+      Icons.category_outlined,
     );
   }
   for (final f in NoteFlagColor.values) {
