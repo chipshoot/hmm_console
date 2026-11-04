@@ -66,4 +66,23 @@ void main() {
     expect(after.state.flagColor, 2);
     sub.close();
   });
+
+  test('a delete from elsewhere reaches an already-loaded note detail',
+      () async {
+    final repo = container.read(hmmNoteRepositoryProvider);
+    final note = await repo.createNote(
+        const HmmNoteCreate(subject: 's', catalogId: 1, content: 'c'));
+
+    final sub = container.listen(noteDetailProvider(note.id), (_, _) {});
+    final before = await container.read(noteDetailProvider(note.id).future);
+    expect(before.note.isDeleted, isFalse);
+
+    // What sync does when another device deleted the note.
+    await repo.deleteNote(note.id);
+    await pumpEventQueue();
+
+    final after = await container.read(noteDetailProvider(note.id).future);
+    expect(after.note.isDeleted, isTrue);
+    sub.close();
+  });
 }

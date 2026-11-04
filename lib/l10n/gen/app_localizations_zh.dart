@@ -3178,6 +3178,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesRestoreAction => '恢复';
 
   @override
+  String get notesMovedToRecentlyDeletedBanner => '这条笔记已移到“最近删除”';
+
+  @override
+  String get notesParentDeleted => '（已删除的笔记）';
+
+  @override
   String get notesDeleteNow => '立即删除';
 
   @override

@@ -65,6 +65,8 @@ Future<_RecordingMutate> _pump(
   String catalog = 'General',
   bool pinned = false,
   int? flag,
+  bool deleted = false,
+  TargetPlatform? platform,
 }) async {
   final mutate = _RecordingMutate();
   final note = HmmNote(
@@ -75,6 +77,7 @@ Future<_RecordingMutate> _pump(
     catalogId: 1,
     content: 'Hello body',
     createDate: DateTime(2026, 1, 1),
+    deletedAt: deleted ? DateTime.utc(2026, 2, 1) : null,
   );
   final state = NoteState(
     noteUuid: 'u5',
@@ -96,7 +99,7 @@ Future<_RecordingMutate> _pump(
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: ThemeData(extensions: const [AppColors.light]),
+        theme: ThemeData(platform: platform, extensions: const [AppColors.light]),
         home: const NoteDetailScreen(noteId: 5),
       ),
     ),
@@ -208,5 +211,44 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  for (final p in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('detail of a deleted note shows the banner and Restore ($p)', (
+      tester,
+    ) async {
+      await _pump(tester, deleted: true, platform: p);
+      expect(
+        find.text('This note was moved to Recently Deleted'),
+        findsOneWidget,
+      );
+      expect(find.text('Restore'), findsOneWidget);
+    });
+  }
+
+  testWidgets('an ordinary note shows no banner', (tester) async {
+    await _pump(tester);
+    expect(find.text('This note was moved to Recently Deleted'), findsNothing);
+  });
+
+  testWidgets('Restore calls restore(id) and the banner goes', (tester) async {
+    final mutate = await _pump(tester, deleted: true);
+    await tester.tap(find.text('Restore'));
+    await tester.pumpAndSettle();
+    expect(mutate.calls, ['restore 5']);
+    expect(find.text('Note restored'), findsOneWidget);
+  });
+
+  testWidgets('detail menu of a deleted note offers Restore, not Delete', (
+    tester,
+  ) async {
+    await _pump(tester, deleted: true);
+    await _openMenu(tester);
+    expect(find.text('Restore'), findsNWidgets(2)); // banner + menu
+    expect(find.text('View raw content'), findsOneWidget);
+    expect(find.text('Delete'), findsNothing);
+    expect(find.text('Pin'), findsNothing);
+    expect(find.text('Flag…'), findsNothing);
+    expect(find.text('Edit'), findsNothing);
   });
 }

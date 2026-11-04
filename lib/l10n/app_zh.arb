@@ -968,6 +968,8 @@
   "notesRecentlyDeletedTitle": "最近删除",
   "notesDeletesInDays": "{days} 天后删除",
   "notesRestoreAction": "恢复",
+  "notesMovedToRecentlyDeletedBanner": "这条笔记已移到“最近删除”",
+  "notesParentDeleted": "（已删除的笔记）",
   "notesDeleteNow": "立即删除",
   "notesDeleteNowTitle": "立即删除这条笔记？",
   "notesDeleteForGoodBody": "它将从你的所有设备上移除，且无法撤销。",

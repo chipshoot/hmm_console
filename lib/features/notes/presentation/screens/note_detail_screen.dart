@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoButton;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import '../../../../core/data/local/database.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
+import '../../../../core/help/undoable_action.dart';
 import '../../../../core/notes/editing/edit_dispatch.dart';
 import '../../../../core/notes/note_state.dart';
 import '../../../../core/widgets/app_scaffold.dart';
@@ -20,6 +22,7 @@ import '../../rendering/render_registry.dart';
 import '../../states/mutate_note_state.dart';
 import '../../states/note_delete_policy.dart';
 import '../../states/note_selection.dart';
+import '../../states/recently_deleted_provider.dart';
 import '../catalog_labels.dart';
 import '../widgets/note_swipe_actions.dart' show deleteNoteWithUndo;
 import '../widgets/markdown_view.dart';
@@ -48,6 +51,10 @@ final noteStateProvider =
 /// value would show a stale note for the rest of the session.
 final noteDetailProvider =
     FutureProvider.autoDispose.family<NoteDetailData, int>((ref, id) async {
+  // Re-read when this note enters or leaves Recently Deleted (a delete or
+  // restore synced from another device); select keeps other notes' deletes
+  // from reloading it.
+  ref.watch(deletedNoteIdsProvider.select((a) => a.value?.contains(id)));
   final note = await ref.watch(hmmNoteRepositoryProvider).getNoteById(id);
   if (note == null) throw StateError('Note $id not found');
   NoteCatalog? catalog;
@@ -59,7 +66,7 @@ final noteDetailProvider =
   return NoteDetailData(note, catalog, state);
 });
 
-enum _MenuAction { edit, raw, pin, flag, delete, manageIn }
+enum _MenuAction { edit, raw, pin, flag, delete, manageIn, restore }
 
 class NoteDetailScreen extends ConsumerWidget {
   const NoteDetailScreen({super.key, required this.noteId});
@@ -85,6 +92,7 @@ class NoteDetailScreen extends ConsumerWidget {
             final catalogName = d.catalog?.name;
             final canDelete = canDeleteFromNotes(d.note, catalogName);
             final place = managePlaceFor(catalogName) ?? NoteManagePlace.ownScreen;
+            final deleted = d.note.isDeleted;
             return PopupMenuButton<_MenuAction>(
               onSelected: (a) async {
                 switch (a) {
@@ -98,11 +106,23 @@ class NoteDetailScreen extends ConsumerWidget {
                     await _chooseFlag(context, ref, l, d.state);
                   case _MenuAction.delete:
                     await _delete(context, ref);
+                  case _MenuAction.restore:
+                    await _restore(context, ref, l);
                   case _MenuAction.manageIn:
                     break; // informational row: the item is disabled
                 }
               },
-              itemBuilder: (context) => [
+              itemBuilder: (context) => deleted
+                  // A deleted note can only be restored or inspected.
+                  ? [
+                      PopupMenuItem(
+                          value: _MenuAction.restore,
+                          child: _MenuRow(Icons.restore, l.notesRestoreAction)),
+                      PopupMenuItem(
+                          value: _MenuAction.raw,
+                          child: _MenuRow(Icons.code, l.notesViewRaw)),
+                    ]
+                  : [
                 if (dispatch.canEdit(catalogName))
                   PopupMenuItem(
                       value: _MenuAction.edit,
@@ -158,6 +178,9 @@ class NoteDetailScreen extends ConsumerWidget {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (d.note.isDeleted)
+                    _DeletedBanner(
+                        onRestore: () => _restore(context, ref, l)),
                   Row(
                     children: [
                       if (d.state.isPinned)
@@ -214,6 +237,31 @@ class NoteDetailScreen extends ConsumerWidget {
     if (moved && !isWide) unawaited(navigator.maybePop());
   }
 
+  /// Restore with Undo (moves it back to Recently Deleted). The container is
+  /// captured before any await so the reload needs no WidgetRef.
+  Future<void> _restore(
+      BuildContext context, WidgetRef ref, AppLocalizations l) {
+    final mutate = ref.read(mutateNoteProvider);
+    final container = ProviderScope.containerOf(context);
+    final id = noteId;
+    return showUndoableAction(
+      context,
+      busyKey: ('restoreNote', id),
+      run: () async {
+        await mutate.restore(id);
+        container.invalidate(noteDetailProvider(id));
+      },
+      undo: () async {
+        await mutate.delete(id);
+        container.invalidate(noteDetailProvider(id));
+      },
+      done: l.notesRestored,
+      failed: l.notesRestoreFailed,
+      undone: l.notesMovedToRecentlyDeleted,
+      undoFailed: l.notesDeleteFailed,
+    );
+  }
+
   Future<void> _togglePin(BuildContext context, WidgetRef ref,
       AppLocalizations l, NoteState state) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -253,6 +301,48 @@ class NoteDetailScreen extends ConsumerWidget {
     } catch (_) {
       return '> ⚠️ Couldn\'t render this note\'s format. Use **View raw content** to inspect it.';
     }
+  }
+}
+
+/// Shown above the title of a soft-deleted note: Material banner on Android,
+/// a tinted row on Apple platforms.
+class _DeletedBanner extends StatelessWidget {
+  const _DeletedBanner({required this.onRestore});
+  final VoidCallback onRestore;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final platform = Theme.of(context).platform;
+    final isApple =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    final text = l.notesMovedToRecentlyDeletedBanner;
+    if (!isApple) {
+      return MaterialBanner(
+        content: Text(text),
+        actions: [
+          TextButton(onPressed: onRestore, child: Text(l.notesRestoreAction)),
+        ],
+      );
+    }
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(left: 12),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: Text(text)),
+          CupertinoButton(
+            onPressed: onRestore,
+            child: Text(l.notesRestoreAction),
+          ),
+        ],
+      ),
+    );
   }
 }
 

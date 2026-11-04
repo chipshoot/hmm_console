@@ -5888,6 +5888,18 @@ abstract class AppLocalizations {
   /// **'Restore'**
   String get notesRestoreAction;
 
+  /// No description provided for @notesMovedToRecentlyDeletedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'This note was moved to Recently Deleted'**
+  String get notesMovedToRecentlyDeletedBanner;
+
+  /// No description provided for @notesParentDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'(deleted note)'**
+  String get notesParentDeleted;
+
   /// No description provided for @notesDeleteNow.
   ///
   /// In en, this message translates to:

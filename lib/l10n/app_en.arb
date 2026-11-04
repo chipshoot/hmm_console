@@ -1548,6 +1548,8 @@
   "notesDeletesInDays": "{days, plural, =1{Deletes in 1 day} other{Deletes in {days} days}}",
   "@notesDeletesInDays": {"placeholders": {"days": {"type": "int"}}},
   "notesRestoreAction": "Restore",
+  "notesMovedToRecentlyDeletedBanner": "This note was moved to Recently Deleted",
+  "notesParentDeleted": "(deleted note)",
   "notesDeleteNow": "Delete Now",
   "notesDeleteNowTitle": "Delete this note now?",
   "notesDeleteForGoodBody": "It will be removed from all your devices. This can't be undone.",

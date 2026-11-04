@@ -162,6 +162,8 @@ Pin and flag are the **user's own state about a note**, not note content (like a
 - **Share sheet:** ordinary notes share their markdown as text (`share_plus`). PDF export is deferred. Entity notes (contacts, cheatsheets, gas logs, cars, records) do not share from Notes — they show "Share from Contacts / Cheatsheets / …".
 - **Delete from note detail** now moves to Recently Deleted with Undo (replaces today's immediate, no-undo delete).
 
+**2026-11-03 (Slice 5 decisions):** see 'Decisions this plan makes' in `docs/superpowers/plans/2026-11-03-notes-slice5-actions-recently-deleted.md` — Android long-press opens the menu with Select first; Recently Deleted is its own screen, not a query source; Tags… waits for slice 6.
+
 ### Recently Deleted
 
 - Rows show "Deletes in N days".

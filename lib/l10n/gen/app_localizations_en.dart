@@ -3300,6 +3300,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesRestoreAction => 'Restore';
 
   @override
+  String get notesMovedToRecentlyDeletedBanner =>
+      'This note was moved to Recently Deleted';
+
+  @override
+  String get notesParentDeleted => '(deleted note)';
+
+  @override
   String get notesDeleteNow => 'Delete Now';
 
   @override

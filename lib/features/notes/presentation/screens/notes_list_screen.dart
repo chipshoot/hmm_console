@@ -33,6 +33,8 @@ import '../../states/notes_list_state.dart';
 import '../../states/notes_multi_select.dart';
 import '../../states/notes_results_provider.dart';
 import '../../states/recent_searches.dart';
+import '../../states/recently_deleted_provider.dart'
+    show deletedNoteIdsProvider;
 import '../../states/saved_searches_provider.dart';
 import '../catalog_labels.dart';
 import '../widgets/note_chip_bar.dart';
@@ -611,7 +613,17 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         if (w.isNotEmpty) w,
     ];
 
+    // Once here, not per row; loading or error counts as "none deleted".
+    final deletedIds =
+        ref.watch(deletedNoteIdsProvider).asData?.value ?? const <int>{};
+
     String? parentTitleOf(HmmNote note, String? domain) {
+      final parentId = note.parentNoteId;
+      if (parentId != null &&
+          !notesById.containsKey(parentId) &&
+          deletedIds.contains(parentId)) {
+        return l.notesParentDeleted;
+      }
       final parentNote = note.parentNoteId == null
           ? null
           : notesById[note.parentNoteId];

@@ -14,6 +14,7 @@ import 'package:hmm_console/features/notes/presentation/screens/notes_list_scree
 import 'package:hmm_console/features/notes/presentation/widgets/note_row.dart';
 import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
+import 'package:hmm_console/features/notes/states/recently_deleted_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _StubListState extends NotesListState {
@@ -134,6 +135,7 @@ Future<void> _search(WidgetTester tester, String text) async {
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  _deletedParentTests();
 
   testWidgets('shows note tiles and filters by search query', (tester) async {
     await tester.pumpWidget(_app());
@@ -429,4 +431,57 @@ class _ParentEmojiListState extends NotesListState {
     ],
     catalogsById: const {},
   );
+}
+
+class _OrphanChildListState extends NotesListState {
+  @override
+  Future<NotesListData> build() async => NotesListData(
+    all: [
+      HmmNote(
+        id: 2,
+        uuid: 'u2',
+        subject: 'Child',
+        authorId: 1,
+        parentNoteId: 99,
+        createDate: DateTime(2026, 1, 2),
+      ),
+    ],
+    catalogsById: const {},
+  );
+}
+
+void _deletedParentTests() {
+  testWidgets('row whose parent is soft-deleted reads "(deleted note)"', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        state: _OrphanChildListState.new,
+        extra: [
+          deletedNoteIdsProvider.overrideWith((ref) => Stream.value({99})),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('(deleted note)'), findsOneWidget);
+  });
+
+  testWidgets('a parent that is not deleted shows its title again', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        state: _ParentEmojiListState.new,
+        extra: [
+          deletedNoteIdsProvider.overrideWith((ref) => Stream.value(<int>{})),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('(deleted note)'), findsNothing);
+    expect(
+      find.textContaining('${'a' * 19}\u{1F600}…', findRichText: true),
+      findsOneWidget,
+    );
+  });
 }
