@@ -619,7 +619,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           ? null
           : data.catalogsById[note.catalogId]?.name;
       final rowWidget = NoteRow(
-        key: ValueKey(note.id),
         hit: hit,
         density: density,
         domainKey: domain,

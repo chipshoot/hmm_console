@@ -97,7 +97,7 @@ class NoteDetailScreen extends ConsumerWidget {
                   case _MenuAction.flag:
                     await _chooseFlag(context, ref, l, d.state);
                   case _MenuAction.delete:
-                    await _delete(context, ref, l);
+                    await _delete(context, ref);
                   case _MenuAction.manageIn:
                     break; // informational row: the item is disabled
                 }
@@ -206,8 +206,7 @@ class NoteDetailScreen extends ConsumerWidget {
   /// Delete = move to Recently Deleted, with Undo (restore); the undoable
   /// part is shared with the list ([deleteNoteWithUndo], which also clears the
   /// wide-screen selection). Narrow screens pop back to the list afterwards.
-  Future<void> _delete(
-      BuildContext context, WidgetRef ref, AppLocalizations l) async {
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final navigator = Navigator.of(context);
     final isWide =
         MediaQuery.of(context).size.width >= kNotesWideBreakpoint;

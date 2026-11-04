@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
@@ -21,6 +22,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _FakeMutate implements MutateNote {
   final calls = <String>[];
   bool failPin = false;
+  bool failDelete = false;
+  VoidCallback? onDelete;
 
   @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
@@ -39,7 +42,11 @@ class _FakeMutate implements MutateNote {
   }
 
   @override
-  Future<void> delete(int id) async => calls.add('delete($id)');
+  Future<void> delete(int id) async {
+    if (failDelete) throw StateError('boom');
+    calls.add('delete($id)');
+    onDelete?.call();
+  }
 
   @override
   Future<HmmNote> restore(int id) async {
@@ -58,6 +65,10 @@ class _ListState extends NotesListState {
   _ListState({this.catalogName, this.states = const {}});
   final String? catalogName;
   final Map<String, NoteState> states;
+
+  /// Simulates the delete reaching the store: the list loses its note.
+  void dropNotes() =>
+      state = const AsyncData(NotesListData(all: [], catalogsById: {}));
 
   @override
   Future<NotesListData> build() async => NotesListData(
@@ -213,9 +224,9 @@ void main() {
     tester,
   ) async {
     final m = _FakeMutate();
-    await tester.pumpWidget(
-      _app(m, state: _ListState(states: {'u1': _state(pinned: true)})),
-    );
+    final list = _ListState(states: {'u1': _state(pinned: true)});
+    m.onDelete = list.dropNotes;
+    await tester.pumpWidget(_app(m, state: list));
     await tester.pumpAndSettle();
     ProviderScope.containerOf(
       tester.element(find.byType(NotesListScreen)),
@@ -228,10 +239,35 @@ void main() {
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(m.calls, ['delete(1)']);
+    // The row is gone (its element and ref are disposed) before Undo.
+    expect(find.byType(NoteRow), findsNothing);
 
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(m.calls, ['delete(1)', 'restore(1)']);
+  });
+
+  testWidgets('a failed full-swipe delete springs the row back', (
+    tester,
+  ) async {
+    final m = _FakeMutate()..failDelete = true;
+    await tester.pumpWidget(_app(m));
+    await tester.pumpAndSettle();
+
+    final g = await tester.startGesture(tester.getCenter(find.byType(NoteRow)));
+    for (var i = 0; i < 20; i++) {
+      await g.moveBy(const Offset(-35, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await g.up();
+    // Not pumpAndSettle: it would wait out the snackbar.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+
+    expect(find.text("Couldn't delete the note"), findsOneWidget);
+    expect(find.byType(NoteRow), findsOneWidget);
+    expect(tester.getSize(find.byType(NoteRow)).height, greaterThan(0));
   });
 
   testWidgets('wide: deleting the open note clears the selection', (
@@ -319,6 +355,28 @@ void main() {
     expect(find.text('Pin'), findsNothing);
     expect(m.calls, isEmpty);
   });
+
+  testWidgets(
+    'iOS: the Slidable is disabled only while a touch is at the edge',
+    (tester) async {
+      final y = await pushNotes(tester, _FakeMutate());
+      bool enabled() => tester.widget<Slidable>(find.byType(Slidable)).enabled;
+      expect(enabled(), isTrue);
+
+      final edge = await tester.startGesture(Offset(5, y));
+      await tester.pump();
+      expect(enabled(), isFalse);
+      await edge.up();
+      await tester.pump();
+      expect(enabled(), isTrue);
+
+      final mid = await tester.startGesture(Offset(100, y));
+      await tester.pump();
+      expect(enabled(), isTrue);
+      await mid.up();
+      await tester.pumpAndSettle();
+    },
+  );
 
   testWidgets('iOS: a mid-row drag opens Pin and keeps the route', (
     tester,

@@ -158,9 +158,13 @@ class _NoteSwipeActionsState extends ConsumerState<NoteSwipeActions> {
         motion: const DrawerMotion(),
         extentRatio: 0.5,
         dismissible: deletable
+            // The delete runs BEFORE the row is dismissed: if it fails the row
+            // springs back instead of staying collapsed.
             ? DismissiblePane(
-                onDismissed: () =>
+                confirmDismiss: () =>
                     deleteNoteWithUndo(context, ref, widget.note.id),
+                onDismissed: () {},
+                closeOnCancel: true,
               )
             : null,
         children: [
