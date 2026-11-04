@@ -182,6 +182,17 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final effective = ref.watch(notesEffectiveQueryProvider);
     final multi = ref.watch(notesMultiSelectProvider);
     final multiNotifier = ref.read(notesMultiSelectProvider.notifier);
+    // Ticks never outlive their visibility: a search or filter that hides a
+    // ticked note unticks it, so the count and every bulk action agree with
+    // what is on screen.
+    ref.listen(notesResultsProvider, (_, next) {
+      final results = next.value;
+      if (results == null || !ref.read(notesMultiSelectProvider).active) return;
+      multiNotifier.keepOnly([
+        for (final g in results.groups)
+          for (final h in g.hits) h.note.id,
+      ]);
+    });
     final platform = Theme.of(context).platform;
     final isApple =
         platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
@@ -546,6 +557,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     AppLocalizations l,
   ) {
     final notifier = ref.read(notesListStateProvider.notifier);
+    // Watched once here, not from the lazy item builder.
+    final selecting = ref.watch(notesMultiSelectProvider);
     final text = data.query.text.trim();
     final source = data.query.source;
     if (source is SmartSource &&
@@ -652,7 +665,6 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
       void select() =>
           ref.read(notesMultiSelectProvider.notifier).enter(note.id);
-      final selecting = ref.watch(notesMultiSelectProvider);
       final rowWidget = NoteRow(
         hit: hit,
         density: density,

@@ -13,6 +13,7 @@ import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_list_screen.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_row.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/notes_bulk_bar.dart';
 import 'package:hmm_console/features/notes/states/note_bulk_actions.dart';
 import 'package:hmm_console/features/notes/states/note_selection.dart';
 import 'package:hmm_console/features/notes/states/notes_list_state.dart';
@@ -348,13 +349,13 @@ void main() {
     await t.tap(find.byTooltip('Delete'));
     await t.pumpAndSettle();
     expect(find.text('Deleted 3 · 2 skipped'), findsOneWidget);
-    expect(bulk.calls, ['delete(1,2,3,4,5)']);
+    expect(bulk.calls, ['delete(5,4,3,2,1)']);
     expect(_sel(t).ids, {4, 5});
     expect(_sel(t).active, isTrue);
 
     await t.tap(find.text('Undo'));
     await t.pumpAndSettle();
-    expect(bulk.calls.last, 'restore(1,2,3)');
+    expect(bulk.calls.last, 'restore(3,2,1)');
     expect(find.text('Restored 3 notes'), findsOneWidget);
     expect(_sel(t).ids, {4, 5});
   });
@@ -442,5 +443,91 @@ void main() {
     await t.tap(find.byTooltip('Delete'));
     await t.pumpAndSettle();
     expect(_c(t).read(selectedNoteIdProvider), 2);
+  });
+
+  testWidgets(
+    'search narrows, then bulk delete touches only the visible ticks',
+    (t) async {
+      final bulk = _FakeBulk();
+      await _boot(t, _app(bulk));
+      _enter(t);
+      _c(t).read(notesMultiSelectProvider.notifier).selectAll([1, 2, 3]);
+      await t.pumpAndSettle();
+      expect(find.text('3 selected'), findsWidgets);
+      await t.enterText(find.byType(TextField), 'Note 2');
+      await t.pump(const Duration(milliseconds: 300));
+      await t.pumpAndSettle();
+      expect(_sel(t).ids, {2});
+      expect(find.text('1 selected'), findsWidgets);
+      await t.tap(find.byTooltip('Delete'));
+      await t.pumpAndSettle();
+      expect(bulk.calls, ['delete(2)']);
+    },
+  );
+
+  testWidgets('picking a chip exits selection', (t) async {
+    await _boot(t, _app(_FakeBulk()));
+    _enter(t, 1);
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(ChoiceChip, 'Pinned'));
+    await t.pumpAndSettle();
+    expect(_sel(t).active, isFalse);
+  });
+
+  testWidgets('picking a smart filter in the side panel exits selection', (
+    t,
+  ) async {
+    await _boot(t, _app(_FakeBulk()));
+    _enter(t, 1);
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('Filters and lists'));
+    await t.pumpAndSettle();
+    final smart = find.descendant(
+      of: find.byType(Drawer),
+      matching: find.text('With photos'),
+    );
+    await t.scrollUntilVisible(
+      smart,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(Drawer),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await t.tap(smart);
+    await t.pumpAndSettle();
+    expect(_sel(t).active, isFalse);
+  });
+
+  testWidgets('Pin (not Unpin) shows when nothing is ticked', (t) async {
+    await _boot(t, _app(_FakeBulk(), state: _ListState(pinned: {1})));
+    _enter(t);
+    await t.pumpAndSettle();
+    expect(find.byTooltip('Pin'), findsOneWidget);
+    expect(find.byTooltip('Unpin'), findsNothing);
+  });
+
+  testWidgets('iOS bulk bar is a flat Cupertino bar', (t) async {
+    await _boot(t, _app(_FakeBulk(), platform: TargetPlatform.iOS));
+    _enter(t, 1);
+    await t.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(NotesBulkBar),
+        matching: find.byType(DecoratedBox),
+      ),
+      findsWidgets,
+    );
+    final materials = t
+        .widgetList<Material>(
+          find.descendant(
+            of: find.byType(NotesBulkBar),
+            matching: find.byType(Material),
+          ),
+        )
+        .where((m) => m.elevation > 0);
+    expect(materials, isEmpty);
   });
 }

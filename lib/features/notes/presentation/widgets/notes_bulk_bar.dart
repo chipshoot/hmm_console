@@ -6,6 +6,7 @@ import '../../../../core/help/undoable_action.dart';
 import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../data/models/hmm_note.dart';
 import '../../query/note_results.dart';
 import '../../states/note_bulk_actions.dart';
 import '../../states/note_delete_policy.dart';
@@ -30,11 +31,12 @@ class NotesBulkBar extends ConsumerWidget {
     final platform = Theme.of(context).platform;
     final isApple =
         platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    final tickedNotes = empty
+        ? const <HmmNote>[]
+        : data.all.where((n) => selection.ids.contains(n.id)).toList();
     final allPinned =
-        !empty &&
-        data.all
-            .where((n) => selection.ids.contains(n.id))
-            .every((n) => data.stateOf(n).isPinned);
+        tickedNotes.isNotEmpty &&
+        tickedNotes.every((n) => data!.stateOf(n).isPinned);
     final theme = Theme.of(context);
 
     final selectAll = isApple
@@ -48,33 +50,49 @@ class NotesBulkBar extends ConsumerWidget {
             child: Text(l.notesSelectAll),
           );
 
-    return Material(
-      color: theme.colorScheme.surface,
-      elevation: 3,
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            HmmIconButton(
-              tooltip: allPinned ? l.notesUnpin : l.notesPin,
-              icon: allPinned ? Icons.push_pin : Icons.push_pin_outlined,
-              onPressed: empty ? null : () => _pin(context, ref),
-            ),
-            HmmIconButton(
-              tooltip: l.notesFlagAction,
-              icon: Icons.flag_outlined,
-              onPressed: empty ? null : () => _flag(context, ref),
-            ),
-            HmmIconButton(
-              tooltip: l.commonDelete,
-              icon: Icons.delete_outline,
-              onPressed: empty ? null : () => _delete(context, ref),
-            ),
-            const Spacer(),
-            selectAll,
-          ],
+    final bar = SafeArea(
+      top: false,
+      child: Row(
+        children: [
+          HmmIconButton(
+            tooltip: allPinned ? l.notesUnpin : l.notesPin,
+            icon: allPinned ? Icons.push_pin : Icons.push_pin_outlined,
+            onPressed: empty ? null : () => _pin(context, ref),
+          ),
+          HmmIconButton(
+            tooltip: l.notesFlagAction,
+            icon: Icons.flag_outlined,
+            onPressed: empty ? null : () => _flag(context, ref),
+          ),
+          HmmIconButton(
+            tooltip: l.commonDelete,
+            icon: Icons.delete_outline,
+            onPressed: empty ? null : () => _delete(context, ref),
+          ),
+          const Spacer(),
+          selectAll,
+        ],
+      ),
+    );
+    if (!isApple) {
+      return Material(
+        color: theme.colorScheme.surface,
+        elevation: 3,
+        child: bar,
+      );
+    }
+    // Cupertino look: system background, hairline on top, no shadow.
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        border: Border(
+          top: BorderSide(
+            color: CupertinoColors.separator.resolveFrom(context),
+            width: 0.5,
+          ),
         ),
       ),
+      child: Material(type: MaterialType.transparency, child: bar),
     );
   }
 
@@ -87,14 +105,16 @@ class NotesBulkBar extends ConsumerWidget {
     ]);
   }
 
-  /// The ticked ids that still exist, in list order.
+  /// The ticked ids that are in the visible results, in list order. A tick
+  /// a search has hidden is never acted on.
   List<int> _ids(WidgetRef ref) {
-    final data = ref.read(notesListStateProvider).value;
+    final results = ref.read(notesResultsProvider).value;
     final ticked = ref.read(notesMultiSelectProvider).ids;
-    if (data == null) return const [];
+    if (results == null) return const [];
     return [
-      for (final n in data.all)
-        if (ticked.contains(n.id)) n.id,
+      for (final g in results.groups)
+        for (final NoteHit h in g.hits)
+          if (ticked.contains(h.note.id)) h.note.id,
     ];
   }
 
@@ -106,9 +126,10 @@ class NotesBulkBar extends ConsumerWidget {
     final multi = ref.read(notesMultiSelectProvider.notifier);
     final ids = _ids(ref);
     if (data == null || ids.isEmpty) return;
+    final idSet = ids.toSet();
     final pinnedById = {
       for (final n in data.all)
-        if (ids.contains(n.id)) n.id: data.stateOf(n).isPinned,
+        if (idSet.contains(n.id)) n.id: data.stateOf(n).isPinned,
     };
     final (pinned, outcome) = await actions.togglePinned(ids, pinnedById);
     if (outcome.failed.isEmpty) {
