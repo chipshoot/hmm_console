@@ -3047,4 +3047,50 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListChipsBody =>
       '搜索框下方的一行可在全部、已置顶、已标记以及你最常用的领域和标签之间切换；它会根据你的选择自动调整。再次点按已选中的条件即可回到全部，点按 ＋ 打开包含所有筛选的侧边栏。';
+
+  @override
+  String notesBulkDeleted(int count) {
+    return '已删除 $count 条笔记';
+  }
+
+  @override
+  String notesBulkDeletedSkipped(int count, int skipped) {
+    return '已删除 $count 条 · 跳过 $skipped 条';
+  }
+
+  @override
+  String notesBulkNothingDeleted(int count) {
+    return '这些笔记需在各自的页面中管理';
+  }
+
+  @override
+  String get notesBulkDeleteSomeFailed => '部分笔记无法删除，它们仍处于选中状态。';
+
+  @override
+  String notesBulkRestored(int count) {
+    return '已恢复 $count 条笔记';
+  }
+
+  @override
+  String get notesBulkRestoreFailed => '无法恢复这些笔记';
+
+  @override
+  String notesBulkPinPartial(int done, int total) {
+    return '已置顶 $done/$total 条笔记';
+  }
+
+  @override
+  String notesBulkUnpinPartial(int done, int total) {
+    return '已取消置顶 $done/$total 条笔记';
+  }
+
+  @override
+  String notesBulkFlagPartial(int done, int total) {
+    return '已加旗标 $done/$total 条笔记';
+  }
+
+  @override
+  String notesBulkUnflagPartial(int done, int total) {
+    return '已移除旗标 $done/$total 条笔记';
+  }
 }

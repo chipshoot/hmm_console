@@ -931,5 +931,15 @@
   "notesMenuTooltip": "筛选和列表",
   "notesChipMoreTooltip": "更多筛选",
   "helpNotesListChipsTitle": "快速筛选",
-  "helpNotesListChipsBody": "搜索框下方的一行可在全部、已置顶、已标记以及你最常用的领域和标签之间切换；它会根据你的选择自动调整。再次点按已选中的条件即可回到全部，点按 ＋ 打开包含所有筛选的侧边栏。"
+  "helpNotesListChipsBody": "搜索框下方的一行可在全部、已置顶、已标记以及你最常用的领域和标签之间切换；它会根据你的选择自动调整。再次点按已选中的条件即可回到全部，点按 ＋ 打开包含所有筛选的侧边栏。",
+  "notesBulkDeleted": "已删除 {count} 条笔记",
+  "notesBulkDeletedSkipped": "已删除 {count} 条 · 跳过 {skipped} 条",
+  "notesBulkNothingDeleted": "这些笔记需在各自的页面中管理",
+  "notesBulkDeleteSomeFailed": "部分笔记无法删除，它们仍处于选中状态。",
+  "notesBulkRestored": "已恢复 {count} 条笔记",
+  "notesBulkRestoreFailed": "无法恢复这些笔记",
+  "notesBulkPinPartial": "已置顶 {done}/{total} 条笔记",
+  "notesBulkUnpinPartial": "已取消置顶 {done}/{total} 条笔记",
+  "notesBulkFlagPartial": "已加旗标 {done}/{total} 条笔记",
+  "notesBulkUnflagPartial": "已移除旗标 {done}/{total} 条笔记"
 }

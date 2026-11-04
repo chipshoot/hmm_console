@@ -65,4 +65,15 @@ void main() {
     expect(s.toJson()['notesRowDensity'], 'rich');
     expect(AppSettings.fromJson(s.toJson()).notesRowDensity, NoteRowDensity.rich);
   });
+
+  test('notesLastFlagColor defaults to 0, round-trips, keeps unknown values',
+      () {
+    expect(AppSettings.defaults.notesLastFlagColor, 0);
+    expect(AppSettings.fromJson({}).notesLastFlagColor, 0);
+    final s = const AppSettings().copyWith(notesLastFlagColor: 4);
+    expect(s.toJson()['notesLastFlagColor'], 4);
+    expect(AppSettings.fromJson(s.toJson()).notesLastFlagColor, 4);
+    expect(AppSettings.fromJson({'notesLastFlagColor': 9}).notesLastFlagColor,
+        9);
+  });
 }

@@ -5683,6 +5683,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The row under the search box switches between All, Pinned, Flagged and the domains and tags you use most; it learns from what you pick. Tap a selected chip again to go back to All, or tap ＋ to open the side panel with every filter.'**
   String get helpNotesListChipsBody;
+
+  /// No description provided for @notesBulkDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 note} other{Deleted {count} notes}}'**
+  String notesBulkDeleted(int count);
+
+  /// No description provided for @notesBulkDeletedSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {count} · {skipped} skipped'**
+  String notesBulkDeletedSkipped(int count, int skipped);
+
+  /// No description provided for @notesBulkNothingDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This note is managed in its own screen} other{These {count} notes are managed in their own screens}}'**
+  String notesBulkNothingDeleted(int count);
+
+  /// No description provided for @notesBulkDeleteSomeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete some notes. They stay selected.'**
+  String get notesBulkDeleteSomeFailed;
+
+  /// No description provided for @notesBulkRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Restored 1 note} other{Restored {count} notes}}'**
+  String notesBulkRestored(int count);
+
+  /// No description provided for @notesBulkRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore the notes'**
+  String get notesBulkRestoreFailed;
+
+  /// No description provided for @notesBulkPinPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned {done} of {total} notes'**
+  String notesBulkPinPartial(int done, int total);
+
+  /// No description provided for @notesBulkUnpinPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpinned {done} of {total} notes'**
+  String notesBulkUnpinPartial(int done, int total);
+
+  /// No description provided for @notesBulkFlagPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Flagged {done} of {total} notes'**
+  String notesBulkFlagPartial(int done, int total);
+
+  /// No description provided for @notesBulkUnflagPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Unflagged {done} of {total} notes'**
+  String notesBulkUnflagPartial(int done, int total);
 }
 
 class _AppLocalizationsDelegate

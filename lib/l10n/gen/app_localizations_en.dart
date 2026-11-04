@@ -3137,4 +3137,69 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListChipsBody =>
       'The row under the search box switches between All, Pinned, Flagged and the domains and tags you use most; it learns from what you pick. Tap a selected chip again to go back to All, or tap ＋ to open the side panel with every filter.';
+
+  @override
+  String notesBulkDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted $count notes',
+      one: 'Deleted 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notesBulkDeletedSkipped(int count, int skipped) {
+    return 'Deleted $count · $skipped skipped';
+  }
+
+  @override
+  String notesBulkNothingDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'These $count notes are managed in their own screens',
+      one: 'This note is managed in its own screen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesBulkDeleteSomeFailed =>
+      'Couldn\'t delete some notes. They stay selected.';
+
+  @override
+  String notesBulkRestored(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restored $count notes',
+      one: 'Restored 1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesBulkRestoreFailed => 'Couldn\'t restore the notes';
+
+  @override
+  String notesBulkPinPartial(int done, int total) {
+    return 'Pinned $done of $total notes';
+  }
+
+  @override
+  String notesBulkUnpinPartial(int done, int total) {
+    return 'Unpinned $done of $total notes';
+  }
+
+  @override
+  String notesBulkFlagPartial(int done, int total) {
+    return 'Flagged $done of $total notes';
+  }
+
+  @override
+  String notesBulkUnflagPartial(int done, int total) {
+    return 'Unflagged $done of $total notes';
+  }
 }

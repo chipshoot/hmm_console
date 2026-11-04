@@ -72,6 +72,8 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       _update(_current.copyWith(notesRecentSearches: v));
   Future<void> setNotesRowDensity(NoteRowDensity v) =>
       _update(_current.copyWith(notesRowDensity: v));
+  Future<void> setNotesLastFlagColor(int v) =>
+      _update(_current.copyWith(notesLastFlagColor: v));
   Future<void> setDashboardIntroCardSeen(bool v) =>
       _update(_current.copyWith(dashboardIntroCardSeen: v));
   Future<void> setOnboardingCompleted(bool v) =>
@@ -94,3 +96,7 @@ final settingsProvider =
 final notesRowDensityProvider = Provider<NoteRowDensity>((ref) =>
     ref.watch(settingsProvider).value?.notesRowDensity ??
     NoteRowDensity.standard);
+
+/// The flag colour last applied from the Notes list (0 = none yet).
+final notesLastFlagColorProvider = Provider<int>((ref) =>
+    ref.watch(settingsProvider).value?.notesLastFlagColor ?? 0);

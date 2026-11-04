@@ -17,6 +17,7 @@ class AppSettings {
     this.launcherRecents = const [],
     this.notesFilterUsage = const {},
     this.notesRowDensity = NoteRowDensity.standard,
+    this.notesLastFlagColor = 0,
     this.notesRecentSearches = const [],
     this.dashboardIntroCardSeen = false,
     this.onboardingCompleted = false,
@@ -38,6 +39,10 @@ class AppSettings {
   final List<String> launcherRecents;
   final Map<String, int> notesFilterUsage;
   final NoteRowDensity notesRowDensity;
+
+  /// The flag colour last applied from the Notes list; 0 until one is used.
+  /// An unknown value is kept (a newer build may have more colours).
+  final int notesLastFlagColor;
 
   /// Per-device recent notes searches, stored as raw JSON maps (core/ must not
   /// import features/; the notes-side notifier converts them).
@@ -84,6 +89,7 @@ class AppSettings {
         (d) => d.name == j['notesRowDensity'],
         orElse: () => NoteRowDensity.standard,
       ),
+      notesLastFlagColor: (j['notesLastFlagColor'] as num?)?.toInt() ?? 0,
       notesRecentSearches: recentSearches,
       dashboardIntroCardSeen: j['dashboardIntroCardSeen'] as bool? ?? false,
       onboardingCompleted: j['onboardingCompleted'] as bool? ?? false,
@@ -105,6 +111,7 @@ class AppSettings {
         'launcherRecents': launcherRecents,
         'notesFilterUsage': notesFilterUsage,
         'notesRowDensity': notesRowDensity.name,
+        'notesLastFlagColor': notesLastFlagColor,
         'notesRecentSearches': notesRecentSearches,
         'dashboardIntroCardSeen': dashboardIntroCardSeen,
         'onboardingCompleted': onboardingCompleted,
@@ -125,6 +132,7 @@ class AppSettings {
     List<String>? launcherRecents,
     Map<String, int>? notesFilterUsage,
     NoteRowDensity? notesRowDensity,
+    int? notesLastFlagColor,
     List<Map<String, Object?>>? notesRecentSearches,
     bool? dashboardIntroCardSeen,
     bool? onboardingCompleted,
@@ -142,6 +150,7 @@ class AppSettings {
         launcherRecents: launcherRecents ?? this.launcherRecents,
         notesFilterUsage: notesFilterUsage ?? this.notesFilterUsage,
         notesRowDensity: notesRowDensity ?? this.notesRowDensity,
+        notesLastFlagColor: notesLastFlagColor ?? this.notesLastFlagColor,
         notesRecentSearches: notesRecentSearches ?? this.notesRecentSearches,
         dashboardIntroCardSeen:
             dashboardIntroCardSeen ?? this.dashboardIntroCardSeen,
