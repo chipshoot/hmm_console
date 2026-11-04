@@ -946,5 +946,18 @@
   "notesBulkPinPartial": "已置顶 {done}/{total} 条笔记",
   "notesBulkUnpinPartial": "已取消置顶 {done}/{total} 条笔记",
   "notesBulkFlagPartial": "已加旗标 {done}/{total} 条笔记",
-  "notesBulkUnflagPartial": "已移除旗标 {done}/{total} 条笔记"
+  "notesBulkUnflagPartial": "已移除旗标 {done}/{total} 条笔记",
+  "notesShareAction": "分享…",
+  "notesShareFrom": "请在{place}中分享",
+  "@notesShareFrom": {"placeholders": {"place": {"type": "String"}}},
+  "notesShareFailed": "无法分享笔记",
+  "notesAttachToAction": "附加到…",
+  "notesAttached": "已附加到“{title}”",
+  "@notesAttached": {"placeholders": {"title": {"type": "String"}}},
+  "notesAttachFailed": "无法附加笔记",
+  "notesAttachUndone": "已撤销附加",
+  "notesAttachUndoFailed": "无法撤销附加",
+  "notesSelectAction": "选择",
+  "helpNotesListLongPressTitle": "长按笔记",
+  "helpNotesListLongPressBody": "打开菜单，可置顶、加旗标、附加到另一条笔记、以文本分享、选择或删除。来自通讯录、卡片或汽车的笔记需在各自的页面中分享和删除。"
 }

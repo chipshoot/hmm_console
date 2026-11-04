@@ -30,6 +30,7 @@ import '../../rendering/note_display.dart';
 import '../../states/note_selection.dart'
     show kNotesWideBreakpoint, selectedNoteIdProvider;
 import '../../states/notes_list_state.dart';
+import '../../states/notes_multi_select.dart';
 import '../../states/notes_results_provider.dart';
 import '../../states/recent_searches.dart';
 import '../../states/saved_searches_provider.dart';
@@ -38,6 +39,7 @@ import '../widgets/note_chip_bar.dart';
 import '../widgets/note_flag_sheet.dart' show noteFlagColorLabel;
 import '../widgets/note_search_field.dart';
 import '../widgets/notes_sidebar.dart';
+import '../widgets/note_actions_menu.dart';
 import '../widgets/note_row.dart';
 import '../widgets/note_swipe_actions.dart';
 import '../widgets/saved_search_dialogs.dart';
@@ -618,6 +620,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       final catalogName = note.catalogId == null
           ? null
           : data.catalogsById[note.catalogId]?.name;
+      final state = data.stateOf(note);
+      final isIos = Theme.of(context).platform == TargetPlatform.iOS;
+      void select() =>
+          ref.read(notesMultiSelectProvider.notifier).enter(note.id);
       final rowWidget = NoteRow(
         hit: hit,
         density: density,
@@ -629,14 +635,34 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         highlightWords: highlightWords,
         now: now,
         onTap: () => open(note),
+        // iOS opens its context menu instead (below).
+        onLongPress: isIos
+            ? null
+            : () => showNoteActionsSheet(
+                context,
+                ref,
+                note: note,
+                state: state,
+                catalogName: catalogName,
+                onSelect: select,
+              ),
       );
-      return NoteSwipeActions(
+      final swipeRow = NoteSwipeActions(
         key: ValueKey(note.id),
         note: note,
-        state: data.stateOf(note),
+        state: state,
         catalogName: catalogName,
         enabled: true,
         child: rowWidget,
+      );
+      if (!isIos) return swipeRow;
+      return NoteContextMenu(
+        note: note,
+        state: state,
+        catalogName: catalogName,
+        onSelect: select,
+        preview: rowWidget,
+        child: swipeRow,
       );
     }
 

@@ -3109,4 +3109,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String notesBulkUnflagPartial(int done, int total) {
     return '已移除旗标 $done/$total 条笔记';
   }
+
+  @override
+  String get notesShareAction => '分享…';
+
+  @override
+  String notesShareFrom(String place) {
+    return '请在$place中分享';
+  }
+
+  @override
+  String get notesShareFailed => '无法分享笔记';
+
+  @override
+  String get notesAttachToAction => '附加到…';
+
+  @override
+  String notesAttached(String title) {
+    return '已附加到“$title”';
+  }
+
+  @override
+  String get notesAttachFailed => '无法附加笔记';
+
+  @override
+  String get notesAttachUndone => '已撤销附加';
+
+  @override
+  String get notesAttachUndoFailed => '无法撤销附加';
+
+  @override
+  String get notesSelectAction => '选择';
+
+  @override
+  String get helpNotesListLongPressTitle => '长按笔记';
+
+  @override
+  String get helpNotesListLongPressBody =>
+      '打开菜单，可置顶、加旗标、附加到另一条笔记、以文本分享、选择或删除。来自通讯录、卡片或汽车的笔记需在各自的页面中分享和删除。';
 }

@@ -5773,6 +5773,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unflagged {done} of {total} notes'**
   String notesBulkUnflagPartial(int done, int total);
+
+  /// No description provided for @notesShareAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Share…'**
+  String get notesShareAction;
+
+  /// No description provided for @notesShareFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Share from {place}'**
+  String notesShareFrom(String place);
+
+  /// No description provided for @notesShareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share the note'**
+  String get notesShareFailed;
+
+  /// No description provided for @notesAttachToAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach to…'**
+  String get notesAttachToAction;
+
+  /// No description provided for @notesAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached to \"{title}\"'**
+  String notesAttached(String title);
+
+  /// No description provided for @notesAttachFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t attach the note'**
+  String get notesAttachFailed;
+
+  /// No description provided for @notesAttachUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment undone'**
+  String get notesAttachUndone;
+
+  /// No description provided for @notesAttachUndoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo the attachment'**
+  String get notesAttachUndoFailed;
+
+  /// No description provided for @notesSelectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get notesSelectAction;
+
+  /// No description provided for @helpNotesListLongPressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch and hold a note'**
+  String get helpNotesListLongPressTitle;
+
+  /// No description provided for @helpNotesListLongPressBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens a menu to pin, flag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.'**
+  String get helpNotesListLongPressBody;
 }
 
 class _AppLocalizationsDelegate

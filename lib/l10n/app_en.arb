@@ -1524,5 +1524,18 @@
   "notesBulkFlagPartial": "Flagged {done} of {total} notes",
   "@notesBulkFlagPartial": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
   "notesBulkUnflagPartial": "Unflagged {done} of {total} notes",
-  "@notesBulkUnflagPartial": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}}
+  "@notesBulkUnflagPartial": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "notesShareAction": "Share…",
+  "notesShareFrom": "Share from {place}",
+  "@notesShareFrom": {"placeholders": {"place": {"type": "String"}}},
+  "notesShareFailed": "Couldn't share the note",
+  "notesAttachToAction": "Attach to…",
+  "notesAttached": "Attached to \"{title}\"",
+  "@notesAttached": {"placeholders": {"title": {"type": "String"}}},
+  "notesAttachFailed": "Couldn't attach the note",
+  "notesAttachUndone": "Attachment undone",
+  "notesAttachUndoFailed": "Couldn't undo the attachment",
+  "notesSelectAction": "Select",
+  "helpNotesListLongPressTitle": "Touch and hold a note",
+  "helpNotesListLongPressBody": "Opens a menu to pin, flag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens."
 }

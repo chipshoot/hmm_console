@@ -33,6 +33,7 @@ class NoteRow extends ConsumerWidget {
     this.highlightWords = const [],
     required this.now,
     this.onTap,
+    this.onLongPress,
   });
 
   final NoteHit hit;
@@ -48,6 +49,9 @@ class NoteRow extends ConsumerWidget {
   final List<String> highlightWords;
   final DateTime now;
   final VoidCallback? onTap;
+
+  /// Opens the note's action menu (Android; iOS uses a context menu).
+  final VoidCallback? onLongPress;
 
   static const _thumb = 56.0;
 
@@ -118,6 +122,7 @@ class NoteRow extends ConsumerWidget {
       onTap: onTap,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,

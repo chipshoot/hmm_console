@@ -3218,4 +3218,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String notesBulkUnflagPartial(int done, int total) {
     return 'Unflagged $done of $total notes';
   }
+
+  @override
+  String get notesShareAction => 'Share…';
+
+  @override
+  String notesShareFrom(String place) {
+    return 'Share from $place';
+  }
+
+  @override
+  String get notesShareFailed => 'Couldn\'t share the note';
+
+  @override
+  String get notesAttachToAction => 'Attach to…';
+
+  @override
+  String notesAttached(String title) {
+    return 'Attached to \"$title\"';
+  }
+
+  @override
+  String get notesAttachFailed => 'Couldn\'t attach the note';
+
+  @override
+  String get notesAttachUndone => 'Attachment undone';
+
+  @override
+  String get notesAttachUndoFailed => 'Couldn\'t undo the attachment';
+
+  @override
+  String get notesSelectAction => 'Select';
+
+  @override
+  String get helpNotesListLongPressTitle => 'Touch and hold a note';
+
+  @override
+  String get helpNotesListLongPressBody =>
+      'Opens a menu to pin, flag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.';
 }

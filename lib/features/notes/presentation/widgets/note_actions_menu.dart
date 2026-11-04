@@ -1,0 +1,317 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/help/undoable_action.dart';
+import '../../../../core/notes/note_flag.dart';
+import '../../../../core/notes/note_state.dart';
+import '../../../../core/settings/settings_controller.dart';
+import '../../../../l10n/gen/app_localizations.dart';
+import '../../data/models/hmm_note.dart';
+import '../../rendering/note_display.dart';
+import '../../states/mutate_note_state.dart';
+import '../../states/note_delete_policy.dart';
+import '../../states/note_sharer.dart';
+import '../catalog_labels.dart';
+import 'note_flag_sheet.dart';
+import 'note_link_picker.dart';
+import 'note_swipe_actions.dart' show deleteNoteWithUndo;
+
+enum NoteMenuAction { pin, flag, attach, share, select, delete, manage }
+
+class NoteMenuItem {
+  const NoteMenuItem(this.action, {this.enabled = true});
+
+  final NoteMenuAction action;
+  final bool enabled;
+}
+
+/// The menu items for a note, in the iOS / context-menu order (labels are
+/// resolved by the widget). An entity note (Contacts, Cheatsheets,
+/// Automobile ...) is shared and deleted from its own screen, so Attach is
+/// hidden, Share is disabled and Manage replaces Delete.
+List<NoteMenuItem> noteMenuItems({required bool ordinary}) => ordinary
+    ? const [
+        NoteMenuItem(NoteMenuAction.pin),
+        NoteMenuItem(NoteMenuAction.flag),
+        NoteMenuItem(NoteMenuAction.attach),
+        NoteMenuItem(NoteMenuAction.share),
+        NoteMenuItem(NoteMenuAction.select),
+        NoteMenuItem(NoteMenuAction.delete),
+      ]
+    : const [
+        NoteMenuItem(NoteMenuAction.pin),
+        NoteMenuItem(NoteMenuAction.flag),
+        NoteMenuItem(NoteMenuAction.share, enabled: false),
+        NoteMenuItem(NoteMenuAction.select),
+        NoteMenuItem(NoteMenuAction.manage, enabled: false),
+      ];
+
+String _placeLabel(String? catalogName, AppLocalizations l) => managePlaceLabel(
+  managePlaceFor(catalogName) ?? NoteManagePlace.ownScreen,
+  l,
+);
+
+String _labelOf(
+  NoteMenuItem item,
+  NoteState state,
+  String? catalogName,
+  AppLocalizations l,
+) => switch (item.action) {
+  NoteMenuAction.pin => state.isPinned ? l.notesUnpin : l.notesPin,
+  NoteMenuAction.flag => l.notesFlagAction,
+  NoteMenuAction.attach => l.notesAttachToAction,
+  NoteMenuAction.share =>
+    item.enabled
+        ? l.notesShareAction
+        : l.notesShareFrom(_placeLabel(catalogName, l)),
+  NoteMenuAction.select => l.notesSelectAction,
+  NoteMenuAction.delete => l.commonDelete,
+  NoteMenuAction.manage => l.notesManageIn(_placeLabel(catalogName, l)),
+};
+
+IconData _iconOf(NoteMenuItem item, NoteState state) => switch (item.action) {
+  NoteMenuAction.pin =>
+    state.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+  NoteMenuAction.flag => Icons.flag_outlined,
+  NoteMenuAction.attach => Icons.subdirectory_arrow_right,
+  NoteMenuAction.share => Icons.ios_share,
+  NoteMenuAction.select => Icons.check_circle_outline,
+  NoteMenuAction.delete => Icons.delete_outline,
+  NoteMenuAction.manage => Icons.open_in_new,
+};
+
+/// Runs one menu action. Everything that is read from [ref] is read before
+/// the first await; [context] is only used for the sheets and snackbars that
+/// the (modal, hence still mounted) row owns.
+Future<void> _runAction(
+  BuildContext context,
+  WidgetRef ref,
+  NoteMenuAction action, {
+  required HmmNote note,
+  required NoteState state,
+  required String? catalogName,
+  required VoidCallback onSelect,
+}) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final mutate = ref.read(mutateNoteProvider);
+  switch (action) {
+    case NoteMenuAction.pin:
+      try {
+        await mutate.setPinned(note.id, !state.isPinned);
+      } catch (e) {
+        debugPrint('NoteActionsMenu: pin failed (${e.runtimeType})');
+        messenger.showSnackBar(SnackBar(content: Text(l.notesPinFailed)));
+      }
+    case NoteMenuAction.flag:
+      final settings = ref.read(settingsProvider.notifier);
+      final choice = await showNoteFlagSheet(
+        context,
+        current: NoteFlagColor.fromStored(state.flagColor),
+      );
+      if (choice == null) return; // dismissed: change nothing
+      try {
+        await mutate.setFlagColor(note.id, choice.color?.stored);
+        // Clearing a flag leaves the remembered colour alone.
+        if (choice.color != null) {
+          await settings.setNotesLastFlagColor(choice.color!.stored);
+        }
+      } catch (e) {
+        debugPrint('NoteActionsMenu: flag failed (${e.runtimeType})');
+        messenger.showSnackBar(SnackBar(content: Text(l.notesFlagFailed)));
+      }
+    case NoteMenuAction.attach:
+      final registry = ref.read(noteDisplayRegistryProvider);
+      final previousParent = note.parentNoteId;
+      final picked = await showNoteLinkPicker(
+        context,
+        ref,
+        excludeNoteId: note.id,
+      );
+      if (picked == null || !context.mounted) return;
+      final title = registry.title(picked, null, l);
+      await showUndoableAction(
+        context,
+        busyKey: ('attach', note.id),
+        run: () async {
+          await mutate.setParent(note.id, picked.id);
+        },
+        undo: () async {
+          await mutate.setParent(note.id, previousParent);
+        },
+        done: l.notesAttached(title),
+        failed: l.notesAttachFailed,
+        undone: l.notesAttachUndone,
+        undoFailed: l.notesAttachUndoFailed,
+      );
+    case NoteMenuAction.share:
+      try {
+        await ref.read(noteSharerProvider).shareText(shareTextFor(note));
+      } catch (e) {
+        debugPrint('NoteActionsMenu: share failed (${e.runtimeType})');
+        messenger.showSnackBar(SnackBar(content: Text(l.notesShareFailed)));
+      }
+    case NoteMenuAction.select:
+      onSelect();
+    case NoteMenuAction.delete:
+      await deleteNoteWithUndo(context, ref, note.id);
+    case NoteMenuAction.manage:
+      final opened = ref
+          .read(noteDisplayRegistryProvider)
+          .open(context, note, catalogName);
+      if (!opened) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.notesManageIn(_placeLabel(catalogName, l)))),
+        );
+      }
+  }
+}
+
+/// The Android / non-iOS long-press menu: a bottom sheet with Select first,
+/// then the items of [noteMenuItems].
+Future<void> showNoteActionsSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required HmmNote note,
+  required NoteState state,
+  required String? catalogName,
+  required VoidCallback onSelect,
+}) {
+  final l = AppLocalizations.of(context);
+  final items = noteMenuItems(ordinary: canDeleteFromNotes(note, catalogName));
+  final select = items.firstWhere((i) => i.action == NoteMenuAction.select);
+  final ordered = [select, ...items.where((i) => i != select)];
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheet) => SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final item in ordered)
+              ListTile(
+                leading: Icon(_iconOf(item, state)),
+                title: Text(_labelOf(item, state, catalogName, l)),
+                enabled: item.enabled,
+                onTap: item.enabled
+                    ? () {
+                        Navigator.of(sheet).pop();
+                        unawaited(
+                          _runAction(
+                            context,
+                            ref,
+                            item.action,
+                            note: note,
+                            state: state,
+                            catalogName: catalogName,
+                            onSelect: onSelect,
+                          ),
+                        );
+                      }
+                    : null,
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// The iOS long-press menu: a [CupertinoContextMenu] around [child] (the
+/// swipe-wrapped row, so swipes keep working). While the menu is open the
+/// preview is [preview], the bare row at its own width.
+class NoteContextMenu extends ConsumerWidget {
+  const NoteContextMenu({
+    super.key,
+    required this.note,
+    required this.state,
+    required this.catalogName,
+    required this.onSelect,
+    required this.preview,
+    required this.child,
+  });
+
+  final HmmNote note;
+  final NoteState state;
+  final String? catalogName;
+  final VoidCallback onSelect;
+  final Widget preview;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final items = noteMenuItems(
+      ordinary: canDeleteFromNotes(note, catalogName),
+    );
+    return LayoutBuilder(
+      builder: (_, constraints) => CupertinoContextMenu.builder(
+        actions: [
+          for (final item in items)
+            CupertinoContextMenuAction(
+              isDestructiveAction: item.action == NoteMenuAction.delete,
+              trailingIcon: _cupertinoIcon(item.action, state),
+              onPressed: item.enabled
+                  ? () {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      unawaited(
+                        _runAction(
+                          context,
+                          ref,
+                          item.action,
+                          note: note,
+                          state: state,
+                          catalogName: catalogName,
+                          onSelect: onSelect,
+                        ),
+                      );
+                    }
+                  : null,
+              child: Text(_labelOf(item, state, catalogName, l)),
+            ),
+        ],
+        builder: (builderContext, _) {
+          // In the list (under the Scaffold's Material) show the swipe-wrapped
+          // row. The overlay (decoy and preview) has no Material above it, so
+          // there it shows the bare row at the list's width, with a Material
+          // of its own for the InkWell.
+          if (Material.maybeOf(builderContext) != null) return child;
+          return Material(
+            type: MaterialType.transparency,
+            // The overlay squeezes the preview into an animated box; an
+            // OverflowBox keeps the row at its own width and height so it is
+            // scaled, never re-laid-out into an overflow.
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.topLeft,
+                minWidth: constraints.maxWidth,
+                maxWidth: constraints.maxWidth,
+                minHeight: 0,
+                maxHeight: double.infinity,
+                child: ColoredBox(
+                  color: Theme.of(builderContext).colorScheme.surface,
+                  child: preview,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+IconData _cupertinoIcon(NoteMenuAction a, NoteState state) => switch (a) {
+  NoteMenuAction.pin =>
+    state.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
+  NoteMenuAction.flag => CupertinoIcons.flag,
+  NoteMenuAction.attach => CupertinoIcons.link,
+  NoteMenuAction.share => CupertinoIcons.share,
+  NoteMenuAction.select => CupertinoIcons.checkmark_circle,
+  NoteMenuAction.delete => CupertinoIcons.delete,
+  NoteMenuAction.manage => CupertinoIcons.arrow_up_right_square,
+};
