@@ -621,7 +621,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           ? null
           : data.catalogsById[note.catalogId]?.name;
       final state = data.stateOf(note);
-      final isIos = Theme.of(context).platform == TargetPlatform.iOS;
+      final platform = Theme.of(context).platform;
+      // Cupertino context menu on iOS and macOS, like the other sheets.
+      final isApple =
+          platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
       void select() =>
           ref.read(notesMultiSelectProvider.notifier).enter(note.id);
       final rowWidget = NoteRow(
@@ -635,8 +638,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         highlightWords: highlightWords,
         now: now,
         onTap: () => open(note),
-        // iOS opens its context menu instead (below).
-        onLongPress: isIos
+        // iOS/macOS open their context menu instead (below).
+        onLongPress: isApple
             ? null
             : () => showNoteActionsSheet(
                 context,
@@ -655,8 +658,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         enabled: true,
         child: rowWidget,
       );
-      if (!isIos) return swipeRow;
+      if (!isApple) return swipeRow;
       return NoteContextMenu(
+        key: ValueKey(note.id),
         note: note,
         state: state,
         catalogName: catalogName,

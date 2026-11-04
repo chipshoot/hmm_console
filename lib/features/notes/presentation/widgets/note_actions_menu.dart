@@ -115,13 +115,19 @@ Future<void> _runAction(
       if (choice == null) return; // dismissed: change nothing
       try {
         await mutate.setFlagColor(note.id, choice.color?.stored);
-        // Clearing a flag leaves the remembered colour alone.
-        if (choice.color != null) {
-          await settings.setNotesLastFlagColor(choice.color!.stored);
-        }
       } catch (e) {
         debugPrint('NoteActionsMenu: flag failed (${e.runtimeType})');
         messenger.showSnackBar(SnackBar(content: Text(l.notesFlagFailed)));
+        return;
+      }
+      // Clearing a flag leaves the remembered colour alone. The flag itself
+      // is applied by now, so a failure here is logged, not shown.
+      if (choice.color != null) {
+        try {
+          await settings.setNotesLastFlagColor(choice.color!.stored);
+        } catch (e) {
+          debugPrint('NoteActionsMenu: last colour failed (${e.runtimeType})');
+        }
       }
     case NoteMenuAction.attach:
       final registry = ref.read(noteDisplayRegistryProvider);
@@ -275,9 +281,10 @@ class NoteContextMenu extends ConsumerWidget {
             ),
         ],
         builder: (builderContext, _) {
-          // In the list (under the Scaffold's Material) show the swipe-wrapped
-          // row. The overlay (decoy and preview) has no Material above it, so
-          // there it shows the bare row at the list's width, with a Material
+          // Assumption: the list sits under the Scaffold's Material and the
+          // context-menu overlay does not, so a Material ancestor means "in
+          // the list": show the swipe-wrapped row. In the overlay (decoy and
+          // preview) show the bare row at the list's width, with a Material
           // of its own for the InkWell.
           if (Material.maybeOf(builderContext) != null) return child;
           return Material(

@@ -20,6 +20,16 @@ void main() {
     });
   }
 
+  test('notes list help explains the long-press menu', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final entry = helpFor(
+      HelpId.notesList,
+      l,
+    ).entries.singleWhere((e) => e.icon == Icons.touch_app);
+    expect(entry.title, 'Touch and hold a note');
+    expect(entry.body, contains('Opens a menu'));
+  });
+
   test('help shows the icons the hub row actually uses', () {
     final l = lookupAppLocalizations(const Locale('en'));
     final icons = helpFor(HelpId.automobileHub, l).entries.map((e) => e.icon);
