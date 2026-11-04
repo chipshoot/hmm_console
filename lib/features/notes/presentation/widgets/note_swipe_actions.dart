@@ -12,14 +12,11 @@ import '../../states/mutate_note_state.dart';
 import '../../states/note_delete_policy.dart';
 import '../../states/note_selection.dart';
 import '../catalog_labels.dart';
+import 'ios_edge_swipe_guard.dart';
 
 /// Rows of one list share this tag, so opening one swipe pane closes the
 /// previous one.
 const _kListGroup = 'notesList';
-
-/// On iOS a drag that starts this close to the left edge belongs to the
-/// route's back swipe, not to the start (Pin) pane.
-const _kIosBackSwipeEdge = 20.0;
 
 /// Delete = move to Recently Deleted, with Undo (restore). Shared by swipe,
 /// long-press and the note detail screen. When the deleted note is the one
@@ -84,8 +81,6 @@ class NoteSwipeActions extends ConsumerStatefulWidget {
 }
 
 class _NoteSwipeActionsState extends ConsumerState<NoteSwipeActions> {
-  bool _edgeDown = false;
-
   Future<void> _togglePin(BuildContext context) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -135,12 +130,11 @@ class _NoteSwipeActionsState extends ConsumerState<NoteSwipeActions> {
     final pinned = widget.state.isPinned;
     final flagged = widget.state.flagColor != null;
     final deletable = canDeleteFromNotes(widget.note, widget.catalogName);
-    final isIos = Theme.of(context).platform == TargetPlatform.iOS;
 
-    Widget slidable = Slidable(
+    Widget slidable(bool enabled) => Slidable(
       key: ValueKey(widget.note.id),
       groupTag: _kListGroup,
-      enabled: !_edgeDown,
+      enabled: enabled,
       startActionPane: ActionPane(
         motion: const DrawerMotion(),
         extentRatio: 0.25,
@@ -196,21 +190,6 @@ class _NoteSwipeActionsState extends ConsumerState<NoteSwipeActions> {
       child: widget.child,
     );
 
-    if (isIos) {
-      slidable = Listener(
-        onPointerDown: (e) {
-          final atEdge = e.position.dx < _kIosBackSwipeEdge;
-          if (atEdge != _edgeDown) setState(() => _edgeDown = atEdge);
-        },
-        onPointerUp: (_) => _resetEdge(),
-        onPointerCancel: (_) => _resetEdge(),
-        child: slidable,
-      );
-    }
-    return slidable;
-  }
-
-  void _resetEdge() {
-    if (_edgeDown) setState(() => _edgeDown = false);
+    return IosEdgeSwipeGuard(builder: slidable);
   }
 }

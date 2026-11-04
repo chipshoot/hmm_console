@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/local/note_purge_service.dart';
@@ -19,19 +20,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _Purge implements NotePurgeService {
   final calls = <int>[];
   final outcomes = <int, PurgeOutcome>{};
+  Completer<void>? gate;
   @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
   @override
   Future<PurgeOutcome> purgeNow(int id) async {
     calls.add(id);
+    await gate?.future;
     return outcomes[id] ?? PurgeOutcome.purged;
   }
 }
 
 class _Mutate implements MutateNote {
   final restored = <int>[];
+  final deleted = <int>[];
   @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+  @override
+  Future<void> delete(int id) async {
+    deleted.add(id);
+  }
+
   @override
   Future<HmmNote> restore(int id) async {
     restored.add(id);
@@ -55,12 +64,15 @@ Future<({_Purge purge, _Mutate mutate, ProviderContainer c})> _pump(
   WidgetTester t,
   List<DeletedNoteItem> items, {
   TargetPlatform platform = TargetPlatform.android,
+  Stream<List<DeletedNoteItem>>? stream,
 }) async {
   final purge = _Purge();
   final mutate = _Mutate();
   final c = ProviderContainer(
     overrides: [
-      recentlyDeletedProvider.overrideWith((ref) => Stream.value(items)),
+      recentlyDeletedProvider.overrideWith(
+        (ref) => stream ?? Stream.value(items),
+      ),
       notePurgeServiceProvider.overrideWithValue(purge),
       mutateNoteProvider.overrideWithValue(mutate),
     ],
@@ -119,6 +131,10 @@ void main() {
     await t.pumpAndSettle();
     expect(r.mutate.restored, [1]);
     expect(find.text('Note restored'), findsOneWidget);
+    await t.tap(find.text('Undo'));
+    await t.pumpAndSettle();
+    expect(r.mutate.deleted, [1]);
+    expect(find.text('Note deleted'), findsOneWidget);
   });
 
   testWidgets('Delete Now then Cancel does nothing', (t) async {
@@ -227,6 +243,65 @@ void main() {
       isNull,
     );
   });
+
+  testWidgets('a stream error shows the error state, not the empty one', (
+    t,
+  ) async {
+    await _pump(t, const [], stream: Stream.error(StateError('boom')));
+    expect(find.text("Couldn't load your notes"), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('No recently deleted notes'), findsNothing);
+    expect(
+      t.widget<TextButton>(find.widgetWithText(TextButton, 'Empty…')).onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('Empty… is disabled while the purge loop runs', (t) async {
+    final r = await _pump(t, _items(2));
+    r.purge.gate = Completer<void>();
+    await t.tap(find.text('Empty…'));
+    await t.pumpAndSettle();
+    await t.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Delete Now'),
+      ),
+    );
+    await t.pump();
+    await t.pump();
+    expect(
+      t.widget<TextButton>(find.widgetWithText(TextButton, 'Empty…')).onPressed,
+      isNull,
+    );
+    r.purge.gate!.complete();
+    await t.pumpAndSettle();
+    expect(
+      t.widget<TextButton>(find.widgetWithText(TextButton, 'Empty…')).onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets(
+    'iOS: the Slidable is disabled only while a touch is at the edge',
+    (t) async {
+      await _pump(t, _items(1), platform: TargetPlatform.iOS);
+      final y = t.getCenter(find.text('Note 1')).dy;
+      bool enabled() => t.widget<Slidable>(find.byType(Slidable)).enabled;
+      expect(enabled(), isTrue);
+      final edge = await t.startGesture(Offset(5, y));
+      await t.pump();
+      expect(enabled(), isFalse);
+      await edge.up();
+      await t.pump();
+      expect(enabled(), isTrue);
+      final mid = await t.startGesture(Offset(100, y));
+      await t.pump();
+      expect(enabled(), isTrue);
+      await mid.up();
+      await t.pumpAndSettle();
+    },
+  );
 
   testWidgets('tapping a row opens the note', (t) async {
     await _pump(t, _items(1));

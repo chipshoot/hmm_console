@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
@@ -17,6 +19,15 @@ class _Notes implements IHmmNoteRepository {
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
   @override
   Stream<List<HmmNote>> watchDeletedNotes() => Stream.value(notes);
+}
+
+class _StreamNotes implements IHmmNoteRepository {
+  _StreamNotes(this.s);
+  final Stream<List<HmmNote>> s;
+  @override
+  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+  @override
+  Stream<List<HmmNote>> watchDeletedNotes() => s;
 }
 
 class _Catalogs implements INoteCatalogRepository {
@@ -121,6 +132,37 @@ void main() {
       expect(items.map((i) => i.note.id), [2, 3, 1]);
     });
   });
+
+  test(
+    'the clock is read per emission, so a note that ages out drops',
+    () async {
+      var now = _now;
+      final ctrl = StreamController<List<HmmNote>>();
+      final c = ProviderContainer(
+        overrides: [
+          hmmNoteRepositoryProvider.overrideWithValue(
+            _StreamNotes(ctrl.stream),
+          ),
+          noteCatalogRepositoryProvider.overrideWithValue(_Catalogs()),
+          recentlyDeletedNowProvider.overrideWithValue(() => now),
+        ],
+      );
+      addTearDown(c.dispose);
+      addTearDown(ctrl.close);
+      final seen = <int>[];
+      c.listen(recentlyDeletedProvider, (_, n) {
+        if (n.hasValue) seen.add(n.value!.length);
+      });
+      final notes = [_note(1, 10, const Duration(days: 29))];
+      await Future<void>.delayed(Duration.zero);
+      ctrl.add(notes);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      now = _now.add(const Duration(days: 2));
+      ctrl.add(notes);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(seen, [1, 0]);
+    },
+  );
 
   test('deletedNoteIdsProvider holds every deleted id, any catalog', () async {
     final c = _container([

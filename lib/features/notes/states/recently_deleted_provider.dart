@@ -38,12 +38,14 @@ final _deletedCatalogsProvider = StreamProvider.autoDispose<List<NoteCatalog>>((
 /// notes (contacts, gas logs, ...) are restored by their own feature.
 final recentlyDeletedProvider =
     StreamProvider.autoDispose<List<DeletedNoteItem>>((ref) async* {
-      final now = ref.read(recentlyDeletedNowProvider)();
+      final clock = ref.read(recentlyDeletedNowProvider);
       final catalogs = await ref.watch(_deletedCatalogsProvider.future);
       final nameById = {for (final c in catalogs) c.id: c.name};
       yield* ref.watch(hmmNoteRepositoryProvider).watchDeletedNotes().map((
         notes,
       ) {
+        // Per emission, so a note that ages out is dropped on the next one.
+        final now = clock();
         final items = <DeletedNoteItem>[];
         for (final n in notes) {
           final at = n.deletedAt;

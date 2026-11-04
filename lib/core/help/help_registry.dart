@@ -307,11 +307,6 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
     summary: l.helpNotesListSummary,
     entries: [
       HelpEntry(
-        icon: Icons.delete_outline,
-        title: l.helpNotesListRecentlyDeletedTitle,
-        body: l.helpNotesListRecentlyDeletedBody,
-      ),
-      HelpEntry(
         icon: Icons.tune,
         title: l.helpNotesListViewTitle,
         body: l.helpNotesListViewBody,
@@ -370,6 +365,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.touch_app,
         title: l.helpNotesListLongPressTitle,
         body: l.helpNotesListLongPressBody,
+      ),
+      HelpEntry(
+        icon: Icons.delete_outline,
+        title: l.helpNotesListRecentlyDeletedTitle,
+        body: l.helpNotesListRecentlyDeletedBody,
       ),
     ],
   ),
