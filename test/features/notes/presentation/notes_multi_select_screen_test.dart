@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,11 +57,15 @@ class _FakeBulk implements NoteBulkActions {
     return _split(ids);
   }
 
+  /// When set, delete waits for it (to hold a delete in flight).
+  Completer<void>? deleteGate;
+
   @override
   Future<BulkDeleteOutcome> delete(
     List<int> ids,
     bool Function(int id) isOrdinary,
   ) async {
+    await deleteGate?.future;
     calls.add('delete(${ids.join(',')})');
     final eligible = ids.where(isOrdinary).toList();
     final o = _split(eligible);
@@ -358,6 +364,51 @@ void main() {
     expect(bulk.calls.last, 'restore(3,2,1)');
     expect(find.text('Restored 3 notes'), findsOneWidget);
     expect(_sel(t).ids, {4, 5});
+  });
+
+  testWidgets('a double-tapped bulk Delete runs one delete', (t) async {
+    final bulk = _FakeBulk()..deleteGate = Completer<void>();
+    await _boot(t, _app(bulk));
+    _enter(t, 1);
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('Delete'));
+    await t.pump();
+    await t.tap(find.byTooltip('Delete'));
+    await t.pump();
+    bulk.deleteGate!.complete();
+    await t.pumpAndSettle();
+    expect(bulk.calls, ['delete(1)']);
+  });
+
+  testWidgets('Android Back ends selection and stays on Notes', (t) async {
+    await _boot(t, _app(_FakeBulk()));
+    _enter(t, 1);
+    await t.pumpAndSettle();
+    expect(_sel(t).active, isTrue);
+
+    await t.binding.handlePopRoute();
+    await t.pumpAndSettle();
+
+    expect(_sel(t).active, isFalse);
+    expect(find.byType(NotesListScreen), findsOneWidget);
+  });
+
+  testWidgets('leaving Notes drops the selection', (t) async {
+    await _boot(t, _app(_FakeBulk()));
+    final c = _c(t);
+    _enter(t, 1);
+    await t.pumpAndSettle();
+    expect(c.read(notesMultiSelectProvider).active, isTrue);
+
+    unawaited(
+      Navigator.of(t.element(find.byType(NotesListScreen))).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const Text('elsewhere')),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('elsewhere'), findsOneWidget);
+
+    expect(c.read(notesMultiSelectProvider).active, isFalse);
   });
 
   testWidgets('bulk delete of ordinary notes exits selection', (t) async {

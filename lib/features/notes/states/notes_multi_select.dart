@@ -20,7 +20,12 @@ class NotesMultiSelectNotifier extends Notifier<NotesMultiSelect> {
   );
 
   /// Turn the mode off and forget the ticks.
-  void exit() => state = const NotesMultiSelect();
+  void exit() {
+    // A deferred exit (the Notes screen leaving) can land after the whole
+    // scope is gone.
+    if (!ref.mounted) return;
+    state = const NotesMultiSelect();
+  }
 
   void toggle(int id) {
     final next = {...state.ids};

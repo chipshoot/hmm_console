@@ -18,6 +18,7 @@ class AppScaffold extends StatelessWidget {
     this.drawer,
     this.onRefresh,
     this.bottomBar,
+    this.rekeyNavBarOnTitleChange = false,
   });
 
   final String title;
@@ -39,6 +40,12 @@ class AppScaffold extends StatelessWidget {
   /// caller wraps it in a SafeArea.
   final Widget? bottomBar;
 
+  /// Re-creates the iOS nav bar when [title] changes. The bar keeps showing
+  /// its first title when only the text changes (e.g. "3 selected"), but a
+  /// re-key resets its scroll state, so only screens whose title changes in
+  /// place opt in.
+  final bool rekeyNavBarOnTitleChange;
+
   bool _isApple(TargetPlatform p) =>
       p == TargetPlatform.iOS || p == TargetPlatform.macOS;
 
@@ -49,9 +56,7 @@ class AppScaffold extends StatelessWidget {
 
     final Widget navBar = _isApple(platform)
         ? CupertinoSliverNavigationBar(
-            // Keyed by the title: the bar keeps showing its first title when
-            // only the text changes (e.g. "3 selected").
-            key: ValueKey(title),
+            key: rekeyNavBarOnTitleChange ? ValueKey(title) : null,
             largeTitle: Text(title),
             leading: leading,
             trailing: actions == null

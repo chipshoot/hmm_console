@@ -2737,7 +2737,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNoteDetailDeleteBody =>
-      '删除笔记。点按提示中的“撤销”即可立即恢复。已删除的笔记会在 30 天后永久移除。';
+      '将笔记移到“最近删除”。点按消息中的“撤销”可立即恢复，也可在 30 天内从“最近删除”中恢复。';
+
+  @override
+  String get helpNoteDetailRestoreTitle => '恢复';
+
+  @override
+  String get helpNoteDetailRestoreBody => '已移到“最近删除”的笔记会显示横幅。点按“恢复”即可将其放回笔记中。';
 
   @override
   String get helpNoteDetailManageTitle => '在其他位置管理';

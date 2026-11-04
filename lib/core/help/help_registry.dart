@@ -275,6 +275,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         body: l.helpNoteDetailDeleteBody,
       ),
       HelpEntry(
+        icon: Icons.restore,
+        title: l.helpNoteDetailRestoreTitle,
+        body: l.helpNoteDetailRestoreBody,
+      ),
+      HelpEntry(
         icon: Icons.open_in_new,
         title: l.helpNoteDetailManageTitle,
         body: l.helpNoteDetailManageBody,

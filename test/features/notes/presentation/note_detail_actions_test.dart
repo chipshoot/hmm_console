@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/settings/settings_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/core/notes/note_state.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
@@ -171,6 +173,77 @@ void main() {
     await tester.tap(find.text('Clear flag'));
     await tester.pumpAndSettle();
     expect(flagged.calls, ['flag 5 null']);
+  });
+
+  testWidgets('Flag… from the detail remembers the colour', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await _pump(tester);
+    await _openMenu(tester);
+    await tester.tap(find.text('Flag…'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Blue'));
+    await tester.pumpAndSettle();
+
+    final c = ProviderScope.containerOf(
+      tester.element(find.byType(NoteDetailScreen)),
+    );
+    expect(c.read(notesLastFlagColorProvider), 4);
+  });
+
+  testWidgets('a purged note shows the localized message, not the error', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteDetailProvider(
+            5,
+          ).overrideWith((ref) async => throw NoteNotFound(5)),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(extensions: const [AppColors.light]),
+          home: const NoteDetailScreen(noteId: 5),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Note deleted for good'), findsOneWidget);
+    expect(find.textContaining('Bad state'), findsNothing);
+  });
+
+  testWidgets('another load error shows the localized load message', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteDetailProvider(
+            5,
+          ).overrideWith((ref) async => throw StateError('x')),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(extensions: const [AppColors.light]),
+          home: const NoteDetailScreen(noteId: 5),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't load your notes"), findsOneWidget);
+    expect(find.textContaining('Bad state'), findsNothing);
+  });
+
+  testWidgets('the help explains Restore and the new Delete wording', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.byTooltip('Help'));
+    await tester.pumpAndSettle();
+    expect(find.text('Restore'), findsOneWidget);
+    expect(find.textContaining('Recently Deleted'), findsWidgets);
   });
 
   testWidgets('Delete shows Note deleted with Undo; Undo restores', (

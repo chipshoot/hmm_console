@@ -83,6 +83,26 @@ IconData _iconOf(NoteMenuItem item, NoteState state) => switch (item.action) {
   NoteMenuAction.manage => Icons.open_in_new,
 };
 
+/// The share popover's anchor: [anchor]'s box in global coordinates, or a
+/// small rect at the centre of [screen] when there is none. Never empty (an
+/// empty origin makes share_plus fail on iPad). Call it before a menu or
+/// sheet pops, while [anchor] is still mounted.
+Rect shareOriginFor(BuildContext? anchor, BuildContext screen) {
+  if (anchor != null && anchor.mounted) {
+    final box = anchor.findRenderObject();
+    if (box is RenderBox && box.hasSize && box.attached) {
+      final rect = box.localToGlobal(Offset.zero) & box.size;
+      if (!rect.isEmpty) return rect;
+    }
+  }
+  final size = MediaQuery.sizeOf(screen);
+  return Rect.fromCenter(
+    center: Offset(size.width / 2, size.height / 2),
+    width: 1,
+    height: 1,
+  );
+}
+
 /// Runs one menu action. Everything that is read from [ref] is read before
 /// the first await; [context] is only used for the sheets and snackbars that
 /// the (modal, hence still mounted) row owns.
@@ -94,6 +114,7 @@ Future<void> _runAction(
   required NoteState state,
   required String? catalogName,
   required VoidCallback onSelect,
+  required Rect origin,
 }) async {
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
@@ -155,7 +176,9 @@ Future<void> _runAction(
       );
     case NoteMenuAction.share:
       try {
-        await ref.read(noteSharerProvider).shareText(shareTextFor(note));
+        await ref
+            .read(noteSharerProvider)
+            .shareText(shareTextFor(note), origin: origin);
       } catch (e) {
         debugPrint('NoteActionsMenu: share failed (${e.runtimeType})');
         messenger.showSnackBar(SnackBar(content: Text(l.notesShareFailed)));
@@ -185,8 +208,11 @@ Future<void> showNoteActionsSheet(
   required NoteState state,
   required String? catalogName,
   required VoidCallback onSelect,
+  BuildContext? anchor,
 }) {
   final l = AppLocalizations.of(context);
+  // Taken now: the row is on screen, and the sheet is about to cover it.
+  final origin = shareOriginFor(anchor, context);
   final items = noteMenuItems(ordinary: canDeleteFromNotes(note, catalogName));
   final select = items.firstWhere((i) => i.action == NoteMenuAction.select);
   final ordered = [select, ...items.where((i) => i != select)];
@@ -215,6 +241,7 @@ Future<void> showNoteActionsSheet(
                             state: state,
                             catalogName: catalogName,
                             onSelect: onSelect,
+                            origin: origin,
                           ),
                         );
                       }
@@ -237,6 +264,8 @@ class NoteContextMenu extends ConsumerWidget {
     required this.state,
     required this.catalogName,
     required this.onSelect,
+    required this.hostContext,
+    required this.hostRef,
     required this.preview,
     required this.child,
   });
@@ -245,6 +274,13 @@ class NoteContextMenu extends ConsumerWidget {
   final NoteState state;
   final String? catalogName;
   final VoidCallback onSelect;
+
+  /// The list screen's context: it outlives the row, so an action that
+  /// awaits (the Attach picker) still has a mounted context afterwards.
+  final BuildContext hostContext;
+
+  /// The list screen's ref, for the same reason as [hostContext].
+  final WidgetRef hostRef;
   final Widget preview;
   final Widget child;
 
@@ -263,16 +299,18 @@ class NoteContextMenu extends ConsumerWidget {
               trailingIcon: _cupertinoIcon(item.action, state),
               onPressed: item.enabled
                   ? () {
+                      final origin = shareOriginFor(context, hostContext);
                       Navigator.of(context, rootNavigator: true).pop();
                       unawaited(
                         _runAction(
-                          context,
-                          ref,
+                          hostContext,
+                          hostRef,
                           item.action,
                           note: note,
                           state: state,
                           catalogName: catalogName,
                           onSelect: onSelect,
+                          origin: origin,
                         ),
                       );
                     }

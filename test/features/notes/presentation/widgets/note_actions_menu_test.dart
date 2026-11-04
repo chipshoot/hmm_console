@@ -46,12 +46,14 @@ class _FakeMutate implements MutateNote {
 
 class _FakeSharer implements NoteSharer {
   final shared = <String>[];
+  final origins = <Rect?>[];
   bool fail = false;
 
   @override
-  Future<void> shareText(String text) async {
+  Future<void> shareText(String text, {Rect? origin}) async {
     if (fail) throw StateError('boom');
     shared.add(text);
+    origins.add(origin);
   }
 }
 
@@ -214,6 +216,9 @@ void main() {
       await t.pumpAndSettle();
 
       expect(sharer.shared, ['Grocery list\n\nmilk']);
+      // iPad needs a non-empty anchor for the share popover.
+      expect(sharer.origins.single, isNotNull);
+      expect(sharer.origins.single!.isEmpty, isFalse);
     });
 
     testWidgets('share failure shows the snackbar', (t) async {
@@ -345,6 +350,8 @@ void main() {
       await t.pumpAndSettle();
 
       expect(sharer.shared, ['Grocery list\n\nmilk']);
+      expect(sharer.origins.single, isNotNull);
+      expect(sharer.origins.single!.isEmpty, isFalse);
     });
 
     testWidgets('swipes still work on iOS', (t) async {

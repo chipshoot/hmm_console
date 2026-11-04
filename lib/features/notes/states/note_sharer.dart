@@ -1,3 +1,5 @@
+import 'dart:ui' show Rect;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -13,7 +15,8 @@ String shareTextFor(HmmNote note) {
 
 /// Seam over the system share sheet, so tests need no platform channel.
 abstract interface class NoteSharer {
-  Future<void> shareText(String text);
+  /// [origin] anchors the iPad share popover; it must be non-empty there.
+  Future<void> shareText(String text, {Rect? origin});
 }
 
 /// The only place `share_plus` is used.
@@ -21,8 +24,10 @@ class SharePlusNoteSharer implements NoteSharer {
   const SharePlusNoteSharer();
 
   @override
-  Future<void> shareText(String text) async {
-    await SharePlus.instance.share(ShareParams(text: text));
+  Future<void> shareText(String text, {Rect? origin}) async {
+    await SharePlus.instance.share(
+      ShareParams(text: text, sharePositionOrigin: origin),
+    );
   }
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart'
     show CupertinoButton, CupertinoIcons, CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
@@ -62,15 +64,20 @@ class NotesListScreen extends ConsumerStatefulWidget {
 class _NotesListScreenState extends ConsumerState<NotesListScreen> {
   final _fieldKey = GlobalKey<NoteSearchFieldState>();
   final _focus = FocusNode();
+  late final NotesMultiSelectNotifier _multi;
 
   @override
   void initState() {
     super.initState();
+    _multi = ref.read(notesMultiSelectProvider.notifier);
     _focus.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
+    // Selection never outlives the screen: coming back starts clean. Deferred,
+    // because a provider must not change while the tree is being torn down.
+    scheduleMicrotask(_multi.exit);
     _focus.dispose();
     super.dispose();
   }
@@ -199,141 +206,153 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final isApple =
         platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
 
-    return AppScaffold(
-      title: multi.active
-          ? l.notesSelectedCount(multi.ids.length)
-          : l.notesTitle,
-      // Android: a close button leaves selection (Apple has Done below).
-      leading: multi.active && !isApple
-          ? HmmIconButton(
-              tooltip: l.notesDoneAction,
-              icon: Icons.close,
-              onPressed: multiNotifier.exit,
-            )
-          : null,
-      bottomBar: multi.active ? const NotesBulkBar() : null,
-      drawer: data == null || widget.sidebarDocked
-          ? null
-          : Drawer(
-              child: NotesSidebar(
-                data: data,
-                onPicked: () => Navigator.of(context).pop(),
-              ),
-            ),
-      onRefresh: () async {
-        await ref.read(syncControllerProvider).triggerManualSync();
+    return PopScope(
+      // Back ends selection first; only then does it leave the screen.
+      canPop: !multi.active,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) multiNotifier.exit();
       },
-      actions: [
-        if (isApple && data != null)
-          CupertinoButton(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            onPressed: multi.active
-                ? multiNotifier.exit
-                : () => multiNotifier.enter(),
-            child: Text(multi.active ? l.notesDoneAction : l.commonEdit),
-          ),
-        if (!widget.sidebarDocked)
-          // A Builder: this context is above the Scaffold AppScaffold builds.
-          Builder(
-            builder: (context) => HmmIconButton(
-              tooltip: l.notesMenuTooltip,
-              icon: Icons.menu,
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
-        HmmIconButton(
-          tooltip: l.notesViewTooltip,
-          icon: Icons.tune,
-          onPressed: data == null
-              ? null
-              : () => showNotesViewMenu(
-                  context,
-                  density: density,
-                  sort: data.query.sort,
-                  onDensity: (d) =>
-                      ref.read(settingsProvider.notifier).setNotesRowDensity(d),
-                  onSort: notifier.setSort,
+      child: AppScaffold(
+        rekeyNavBarOnTitleChange: true,
+        title: multi.active
+            ? l.notesSelectedCount(multi.ids.length)
+            : l.notesTitle,
+        // Android: a close button leaves selection (Apple has Done below).
+        leading: multi.active && !isApple
+            ? HmmIconButton(
+                tooltip: l.notesDoneAction,
+                icon: Icons.close,
+                onPressed: multiNotifier.exit,
+              )
+            : null,
+        bottomBar: multi.active ? const NotesBulkBar() : null,
+        drawer: data == null || widget.sidebarDocked
+            ? null
+            : Drawer(
+                child: NotesSidebar(
+                  data: data,
+                  onPicked: () => Navigator.of(context).pop(),
                 ),
-        ),
-        HmmIconButton(
-          tooltip: l.notesSubsystemsTitle,
-          icon: Icons.widgets_outlined,
-          onPressed: () => context.push('/notes/subsystems'),
-        ),
-        const HelpButton(helpId: HelpId.notesList),
-      ],
-      // No FAB: creating a note now lives in the Quick Access Panel, which
-      // surfaces "New Note" while you're on this screen.
-      slivers: [
-        if (data != null) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: NoteSearchField(
-                      key: _fieldKey,
-                      focusNode: _focus,
-                      text: data.query.text,
-                      chips: _chips(data, l),
-                      hintText: l.notesSearchHint,
-                      clearTooltip: l.notesSearchClearTooltip,
-                      onTextChanged: notifier.setText,
-                      onRemoveLastToken: () {
-                        final t = data.query.tokens;
-                        if (t.isNotEmpty) {
-                          notifier.setTokens(t.sublist(0, t.length - 1));
-                        }
-                      },
-                      onSubmitted: (_) => _recordRecent(),
-                    ),
-                  ),
-                  if (_canSave(effective))
-                    HmmIconButton(
-                      tooltip: l.notesSaveSearchTooltip,
-                      icon: Icons.bookmark_add_outlined,
-                      onPressed: () => _saveSearch(data, l),
-                    ),
-                ],
+              ),
+        onRefresh: () async {
+          await ref.read(syncControllerProvider).triggerManualSync();
+        },
+        actions: [
+          if (isApple && data != null)
+            CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              onPressed: multi.active
+                  ? multiNotifier.exit
+                  : () => multiNotifier.enter(),
+              child: Text(multi.active ? l.notesDoneAction : l.commonEdit),
+            ),
+          if (!widget.sidebarDocked)
+            // A Builder: this context is above the Scaffold AppScaffold builds.
+            Builder(
+              builder: (context) => HmmIconButton(
+                tooltip: l.notesMenuTooltip,
+                icon: Icons.menu,
+                onPressed: () => Scaffold.of(context).openDrawer(),
               ),
             ),
+          HmmIconButton(
+            tooltip: l.notesViewTooltip,
+            icon: Icons.tune,
+            onPressed: data == null
+                ? null
+                : () => showNotesViewMenu(
+                    context,
+                    density: density,
+                    sort: data.query.sort,
+                    onDensity: (d) => ref
+                        .read(settingsProvider.notifier)
+                        .setNotesRowDensity(d),
+                    onSort: notifier.setSort,
+                  ),
           ),
-          ..._suggestionsAndRecents(data, l),
-          SliverToBoxAdapter(
-            child: NoteChipBar(data: data, sidebarDocked: widget.sidebarDocked),
+          HmmIconButton(
+            tooltip: l.notesSubsystemsTitle,
+            icon: Icons.widgets_outlined,
+            onPressed: () => context.push('/notes/subsystems'),
           ),
-          if (_showScope(effective))
-            SliverToBoxAdapter(child: _scopeToggle(data, effective!, l)),
+          const HelpButton(helpId: HelpId.notesList),
         ],
-        ...resultsAsync.when<List<Widget>>(
-          loading: () => const [
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: CircularProgressIndicator()),
+        // No FAB: creating a note now lives in the Quick Access Panel, which
+        // surfaces "New Note" while you're on this screen.
+        slivers: [
+          if (data != null) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: NoteSearchField(
+                        key: _fieldKey,
+                        focusNode: _focus,
+                        text: data.query.text,
+                        chips: _chips(data, l),
+                        hintText: l.notesSearchHint,
+                        clearTooltip: l.notesSearchClearTooltip,
+                        onTextChanged: notifier.setText,
+                        onRemoveLastToken: () {
+                          final t = data.query.tokens;
+                          if (t.isNotEmpty) {
+                            notifier.setTokens(t.sublist(0, t.length - 1));
+                          }
+                        },
+                        onSubmitted: (_) => _recordRecent(),
+                      ),
+                    ),
+                    if (_canSave(effective))
+                      HmmIconButton(
+                        tooltip: l.notesSaveSearchTooltip,
+                        icon: Icons.bookmark_add_outlined,
+                        onPressed: () => _saveSearch(data, l),
+                      ),
+                  ],
+                ),
+              ),
             ),
+            ..._suggestionsAndRecents(data, l),
+            SliverToBoxAdapter(
+              child: NoteChipBar(
+                data: data,
+                sidebarDocked: widget.sidebarDocked,
+              ),
+            ),
+            if (_showScope(effective))
+              SliverToBoxAdapter(child: _scopeToggle(data, effective!, l)),
           ],
-          error: (e, _) {
-            // The type only: the message may hold note text or paths.
-            debugPrint('NotesListScreen: load failed (${e.runtimeType})');
-            return [
+          ...resultsAsync.when<List<Widget>>(
+            loading: () => const [
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: AppEmptyState(
-                  icon: Icons.error_outline,
-                  message: l.notesLoadFailed,
-                  actionLabel: l.notesRetry,
-                  onAction: notifier.refresh,
-                ),
+                child: Center(child: CircularProgressIndicator()),
               ),
-            ];
-          },
-          data: (results) => data == null
-              ? const []
-              : _body(context, data, results, density, l),
-        ),
-      ],
+            ],
+            error: (e, _) {
+              // The type only: the message may hold note text or paths.
+              debugPrint('NotesListScreen: load failed (${e.runtimeType})');
+              return [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: AppEmptyState(
+                    icon: Icons.error_outline,
+                    message: l.notesLoadFailed,
+                    actionLabel: l.notesRetry,
+                    onAction: notifier.refresh,
+                  ),
+                ),
+              ];
+            },
+            data: (results) => data == null
+                ? const []
+                : _body(context, data, results, density, l),
+          ),
+        ],
+      ),
     );
   }
 
@@ -677,32 +696,36 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
       void select() =>
           ref.read(notesMultiSelectProvider.notifier).enter(note.id);
-      final rowWidget = NoteRow(
-        hit: hit,
-        density: density,
-        domainKey: domain,
-        catalogName: catalogName,
-        parentTitle: parentTitleOf(note, domain),
-        tags: data.tagsByNoteId[note.id] ?? const [],
-        date: groupingDateOf(note, data.query.sort),
-        highlightWords: highlightWords,
-        now: now,
-        selected: selecting.active ? selecting.ids.contains(note.id) : null,
-        onTap: selecting.active
-            ? () => ref.read(notesMultiSelectProvider.notifier).toggle(note.id)
-            : () => open(note),
-        // iOS/macOS open their context menu instead (below); neither runs
-        // while selecting.
-        onLongPress: isApple || selecting.active
-            ? null
-            : () => showNoteActionsSheet(
-                context,
-                ref,
-                note: note,
-                state: state,
-                catalogName: catalogName,
-                onSelect: select,
-              ),
+      final rowWidget = Builder(
+        builder: (rowContext) => NoteRow(
+          hit: hit,
+          density: density,
+          domainKey: domain,
+          catalogName: catalogName,
+          parentTitle: parentTitleOf(note, domain),
+          tags: data.tagsByNoteId[note.id] ?? const [],
+          date: groupingDateOf(note, data.query.sort),
+          highlightWords: highlightWords,
+          now: now,
+          selected: selecting.active ? selecting.ids.contains(note.id) : null,
+          onTap: selecting.active
+              ? () =>
+                    ref.read(notesMultiSelectProvider.notifier).toggle(note.id)
+              : () => open(note),
+          // iOS/macOS open their context menu instead (below); neither runs
+          // while selecting.
+          onLongPress: isApple || selecting.active
+              ? null
+              : () => showNoteActionsSheet(
+                  context,
+                  ref,
+                  note: note,
+                  state: state,
+                  catalogName: catalogName,
+                  onSelect: select,
+                  anchor: rowContext,
+                ),
+        ),
       );
       final swipeRow = NoteSwipeActions(
         key: ValueKey(note.id),
@@ -719,6 +742,8 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         state: state,
         catalogName: catalogName,
         onSelect: select,
+        hostContext: context,
+        hostRef: ref,
         preview: rowWidget,
         child: swipeRow,
       );

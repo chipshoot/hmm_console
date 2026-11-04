@@ -14,6 +14,7 @@ import '../../../../core/help/help_registry.dart';
 import '../../../../core/help/undoable_action.dart';
 import '../../../../core/notes/editing/edit_dispatch.dart';
 import '../../../../core/notes/note_state.dart';
+import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/models/hmm_note.dart';
@@ -30,6 +31,15 @@ import '../widgets/note_file_card_list.dart';
 import '../widgets/note_flag_sheet.dart';
 import '../widgets/note_location_card.dart';
 import '../widgets/note_media_card_list.dart';
+
+/// The note is gone (purged, or deleted for good from another device).
+class NoteNotFound implements Exception {
+  const NoteNotFound(this.id);
+  final int id;
+
+  @override
+  String toString() => 'NoteNotFound';
+}
 
 class NoteDetailData {
   /// [state] (pin/flag, G14) defaults to "no row": unpinned, unflagged.
@@ -60,7 +70,7 @@ final noteDetailProvider = FutureProvider.autoDispose
         deletedNoteIdsProvider.select((a) => a.value?.contains(id) ?? false),
       );
       final note = await ref.watch(hmmNoteRepositoryProvider).getNoteById(id);
-      if (note == null) throw StateError('Note $id not found');
+      if (note == null) throw NoteNotFound(id);
       NoteCatalog? catalog;
       final cid = note.catalogId;
       if (cid != null) {
@@ -181,7 +191,22 @@ class NoteDetailScreen extends ConsumerWidget {
           hasScrollBody: true,
           child: async.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('$e')),
+            error: (e, _) {
+              if (e is NoteNotFound) {
+                // Wide layout: the pane must not keep pointing at nothing.
+                final container = ProviderScope.containerOf(context);
+                if (container.read(selectedNoteIdProvider) == noteId) {
+                  Future(
+                    () => container
+                        .read(selectedNoteIdProvider.notifier)
+                        .select(null),
+                  );
+                }
+                return Center(child: Text(l.notesDeletedForGood));
+              }
+              debugPrint('NoteDetailScreen: load failed (${e.runtimeType})');
+              return Center(child: Text(l.notesLoadFailed));
+            },
             data: (d) {
               final markdown = _safeRender(registry, d.catalog?.name, d.note);
               // Images referenced inline in the body render in place (via
@@ -321,6 +346,7 @@ class NoteDetailScreen extends ConsumerWidget {
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final mutate = ref.read(mutateNoteProvider);
+    final settings = ref.read(settingsProvider.notifier);
     final container = ProviderScope.containerOf(context);
     final choice = await showNoteFlagSheet(context, current: state.flag);
     if (choice == null) return; // dismissed: change nothing
@@ -330,6 +356,16 @@ class NoteDetailScreen extends ConsumerWidget {
     } catch (e) {
       debugPrint('NoteDetailScreen: flag failed (${e.runtimeType})');
       messenger.showSnackBar(SnackBar(content: Text(l.notesFlagFailed)));
+      return;
+    }
+    // Clearing a flag leaves the remembered colour alone; the flag is applied
+    // by now, so a failure here is logged, not shown.
+    if (choice.color != null) {
+      try {
+        await settings.setNotesLastFlagColor(choice.color!.stored);
+      } catch (e) {
+        debugPrint('NoteDetailScreen: last colour failed (${e.runtimeType})');
+      }
     }
   }
 

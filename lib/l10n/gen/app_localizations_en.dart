@@ -2824,7 +2824,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNoteDetailDeleteBody =>
-      'Deletes the note. Tap Undo in the message to bring it back right away. Deleted notes are removed for good after 30 days.';
+      'Moves the note to Recently Deleted. Tap Undo in the message to bring it back right away, or restore it from Recently Deleted within 30 days.';
+
+  @override
+  String get helpNoteDetailRestoreTitle => 'Restore';
+
+  @override
+  String get helpNoteDetailRestoreBody =>
+      'A note moved to Recently Deleted shows a banner. Tap Restore to put it back in your notes.';
 
   @override
   String get helpNoteDetailManageTitle => 'Manage in …';

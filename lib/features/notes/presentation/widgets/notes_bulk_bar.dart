@@ -216,6 +216,7 @@ class NotesBulkBar extends ConsumerWidget {
     var settled = false;
     await showUndoableAction(
       context,
+      busyKey: ('bulkDelete',),
       run: () async {
         final outcome = await actions.delete(ids, isOrdinary);
         deleted = outcome.deleted;

@@ -5135,8 +5135,20 @@ abstract class AppLocalizations {
   /// No description provided for @helpNoteDetailDeleteBody.
   ///
   /// In en, this message translates to:
-  /// **'Deletes the note. Tap Undo in the message to bring it back right away. Deleted notes are removed for good after 30 days.'**
+  /// **'Moves the note to Recently Deleted. Tap Undo in the message to bring it back right away, or restore it from Recently Deleted within 30 days.'**
   String get helpNoteDetailDeleteBody;
+
+  /// No description provided for @helpNoteDetailRestoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get helpNoteDetailRestoreTitle;
+
+  /// No description provided for @helpNoteDetailRestoreBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A note moved to Recently Deleted shows a banner. Tap Restore to put it back in your notes.'**
+  String get helpNoteDetailRestoreBody;
 
   /// No description provided for @helpNoteDetailManageTitle.
   ///
