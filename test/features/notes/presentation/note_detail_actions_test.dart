@@ -99,7 +99,10 @@ Future<_RecordingMutate> _pump(
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        theme: ThemeData(platform: platform, extensions: const [AppColors.light]),
+        theme: ThemeData(
+          platform: platform,
+          extensions: const [AppColors.light],
+        ),
         home: const NoteDetailScreen(noteId: 5),
       ),
     ),
@@ -231,7 +234,9 @@ void main() {
     expect(find.text('This note was moved to Recently Deleted'), findsNothing);
   });
 
-  testWidgets('Restore calls restore(id) and the banner goes', (tester) async {
+  testWidgets('Restore calls restore(id) and confirms with a snackbar', (
+    tester,
+  ) async {
     final mutate = await _pump(tester, deleted: true);
     await tester.tap(find.text('Restore'));
     await tester.pumpAndSettle();

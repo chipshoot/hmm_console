@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -450,6 +452,42 @@ class _OrphanChildListState extends NotesListState {
   );
 }
 
+class _Restored extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void restore() => state = true;
+}
+
+final _restoredProvider = NotifierProvider<_Restored, bool>(_Restored.new);
+
+class _RestoredParentListState extends NotesListState {
+  @override
+  Future<NotesListData> build() async {
+    final restored = ref.watch(_restoredProvider);
+    return NotesListData(
+      all: [
+        if (restored)
+          HmmNote(
+            id: 99,
+            uuid: 'u99',
+            subject: 'Restored parent',
+            authorId: 1,
+            createDate: DateTime(2026, 1, 1),
+          ),
+        HmmNote(
+          id: 2,
+          uuid: 'u2',
+          subject: 'Child',
+          authorId: 1,
+          parentNoteId: 99,
+          createDate: DateTime(2026, 1, 2),
+        ),
+      ],
+      catalogsById: const {},
+    );
+  }
+}
+
 void _deletedParentTests() {
   testWidgets('row whose parent is soft-deleted reads "(deleted note)"', (
     tester,
@@ -466,22 +504,28 @@ void _deletedParentTests() {
     expect(find.textContaining('(deleted note)'), findsOneWidget);
   });
 
-  testWidgets('a parent that is not deleted shows its title again', (
+  testWidgets('after the parent is restored its title shows again', (
     tester,
   ) async {
+    final deleted = StreamController<Set<int>>();
+    addTearDown(deleted.close);
     await tester.pumpWidget(
       _app(
-        state: _ParentEmojiListState.new,
-        extra: [
-          deletedNoteIdsProvider.overrideWith((ref) => Stream.value(<int>{})),
-        ],
+        state: _RestoredParentListState.new,
+        extra: [deletedNoteIdsProvider.overrideWith((ref) => deleted.stream)],
       ),
     );
+    deleted.add({99});
+    await tester.pumpAndSettle();
+    expect(find.textContaining('(deleted note)'), findsOneWidget);
+
+    // Restored: the parent is back in the list and out of the deleted set.
+    ProviderScope.containerOf(
+      tester.element(find.byType(NotesListScreen)),
+    ).read(_restoredProvider.notifier).restore();
+    deleted.add(<int>{});
     await tester.pumpAndSettle();
     expect(find.textContaining('(deleted note)'), findsNothing);
-    expect(
-      find.textContaining('${'a' * 19}\u{1F600}…', findRichText: true),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Restored parent'), findsWidgets);
   });
 }
