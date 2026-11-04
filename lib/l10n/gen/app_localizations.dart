@@ -5839,6 +5839,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Opens a menu to pin, flag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.'**
   String get helpNotesListLongPressBody;
+
+  /// No description provided for @notesSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Select notes} =1{1 selected} other{{count} selected}}'**
+  String notesSelectedCount(int count);
+
+  /// No description provided for @notesSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select All'**
+  String get notesSelectAll;
+
+  /// No description provided for @notesDoneAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get notesDoneAction;
+
+  /// No description provided for @helpNotesListSelectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select several notes'**
+  String get helpNotesListSelectTitle;
+
+  /// No description provided for @helpNotesListSelectBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Edit (on Android, touch and hold a note and choose Select), then tap notes to select them. Pin, flag or delete them all at once; Select All picks every note in the current list. One Undo brings back a bulk delete. Notes from Contacts, Cheatsheets or Automobile are skipped when deleting.'**
+  String get helpNotesListSelectBody;
 }
 
 class _AppLocalizationsDelegate

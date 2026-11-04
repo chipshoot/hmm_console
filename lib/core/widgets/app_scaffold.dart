@@ -17,6 +17,7 @@ class AppScaffold extends StatelessWidget {
     this.backgroundColor,
     this.drawer,
     this.onRefresh,
+    this.bottomBar,
   });
 
   final String title;
@@ -34,6 +35,10 @@ class AppScaffold extends StatelessWidget {
   /// nav bar, a [RefreshIndicator] around the scroll view elsewhere.
   final Future<void> Function()? onRefresh;
 
+  /// Optional bar pinned under the scroll view (e.g. a bulk-action bar). The
+  /// caller wraps it in a SafeArea.
+  final Widget? bottomBar;
+
   bool _isApple(TargetPlatform p) =>
       p == TargetPlatform.iOS || p == TargetPlatform.macOS;
 
@@ -44,6 +49,9 @@ class AppScaffold extends StatelessWidget {
 
     final Widget navBar = _isApple(platform)
         ? CupertinoSliverNavigationBar(
+            // Keyed by the title: the bar keeps showing its first title when
+            // only the text changes (e.g. "3 selected").
+            key: ValueKey(title),
             largeTitle: Text(title),
             leading: leading,
             trailing: actions == null
@@ -82,6 +90,7 @@ class AppScaffold extends StatelessWidget {
       drawer: drawer,
       drawerEnableOpenDragGesture: false,
       floatingActionButton: floatingActionButton,
+      bottomNavigationBar: bottomBar,
       body: refresh == null || _isApple(platform)
           ? scrollView
           : RefreshIndicator(onRefresh: refresh, child: scrollView),

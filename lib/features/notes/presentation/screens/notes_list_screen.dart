@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart'
-    show CupertinoIcons, CupertinoSlidingSegmentedControl;
+    show CupertinoButton, CupertinoIcons, CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,6 +42,7 @@ import '../widgets/notes_sidebar.dart';
 import '../widgets/note_actions_menu.dart';
 import '../widgets/note_row.dart';
 import '../widgets/note_swipe_actions.dart';
+import '../widgets/notes_bulk_bar.dart';
 import '../widgets/saved_search_dialogs.dart';
 import '../widgets/notes_view_menu.dart';
 
@@ -179,9 +180,25 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final density = ref.watch(notesRowDensityProvider);
     final data = listAsync.value;
     final effective = ref.watch(notesEffectiveQueryProvider);
+    final multi = ref.watch(notesMultiSelectProvider);
+    final multiNotifier = ref.read(notesMultiSelectProvider.notifier);
+    final platform = Theme.of(context).platform;
+    final isApple =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
 
     return AppScaffold(
-      title: l.notesTitle,
+      title: multi.active
+          ? l.notesSelectedCount(multi.ids.length)
+          : l.notesTitle,
+      // Android: a close button leaves selection (Apple has Done below).
+      leading: multi.active && !isApple
+          ? HmmIconButton(
+              tooltip: l.notesDoneAction,
+              icon: Icons.close,
+              onPressed: multiNotifier.exit,
+            )
+          : null,
+      bottomBar: multi.active ? const NotesBulkBar() : null,
       drawer: data == null || widget.sidebarDocked
           ? null
           : Drawer(
@@ -194,6 +211,14 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         await ref.read(syncControllerProvider).triggerManualSync();
       },
       actions: [
+        if (isApple && data != null)
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            onPressed: multi.active
+                ? multiNotifier.exit
+                : () => multiNotifier.enter(),
+            child: Text(multi.active ? l.notesDoneAction : l.commonEdit),
+          ),
         if (!widget.sidebarDocked)
           // A Builder: this context is above the Scaffold AppScaffold builds.
           Builder(
@@ -627,6 +652,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
       void select() =>
           ref.read(notesMultiSelectProvider.notifier).enter(note.id);
+      final selecting = ref.watch(notesMultiSelectProvider);
       final rowWidget = NoteRow(
         hit: hit,
         density: density,
@@ -637,9 +663,13 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         date: groupingDateOf(note, data.query.sort),
         highlightWords: highlightWords,
         now: now,
-        onTap: () => open(note),
-        // iOS/macOS open their context menu instead (below).
-        onLongPress: isApple
+        selected: selecting.active ? selecting.ids.contains(note.id) : null,
+        onTap: selecting.active
+            ? () => ref.read(notesMultiSelectProvider.notifier).toggle(note.id)
+            : () => open(note),
+        // iOS/macOS open their context menu instead (below); neither runs
+        // while selecting.
+        onLongPress: isApple || selecting.active
             ? null
             : () => showNoteActionsSheet(
                 context,
@@ -655,10 +685,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
         note: note,
         state: state,
         catalogName: catalogName,
-        enabled: true,
+        enabled: !selecting.active,
         child: rowWidget,
       );
-      if (!isApple) return swipeRow;
+      if (!isApple || selecting.active) return swipeRow;
       return NoteContextMenu(
         key: ValueKey(note.id),
         note: note,

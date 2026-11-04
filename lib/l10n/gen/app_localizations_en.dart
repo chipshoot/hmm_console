@@ -3256,4 +3256,29 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListLongPressBody =>
       'Opens a menu to pin, flag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.';
+
+  @override
+  String notesSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+      zero: 'Select notes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesSelectAll => 'Select All';
+
+  @override
+  String get notesDoneAction => 'Done';
+
+  @override
+  String get helpNotesListSelectTitle => 'Select several notes';
+
+  @override
+  String get helpNotesListSelectBody =>
+      'Tap Edit (on Android, touch and hold a note and choose Select), then tap notes to select them. Pin, flag or delete them all at once; Select All picks every note in the current list. One Undo brings back a bulk delete. Notes from Contacts, Cheatsheets or Automobile are skipped when deleting.';
 }

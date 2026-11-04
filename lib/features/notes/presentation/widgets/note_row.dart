@@ -34,6 +34,7 @@ class NoteRow extends ConsumerWidget {
     required this.now,
     this.onTap,
     this.onLongPress,
+    this.selected,
   });
 
   final NoteHit hit;
@@ -52,6 +53,10 @@ class NoteRow extends ConsumerWidget {
 
   /// Opens the note's action menu (Android; iOS uses a context menu).
   final VoidCallback? onLongPress;
+
+  /// Whether the row is ticked in multi-select; null when not selecting (no
+  /// check circle is shown).
+  final bool? selected;
 
   static const _thumb = 56.0;
 
@@ -120,6 +125,7 @@ class NoteRow extends ConsumerWidget {
       label: semantics,
       excludeSemantics: true,
       onTap: onTap,
+      selected: selected,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
@@ -128,6 +134,18 @@ class NoteRow extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(width: 4, color: barColor),
+              if (selected case final ticked?)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 12),
+                  child: Center(
+                    child: Icon(
+                      ticked
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      color: ticked ? c.accent : c.secondaryLabel,
+                    ),
+                  ),
+                ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(

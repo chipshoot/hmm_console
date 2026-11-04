@@ -9,6 +9,7 @@ import '../../query/smart_query.dart';
 import '../../states/filter_usage.dart';
 import '../../states/note_chip_bar.dart';
 import '../../states/notes_list_state.dart';
+import '../../states/notes_multi_select.dart';
 import '../../states/notes_results_provider.dart';
 import '../../states/saved_searches_provider.dart';
 import '../catalog_labels.dart';
@@ -82,6 +83,7 @@ class NoteChipBar extends ConsumerWidget {
                   selected: e.selected,
                   onSelected: (_) {
                     final notifier = ref.read(notesListStateProvider.notifier);
+                    ref.read(notesMultiSelectProvider.notifier).exit();
                     if (e.selected) {
                       notifier.setSource(const AllSource());
                       return;

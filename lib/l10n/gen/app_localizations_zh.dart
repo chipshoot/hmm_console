@@ -3147,4 +3147,22 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListLongPressBody =>
       '打开菜单，可置顶、加旗标、附加到另一条笔记、以文本分享、选择或删除。来自通讯录、卡片或汽车的笔记需在各自的页面中分享和删除。';
+
+  @override
+  String notesSelectedCount(int count) {
+    return '已选 $count 项';
+  }
+
+  @override
+  String get notesSelectAll => '全选';
+
+  @override
+  String get notesDoneAction => '完成';
+
+  @override
+  String get helpNotesListSelectTitle => '选择多条笔记';
+
+  @override
+  String get helpNotesListSelectBody =>
+      '点按“编辑”（Android 上长按笔记并选择“选择”），然后点按笔记进行选择。可一次置顶、加旗标或删除；“全选”会选中当前列表中的所有笔记。批量删除可一键撤销。删除时会跳过来自通讯录、卡片或汽车的笔记。';
 }

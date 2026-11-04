@@ -12,6 +12,7 @@ import '../../query/note_token_labels.dart';
 import '../../query/saved_search.dart';
 import '../../states/filter_usage.dart';
 import '../../states/notes_list_state.dart';
+import '../../states/notes_multi_select.dart';
 import '../../states/notes_results_provider.dart';
 import '../../states/saved_searches_provider.dart';
 import '../catalog_labels.dart';
@@ -70,6 +71,8 @@ class NotesSidebar extends ConsumerWidget {
       if (usageKey != null) {
         ref.read(filterUsageProvider.notifier).record(usageKey);
       }
+      // A new list: the old ticks would point at notes no longer shown.
+      ref.read(notesMultiSelectProvider.notifier).exit();
       notifier.setSource(s);
       onPicked();
     }
@@ -185,6 +188,7 @@ class NotesSidebar extends ConsumerWidget {
       // The smart filter's own text and tokens apply through the source, so
       // what is typed next narrows it.
       final live = data.query;
+      ref.read(notesMultiSelectProvider.notifier).exit();
       notifier.setQuery(
         NoteQuery(
           source: SmartSource(savedId: s.id),
