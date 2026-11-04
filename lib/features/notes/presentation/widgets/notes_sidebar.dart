@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/help/undoable_action.dart';
 import '../../../../core/notes/note_flag.dart';
@@ -14,6 +15,7 @@ import '../../states/filter_usage.dart';
 import '../../states/notes_list_state.dart';
 import '../../states/notes_multi_select.dart';
 import '../../states/notes_results_provider.dart';
+import '../../states/recently_deleted_provider.dart';
 import '../../states/saved_searches_provider.dart';
 import '../catalog_labels.dart';
 import 'domain_groups.dart';
@@ -280,6 +282,18 @@ class NotesSidebar extends ConsumerWidget {
               onTap: () => pickSmart(saved[i]),
               onLongPress: () => onSavedMenu(saved[i], i),
             ),
+          tile(
+            leading: Icon(Icons.delete_outline, color: c.accent),
+            title: l.notesRecentlyDeletedTitle,
+            count: ref.watch(recentlyDeletedProvider).value?.length,
+            selected: false,
+            onTap: () {
+              // The drawer may pop on onPicked: take the router first.
+              final router = GoRouter.of(context);
+              onPicked();
+              router.push('/notes/deleted');
+            },
+          ),
         ],
       ),
     );

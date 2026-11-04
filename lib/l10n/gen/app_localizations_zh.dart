@@ -3165,4 +3165,83 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListSelectBody =>
       '点按“编辑”（Android 上长按笔记并选择“选择”），然后点按笔记进行选择。可一次置顶、加旗标或删除；“全选”会选中当前列表中的所有笔记。批量删除可一键撤销。删除时会跳过来自通讯录、卡片或汽车的笔记。';
+
+  @override
+  String get notesRecentlyDeletedTitle => '最近删除';
+
+  @override
+  String notesDeletesInDays(int days) {
+    return '$days 天后删除';
+  }
+
+  @override
+  String get notesRestoreAction => '恢复';
+
+  @override
+  String get notesDeleteNow => '立即删除';
+
+  @override
+  String get notesDeleteNowTitle => '立即删除这条笔记？';
+
+  @override
+  String get notesDeleteForGoodBody => '它将从你的所有设备上移除，且无法撤销。';
+
+  @override
+  String get notesEmptyAction => '清空…';
+
+  @override
+  String notesEmptyTitle(int count) {
+    return '立即删除 $count 条笔记？';
+  }
+
+  @override
+  String get notesDeletedForGood => '笔记已永久删除';
+
+  @override
+  String notesEmptied(int count) {
+    return '已永久删除 $count 条笔记';
+  }
+
+  @override
+  String notesEmptyPartial(int done, int total) {
+    return '已永久删除 $done/$total 条笔记';
+  }
+
+  @override
+  String get notesKeptLiveElsewhere => '这条笔记已在其他设备上恢复，因此被保留';
+
+  @override
+  String get notesRecentlyDeletedEmpty => '没有最近删除的笔记';
+
+  @override
+  String get helpNotesRecentlyDeletedTitle => '最近删除';
+
+  @override
+  String get helpNotesRecentlyDeletedSummary => '删除的笔记会在这里保留 30 天，之后被永久删除。';
+
+  @override
+  String get helpNotesRecentlyDeletedRestoreTitle => '恢复';
+
+  @override
+  String get helpNotesRecentlyDeletedRestoreBody => '向右滑动笔记并点按“恢复”，即可将其放回笔记中。';
+
+  @override
+  String get helpNotesRecentlyDeletedDeleteNowTitle => '立即删除';
+
+  @override
+  String get helpNotesRecentlyDeletedDeleteNowBody =>
+      '向左滑动笔记并点按“立即删除”，即可立即从所有设备上移除。此操作无法撤销。';
+
+  @override
+  String get helpNotesRecentlyDeletedEmptyTitle => '清空';
+
+  @override
+  String get helpNotesRecentlyDeletedEmptyBody => '从所有设备上移除此处列出的所有笔记。此操作无法撤销。';
+
+  @override
+  String get helpNotesListRecentlyDeletedTitle => '最近删除';
+
+  @override
+  String get helpNotesListRecentlyDeletedBody =>
+      '打开侧边栏并点按“最近删除”，可在 30 天内恢复已删除的笔记。';
 }

@@ -5869,6 +5869,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap Edit (on Android, touch and hold a note and choose Select), then tap notes to select them. Pin, flag or delete them all at once; Select All picks every note in the current list. One Undo brings back a bulk delete. Notes from Contacts, Cheatsheets or Automobile are skipped when deleting.'**
   String get helpNotesListSelectBody;
+
+  /// No description provided for @notesRecentlyDeletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Deleted'**
+  String get notesRecentlyDeletedTitle;
+
+  /// No description provided for @notesDeletesInDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{Deletes in 1 day} other{Deletes in {days} days}}'**
+  String notesDeletesInDays(int days);
+
+  /// No description provided for @notesRestoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get notesRestoreAction;
+
+  /// No description provided for @notesDeleteNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Now'**
+  String get notesDeleteNow;
+
+  /// No description provided for @notesDeleteNowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this note now?'**
+  String get notesDeleteNowTitle;
+
+  /// No description provided for @notesDeleteForGoodBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be removed from all your devices. This can\'t be undone.'**
+  String get notesDeleteForGoodBody;
+
+  /// No description provided for @notesEmptyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty…'**
+  String get notesEmptyAction;
+
+  /// No description provided for @notesEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Delete 1 note now?} other{Delete {count} notes now?}}'**
+  String notesEmptyTitle(int count);
+
+  /// No description provided for @notesDeletedForGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Note deleted for good'**
+  String get notesDeletedForGood;
+
+  /// No description provided for @notesEmptied.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 note for good} other{Deleted {count} notes for good}}'**
+  String notesEmptied(int count);
+
+  /// No description provided for @notesEmptyPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {done} of {total} notes for good'**
+  String notesEmptyPartial(int done, int total);
+
+  /// No description provided for @notesKeptLiveElsewhere.
+  ///
+  /// In en, this message translates to:
+  /// **'This note was restored on another device, so it was kept'**
+  String get notesKeptLiveElsewhere;
+
+  /// No description provided for @notesRecentlyDeletedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No recently deleted notes'**
+  String get notesRecentlyDeletedEmpty;
+
+  /// No description provided for @helpNotesRecentlyDeletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Deleted'**
+  String get helpNotesRecentlyDeletedTitle;
+
+  /// No description provided for @helpNotesRecentlyDeletedSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes you delete stay here for 30 days, then are removed for good.'**
+  String get helpNotesRecentlyDeletedSummary;
+
+  /// No description provided for @helpNotesRecentlyDeletedRestoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get helpNotesRecentlyDeletedRestoreTitle;
+
+  /// No description provided for @helpNotesRecentlyDeletedRestoreBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe a note right and tap Restore to put it back in your notes.'**
+  String get helpNotesRecentlyDeletedRestoreBody;
+
+  /// No description provided for @helpNotesRecentlyDeletedDeleteNowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Now'**
+  String get helpNotesRecentlyDeletedDeleteNowTitle;
+
+  /// No description provided for @helpNotesRecentlyDeletedDeleteNowBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe a note left and tap Delete Now to remove it from all your devices right away. This can\'t be undone.'**
+  String get helpNotesRecentlyDeletedDeleteNowBody;
+
+  /// No description provided for @helpNotesRecentlyDeletedEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get helpNotesRecentlyDeletedEmptyTitle;
+
+  /// No description provided for @helpNotesRecentlyDeletedEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes every note listed here from all your devices. This can\'t be undone.'**
+  String get helpNotesRecentlyDeletedEmptyBody;
+
+  /// No description provided for @helpNotesListRecentlyDeletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Deleted'**
+  String get helpNotesListRecentlyDeletedTitle;
+
+  /// No description provided for @helpNotesListRecentlyDeletedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the side panel and tap Recently Deleted to restore a deleted note within 30 days.'**
+  String get helpNotesListRecentlyDeletedBody;
 }
 
 class _AppLocalizationsDelegate

@@ -29,6 +29,7 @@ import 'package:hmm_console/features/notes/presentation/screens/note_detail_scre
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_shell_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/raw_content_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/recently_deleted_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/subsystems_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_screen.dart';
 import 'package:hmm_console/features/launcher/presentation/launcher_search_screen.dart';
@@ -310,6 +311,11 @@ final routerConfig = Provider<GoRouter>(
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: 'deleted',
+            name: RouterNames.notesRecentlyDeleted.name,
+            builder: (context, state) => const RecentlyDeletedScreen(),
           ),
           GoRoute(
             path: ':id',

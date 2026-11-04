@@ -69,6 +69,10 @@ abstract interface class IHmmNoteRepository {
   /// wrote it. This keeps the notes list in sync with notes created by domain
   /// features (e.g. gas logs) that don't go through the notes mutation path.
   Stream<List<HmmNote>> watchNotes();
+
+  /// Streams the current author's soft-deleted notes (any catalog), newest
+  /// deletion first. Feeds Recently Deleted.
+  Stream<List<HmmNote>> watchDeletedNotes();
 }
 
 class LocalHmmNoteRepository implements IHmmNoteRepository {
@@ -288,6 +292,16 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
     yield* (_db.select(_db.notes)
           ..where((n) => n.authorId.equals(author.id) & n.deletedAt.isNull())
           ..orderBy([(n) => OrderingTerm.desc(n.createDate)]))
+        .watch()
+        .map((rows) => rows.map(HmmNoteMapper.fromDriftRow).toList());
+  }
+
+  @override
+  Stream<List<HmmNote>> watchDeletedNotes() async* {
+    final author = await _currentAuthor();
+    yield* (_db.select(_db.notes)
+          ..where((n) => n.authorId.equals(author.id) & n.deletedAt.isNotNull())
+          ..orderBy([(n) => OrderingTerm.desc(n.deletedAt)]))
         .watch()
         .map((rows) => rows.map(HmmNoteMapper.fromDriftRow).toList());
   }

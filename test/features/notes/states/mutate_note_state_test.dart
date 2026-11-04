@@ -58,6 +58,8 @@ class _FakeNoteRepo implements IHmmNoteRepository {
   @override
   Stream<List<HmmNote>> watchNotes() => Stream.value(const []);
   @override
+  Stream<List<HmmNote>> watchDeletedNotes() => Stream.value(const []);
+  @override
   Future<HmmNote> setParentNote(int id, int? parentNoteId) async =>
       throw UnimplementedError();
   @override

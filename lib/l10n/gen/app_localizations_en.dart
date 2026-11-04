@@ -3281,4 +3281,106 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListSelectBody =>
       'Tap Edit (on Android, touch and hold a note and choose Select), then tap notes to select them. Pin, flag or delete them all at once; Select All picks every note in the current list. One Undo brings back a bulk delete. Notes from Contacts, Cheatsheets or Automobile are skipped when deleting.';
+
+  @override
+  String get notesRecentlyDeletedTitle => 'Recently Deleted';
+
+  @override
+  String notesDeletesInDays(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Deletes in $days days',
+      one: 'Deletes in 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesRestoreAction => 'Restore';
+
+  @override
+  String get notesDeleteNow => 'Delete Now';
+
+  @override
+  String get notesDeleteNowTitle => 'Delete this note now?';
+
+  @override
+  String get notesDeleteForGoodBody =>
+      'It will be removed from all your devices. This can\'t be undone.';
+
+  @override
+  String get notesEmptyAction => 'Empty…';
+
+  @override
+  String notesEmptyTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delete $count notes now?',
+      one: 'Delete 1 note now?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesDeletedForGood => 'Note deleted for good';
+
+  @override
+  String notesEmptied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted $count notes for good',
+      one: 'Deleted 1 note for good',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String notesEmptyPartial(int done, int total) {
+    return 'Deleted $done of $total notes for good';
+  }
+
+  @override
+  String get notesKeptLiveElsewhere =>
+      'This note was restored on another device, so it was kept';
+
+  @override
+  String get notesRecentlyDeletedEmpty => 'No recently deleted notes';
+
+  @override
+  String get helpNotesRecentlyDeletedTitle => 'Recently Deleted';
+
+  @override
+  String get helpNotesRecentlyDeletedSummary =>
+      'Notes you delete stay here for 30 days, then are removed for good.';
+
+  @override
+  String get helpNotesRecentlyDeletedRestoreTitle => 'Restore';
+
+  @override
+  String get helpNotesRecentlyDeletedRestoreBody =>
+      'Swipe a note right and tap Restore to put it back in your notes.';
+
+  @override
+  String get helpNotesRecentlyDeletedDeleteNowTitle => 'Delete Now';
+
+  @override
+  String get helpNotesRecentlyDeletedDeleteNowBody =>
+      'Swipe a note left and tap Delete Now to remove it from all your devices right away. This can\'t be undone.';
+
+  @override
+  String get helpNotesRecentlyDeletedEmptyTitle => 'Empty';
+
+  @override
+  String get helpNotesRecentlyDeletedEmptyBody =>
+      'Removes every note listed here from all your devices. This can\'t be undone.';
+
+  @override
+  String get helpNotesListRecentlyDeletedTitle => 'Recently Deleted';
+
+  @override
+  String get helpNotesListRecentlyDeletedBody =>
+      'Open the side panel and tap Recently Deleted to restore a deleted note within 30 days.';
 }

@@ -22,6 +22,7 @@ enum RouterNames {
   settings,
   onboarding,
   notesList,
+  notesRecentlyDeleted,
   noteCreate,
   noteDetail,
   noteEdit,

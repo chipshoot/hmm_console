@@ -73,6 +73,23 @@ void main() {
     expect(() => repo.restoreNote(999), throwsStateError);
   });
 
+  test('watchDeletedNotes emits soft-deleted notes newest first, never live ones',
+      () async {
+    final a =
+        await repo.createNote(const HmmNoteCreate(subject: 'a', catalogId: 1));
+    final b =
+        await repo.createNote(const HmmNoteCreate(subject: 'b', catalogId: 1));
+    await repo.createNote(const HmmNoteCreate(subject: 'live', catalogId: 1));
+    await repo.deleteNote(a.id);
+    // deletedAt keeps whole seconds; make b's strictly later.
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    await repo.deleteNote(b.id);
+
+    final deleted = await repo.watchDeletedNotes().first;
+
+    expect(deleted.map((n) => n.subject), ['b', 'a']);
+  });
+
   group('restoreStamp', () {
     final prev = DateTime.utc(2026, 10, 18, 9, 0, 0);
     test('a clock in the same second moves to the next whole second', () {

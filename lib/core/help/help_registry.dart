@@ -18,6 +18,7 @@ enum HelpId {
   cheatsheetDesigner,
   noteDetail,
   notesList,
+  notesRecentlyDeleted,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
@@ -280,10 +281,36 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
       ),
     ],
   ),
+  HelpId.notesRecentlyDeleted => ScreenHelp(
+    title: l.helpNotesRecentlyDeletedTitle,
+    summary: l.helpNotesRecentlyDeletedSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.restore,
+        title: l.helpNotesRecentlyDeletedRestoreTitle,
+        body: l.helpNotesRecentlyDeletedRestoreBody,
+      ),
+      HelpEntry(
+        icon: Icons.delete_forever,
+        title: l.helpNotesRecentlyDeletedDeleteNowTitle,
+        body: l.helpNotesRecentlyDeletedDeleteNowBody,
+      ),
+      HelpEntry(
+        icon: Icons.delete_sweep,
+        title: l.helpNotesRecentlyDeletedEmptyTitle,
+        body: l.helpNotesRecentlyDeletedEmptyBody,
+      ),
+    ],
+  ),
   HelpId.notesList => ScreenHelp(
     title: l.helpNotesListTitle,
     summary: l.helpNotesListSummary,
     entries: [
+      HelpEntry(
+        icon: Icons.delete_outline,
+        title: l.helpNotesListRecentlyDeletedTitle,
+        body: l.helpNotesListRecentlyDeletedBody,
+      ),
       HelpEntry(
         icon: Icons.tune,
         title: l.helpNotesListViewTitle,
