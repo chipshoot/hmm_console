@@ -3431,4 +3431,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesTagCreateFailed => 'Couldn\'t create the tag';
+
+  @override
+  String get notesEditorTagsLabel => 'Tags';
+
+  @override
+  String get notesEditorTagsHint => 'Add a tag';
+
+  @override
+  String notesEditorRemoveTag(String name) {
+    return 'Remove tag $name';
+  }
 }

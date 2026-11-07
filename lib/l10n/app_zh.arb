@@ -1009,5 +1009,8 @@
   },
   "notesTagPickerEmpty": "还没有标签。输入名称即可新建。",
   "notesTagFailed": "无法更改笔记的标签",
-  "notesTagCreateFailed": "无法新建标签"
+  "notesTagCreateFailed": "无法新建标签",
+  "notesEditorTagsLabel": "标签",
+  "notesEditorTagsHint": "添加标签",
+  "notesEditorRemoveTag": "移除标签 {name}"
 }

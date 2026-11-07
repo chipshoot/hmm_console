@@ -3290,4 +3290,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesTagCreateFailed => '无法新建标签';
+
+  @override
+  String get notesEditorTagsLabel => '标签';
+
+  @override
+  String get notesEditorTagsHint => '添加标签';
+
+  @override
+  String notesEditorRemoveTag(String name) {
+    return '移除标签 $name';
+  }
 }

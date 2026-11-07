@@ -22,6 +22,8 @@ import '../widgets/inline_insert.dart';
 import '../widgets/note_link_picker.dart';
 import '../widgets/note_markdown_body.dart';
 import '../../../../core/data/note_location.dart';
+import '../../../../core/data/local/local_tag_repository.dart'
+    show normalizeTagName;
 import '../../../../core/data/repository_providers.dart';
 import '../../../gas_log/providers/location_provider.dart'
     show currentPositionProvider;
@@ -29,12 +31,14 @@ import '../../../settings/providers/geo_capture_provider.dart';
 import '../../providers/note_location_capture.dart';
 import '../widgets/note_file_card_list.dart';
 import '../widgets/note_location_card.dart';
+import '../widgets/note_tag_field.dart';
 import '../widgets/record_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../data/subsystem_anchor.dart';
 import '../../rendering/note_display.dart';
 import '../../states/mutate_note_state.dart';
+import '../../query/note_query.dart' show TagSource;
 import '../../states/notes_list_state.dart';
 import '../screens/note_detail_screen.dart' show noteDetailProvider;
 import '../widgets/media_toolbar.dart';
@@ -90,12 +94,31 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// True once a persisted location was removed, so an update writes the clear.
   bool _locationCleared = false;
 
+  /// Tag names shown in the tag field, and the names the note had when the
+  /// editor opened (empty for a new note). Tags are written on save only if
+  /// the two differ; [_tagsLoaded] is false for an existing note whose tags
+  /// could not be read, so a save never overwrites them blind.
+  List<String> _tagNames = [];
+  List<String> _initialTagNames = [];
+  bool _tagsLoaded = true;
+
   @override
   void initState() {
     super.initState();
     _noteId = widget.noteId;
     _parentId = widget.presetParentId;
     _noteDate = DateTime.now();
+    if (widget.noteId == null && widget.presetParentId == null) {
+      // Opened from a tag's list: start with that tag. No lookup when the
+      // list's live tag names are not loaded yet.
+      final list = ref.read(notesListStateProvider).value;
+      final source = list?.query.source;
+      if (source is TagSource) {
+        final name = list?.liveTagNames?[source.tagId];
+        if (name != null) _tagNames = [name];
+      }
+    }
+    if (widget.noteId != null) _tagsLoaded = false;
     if (widget.noteId == null) {
       _maybeCaptureLocation();
     }
@@ -153,6 +176,50 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       _savedFiles = [...note.effectiveAttachments.files];
       setState(() {});
     }
+    await _loadTags();
+  }
+
+  Future<void> _loadTags() async {
+    try {
+      final byNote = await ref
+          .read(tagRepositoryProvider)
+          .watchNoteTags()
+          .first;
+      if (!mounted) return;
+      final names = [
+        for (final t in byNote[widget.noteId] ?? const <({int id, String name})>[]) t.name,
+      ];
+      setState(() {
+        _initialTagNames = names;
+        _tagNames = [...names];
+        _tagsLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('note editor tags load: ${e.runtimeType}');
+    }
+  }
+
+  bool get _tagsChanged {
+    if (!_tagsLoaded) return false;
+    Set<String> keys(List<String> v) => {
+      for (final n in v) (normalizeTagName(n) ?? n).toLowerCase(),
+    };
+    final a = keys(_tagNames);
+    final b = keys(_initialTagNames);
+    return a.length != b.length || !a.containsAll(b);
+  }
+
+  /// Resolves the chosen names to tags (creating the missing ones) and sets
+  /// the note's membership. Runs after the note itself is saved.
+  Future<void> _saveTags(int noteId, MutateNote mutate) async {
+    if (!_tagsChanged) return;
+    final repo = ref.read(tagRepositoryProvider);
+    final ids = <int>{};
+    for (final n in _tagNames) {
+      ids.add((await repo.ensureTag(n)).id);
+    }
+    await mutate.setTags(noteId, ids);
+    _initialTagNames = [..._tagNames];
   }
 
   /// Persists the note (create or update) and returns its id.
@@ -231,6 +298,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         if (mounted) setState(() => _pendingFiles.clear());
         ref.invalidate(noteDetailProvider(_noteId!));
       }
+      if (_noteId != null) await _saveTags(_noteId!, mutate);
       return _noteId;
     } on VaultLockedException {
       // Defense-in-depth for the B5 save-time TOCTOU: the vault relocked
@@ -642,6 +710,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      NoteTagField(
+                        names: _tagNames,
+                        onChanged: (v) => setState(() => _tagNames = v),
                       ),
                       if (_pendingLocation != null &&
                           !_pendingLocation!.isEmpty)

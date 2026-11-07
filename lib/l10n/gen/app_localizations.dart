@@ -6091,6 +6091,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t create the tag'**
   String get notesTagCreateFailed;
+
+  /// No description provided for @notesEditorTagsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get notesEditorTagsLabel;
+
+  /// No description provided for @notesEditorTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a tag'**
+  String get notesEditorTagsHint;
+
+  /// No description provided for @notesEditorRemoveTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove tag {name}'**
+  String notesEditorRemoveTag(String name);
 }
 
 class _AppLocalizationsDelegate

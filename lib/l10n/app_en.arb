@@ -1592,5 +1592,15 @@
   },
   "notesTagPickerEmpty": "No tags yet. Type a name to create one.",
   "notesTagFailed": "Couldn't change the note's tags",
-  "notesTagCreateFailed": "Couldn't create the tag"
+  "notesTagCreateFailed": "Couldn't create the tag",
+  "notesEditorTagsLabel": "Tags",
+  "notesEditorTagsHint": "Add a tag",
+  "notesEditorRemoveTag": "Remove tag {name}",
+  "@notesEditorRemoveTag": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }
