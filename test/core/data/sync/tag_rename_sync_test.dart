@@ -75,4 +75,49 @@ void main() {
       expect(live.values, ['Trip']);
     },
   );
+
+  test(
+    'a case-only rename reaches a peer, then its note pull keeps the casing',
+    () async {
+      final work = await repo.ensureTag('work');
+      await repo.renameTag(work.id, 'Work');
+      final doc = await svc.mergeDefinitions(
+        null,
+        deviceId: 'a',
+        now: DateTime.now().toUtc(),
+      );
+
+      final peerDb = HmmDatabase(NativeDatabase.memory());
+      addTearDown(peerDb.close);
+      final peer = LocalTagRepository(peerDb);
+      final authorId = await peerDb
+          .into(peerDb.authors)
+          .insert(AuthorsCompanion.insert(accountName: 'me'));
+      final noteId = await peerDb
+          .into(peerDb.notes)
+          .insert(NotesCompanion.insert(subject: 'n', authorId: authorId));
+      final old = await peerDb
+          .into(peerDb.tags)
+          .insert(
+            TagsCompanion.insert(
+              name: 'work',
+              lastModified: Value(DateTime.utc(2026, 1, 1)),
+            ),
+          );
+      await peerDb
+          .into(peerDb.noteTagRefs)
+          .insert(NoteTagRefsCompanion.insert(noteId: noteId, tagId: old));
+
+      // The orchestrator's order: tags.json merge first, then the bumped
+      // note's body re-applies its tag names.
+      await TagSyncService(
+        peer,
+      ).mergeDefinitions(doc, deviceId: 'b', now: DateTime.now().toUtc());
+      await peer.setTagsForNote(noteId, ['Work']);
+
+      expect(await peer.watchLiveTagNames().first, {old: 'Work'});
+      expect(await peer.tagNamesForNote(noteId), ['Work']);
+      expect(await peer.getTagsWithMeta(), hasLength(1));
+    },
+  );
 }

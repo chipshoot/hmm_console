@@ -463,6 +463,9 @@ class LocalTagRepository implements ITagRepository {
         _db.tags,
       )..where((t) => t.id.equals(existing.id))).write(
         TagsCompanion(
+          // The row matched case-insensitively; take the winning record's
+          // casing so a case-only rename reaches this device.
+          name: Value(name.trim()),
           description: Value(description),
           isActivated: Value(isActivated),
           lastModified: Value(lastModified),
