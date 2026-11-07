@@ -4,8 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/data/local/local_tag_repository.dart'
-    show NoteTagLabel;
 import '../../../../core/help/undoable_action.dart';
 import '../../../../core/notes/note_flag.dart';
 import '../../../../core/notes/note_state.dart';
