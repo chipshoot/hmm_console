@@ -51,6 +51,7 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
   final _controller = TextEditingController();
   String _query = '';
   bool _creating = false;
+  bool _createFailed = false;
 
   @override
   void dispose() {
@@ -78,11 +79,13 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
     return (add: add, remove: remove);
   }
 
-  Future<void> _create(String name, String failedText) async {
+  Future<void> _create(String name) async {
     if (_creating) return;
     final repo = ref.read(tagRepositoryProvider);
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    setState(() => _creating = true);
+    setState(() {
+      _creating = true;
+      _createFailed = false;
+    });
     try {
       final tag = await repo.ensureTag(name);
       if (!mounted) return;
@@ -93,7 +96,7 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
       });
     } catch (e) {
       debugPrint('NoteTagPicker: create failed (${e.runtimeType})');
-      messenger?.showSnackBar(SnackBar(content: Text(failedText)));
+      if (mounted) setState(() => _createFailed = true);
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -136,14 +139,18 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
     Widget done(String text) => apple
         ? CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: () => Navigator.of(context).pop(_result()),
+            onPressed: _creating
+                ? null
+                : () => Navigator.of(context).pop(_result()),
             child: Text(
               text,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           )
         : TextButton(
-            onPressed: () => Navigator.of(context).pop(_result()),
+            onPressed: _creating
+                ? null
+                : () => Navigator.of(context).pop(_result()),
             child: Text(text),
           );
 
@@ -161,7 +168,7 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   children: [
-                    cancel(MaterialLocalizations.of(context).cancelButtonLabel),
+                    cancel(l.commonCancel),
                     Expanded(
                       child: Text(
                         l.notesTagPickerTitle,
@@ -177,6 +184,16 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: search,
               ),
+              if (_createFailed)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    l.notesTagCreateFailed,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
               Flexible(
                 child: StreamBuilder<List<TagUsage>>(
                   stream: _tags,
@@ -203,7 +220,7 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
                           _createRow(
                             apple,
                             l.notesTagCreate(normalized),
-                            () => _create(normalized, l.notesTagFailed),
+                            () => _create(normalized),
                           ),
                         for (final t in shown) _tagRow(apple, t),
                         if (all.isEmpty && _query.isEmpty && snap.hasData)

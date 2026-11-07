@@ -3279,4 +3279,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesTagFailed => '无法更改笔记的标签';
+
+  @override
+  String get notesTagCreateFailed => '无法新建标签';
 }

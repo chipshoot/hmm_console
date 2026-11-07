@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +13,7 @@ import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 void main() {
   late HmmDatabase db;
-  late LocalTagRepository repo;
+  late ITagRepository repo;
   late Map<String, int> ids;
   TagPickResult? result;
   var resolved = false;
@@ -141,4 +143,83 @@ void main() {
     await t.pumpAndSettle();
     expect(find.textContaining('Create'), findsNothing);
   });
+
+  Finder createRow(String name) => find.text('Create “$name”');
+
+  pickerTest('create failure shows an inline error in the sheet', (t) async {
+    repo = _FlakyTags(db)..fail = true;
+    await open(t, {});
+    await t.enterText(find.byType(TextField), 'Trip');
+    await t.pumpAndSettle();
+    await t.tap(createRow('Trip'));
+    await t.pumpAndSettle();
+    expect(find.text("Couldn't create the tag"), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
+  });
+
+  pickerTest('second Create tap while in flight creates once', (t) async {
+    final flaky = _FlakyTags(db)..gate = Completer<void>();
+    repo = flaky;
+    await open(t, {});
+    await t.enterText(find.byType(TextField), 'Trip');
+    await t.pumpAndSettle();
+    await t.tap(createRow('Trip'));
+    await t.pump();
+    await t.tap(createRow('Trip'));
+    await t.pump();
+    flaky.gate!.complete();
+    await t.pumpAndSettle();
+    expect(flaky.ensureCalls, 1);
+  });
+
+  pickerTest('Done is disabled while a create is in flight', (t) async {
+    final flaky = _FlakyTags(db)..gate = Completer<void>();
+    repo = flaky;
+    await open(t, {});
+    await t.enterText(find.byType(TextField), 'Trip');
+    await t.pumpAndSettle();
+    await t.tap(createRow('Trip'));
+    await t.pump();
+    expect(
+      t.widget<TextButton>(find.widgetWithText(TextButton, 'Done')).onPressed,
+      isNull,
+    );
+    flaky.gate!.complete();
+    await t.pumpAndSettle();
+    expect(
+      t.widget<TextButton>(find.widgetWithText(TextButton, 'Done')).onPressed,
+      isNotNull,
+    );
+  });
+
+  pickerTest('Cancel after Create returns null and keeps the tag', (t) async {
+    await open(t, {});
+    await t.enterText(find.byType(TextField), 'Trip');
+    await t.pumpAndSettle();
+    await t.tap(createRow('Trip'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Cancel'));
+    await t.pumpAndSettle();
+    expect(result, isNull);
+    expect(resolved, isTrue);
+    final rows = await (db.select(
+      db.tags,
+    )..where((x) => x.name.equals('Trip'))).get();
+    expect(rows, hasLength(1));
+  });
+}
+
+class _FlakyTags extends LocalTagRepository {
+  _FlakyTags(super.db);
+  bool fail = false;
+  Completer<void>? gate;
+  int ensureCalls = 0;
+
+  @override
+  Future<Tag> ensureTag(String name) async {
+    ensureCalls++;
+    if (fail) throw StateError('boom');
+    await gate?.future;
+    return super.ensureTag(name);
+  }
 }

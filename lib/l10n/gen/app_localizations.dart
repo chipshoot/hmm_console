@@ -6073,6 +6073,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t change the note\'s tags'**
   String get notesTagFailed;
+
+  /// No description provided for @notesTagCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t create the tag'**
+  String get notesTagCreateFailed;
 }
 
 class _AppLocalizationsDelegate

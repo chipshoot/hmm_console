@@ -3420,4 +3420,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesTagFailed => 'Couldn\'t change the note\'s tags';
+
+  @override
+  String get notesTagCreateFailed => 'Couldn\'t create the tag';
 }

@@ -1588,5 +1588,6 @@
     }
   },
   "notesTagPickerEmpty": "No tags yet. Type a name to create one.",
-  "notesTagFailed": "Couldn't change the note's tags"
+  "notesTagFailed": "Couldn't change the note's tags",
+  "notesTagCreateFailed": "Couldn't create the tag"
 }
