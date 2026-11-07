@@ -76,10 +76,12 @@ abstract interface class ITagRepository {
   /// Rename keeping the local id. A live tag already holding the name throws
   /// [TagNameTaken]; a dead one gives the name up. Unless the change is
   /// case-only, the old name is left behind as a sync tombstone. Carrier
-  /// notes (soft-deleted ones too) are bumped.
+  /// notes (soft-deleted ones too) are bumped. A tag that is no longer live
+  /// throws [StateError].
   Future<void> renameTag(int id, String newName);
 
-  /// Move [mergeId]'s notes onto [keepId] and tombstone [mergeId].
+  /// Move [mergeId]'s notes onto [keepId] and tombstone [mergeId]. Either
+  /// tag no longer being live throws [StateError] and writes nothing.
   Future<void> mergeTags({required int keepId, required int mergeId});
 
   /// Remove the tag from every note and tombstone it.
@@ -110,6 +112,14 @@ class LocalTagRepository implements ITagRepository {
   Future<Tag> _requireTag(int id) async {
     final row = await getTagById(id);
     if (row == null) throw StateError('Tag $id not found');
+    return row;
+  }
+
+  /// [_requireTag], but a tombstoned or deactivated row (e.g. one a sync
+  /// killed after the UI's snapshot) is a [StateError] too.
+  Future<Tag> _requireLiveTag(int id) async {
+    final row = await _requireTag(id);
+    if (!_isLive(row)) throw StateError('Tag $id is not live');
     return row;
   }
 
@@ -250,25 +260,35 @@ class LocalTagRepository implements ITagRepository {
       throw ArgumentError.value(newName, 'newName', 'not a valid tag name');
     }
     final changed = await _db.transaction(() async {
-      final row = await _requireTag(id);
+      final row = await _requireLiveTag(id);
       if (row.name == normalized) return false;
       final now = _now();
-      final stamp = restoreStamp(row.lastModified, now);
       final caseOnly = row.name.toLowerCase() == normalized.toLowerCase();
 
-      if (!caseOnly) {
-        for (final other in await _rowsNamed(normalized)) {
-          if (other.id == id) continue;
-          if (_isLive(other)) throw TagNameTaken(other.id);
-          // Decision 4: a dead row gives its name up. Our renamed record is
-          // newer than its tombstone, so LWW lets the new name win anyway.
-          await (_db.delete(
-            _db.noteTagRefs,
-          )..where((r) => r.tagId.equals(other.id))).go();
-          await (_db.delete(
-            _db.tags,
-          )..where((t) => t.id.equals(other.id))).go();
-        }
+      // The renamed record must be strictly newer than every record it
+      // supersedes: its own and any dead row's tombstone under the new name
+      // (which may carry a peer's clock-ahead stamp). Merge is strictly-newer
+      // LWW, so an equal or older stamp would lose to that tombstone.
+      var latest = row.lastModified;
+      final others = caseOnly
+          ? const <Tag>[]
+          : [
+              for (final other in await _rowsNamed(normalized))
+                if (other.id != id) other,
+            ];
+      for (final other in others) {
+        if (_isLive(other)) throw TagNameTaken(other.id);
+        if (other.lastModified.isAfter(latest)) latest = other.lastModified;
+      }
+      final stamp = restoreStamp(latest, now);
+
+      for (final other in others) {
+        // Decision 4: a dead row gives its name up. [stamp] is strictly
+        // after its tombstone, so LWW lets the new name win.
+        await (_db.delete(
+          _db.noteTagRefs,
+        )..where((r) => r.tagId.equals(other.id))).go();
+        await (_db.delete(_db.tags)..where((t) => t.id.equals(other.id))).go();
       }
 
       await (_db.update(_db.tags)..where((t) => t.id.equals(id))).write(
@@ -300,8 +320,8 @@ class LocalTagRepository implements ITagRepository {
       throw ArgumentError.value(mergeId, 'mergeId', 'must differ from keepId');
     }
     await _db.transaction(() async {
-      await _requireTag(keepId);
-      final merged = await _requireTag(mergeId);
+      await _requireLiveTag(keepId);
+      final merged = await _requireLiveTag(mergeId);
       final carriers = await _carriersOf(mergeId);
       for (final noteId in carriers) {
         await _db

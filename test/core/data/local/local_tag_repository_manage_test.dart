@@ -199,6 +199,76 @@ void main() {
   });
 
   test(
+    'renameTag onto a dead name stamps strictly after its tombstone',
+    () async {
+      // A tombstone from a peer whose clock runs ahead.
+      final future = DateTime.now().toUtc().add(const Duration(seconds: 10));
+      await db
+          .into(db.tags)
+          .insert(
+            TagsCompanion.insert(
+              name: 'Trip',
+              lastModified: Value(future),
+              deletedAt: Value(future),
+            ),
+          );
+      final work = await tag('Work');
+
+      await tags.renameTag(work, 'trip');
+
+      final renamed = (await tags.getTagById(work))!;
+      expect(renamed.name, 'trip');
+      expect(renamed.lastModified.isAfter(future), isTrue);
+    },
+  );
+
+  test('renameTag on a dead tag throws StateError', () async {
+    final work = await tags.ensureTag('Work');
+    await tags.deleteTag(work.id);
+
+    await expectLater(tags.renameTag(work.id, 'Trip'), throwsStateError);
+    final rows = await allTags();
+    expect(rows, hasLength(1));
+    expect(rows.single.name, 'Work');
+  });
+
+  test(
+    'mergeTags into a dead keep tag throws StateError and writes nothing',
+    () async {
+      final keep = await tag('Keep');
+      final merge = await tag('Merge');
+      final n = await note();
+      await ref(n, merge);
+      await tags.deleteTag(keep);
+      final keepBefore = (await tags.getTagById(keep))!;
+
+      await expectLater(
+        tags.mergeTags(keepId: keep, mergeId: merge),
+        throwsStateError,
+      );
+
+      expect(await tagIdsOf(n), {merge});
+      expect((await tags.getTagById(merge))!.deletedAt, isNull);
+      expect((await tags.getTagById(keep))!, keepBefore);
+      expect(
+        (await noteRow(n)).lastModifiedDate!.isAtSameMomentAs(past),
+        isTrue,
+      );
+    },
+  );
+
+  test('mergeTags from a dead merge tag throws StateError', () async {
+    final keep = await tag('Keep');
+    final merge = await tag('Merge');
+    await tags.deleteTag(merge);
+
+    await expectLater(
+      tags.mergeTags(keepId: keep, mergeId: merge),
+      throwsStateError,
+    );
+  });
+
+  test(
     'mergeTags moves notes to the kept tag and tombstones the other',
     () async {
       final keep = await tag('Keep');
