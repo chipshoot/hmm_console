@@ -15,6 +15,7 @@ import '../../states/notes_list_state.dart';
 import '../../states/notes_multi_select.dart';
 import '../../states/notes_results_provider.dart';
 import 'note_flag_sheet.dart';
+import 'note_tag_picker.dart';
 
 /// The bar under the Notes list while several notes are being selected: Pin,
 /// Flag and Delete for the ticked notes, and Select All for the visible list.
@@ -63,6 +64,11 @@ class NotesBulkBar extends ConsumerWidget {
             tooltip: l.notesFlagAction,
             icon: Icons.flag_outlined,
             onPressed: empty ? null : () => _flag(context, ref),
+          ),
+          HmmIconButton(
+            tooltip: l.notesBulkTagsTooltip,
+            icon: Icons.label_outline,
+            onPressed: empty ? null : () => _tags(context, ref),
           ),
           HmmIconButton(
             tooltip: l.commonDelete,
@@ -176,6 +182,56 @@ class NotesBulkBar extends ConsumerWidget {
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<void> _tags(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final data = ref.read(notesListStateProvider).value;
+    final actions = ref.read(noteBulkActionsProvider);
+    final multi = ref.read(notesMultiSelectProvider.notifier);
+    final ids = _ids(ref);
+    if (data == null || ids.isEmpty) return;
+    final current = {
+      for (final id in ids)
+        id: {
+          for (final t in data.tagsByNoteId[id] ?? const <NoteTagLabel>[]) t.id,
+        },
+    };
+    final counts = <int, int>{};
+    for (final tags in current.values) {
+      for (final t in tags) {
+        counts[t] = (counts[t] ?? 0) + 1;
+      }
+    }
+    final picked = await showNoteTagPicker(
+      context,
+      initial: {
+        for (final e in counts.entries)
+          e.key: e.value == ids.length ? TagMark.all : TagMark.some,
+      },
+    );
+    if (picked == null) return; // dismissed: change nothing
+    final outcome = await actions.applyTags(
+      ids,
+      current,
+      add: picked.add,
+      remove: picked.remove,
+    );
+    if (outcome.failed.isEmpty) {
+      multi.exit();
+      return;
+    }
+    multi.keepOnly(outcome.failed);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            l.notesBulkTagPartial(outcome.succeeded.length, outcome.total),
+          ),
+        ),
+      );
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {

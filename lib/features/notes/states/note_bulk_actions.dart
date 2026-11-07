@@ -46,6 +46,24 @@ class NoteBulkActions {
   Future<BulkOutcome> setFlag(List<int> ids, int? flagColor) =>
       _each(ids, 'flag', (id) => _mutate.setFlagColor(id, flagColor));
 
+  /// Sets each note's tags to `(current ∪ add) − remove`. A note whose set
+  /// would not change succeeds without a write. [currentById] holds each
+  /// note's current tag ids (missing = none).
+  Future<BulkOutcome> applyTags(
+    List<int> ids,
+    Map<int, Set<int>> currentById, {
+    required Set<int> add,
+    required Set<int> remove,
+  }) => _each(ids, 'tags', (id) async {
+    final current = currentById[id] ?? const <int>{};
+    final next = {...current, ...add}..removeAll(remove);
+    if (next.length == current.length && next.containsAll(current)) {
+      return null;
+    }
+    await _mutate.setTags(id, next);
+    return null;
+  });
+
   /// [isOrdinary] decides eligibility (from canDeleteFromNotes) before any
   /// write; ineligible ids are skipped untouched.
   Future<BulkDeleteOutcome> delete(

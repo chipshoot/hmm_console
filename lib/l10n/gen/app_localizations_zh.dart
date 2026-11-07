@@ -3117,6 +3117,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String notesBulkTagPartial(int done, int total) {
+    return '已为 $done/$total 条笔记设置标签';
+  }
+
+  @override
+  String get notesBulkTagsTooltip => '标签';
+
+  @override
   String get notesShareAction => '分享…';
 
   @override
@@ -3170,7 +3178,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNotesListSelectBody =>
-      '点按“编辑”（Android 上长按笔记并选择“选择”），然后点按笔记进行选择。可一次置顶、加旗标或删除；“全选”会选中当前列表中的所有笔记。批量删除可一键撤销。删除时会跳过来自通讯录、卡片或汽车的笔记。';
+      '点按“编辑”（Android 上长按笔记并选择“选择”），然后点按笔记进行选择。可一次置顶、加旗标、设置标签或删除；“全选”会选中当前列表中的所有笔记。批量删除可一键撤销。删除时会跳过来自通讯录、卡片或汽车的笔记。';
 
   @override
   String get notesRecentlyDeletedTitle => '最近删除';

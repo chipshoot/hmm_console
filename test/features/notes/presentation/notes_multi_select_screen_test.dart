@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_contact_repository.dart'
     show contactCatalogName;
+import 'package:hmm_console/core/data/local/local_tag_repository.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/notes/catalog_palette.dart';
 import 'package:hmm_console/core/notes/note_state.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
@@ -57,6 +61,20 @@ class _FakeBulk implements NoteBulkActions {
     return _split(ids);
   }
 
+  @override
+  Future<BulkOutcome> applyTags(
+    List<int> ids,
+    Map<int, Set<int>> currentById, {
+    required Set<int> add,
+    required Set<int> remove,
+  }) async {
+    calls.add(
+      'tags(${ids.join(',')};+${(add.toList()..sort()).join(',')};'
+      '-${(remove.toList()..sort()).join(',')})',
+    );
+    return _split(ids);
+  }
+
   /// When set, delete waits for it (to hold a delete in flight).
   Completer<void>? deleteGate;
 
@@ -86,13 +104,20 @@ class _FakeBulk implements NoteBulkActions {
 /// Notes 1..[general] are ordinary, then [contacts] contact notes. Ids in
 /// [pinned] are pinned.
 class _ListState extends NotesListState {
-  _ListState({this.general = 5, this.contacts = 0, this.pinned = const {}});
+  _ListState({
+    this.general = 5,
+    this.contacts = 0,
+    this.pinned = const {},
+    this.tags = const {},
+  });
+  final Map<int, List<NoteTagLabel>> tags;
   final int general;
   final int contacts;
   final Set<int> pinned;
 
   @override
   Future<NotesListData> build() async => NotesListData(
+    tagsByNoteId: tags,
     all: [
       for (var i = 1; i <= general + contacts; i++)
         HmmNote(
@@ -323,6 +348,95 @@ void main() {
     await t.pumpAndSettle();
     expect(bulk.calls, ['flag(4,1)']);
     expect(_sel(t).active, isFalse);
+  });
+
+  group('bulk tags', () {
+    late HmmDatabase db;
+    late int tagA;
+    late int tagB;
+    late int tagC;
+    setUp(() async {
+      db = HmmDatabase(NativeDatabase.memory());
+      Future<int> tag(String n) => db
+          .into(db.tags)
+          .insert(
+            TagsCompanion.insert(
+              name: n,
+              lastModified: Value(DateTime.utc(2026)),
+            ),
+          );
+      tagA = await tag('A');
+      tagB = await tag('B');
+      tagC = await tag('C');
+    });
+    tearDown(() => db.close());
+
+    Future<void> openPicker(WidgetTester t, _FakeBulk bulk, int total) async {
+      await _boot(
+        t,
+        _app(
+          bulk,
+          state: _ListState(
+            general: total,
+            tags: {
+              1: [(id: tagA, name: 'A'), (id: tagB, name: 'B')],
+              2: [(id: tagA, name: 'A')],
+            },
+          ),
+          extra: [
+            tagRepositoryProvider.overrideWithValue(LocalTagRepository(db)),
+          ],
+        ),
+      );
+      _enter(t);
+      _c(t).read(notesMultiSelectProvider.notifier).selectAll([1, 2]);
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Tags'));
+      await t.pumpAndSettle();
+    }
+
+    Future<void> finish(WidgetTester t) async {
+      await t.pumpWidget(const SizedBox());
+      await t.pump(const Duration(milliseconds: 50));
+    }
+
+    bool? mark(WidgetTester t, String n) => t
+        .widget<CheckboxListTile>(find.widgetWithText(CheckboxListTile, n))
+        .value;
+
+    testWidgets('Tags button opens the picker with tri-state marks', (t) async {
+      await openPicker(t, _FakeBulk(), 5);
+      expect(mark(t, 'A'), isTrue);
+      expect(mark(t, 'B'), isNull);
+      expect(mark(t, 'C'), isFalse);
+      await finish(t);
+    });
+
+    testWidgets('full success exits multi-select silently', (t) async {
+      final bulk = _FakeBulk();
+      await openPicker(t, bulk, 5);
+      await t.tap(find.widgetWithText(CheckboxListTile, 'C'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Done'));
+      await t.pumpAndSettle();
+      expect(bulk.calls, ['tags(1,2;+$tagC;-)']);
+      expect(_sel(t).active, isFalse);
+      expect(find.byType(SnackBar), findsNothing);
+      await finish(t);
+    });
+
+    testWidgets('partial failure keeps failed notes selected', (t) async {
+      final bulk = _FakeBulk()..failIds = {2};
+      await openPicker(t, bulk, 5);
+      await t.tap(find.widgetWithText(CheckboxListTile, 'C'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Done'));
+      await t.pumpAndSettle();
+      expect(find.text('Tagged 1 of 2 notes'), findsOneWidget);
+      expect(_sel(t).ids, {2});
+      expect(_sel(t).active, isTrue);
+      await finish(t);
+    });
   });
 
   testWidgets('bulk flag partial failure keeps the failed notes selected', (

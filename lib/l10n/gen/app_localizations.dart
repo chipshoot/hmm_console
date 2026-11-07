@@ -5786,6 +5786,18 @@ abstract class AppLocalizations {
   /// **'Unflagged {done} of {total} notes'**
   String notesBulkUnflagPartial(int done, int total);
 
+  /// No description provided for @notesBulkTagPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Tagged {done} of {total} notes'**
+  String notesBulkTagPartial(int done, int total);
+
+  /// No description provided for @notesBulkTagsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get notesBulkTagsTooltip;
+
   /// No description provided for @notesShareAction.
   ///
   /// In en, this message translates to:
@@ -5879,7 +5891,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNotesListSelectBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap Edit (on Android, touch and hold a note and choose Select), then tap notes to select them. Pin, flag or delete them all at once; Select All picks every note in the current list. One Undo brings back a bulk delete. Notes from Contacts, Cheatsheets or Automobile are skipped when deleting.'**
+  /// **'Tap Edit (on Android, touch and hold a note and choose Select), then tap notes to select them. Pin, flag, tag or delete them all at once; Select All picks every note in the current list. One Undo brings back a bulk delete. Notes from Contacts, Cheatsheets or Automobile are skipped when deleting.'**
   String get helpNotesListSelectBody;
 
   /// No description provided for @notesRecentlyDeletedTitle.

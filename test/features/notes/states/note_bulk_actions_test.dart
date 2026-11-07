@@ -30,6 +30,12 @@ class _FakeMutate extends MutateNote {
   }
 
   @override
+  Future<void> setTags(int id, Set<int> tagIds) async {
+    calls.add('tags:$id:${(tagIds.toList()..sort()).join(',')}');
+    _maybeThrow(id);
+  }
+
+  @override
   Future<void> delete(int id) async {
     calls.add('delete:$id');
     _maybeThrow(id);
@@ -119,6 +125,49 @@ void main() {
     final out = await bulk.delete([1, 2, 3], (_) => true);
     expect(out.deleted, [1, 3]);
     expect(out.failed, [2]);
+  });
+
+  test('applyTags adds and removes per note', () async {
+    final (bulk, fake) = _make();
+    final out = await bulk.applyTags(
+      [1, 2],
+      {
+        1: {10},
+        2: {10, 11},
+      },
+      add: {12},
+      remove: {10},
+    );
+    expect(fake.calls, ['tags:1:12', 'tags:2:11,12']);
+    expect(out.succeeded, [1, 2]);
+  });
+
+  test('applyTags skips unchanged notes as succeeded', () async {
+    final (bulk, fake) = _make();
+    final out = await bulk.applyTags(
+      [1, 2],
+      {
+        1: {10},
+        2: {11},
+      },
+      add: {10},
+      remove: const {},
+    );
+    expect(fake.calls, ['tags:2:10,11']);
+    expect(out.succeeded, [1, 2]);
+    expect(out.failed, isEmpty);
+  });
+
+  test('applyTags reports failures in input order', () async {
+    final (bulk, _) = _make(throwFor: {3, 1});
+    final out = await bulk.applyTags(
+      [1, 2, 3],
+      {},
+      add: {10},
+      remove: const {},
+    );
+    expect(out.succeeded, [2]);
+    expect(out.failed, [1, 3]);
   });
 
   group('bulkDeleteMessage', () {

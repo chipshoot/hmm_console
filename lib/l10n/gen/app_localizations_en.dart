@@ -3227,6 +3227,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String notesBulkTagPartial(int done, int total) {
+    return 'Tagged $done of $total notes';
+  }
+
+  @override
+  String get notesBulkTagsTooltip => 'Tags';
+
+  @override
   String get notesShareAction => 'Share…';
 
   @override
@@ -3287,7 +3295,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNotesListSelectBody =>
-      'Tap Edit (on Android, touch and hold a note and choose Select), then tap notes to select them. Pin, flag or delete them all at once; Select All picks every note in the current list. One Undo brings back a bulk delete. Notes from Contacts, Cheatsheets or Automobile are skipped when deleting.';
+      'Tap Edit (on Android, touch and hold a note and choose Select), then tap notes to select them. Pin, flag, tag or delete them all at once; Select All picks every note in the current list. One Undo brings back a bulk delete. Notes from Contacts, Cheatsheets or Automobile are skipped when deleting.';
 
   @override
   String get notesRecentlyDeletedTitle => 'Recently Deleted';
