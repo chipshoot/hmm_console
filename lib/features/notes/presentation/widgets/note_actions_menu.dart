@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/local/local_tag_repository.dart'
+    show NoteTagLabel;
 import '../../../../core/help/undoable_action.dart';
 import '../../../../core/notes/note_flag.dart';
 import '../../../../core/notes/note_state.dart';
@@ -14,12 +16,14 @@ import '../../rendering/note_display.dart';
 import '../../states/mutate_note_state.dart';
 import '../../states/note_delete_policy.dart';
 import '../../states/note_sharer.dart';
+import '../../states/notes_list_state.dart';
 import '../catalog_labels.dart';
 import 'note_flag_sheet.dart';
 import 'note_link_picker.dart';
+import 'note_tag_picker.dart';
 import 'note_swipe_actions.dart' show deleteNoteWithUndo;
 
-enum NoteMenuAction { pin, flag, attach, share, select, delete, manage }
+enum NoteMenuAction { pin, flag, tags, attach, share, select, delete, manage }
 
 class NoteMenuItem {
   const NoteMenuItem(this.action, {this.enabled = true});
@@ -36,6 +40,7 @@ List<NoteMenuItem> noteMenuItems({required bool ordinary}) => ordinary
     ? const [
         NoteMenuItem(NoteMenuAction.pin),
         NoteMenuItem(NoteMenuAction.flag),
+        NoteMenuItem(NoteMenuAction.tags),
         NoteMenuItem(NoteMenuAction.attach),
         NoteMenuItem(NoteMenuAction.share),
         NoteMenuItem(NoteMenuAction.select),
@@ -44,6 +49,7 @@ List<NoteMenuItem> noteMenuItems({required bool ordinary}) => ordinary
     : const [
         NoteMenuItem(NoteMenuAction.pin),
         NoteMenuItem(NoteMenuAction.flag),
+        NoteMenuItem(NoteMenuAction.tags),
         NoteMenuItem(NoteMenuAction.share, enabled: false),
         NoteMenuItem(NoteMenuAction.select),
         NoteMenuItem(NoteMenuAction.manage, enabled: false),
@@ -62,6 +68,7 @@ String _labelOf(
 ) => switch (item.action) {
   NoteMenuAction.pin => state.isPinned ? l.notesUnpin : l.notesPin,
   NoteMenuAction.flag => l.notesFlagAction,
+  NoteMenuAction.tags => l.notesTagsAction,
   NoteMenuAction.attach => l.notesAttachToAction,
   NoteMenuAction.share =>
     item.enabled
@@ -76,6 +83,7 @@ IconData _iconOf(NoteMenuItem item, NoteState state) => switch (item.action) {
   NoteMenuAction.pin =>
     state.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
   NoteMenuAction.flag => Icons.flag_outlined,
+  NoteMenuAction.tags => Icons.label_outline,
   NoteMenuAction.attach => Icons.subdirectory_arrow_right,
   NoteMenuAction.share => Icons.ios_share,
   NoteMenuAction.select => Icons.check_circle_outline,
@@ -149,6 +157,24 @@ Future<void> _runAction(
         } catch (e) {
           debugPrint('NoteActionsMenu: last colour failed (${e.runtimeType})');
         }
+      }
+    case NoteMenuAction.tags:
+      final current =
+          ref.read(notesListStateProvider).value?.tagsByNoteId[note.id] ??
+          const <NoteTagLabel>[];
+      final before = {for (final t in current) t.id};
+      final picked = await showNoteTagPicker(
+        context,
+        initial: {for (final id in before) id: TagMark.all},
+      );
+      if (picked == null) return; // dismissed: change nothing
+      final after = {...before, ...picked.add}..removeAll(picked.remove);
+      if (after.length == before.length && after.containsAll(before)) return;
+      try {
+        await mutate.setTags(note.id, after);
+      } catch (e) {
+        debugPrint('NoteActionsMenu: tags failed (${e.runtimeType})');
+        messenger.showSnackBar(SnackBar(content: Text(l.notesTagFailed)));
       }
     case NoteMenuAction.attach:
       final registry = ref.read(noteDisplayRegistryProvider);
@@ -354,6 +380,7 @@ IconData _cupertinoIcon(NoteMenuAction a, NoteState state) => switch (a) {
   NoteMenuAction.pin =>
     state.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
   NoteMenuAction.flag => CupertinoIcons.flag,
+  NoteMenuAction.tags => CupertinoIcons.tag,
   NoteMenuAction.attach => CupertinoIcons.link,
   NoteMenuAction.share => CupertinoIcons.share,
   NoteMenuAction.select => CupertinoIcons.checkmark_circle,

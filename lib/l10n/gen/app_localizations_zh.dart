@@ -3152,7 +3152,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNotesListLongPressBody =>
-      '打开菜单，可置顶、加旗标、附加到另一条笔记、以文本分享、选择或删除。来自通讯录、卡片或汽车的笔记需在各自的页面中分享和删除。';
+      '打开菜单，可置顶、加旗标、加标签、附加到另一条笔记、以文本分享、选择或删除。来自通讯录、卡片或汽车的笔记需在各自的页面中分享和删除。';
 
   @override
   String notesSelectedCount(int count) {
@@ -3256,4 +3256,27 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListRecentlyDeletedBody =>
       '打开侧边栏并点按“最近删除”，可在 30 天内恢复已删除的笔记。';
+
+  @override
+  String get commonDone => '完成';
+
+  @override
+  String get notesTagsAction => '标签…';
+
+  @override
+  String get notesTagPickerTitle => '标签';
+
+  @override
+  String get notesTagPickerHint => '查找或新建标签';
+
+  @override
+  String notesTagCreate(String name) {
+    return '新建“$name”';
+  }
+
+  @override
+  String get notesTagPickerEmpty => '还没有标签。输入名称即可新建。';
+
+  @override
+  String get notesTagFailed => '无法更改笔记的标签';
 }

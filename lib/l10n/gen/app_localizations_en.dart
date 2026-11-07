@@ -3262,7 +3262,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNotesListLongPressBody =>
-      'Opens a menu to pin, flag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.';
+      'Opens a menu to pin, flag, tag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.';
 
   @override
   String notesSelectedCount(int count) {
@@ -3397,4 +3397,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListRecentlyDeletedBody =>
       'Open the side panel and tap Recently Deleted to restore a deleted note within 30 days.';
+
+  @override
+  String get commonDone => 'Done';
+
+  @override
+  String get notesTagsAction => 'Tags…';
+
+  @override
+  String get notesTagPickerTitle => 'Tags';
+
+  @override
+  String get notesTagPickerHint => 'Find or create a tag';
+
+  @override
+  String notesTagCreate(String name) {
+    return 'Create “$name”';
+  }
+
+  @override
+  String get notesTagPickerEmpty => 'No tags yet. Type a name to create one.';
+
+  @override
+  String get notesTagFailed => 'Couldn\'t change the note\'s tags';
 }

@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drift/native.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/local/local_tag_repository.dart';
+import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/notes/catalog_palette.dart';
 import 'package:hmm_console/core/notes/note_state.dart';
 import 'package:hmm_console/core/settings/settings_controller.dart';
@@ -29,6 +32,14 @@ class _FakeMutate implements MutateNote {
   Future<NoteState> setFlagColor(int id, int? color) async {
     calls.add('setFlagColor($id,$color)');
     return NoteState(noteUuid: 'u$id', lastModifiedDate: DateTime(2026));
+  }
+
+  bool failTags = false;
+
+  @override
+  Future<void> setTags(int id, Set<int> tagIds) async {
+    if (failTags) throw StateError('boom');
+    calls.add('setTags($id,${(tagIds.toList()..sort())})');
   }
 
   @override
@@ -82,6 +93,9 @@ class _ListState extends NotesListState {
         createDate: DateTime(2026, 1, 1),
       ),
     ],
+    tagsByNoteId: const {
+      1: [(id: 100, name: 'A'), (id: 101, name: 'B')],
+    },
     catalogsById: {
       10: NoteCatalog(
         id: 10,
@@ -132,6 +146,23 @@ Future<void> _holdRow(WidgetTester t, Finder row) async {
   await t.pumpAndSettle();
 }
 
+List<Override> _tagOverrides() {
+  final db = HmmDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
+  return [tagRepositoryProvider.overrideWithValue(_FixedTags(db))];
+}
+
+class _FixedTags extends LocalTagRepository {
+  _FixedTags(super.db);
+
+  @override
+  Stream<List<TagUsage>> watchTagUsage() => Stream.value([
+    (id: 100, name: 'A', noteCount: 1),
+    (id: 101, name: 'B', noteCount: 1),
+    (id: 102, name: 'C', noteCount: 0),
+  ]);
+}
+
 Finder get _firstRow => find.widgetWithText(NoteRow, 'Grocery list');
 
 void main() {
@@ -143,6 +174,7 @@ void main() {
       expect(items.map((i) => i.action), [
         NoteMenuAction.pin,
         NoteMenuAction.flag,
+        NoteMenuAction.tags,
         NoteMenuAction.attach,
         NoteMenuAction.share,
         NoteMenuAction.select,
@@ -156,6 +188,7 @@ void main() {
       expect(items.map((i) => i.action), [
         NoteMenuAction.pin,
         NoteMenuAction.flag,
+        NoteMenuAction.tags,
         NoteMenuAction.share,
         NoteMenuAction.select,
         NoteMenuAction.manage,
@@ -182,6 +215,7 @@ void main() {
         'Select',
         'Pin',
         'Flag…',
+        'Tags…',
         'Attach to…',
         'Share…',
         'Delete',
@@ -212,6 +246,8 @@ void main() {
       await t.longPress(_firstRow);
       await t.pumpAndSettle();
 
+      await t.ensureVisible(find.text('Share…'));
+      await t.pumpAndSettle();
       await t.tap(find.text('Share…'));
       await t.pumpAndSettle();
 
@@ -228,6 +264,8 @@ void main() {
       await t.longPress(_firstRow);
       await t.pumpAndSettle();
 
+      await t.ensureVisible(find.text('Share…'));
+      await t.pumpAndSettle();
       await t.tap(find.text('Share…'));
       await t.pumpAndSettle();
 
@@ -254,6 +292,40 @@ void main() {
         t.element(find.byType(NotesListScreen)),
       );
       expect(c.read(notesLastFlagColorProvider), 4);
+    });
+
+    testWidgets('Tags… writes the picked set through setTags', (t) async {
+      final m = _FakeMutate();
+      await t.pumpWidget(_app(m, _FakeSharer(), extra: _tagOverrides()));
+      await t.pumpAndSettle();
+      await t.longPress(_firstRow);
+      await t.pumpAndSettle();
+
+      await t.tap(find.text('Tags…'));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(CheckboxListTile, 'A')); // remove A
+      await t.tap(find.widgetWithText(CheckboxListTile, 'C')); // add C
+      await t.pumpAndSettle();
+      await t.tap(find.text('Done'));
+      await t.pumpAndSettle();
+
+      expect(m.calls, ['setTags(1,[101, 102])']);
+    });
+
+    testWidgets('a failed tag write shows the failure snackbar', (t) async {
+      final m = _FakeMutate()..failTags = true;
+      await t.pumpWidget(_app(m, _FakeSharer(), extra: _tagOverrides()));
+      await t.pumpAndSettle();
+      await t.longPress(_firstRow);
+      await t.pumpAndSettle();
+
+      await t.tap(find.text('Tags…'));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(CheckboxListTile, 'C'));
+      await t.tap(find.text('Done'));
+      await t.pumpAndSettle();
+
+      expect(find.text("Couldn't change the note's tags"), findsOneWidget);
     });
 
     testWidgets('Attach to… then Undo restores the previous parent', (t) async {

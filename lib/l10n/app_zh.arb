@@ -961,7 +961,7 @@
   "notesAttachUndoFailed": "无法撤销附加",
   "notesSelectAction": "选择",
   "helpNotesListLongPressTitle": "长按笔记",
-  "helpNotesListLongPressBody": "打开菜单，可置顶、加旗标、附加到另一条笔记、以文本分享、选择或删除。来自通讯录、卡片或汽车的笔记需在各自的页面中分享和删除。",
+  "helpNotesListLongPressBody": "打开菜单，可置顶、加旗标、加标签、附加到另一条笔记、以文本分享、选择或删除。来自通讯录、卡片或汽车的笔记需在各自的页面中分享和删除。",
   "notesSelectedCount": "已选 {count} 项",
   "notesSelectAll": "全选",
   "notesDoneAction": "完成",
@@ -991,5 +991,19 @@
   "helpNotesRecentlyDeletedEmptyTitle": "清空",
   "helpNotesRecentlyDeletedEmptyBody": "从所有设备上移除此处列出的所有笔记。此操作无法撤销。",
   "helpNotesListRecentlyDeletedTitle": "最近删除",
-  "helpNotesListRecentlyDeletedBody": "打开侧边栏并点按“最近删除”，可在 30 天内恢复已删除的笔记。"
+  "helpNotesListRecentlyDeletedBody": "打开侧边栏并点按“最近删除”，可在 30 天内恢复已删除的笔记。",
+  "commonDone": "完成",
+  "notesTagsAction": "标签…",
+  "notesTagPickerTitle": "标签",
+  "notesTagPickerHint": "查找或新建标签",
+  "notesTagCreate": "新建“{name}”",
+  "@notesTagCreate": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesTagPickerEmpty": "还没有标签。输入名称即可新建。",
+  "notesTagFailed": "无法更改笔记的标签"
 }

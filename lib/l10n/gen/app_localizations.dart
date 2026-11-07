@@ -5849,7 +5849,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNotesListLongPressBody.
   ///
   /// In en, this message translates to:
-  /// **'Opens a menu to pin, flag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.'**
+  /// **'Opens a menu to pin, flag, tag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.'**
   String get helpNotesListLongPressBody;
 
   /// No description provided for @notesSelectedCount.
@@ -6031,6 +6031,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the side panel and tap Recently Deleted to restore a deleted note within 30 days.'**
   String get helpNotesListRecentlyDeletedBody;
+
+  /// No description provided for @commonDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get commonDone;
+
+  /// No description provided for @notesTagsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags…'**
+  String get notesTagsAction;
+
+  /// No description provided for @notesTagPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get notesTagPickerTitle;
+
+  /// No description provided for @notesTagPickerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Find or create a tag'**
+  String get notesTagPickerHint;
+
+  /// No description provided for @notesTagCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create “{name}”'**
+  String notesTagCreate(String name);
+
+  /// No description provided for @notesTagPickerEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet. Type a name to create one.'**
+  String get notesTagPickerEmpty;
+
+  /// No description provided for @notesTagFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change the note\'s tags'**
+  String get notesTagFailed;
 }
 
 class _AppLocalizationsDelegate

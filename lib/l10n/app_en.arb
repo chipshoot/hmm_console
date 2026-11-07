@@ -1539,7 +1539,7 @@
   "notesAttachUndoFailed": "Couldn't undo the attachment",
   "notesSelectAction": "Select",
   "helpNotesListLongPressTitle": "Touch and hold a note",
-  "helpNotesListLongPressBody": "Opens a menu to pin, flag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.",
+  "helpNotesListLongPressBody": "Opens a menu to pin, flag, tag, attach the note to another note, share it as text, select it, or delete it. Notes from Contacts, Cheatsheets or Automobile are shared and deleted from their own screens.",
   "notesSelectedCount": "{count, plural, =0{Select notes} =1{1 selected} other{{count} selected}}",
   "@notesSelectedCount": {"placeholders": {"count": {"type": "int"}}},
   "notesSelectAll": "Select All",
@@ -1574,5 +1574,19 @@
   "helpNotesRecentlyDeletedEmptyTitle": "Empty",
   "helpNotesRecentlyDeletedEmptyBody": "Removes every note listed here from all your devices. This can't be undone.",
   "helpNotesListRecentlyDeletedTitle": "Recently Deleted",
-  "helpNotesListRecentlyDeletedBody": "Open the side panel and tap Recently Deleted to restore a deleted note within 30 days."
+  "helpNotesListRecentlyDeletedBody": "Open the side panel and tap Recently Deleted to restore a deleted note within 30 days.",
+  "commonDone": "Done",
+  "notesTagsAction": "Tags…",
+  "notesTagPickerTitle": "Tags",
+  "notesTagPickerHint": "Find or create a tag",
+  "notesTagCreate": "Create “{name}”",
+  "@notesTagCreate": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesTagPickerEmpty": "No tags yet. Type a name to create one.",
+  "notesTagFailed": "Couldn't change the note's tags"
 }
