@@ -3407,9 +3407,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Open the side panel and tap Recently Deleted to restore a deleted note within 30 days.';
 
   @override
-  String get commonDone => 'Done';
-
-  @override
   String get notesTagsAction => 'Tags…';
 
   @override

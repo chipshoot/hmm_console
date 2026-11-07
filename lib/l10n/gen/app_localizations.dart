@@ -6044,12 +6044,6 @@ abstract class AppLocalizations {
   /// **'Open the side panel and tap Recently Deleted to restore a deleted note within 30 days.'**
   String get helpNotesListRecentlyDeletedBody;
 
-  /// No description provided for @commonDone.
-  ///
-  /// In en, this message translates to:
-  /// **'Done'**
-  String get commonDone;
-
   /// No description provided for @notesTagsAction.
   ///
   /// In en, this message translates to:

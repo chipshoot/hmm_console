@@ -3266,9 +3266,6 @@ class AppLocalizationsZh extends AppLocalizations {
       '打开侧边栏并点按“最近删除”，可在 30 天内恢复已删除的笔记。';
 
   @override
-  String get commonDone => '完成';
-
-  @override
   String get notesTagsAction => '标签…';
 
   @override

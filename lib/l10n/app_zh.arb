@@ -995,7 +995,6 @@
   "helpNotesRecentlyDeletedEmptyBody": "从所有设备上移除此处列出的所有笔记。此操作无法撤销。",
   "helpNotesListRecentlyDeletedTitle": "最近删除",
   "helpNotesListRecentlyDeletedBody": "打开侧边栏并点按“最近删除”，可在 30 天内恢复已删除的笔记。",
-  "commonDone": "完成",
   "notesTagsAction": "标签…",
   "notesTagPickerTitle": "标签",
   "notesTagPickerHint": "查找或新建标签",

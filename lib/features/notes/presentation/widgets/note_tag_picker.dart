@@ -176,7 +176,7 @@ class _TagPickerSheetState extends ConsumerState<_TagPickerSheet> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
-                    done(l.commonDone),
+                    done(l.notesDoneAction),
                   ],
                 ),
               ),

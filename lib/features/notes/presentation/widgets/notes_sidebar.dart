@@ -261,9 +261,10 @@ class NotesSidebar extends ConsumerWidget {
               onTap: () =>
                   pick(TagSource(tagId: t.id), usageKey: usageKeyForTag(t.id)),
             ),
-          ListTile(
+          tile(
             leading: Icon(Icons.edit_outlined, color: c.accent),
-            title: Text(l.notesManageTagsRow),
+            title: l.notesManageTagsRow,
+            selected: false,
             onTap: () {
               // The drawer may pop on onPicked: take the router first.
               final router = GoRouter.of(context);

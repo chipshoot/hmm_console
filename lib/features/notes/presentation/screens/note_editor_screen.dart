@@ -23,7 +23,7 @@ import '../widgets/note_link_picker.dart';
 import '../widgets/note_markdown_body.dart';
 import '../../../../core/data/note_location.dart';
 import '../../../../core/data/local/local_tag_repository.dart'
-    show normalizeTagName;
+    show ITagRepository, normalizeTagName;
 import '../../../../core/data/repository_providers.dart';
 import '../../../gas_log/providers/location_provider.dart'
     show currentPositionProvider;
@@ -188,7 +188,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           .first;
       if (!mounted) return;
       final names = [
-        for (final t in byNote[widget.noteId] ?? const <({int id, String name})>[]) t.name,
+        for (final t
+            in byNote[widget.noteId] ?? const <({int id, String name})>[])
+          t.name,
       ];
       setState(() {
         _initialTagNames = names;
@@ -211,10 +213,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   /// Resolves the chosen names to tags (creating the missing ones) and sets
-  /// the note's membership. Runs after the note itself is saved.
-  Future<void> _saveTags(int noteId, MutateNote mutate) async {
-    if (!_tagsChanged) return;
-    final repo = ref.read(tagRepositoryProvider);
+  /// the note's membership. Runs after the note itself is saved, only when
+  /// the tags changed.
+  Future<void> _saveTags(
+    int noteId,
+    MutateNote mutate,
+    ITagRepository repo,
+  ) async {
     final ids = <int>{};
     for (final n in _tagNames) {
       ids.add((await repo.ensureTag(n)).id);
@@ -258,6 +263,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     // Typed-but-uncommitted tag text counts as a tag.
     _tagFieldKey.currentState?.commitPending();
     final mutate = ref.read(mutateNoteProvider);
+    // Read before the awaits below (no ref use after an await), and only
+    // when the tags changed: an untouched tag set never needs the repo.
+    final tagRepo = _tagsChanged ? ref.read(tagRepositoryProvider) : null;
     setState(() => _busy = true);
     try {
       if (_noteId == null) {
@@ -301,7 +309,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         if (mounted) setState(() => _pendingFiles.clear());
         ref.invalidate(noteDetailProvider(_noteId!));
       }
-      if (_noteId != null) await _saveTags(_noteId!, mutate);
+      if (_noteId != null && tagRepo != null) {
+        await _saveTags(_noteId!, mutate, tagRepo);
+      }
       return _noteId;
     } on VaultLockedException {
       // Defense-in-depth for the B5 save-time TOCTOU: the vault relocked
@@ -389,9 +399,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     if (passphrase == null || passphrase.isEmpty) return false;
     final ok = await ctrl.unlockWithPassphrase(passphrase);
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.vaultIncorrectPassphrase)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.vaultIncorrectPassphrase)));
     }
     return ok;
   }
@@ -806,8 +816,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           // trailing hide-keyboard button appears only while it's up.
           MediaToolbar(
             onPick: _addMedia,
-            onPickSensitive:
-                dataMode == DataMode.cloudApi ? null : _addSensitiveMedia,
+            onPickSensitive: dataMode == DataMode.cloudApi
+                ? null
+                : _addSensitiveMedia,
             onPickFile: _addFile,
             onRecord: _addRecording,
             onLinkToNote: _addNoteLink,
