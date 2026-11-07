@@ -419,7 +419,7 @@ void main() {
       await t.pumpAndSettle();
       await t.tap(find.text('Done'));
       await t.pumpAndSettle();
-      expect(bulk.calls, ['tags(1,2;+$tagC;-)']);
+      expect(bulk.calls, ['tags(2,1;+$tagC;-)']);
       expect(_sel(t).active, isFalse);
       expect(find.byType(SnackBar), findsNothing);
       await finish(t);
