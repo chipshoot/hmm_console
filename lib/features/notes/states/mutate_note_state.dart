@@ -103,6 +103,11 @@ class MutateNote {
       .read(noteStateRepositoryProvider)
       .setFlagColor(await _uuidOf(id), flagColor);
 
+  /// Set-replace a note's tags. Unlike pin / flag this IS a note edit: a
+  /// changed set bumps the note so it re-syncs (an unchanged set is a no-op).
+  Future<void> setTags(int noteId, Set<int> tagIds) =>
+      ref.read(tagRepositoryProvider).setNoteTags(noteId, tagIds);
+
   Future<String> _uuidOf(int id) async {
     final note = await ref.read(hmmNoteRepositoryProvider).getNoteById(id);
     if (note == null) throw StateError('Note $id not found');
