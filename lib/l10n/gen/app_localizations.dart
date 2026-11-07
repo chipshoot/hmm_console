@@ -6109,6 +6109,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove tag {name}'**
   String notesEditorRemoveTag(String name);
+
+  /// No description provided for @notesManageTagsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Tags'**
+  String get notesManageTagsTitle;
+
+  /// No description provided for @notesManageTagsRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage tags…'**
+  String get notesManageTagsRow;
+
+  /// No description provided for @notesManageTagsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No notes} =1{1 note} other{{count} notes}}'**
+  String notesManageTagsCount(int count);
+
+  /// No description provided for @notesManageTagsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet. Add tags in a note\'s editor or from its long-press menu.'**
+  String get notesManageTagsEmpty;
+
+  /// No description provided for @notesRenameTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename…'**
+  String get notesRenameTag;
+
+  /// No description provided for @notesRenameTagTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Tag'**
+  String get notesRenameTagTitle;
+
+  /// No description provided for @notesMergeTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge into…'**
+  String get notesMergeTag;
+
+  /// No description provided for @notesMergeTagConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {count, plural, =1{1 note} other{{count} notes}} from “{from}” to “{to}” and delete “{from}”?'**
+  String notesMergeTagConfirm(int count, String from, String to);
+
+  /// No description provided for @notesMergeTagAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get notesMergeTagAction;
+
+  /// No description provided for @notesTagNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'A tag named “{name}” already exists. Merge into it?'**
+  String notesTagNameTaken(String name);
+
+  /// No description provided for @notesDeleteTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete…'**
+  String get notesDeleteTag;
+
+  /// No description provided for @notesDeleteTagConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the tag “{name}”? It is removed from {count, plural, =1{1 note} other{{count} notes}}. The notes stay.'**
+  String notesDeleteTagConfirm(String name, int count);
+
+  /// No description provided for @notesManageTagsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change the tag'**
+  String get notesManageTagsFailed;
+
+  /// No description provided for @helpManageTagsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Tags'**
+  String get helpManageTagsTitle;
+
+  /// No description provided for @helpManageTagsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename, merge or delete your tags. Changes apply to every note that has the tag.'**
+  String get helpManageTagsSummary;
+
+  /// No description provided for @helpManageTagsRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get helpManageTagsRenameTitle;
+
+  /// No description provided for @helpManageTagsRenameBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a tag, then Rename. If the new name is taken, you can merge the two.'**
+  String get helpManageTagsRenameBody;
+
+  /// No description provided for @helpManageTagsMergeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get helpManageTagsMergeTitle;
+
+  /// No description provided for @helpManageTagsMergeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Moves every note to the tag you pick and deletes the other tag.'**
+  String get helpManageTagsMergeBody;
+
+  /// No description provided for @helpManageTagsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get helpManageTagsDeleteTitle;
+
+  /// No description provided for @helpManageTagsDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes the tag from its notes. The notes themselves are kept.'**
+  String get helpManageTagsDeleteBody;
+
+  /// No description provided for @helpNotesListTagsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get helpNotesListTagsTitle;
+
+  /// No description provided for @helpNotesListTagsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tags in a note\'s editor or with Tags… on its long-press menu. Pick a tag in the side panel to see its notes; Manage tags… renames, merges or deletes them.'**
+  String get helpNotesListTagsBody;
 }
 
 class _AppLocalizationsDelegate

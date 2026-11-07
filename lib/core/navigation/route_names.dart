@@ -23,6 +23,7 @@ enum RouterNames {
   onboarding,
   notesList,
   notesRecentlyDeleted,
+  notesManageTags,
   noteCreate,
   noteDetail,
   noteEdit,

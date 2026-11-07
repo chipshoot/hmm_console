@@ -1602,5 +1602,32 @@
         "type": "String"
       }
     }
-  }
+  },
+  "notesManageTagsTitle": "Manage Tags",
+  "notesManageTagsRow": "Manage tags…",
+  "notesManageTagsCount": "{count, plural, =0{No notes} =1{1 note} other{{count} notes}}",
+  "@notesManageTagsCount": {"placeholders": {"count": {"type": "int"}}},
+  "notesManageTagsEmpty": "No tags yet. Add tags in a note's editor or from its long-press menu.",
+  "notesRenameTag": "Rename…",
+  "notesRenameTagTitle": "Rename Tag",
+  "notesMergeTag": "Merge into…",
+  "notesMergeTagConfirm": "Move {count, plural, =1{1 note} other{{count} notes}} from “{from}” to “{to}” and delete “{from}”?",
+  "@notesMergeTagConfirm": {"placeholders": {"count": {"type": "int"}, "from": {"type": "String"}, "to": {"type": "String"}}},
+  "notesMergeTagAction": "Merge",
+  "notesTagNameTaken": "A tag named “{name}” already exists. Merge into it?",
+  "@notesTagNameTaken": {"placeholders": {"name": {"type": "String"}}},
+  "notesDeleteTag": "Delete…",
+  "notesDeleteTagConfirm": "Delete the tag “{name}”? It is removed from {count, plural, =1{1 note} other{{count} notes}}. The notes stay.",
+  "@notesDeleteTagConfirm": {"placeholders": {"name": {"type": "String"}, "count": {"type": "int"}}},
+  "notesManageTagsFailed": "Couldn't change the tag",
+  "helpManageTagsTitle": "Manage Tags",
+  "helpManageTagsSummary": "Rename, merge or delete your tags. Changes apply to every note that has the tag.",
+  "helpManageTagsRenameTitle": "Rename",
+  "helpManageTagsRenameBody": "Tap a tag, then Rename. If the new name is taken, you can merge the two.",
+  "helpManageTagsMergeTitle": "Merge",
+  "helpManageTagsMergeBody": "Moves every note to the tag you pick and deletes the other tag.",
+  "helpManageTagsDeleteTitle": "Delete",
+  "helpManageTagsDeleteBody": "Removes the tag from its notes. The notes themselves are kept.",
+  "helpNotesListTagsTitle": "Tags",
+  "helpNotesListTagsBody": "Add tags in a note's editor or with Tags… on its long-press menu. Pick a tag in the side panel to see its notes; Manage tags… renames, merges or deletes them."
 }

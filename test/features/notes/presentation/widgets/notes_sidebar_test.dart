@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/help/help_registry.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
@@ -344,6 +345,77 @@ void main() {
       ),
     );
     expect(help.entries.any((e) => e.body.contains('kinds of note')), isTrue);
+  });
+
+  testWidgets('Tags header shows with no tags', (tester) async {
+    await _pump(
+      tester,
+      results: const AsyncData(
+        NoteResults(
+          groups: [],
+          counts: NoteCounts(
+            all: 0,
+            pinned: 0,
+            byDomain: {},
+            byTag: {},
+            byFlag: {},
+          ),
+          total: 0,
+        ),
+      ),
+    );
+    expect(find.text('Tags'), findsOneWidget);
+    expect(find.text('Manage tags…'), findsOneWidget);
+  });
+
+  testWidgets('Manage tags… row pushes /notes/tags', (tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var picked = 0;
+    final c = ProviderContainer(
+      overrides: [
+        notesResultsProvider.overrideWithValue(
+          const AsyncData(NoteResults(groups: [], counts: _counts, total: 12)),
+        ),
+      ],
+    );
+    addTearDown(c.dispose);
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, _) => Scaffold(
+            body: NotesSidebar(
+              data: const NotesListData(all: [], catalogsById: {}),
+              onPicked: () => picked++,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/notes/tags',
+          builder: (_, _) => const Text('tags screen'),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: c,
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(extensions: const [AppColors.light]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final tile = find.widgetWithText(ListTile, 'Manage tags…');
+    await tester.ensureVisible(tile);
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(picked, 1);
+    expect(find.text('tags screen'), findsOneWidget);
   });
 }
 

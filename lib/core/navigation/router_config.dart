@@ -29,6 +29,7 @@ import 'package:hmm_console/features/notes/presentation/screens/note_detail_scre
 import 'package:hmm_console/features/notes/presentation/screens/note_editor_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/notes_shell_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/raw_content_screen.dart';
+import 'package:hmm_console/features/notes/presentation/screens/manage_tags_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/recently_deleted_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/subsystems_screen.dart';
 import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_screen.dart';
@@ -75,8 +76,7 @@ final routerConfig = Provider<GoRouter>(
       // starts at initialLocation and threw the user back to the dashboard.
       return onboardingRedirect(
         isAuthenticated: isAuthenticated,
-        settingsLoaded:
-            ref.watch(settingsProvider.select((s) => s.hasValue)),
+        settingsLoaded: ref.watch(settingsProvider.select((s) => s.hasValue)),
         onboardingCompleted: ref.watch(onboardingCompletedProvider),
         isOnboardingPath: state.fullPath == '/onboarding',
       );
@@ -118,14 +118,12 @@ final routerConfig = Provider<GoRouter>(
           GoRoute(
             path: 'manage',
             name: RouterNames.automobileManagement.name,
-            builder: (context, state) =>
-                const AutomobileManagementScreen(),
+            builder: (context, state) => const AutomobileManagementScreen(),
             routes: [
               GoRoute(
                 path: 'new',
                 name: RouterNames.automobileCreate.name,
-                builder: (context, state) =>
-                    const AutomobileCreateScreen(),
+                builder: (context, state) => const AutomobileCreateScreen(),
               ),
               GoRoute(
                 path: ':id/edit',
@@ -156,8 +154,9 @@ final routerConfig = Provider<GoRouter>(
                     name: RouterNames.insurancePolicyEdit.name,
                     builder: (context, state) {
                       final id = int.parse(state.pathParameters['id']!);
-                      final policyId =
-                          int.parse(state.pathParameters['policyId']!);
+                      final policyId = int.parse(
+                        state.pathParameters['policyId']!,
+                      );
                       return InsurancePolicyFormScreen(
                         automobileId: id,
                         policyId: policyId,
@@ -187,8 +186,9 @@ final routerConfig = Provider<GoRouter>(
                     name: RouterNames.serviceRecordEdit.name,
                     builder: (context, state) {
                       final id = int.parse(state.pathParameters['id']!);
-                      final recordId =
-                          int.parse(state.pathParameters['recordId']!);
+                      final recordId = int.parse(
+                        state.pathParameters['recordId']!,
+                      );
                       return ServiceRecordFormScreen(
                         automobileId: id,
                         recordId: recordId,
@@ -218,8 +218,9 @@ final routerConfig = Provider<GoRouter>(
                     name: RouterNames.scheduledServiceEdit.name,
                     builder: (context, state) {
                       final id = int.parse(state.pathParameters['id']!);
-                      final scheduleId =
-                          int.parse(state.pathParameters['scheduleId']!);
+                      final scheduleId = int.parse(
+                        state.pathParameters['scheduleId']!,
+                      );
                       return ScheduledServiceFormScreen(
                         automobileId: id,
                         scheduleId: scheduleId,
@@ -293,7 +294,8 @@ final routerConfig = Provider<GoRouter>(
             builder: (context, state) {
               final p = state.uri.queryParameters['parent'];
               return NoteEditorScreen(
-                  presetParentId: p == null ? null : int.tryParse(p));
+                presetParentId: p == null ? null : int.tryParse(p),
+              );
             },
           ),
           GoRoute(
@@ -316,6 +318,11 @@ final routerConfig = Provider<GoRouter>(
             path: 'deleted',
             name: RouterNames.notesRecentlyDeleted.name,
             builder: (context, state) => const RecentlyDeletedScreen(),
+          ),
+          GoRoute(
+            path: 'tags',
+            name: RouterNames.notesManageTags.name,
+            builder: (_, _) => const ManageTagsScreen(),
           ),
           GoRoute(
             path: ':id',

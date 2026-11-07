@@ -19,6 +19,7 @@ enum HelpId {
   noteDetail,
   notesList,
   notesRecentlyDeleted,
+  manageTags,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
@@ -307,6 +308,27 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
       ),
     ],
   ),
+  HelpId.manageTags => ScreenHelp(
+    title: l.helpManageTagsTitle,
+    summary: l.helpManageTagsSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.edit_outlined,
+        title: l.helpManageTagsRenameTitle,
+        body: l.helpManageTagsRenameBody,
+      ),
+      HelpEntry(
+        icon: Icons.merge,
+        title: l.helpManageTagsMergeTitle,
+        body: l.helpManageTagsMergeBody,
+      ),
+      HelpEntry(
+        icon: Icons.delete_outline,
+        title: l.helpManageTagsDeleteTitle,
+        body: l.helpManageTagsDeleteBody,
+      ),
+    ],
+  ),
   HelpId.notesList => ScreenHelp(
     title: l.helpNotesListTitle,
     summary: l.helpNotesListSummary,
@@ -375,6 +397,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.delete_outline,
         title: l.helpNotesListRecentlyDeletedTitle,
         body: l.helpNotesListRecentlyDeletedBody,
+      ),
+      HelpEntry(
+        icon: Icons.label_outline,
+        title: l.helpNotesListTagsTitle,
+        body: l.helpNotesListTagsBody,
       ),
     ],
   ),

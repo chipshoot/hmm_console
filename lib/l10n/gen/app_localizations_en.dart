@@ -3442,4 +3442,106 @@ class AppLocalizationsEn extends AppLocalizations {
   String notesEditorRemoveTag(String name) {
     return 'Remove tag $name';
   }
+
+  @override
+  String get notesManageTagsTitle => 'Manage Tags';
+
+  @override
+  String get notesManageTagsRow => 'Manage tags…';
+
+  @override
+  String notesManageTagsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes',
+      one: '1 note',
+      zero: 'No notes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesManageTagsEmpty =>
+      'No tags yet. Add tags in a note\'s editor or from its long-press menu.';
+
+  @override
+  String get notesRenameTag => 'Rename…';
+
+  @override
+  String get notesRenameTagTitle => 'Rename Tag';
+
+  @override
+  String get notesMergeTag => 'Merge into…';
+
+  @override
+  String notesMergeTagConfirm(int count, String from, String to) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes',
+      one: '1 note',
+    );
+    return 'Move $_temp0 from “$from” to “$to” and delete “$from”?';
+  }
+
+  @override
+  String get notesMergeTagAction => 'Merge';
+
+  @override
+  String notesTagNameTaken(String name) {
+    return 'A tag named “$name” already exists. Merge into it?';
+  }
+
+  @override
+  String get notesDeleteTag => 'Delete…';
+
+  @override
+  String notesDeleteTagConfirm(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes',
+      one: '1 note',
+    );
+    return 'Delete the tag “$name”? It is removed from $_temp0. The notes stay.';
+  }
+
+  @override
+  String get notesManageTagsFailed => 'Couldn\'t change the tag';
+
+  @override
+  String get helpManageTagsTitle => 'Manage Tags';
+
+  @override
+  String get helpManageTagsSummary =>
+      'Rename, merge or delete your tags. Changes apply to every note that has the tag.';
+
+  @override
+  String get helpManageTagsRenameTitle => 'Rename';
+
+  @override
+  String get helpManageTagsRenameBody =>
+      'Tap a tag, then Rename. If the new name is taken, you can merge the two.';
+
+  @override
+  String get helpManageTagsMergeTitle => 'Merge';
+
+  @override
+  String get helpManageTagsMergeBody =>
+      'Moves every note to the tag you pick and deletes the other tag.';
+
+  @override
+  String get helpManageTagsDeleteTitle => 'Delete';
+
+  @override
+  String get helpManageTagsDeleteBody =>
+      'Removes the tag from its notes. The notes themselves are kept.';
+
+  @override
+  String get helpNotesListTagsTitle => 'Tags';
+
+  @override
+  String get helpNotesListTagsBody =>
+      'Add tags in a note\'s editor or with Tags… on its long-press menu. Pick a tag in the side panel to see its notes; Manage tags… renames, merges or deletes them.';
 }

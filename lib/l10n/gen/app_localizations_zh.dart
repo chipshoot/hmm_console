@@ -3301,4 +3301,87 @@ class AppLocalizationsZh extends AppLocalizations {
   String notesEditorRemoveTag(String name) {
     return '移除标签 $name';
   }
+
+  @override
+  String get notesManageTagsTitle => '管理标签';
+
+  @override
+  String get notesManageTagsRow => '管理标签…';
+
+  @override
+  String notesManageTagsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条笔记',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesManageTagsEmpty => '还没有标签。可在笔记编辑器或长按菜单中添加。';
+
+  @override
+  String get notesRenameTag => '重命名…';
+
+  @override
+  String get notesRenameTagTitle => '重命名标签';
+
+  @override
+  String get notesMergeTag => '合并到…';
+
+  @override
+  String notesMergeTagConfirm(int count, String from, String to) {
+    return '将 $count 条笔记从“$from”移到“$to”，并删除“$from”？';
+  }
+
+  @override
+  String get notesMergeTagAction => '合并';
+
+  @override
+  String notesTagNameTaken(String name) {
+    return '已有名为“$name”的标签。要合并到它吗？';
+  }
+
+  @override
+  String get notesDeleteTag => '删除…';
+
+  @override
+  String notesDeleteTagConfirm(String name, int count) {
+    return '删除标签“$name”？它将从 $count 条笔记中移除，笔记本身会保留。';
+  }
+
+  @override
+  String get notesManageTagsFailed => '无法更改标签';
+
+  @override
+  String get helpManageTagsTitle => '管理标签';
+
+  @override
+  String get helpManageTagsSummary => '重命名、合并或删除标签。更改会应用到所有带有该标签的笔记。';
+
+  @override
+  String get helpManageTagsRenameTitle => '重命名';
+
+  @override
+  String get helpManageTagsRenameBody => '点按标签，然后选择重命名。如果新名称已被使用，可以把两个标签合并。';
+
+  @override
+  String get helpManageTagsMergeTitle => '合并';
+
+  @override
+  String get helpManageTagsMergeBody => '把所有笔记移到你选择的标签，并删除另一个标签。';
+
+  @override
+  String get helpManageTagsDeleteTitle => '删除';
+
+  @override
+  String get helpManageTagsDeleteBody => '从笔记中移除该标签，笔记本身会保留。';
+
+  @override
+  String get helpNotesListTagsTitle => '标签';
+
+  @override
+  String get helpNotesListTagsBody =>
+      '可在笔记编辑器中或通过长按菜单的“标签…”添加标签。在侧边栏选择标签可查看其笔记；“管理标签…”可重命名、合并或删除标签。';
 }

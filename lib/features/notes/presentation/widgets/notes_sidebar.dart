@@ -251,7 +251,7 @@ class NotesSidebar extends ConsumerWidget {
               selected: source == DomainSource(key: g.key),
               onTap: () => pick(DomainSource(key: g.key), usageKey: g.key),
             ),
-          if (tags.isNotEmpty) header(l.notesSidebarTags),
+          header(l.notesSidebarTags),
           for (final t in tags)
             tile(
               leading: Icon(Icons.label_outline, color: c.accent),
@@ -261,6 +261,16 @@ class NotesSidebar extends ConsumerWidget {
               onTap: () =>
                   pick(TagSource(tagId: t.id), usageKey: usageKeyForTag(t.id)),
             ),
+          ListTile(
+            leading: Icon(Icons.edit_outlined, color: c.accent),
+            title: Text(l.notesManageTagsRow),
+            onTap: () {
+              // The drawer may pop on onPicked: take the router first.
+              final router = GoRouter.of(context);
+              onPicked();
+              router.push('/notes/tags');
+            },
+          ),
           header(l.notesSidebarSmartFilters),
           for (final s in smart)
             if (isBuiltInSmartFilter(s.id))

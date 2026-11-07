@@ -61,6 +61,8 @@ Pin and flag are the **user's own state about a note**, not note content (like a
 
 ### Tags
 
+**2026-11-04 (Slice 6 decisions):** see 'Decisions this plan makes' in `docs/superpowers/plans/2026-11-04-notes-slice6-tags-ui-manage-tags.md` — a tag change is a note edit (bumps and re-pushes the note); rename keeps the local id and tombstones the old name; tag definitions don't sync over the API transport until the server has per-author tags.
+
 - Tables `Tags` and `NoteTagRefs` exist locally; `/v1/tags` exists on the server. This project adds the UI.
 - **Verified 2026-10-18:** cloudStorage already syncs tags (`tags.json`, per-name LWW with tombstones) and note tag membership (a `tags` name list in each note blob). **cloudApi does not** (pull/push tags are no-ops; note DTOs carry no tags) — this project wires the existing `/v1/tags` and `PUT /notes/{id}/applyTag` endpoints so tags work in all three modes.
 
