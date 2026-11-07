@@ -101,6 +101,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   List<String> _tagNames = [];
   List<String> _initialTagNames = [];
   bool _tagsLoaded = true;
+  final _tagFieldKey = GlobalKey<NoteTagFieldState>();
 
   @override
   void initState() {
@@ -254,6 +255,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         return null;
       }
     }
+    // Typed-but-uncommitted tag text counts as a tag.
+    _tagFieldKey.currentState?.commitPending();
     final mutate = ref.read(mutateNoteProvider);
     setState(() => _busy = true);
     try {
@@ -713,6 +716,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       ),
                       const SizedBox(height: 8),
                       NoteTagField(
+                        key: _tagFieldKey,
+                        enabled: _tagsLoaded,
                         names: _tagNames,
                         onChanged: (v) => setState(() => _tagNames = v),
                       ),

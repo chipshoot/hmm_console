@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,13 +36,17 @@ class _FakeNotes implements IHmmNoteRepository {
 }
 
 class _FakeTags implements ITagRepository {
-  _FakeTags({this.byNote = const {}});
+  _FakeTags({this.byNote = const {}, this.noteTags});
   final Map<int, List<NoteTagLabel>> byNote;
+
+  /// When set, replaces the default `Stream.value(byNote)`.
+  final Stream<Map<int, List<NoteTagLabel>>>? noteTags;
   final ensured = <String>[];
   int _next = 100;
 
   @override
-  Stream<Map<int, List<NoteTagLabel>>> watchNoteTags() => Stream.value(byNote);
+  Stream<Map<int, List<NoteTagLabel>>> watchNoteTags() =>
+      noteTags ?? Stream.value(byNote);
   @override
   Stream<Map<int, String>> watchLiveTagNames() => Stream.value(const {});
   @override
@@ -99,6 +105,7 @@ void main() {
     int? noteId,
     int? presetParentId,
     NotesListData? list,
+    bool settle = true,
   }) async {
     final router = GoRouter(
       initialLocation: '/editor',
@@ -140,7 +147,11 @@ void main() {
         ),
       ),
     );
-    await t.pumpAndSettle();
+    if (settle) {
+      await t.pumpAndSettle();
+    } else {
+      await t.pump();
+    }
     return container;
   }
 
@@ -239,4 +250,60 @@ void main() {
     await open(t, list: listFor(const TagSource(tagId: 5)));
     expect(field(t).names, isEmpty);
   });
+
+  bool fieldEnabled(WidgetTester t) =>
+      t
+          .widget<TextField>(
+            find.descendant(
+              of: find.byType(NoteTagField),
+              matching: find.byType(TextField),
+            ),
+          )
+          .enabled !=
+      false;
+
+  testWidgets('uncommitted tag text is committed on Save', (t) async {
+    await open(t);
+    await t.enterText(find.byType(TextField).first, 'Title');
+    await t.enterText(
+      find.descendant(
+        of: find.byType(NoteTagField),
+        matching: find.byType(TextField),
+      ),
+      'groceries',
+    );
+    await t.tap(find.text('Save'));
+    await t.pumpAndSettle();
+    expect(tags.ensured, ['groceries']);
+    expect(mutate.setTagsCalls, ['7:100']);
+  });
+
+  testWidgets("existing note's tag field is disabled until its tags load", (
+    t,
+  ) async {
+    final c = Completer<Map<int, List<NoteTagLabel>>>();
+    tags = _FakeTags(noteTags: c.future.asStream());
+    await open(t, noteId: 3, settle: false);
+    await t.pump();
+    expect(fieldEnabled(t), isFalse);
+    c.complete({
+      3: [(id: 1, name: 'keep')],
+    });
+    await t.pumpAndSettle();
+    expect(fieldEnabled(t), isTrue);
+    expect(field(t).names, ['keep']);
+  });
+
+  testWidgets(
+    'a failed tag load leaves the field disabled and Save writes no tags',
+    (t) async {
+      tags = _FakeTags(noteTags: Stream.error(StateError('x')));
+      await open(t, noteId: 3);
+      expect(fieldEnabled(t), isFalse);
+      await t.tap(find.text('Save'));
+      await t.pumpAndSettle();
+      expect(tags.ensured, isEmpty);
+      expect(mutate.setTagsCalls, isEmpty);
+    },
+  );
 }

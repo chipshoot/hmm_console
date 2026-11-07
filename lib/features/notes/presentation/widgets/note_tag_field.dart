@@ -17,16 +17,24 @@ const int _maxSuggestions = 6;
 /// chosen one (case-insensitive) or one `normalizeTagName` rejects is
 /// ignored. Live tags are read lazily, on the first keystroke.
 class NoteTagField extends ConsumerStatefulWidget {
-  const NoteTagField({super.key, required this.names, required this.onChanged});
+  const NoteTagField({
+    super.key,
+    required this.names,
+    required this.onChanged,
+    this.enabled = true,
+  });
 
   final List<String> names;
   final ValueChanged<List<String>> onChanged;
 
+  /// False hides nothing but blocks edits (chips cannot be added or removed).
+  final bool enabled;
+
   @override
-  ConsumerState<NoteTagField> createState() => _NoteTagFieldState();
+  ConsumerState<NoteTagField> createState() => NoteTagFieldState();
 }
 
-class _NoteTagFieldState extends ConsumerState<NoteTagField> {
+class NoteTagFieldState extends ConsumerState<NoteTagField> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
   StreamSubscription<Map<int, String>>? _sub;
@@ -71,6 +79,13 @@ class _NoteTagFieldState extends ConsumerState<NoteTagField> {
     setState(() {});
   }
 
+  /// Commits whatever is typed but not yet committed (call before saving).
+  void commitPending() {
+    if (_controller.text.trim().isEmpty) return;
+    _commit(_controller.text);
+    _controller.clear();
+  }
+
   void _submit(String text) {
     _commit(text);
     _controller.clear();
@@ -107,15 +122,18 @@ class _NoteTagFieldState extends ConsumerState<NoteTagField> {
                 label: Text(n),
                 visualDensity: VisualDensity.compact,
                 deleteButtonTooltipMessage: l.notesEditorRemoveTag(n),
-                onDeleted: () => widget.onChanged(
-                  widget.names.where((x) => x != n).toList(),
-                ),
+                onDeleted: widget.enabled
+                    ? () => widget.onChanged(
+                        widget.names.where((x) => x != n).toList(),
+                      )
+                    : null,
               ),
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 120, maxWidth: 220),
               child: IntrinsicWidth(
                 child: TextField(
                   controller: _controller,
+                  enabled: widget.enabled,
                   focusNode: _focus,
                   onChanged: _onText,
                   onSubmitted: _submit,
