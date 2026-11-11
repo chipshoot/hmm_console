@@ -51,11 +51,19 @@ import '../widgets/saved_search_dialogs.dart';
 import '../widgets/notes_view_menu.dart';
 
 class NotesListScreen extends ConsumerStatefulWidget {
-  const NotesListScreen({super.key, this.sidebarDocked = false});
+  const NotesListScreen({
+    super.key,
+    this.sidebarDocked = false,
+    this.onToggleSidebar,
+  });
 
   /// True when the side panel is docked beside the list: no drawer, no ☰,
   /// no ＋.
   final bool sidebarDocked;
+
+  /// Set where the panel can dock (wide screens): the top bar shows a
+  /// side-panel button that hides or shows it instead of ☰ and a drawer.
+  final VoidCallback? onToggleSidebar;
 
   @override
   ConsumerState<NotesListScreen> createState() => _NotesListScreenState();
@@ -226,7 +234,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               )
             : null,
         bottomBar: multi.active ? const NotesBulkBar() : null,
-        drawer: data == null || widget.sidebarDocked
+        drawer:
+            data == null ||
+                widget.sidebarDocked ||
+                widget.onToggleSidebar != null
             ? null
             : Drawer(
                 child: NotesSidebar(
@@ -246,7 +257,20 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                   : () => multiNotifier.enter(),
               child: Text(multi.active ? l.notesDoneAction : l.commonEdit),
             ),
-          if (!widget.sidebarDocked)
+          if (widget.onToggleSidebar case final toggle?)
+            HmmIconButton(
+              key: const Key('notesSidebarToggle'),
+              tooltip: widget.sidebarDocked
+                  ? l.notesHideSidebarTooltip
+                  : l.notesShowSidebarTooltip,
+              icon: switch (Theme.of(context).platform) {
+                TargetPlatform.iOS ||
+                TargetPlatform.macOS => CupertinoIcons.sidebar_left,
+                _ => Icons.view_sidebar_outlined,
+              },
+              onPressed: toggle,
+            )
+          else if (!widget.sidebarDocked)
             // A Builder: this context is above the Scaffold AppScaffold builds.
             Builder(
               builder: (context) => HmmIconButton(

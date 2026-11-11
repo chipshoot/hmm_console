@@ -5399,8 +5399,20 @@ abstract class AppLocalizations {
   /// No description provided for @helpNotesListFilterBody.
   ///
   /// In en, this message translates to:
-  /// **'Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list.'**
+  /// **'Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list, until you hide it with the side-panel button.'**
   String get helpNotesListFilterBody;
+
+  /// No description provided for @helpNotesListSidebarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the side panel'**
+  String get helpNotesListSidebarTitle;
+
+  /// No description provided for @helpNotesListSidebarBody.
+  ///
+  /// In en, this message translates to:
+  /// **'On a wide screen the side panel stays beside the list. Tap the side-panel button at the top to hide it and give the open note more room; tap it again to bring it back. Each device remembers its own choice.'**
+  String get helpNotesListSidebarBody;
 
   /// No description provided for @notesTokenHasPhoto.
   ///
@@ -5707,6 +5719,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filters and lists'**
   String get notesMenuTooltip;
+
+  /// No description provided for @notesHideSidebarTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide side panel'**
+  String get notesHideSidebarTooltip;
+
+  /// No description provided for @notesShowSidebarTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Show side panel'**
+  String get notesShowSidebarTooltip;
 
   /// No description provided for @notesChipMoreTooltip.
   ///

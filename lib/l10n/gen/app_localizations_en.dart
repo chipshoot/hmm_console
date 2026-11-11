@@ -2971,7 +2971,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNotesListFilterBody =>
-      'Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list.';
+      'Open the side panel (☰) to filter by Pinned, Flagged (by colour), Today, a domain, a tag or a smart filter; the numbers show how many notes each holds. Long-press one of your saved searches to rename, move or delete it. On a wide screen the panel stays open beside the list, until you hide it with the side-panel button.';
+
+  @override
+  String get helpNotesListSidebarTitle => 'Hide the side panel';
+
+  @override
+  String get helpNotesListSidebarBody =>
+      'On a wide screen the side panel stays beside the list. Tap the side-panel button at the top to hide it and give the open note more room; tap it again to bring it back. Each device remembers its own choice.';
 
   @override
   String get notesTokenHasPhoto => 'Has photos';
@@ -3150,6 +3157,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesMenuTooltip => 'Filters and lists';
+
+  @override
+  String get notesHideSidebarTooltip => 'Hide side panel';
+
+  @override
+  String get notesShowSidebarTooltip => 'Show side panel';
 
   @override
   String get notesChipMoreTooltip => 'More filters';

@@ -27,8 +27,10 @@ class SettingsController extends AsyncNotifier<AppSettings> {
     try {
       return AppSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (e) {
-      debugPrint('SettingsController: corrupt app_settings blob ($e); '
-          'falling back to legacy keys.');
+      debugPrint(
+        'SettingsController: corrupt app_settings blob ($e); '
+        'falling back to legacy keys.',
+      );
       // Legacy keys are retained this release: recover connection-critical
       // (and everything else) rather than dropping to blind defaults, then
       // heal the blob so we don't re-hit this every launch.
@@ -70,6 +72,8 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       _update(_current.copyWith(notesFilterUsage: v));
   Future<void> setNotesRecentSearches(List<Map<String, Object?>> v) =>
       _update(_current.copyWith(notesRecentSearches: v));
+  Future<void> setNotesSidebarHidden(bool v) =>
+      _update(_current.copyWith(notesSidebarHidden: v));
   Future<void> setNotesRowDensity(NoteRowDensity v) =>
       _update(_current.copyWith(notesRowDensity: v));
   Future<void> setNotesLastFlagColor(int v) =>
@@ -88,15 +92,24 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       _update(_current.copyWith(cloudStorageVaultPath: v));
 }
 
-final settingsProvider =
-    AsyncNotifierProvider<SettingsController, AppSettings>(
-        SettingsController.new);
+final settingsProvider = AsyncNotifierProvider<SettingsController, AppSettings>(
+  SettingsController.new,
+);
 
 /// The device's Notes row density; `standard` until settings load.
-final notesRowDensityProvider = Provider<NoteRowDensity>((ref) =>
-    ref.watch(settingsProvider).value?.notesRowDensity ??
-    NoteRowDensity.standard);
+final notesRowDensityProvider = Provider<NoteRowDensity>(
+  (ref) =>
+      ref.watch(settingsProvider).value?.notesRowDensity ??
+      NoteRowDensity.standard,
+);
+
+/// Whether the docked Notes side panel is hidden on this device; false
+/// (shown) until settings load.
+final notesSidebarHiddenProvider = Provider<bool>(
+  (ref) => ref.watch(settingsProvider).value?.notesSidebarHidden ?? false,
+);
 
 /// The flag colour last applied from the Notes list (0 = none yet).
-final notesLastFlagColorProvider = Provider<int>((ref) =>
-    ref.watch(settingsProvider).value?.notesLastFlagColor ?? 0);
+final notesLastFlagColorProvider = Provider<int>(
+  (ref) => ref.watch(settingsProvider).value?.notesLastFlagColor ?? 0,
+);

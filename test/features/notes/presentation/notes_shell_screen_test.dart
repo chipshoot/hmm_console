@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/settings/settings_controller.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/notes_sidebar.dart';
@@ -200,6 +203,50 @@ void main() {
         tester.getSize(find.byKey(const ValueKey('notes-list-pane'))).width,
         360,
       );
+    });
+
+    testWidgets('at 1100 pt the side-panel button hides and shows the panel', (
+      tester,
+    ) async {
+      final container = await pump(tester, 1100);
+      final listPane = find.byKey(const ValueKey('notes-list-pane'));
+      final before = tester.state(find.byType(NotesListScreen));
+
+      await tester.tap(find.byTooltip('Hide side panel'));
+      await tester.pumpAndSettle();
+      expect(find.byType(NotesSidebar), findsNothing);
+      expect(find.byIcon(Icons.menu), findsNothing);
+      expect(tester.getSize(listPane).width, 360);
+      expect(tester.state(find.byType(NotesListScreen)), same(before));
+      expect(
+        container.read(settingsProvider).value!.notesSidebarHidden,
+        isTrue,
+      );
+
+      await tester.tap(find.byTooltip('Show side panel'));
+      await tester.pumpAndSettle();
+      expect(find.byType(NotesSidebar), findsOneWidget);
+      expect(
+        container.read(settingsProvider).value!.notesSidebarHidden,
+        isFalse,
+      );
+    });
+
+    testWidgets('a saved hidden choice starts with the panel hidden', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({
+        'app_settings': jsonEncode({'notesSidebarHidden': true}),
+      });
+      await pump(tester, 1100);
+      expect(find.byType(NotesSidebar), findsNothing);
+      expect(find.byTooltip('Show side panel'), findsOneWidget);
+    });
+
+    testWidgets('at 800 pt there is no side-panel button', (tester) async {
+      await pump(tester, 800);
+      expect(find.byTooltip('Hide side panel'), findsNothing);
+      expect(find.byTooltip('Show side panel'), findsNothing);
     });
 
     testWidgets('at 800 pt it is list and detail; menu opens the drawer', (

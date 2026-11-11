@@ -19,6 +19,7 @@ class AppSettings {
     this.notesRowDensity = NoteRowDensity.standard,
     this.notesLastFlagColor = 0,
     this.notesRecentSearches = const [],
+    this.notesSidebarHidden = false,
     this.dashboardIntroCardSeen = false,
     this.onboardingCompleted = false,
     this.quickPanelEnabled = true,
@@ -47,6 +48,10 @@ class AppSettings {
   /// Per-device recent notes searches, stored as raw JSON maps (core/ must not
   /// import features/; the notes-side notifier converts them).
   final List<Map<String, Object?>> notesRecentSearches;
+
+  /// Whether the Notes side panel is hidden where it would dock (wide
+  /// screens). Per device; false shows it, as before the toggle existed.
+  final bool notesSidebarHidden;
   final bool dashboardIntroCardSeen;
   final bool onboardingCompleted;
   final bool quickPanelEnabled;
@@ -57,14 +62,15 @@ class AppSettings {
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
     DataMode dataMode() => switch (j['dataMode']) {
-          'cloudStorage' => DataMode.cloudStorage,
-          'cloudApi' || 'api' => DataMode.cloudApi,
-          _ => DataMode.local,
-        };
+      'cloudStorage' => DataMode.cloudStorage,
+      'cloudApi' || 'api' => DataMode.cloudApi,
+      _ => DataMode.local,
+    };
     final recents =
         (j['launcherRecents'] as List?)?.whereType<String>().toList() ??
-            const <String>[];
-    final usage = (j['notesFilterUsage'] as Map?)?.map(
+        const <String>[];
+    final usage =
+        (j['notesFilterUsage'] as Map?)?.map(
           (k, v) => MapEntry(k as String, (v as num).toInt()),
         ) ??
         const <String, int>{};
@@ -80,8 +86,9 @@ class AppSettings {
         orElse: () => CloudProvider.onedrive,
       ),
       geoCaptureEnabled: j['geoCaptureEnabled'] as bool? ?? false,
-      receiptExtractorMode:
-          ReceiptExtractorMode.fromWire(j['receiptExtractorMode'] as String?),
+      receiptExtractorMode: ReceiptExtractorMode.fromWire(
+        j['receiptExtractorMode'] as String?,
+      ),
       receiptCloudConsent: j['receiptCloudConsent'] as bool? ?? false,
       launcherRecents: recents,
       notesFilterUsage: usage,
@@ -91,6 +98,7 @@ class AppSettings {
       ),
       notesLastFlagColor: (j['notesLastFlagColor'] as num?)?.toInt() ?? 0,
       notesRecentSearches: recentSearches,
+      notesSidebarHidden: j['notesSidebarHidden'] as bool? ?? false,
       dashboardIntroCardSeen: j['dashboardIntroCardSeen'] as bool? ?? false,
       onboardingCompleted: j['onboardingCompleted'] as bool? ?? false,
       quickPanelEnabled: j['quickPanelEnabled'] as bool? ?? true,
@@ -103,25 +111,26 @@ class AppSettings {
   }
 
   Map<String, dynamic> toJson() => {
-        'dataMode': dataMode.name,
-        'cloudProvider': cloudProvider.name,
-        'geoCaptureEnabled': geoCaptureEnabled,
-        'receiptExtractorMode': receiptExtractorMode.wire,
-        'receiptCloudConsent': receiptCloudConsent,
-        'launcherRecents': launcherRecents,
-        'notesFilterUsage': notesFilterUsage,
-        'notesRowDensity': notesRowDensity.name,
-        'notesLastFlagColor': notesLastFlagColor,
-        'notesRecentSearches': notesRecentSearches,
-        'dashboardIntroCardSeen': dashboardIntroCardSeen,
-        'onboardingCompleted': onboardingCompleted,
-        'quickPanelEnabled': quickPanelEnabled,
-        'quickPanelHintShown': quickPanelHintShown,
-        if (localDbPath != null) 'localDbPath': localDbPath,
-        if (cloudStorageVaultPath != null)
-          'cloudStorageVaultPath': cloudStorageVaultPath,
-        'schemaVersion': schemaVersion,
-      };
+    'dataMode': dataMode.name,
+    'cloudProvider': cloudProvider.name,
+    'geoCaptureEnabled': geoCaptureEnabled,
+    'receiptExtractorMode': receiptExtractorMode.wire,
+    'receiptCloudConsent': receiptCloudConsent,
+    'launcherRecents': launcherRecents,
+    'notesFilterUsage': notesFilterUsage,
+    'notesRowDensity': notesRowDensity.name,
+    'notesLastFlagColor': notesLastFlagColor,
+    'notesRecentSearches': notesRecentSearches,
+    'notesSidebarHidden': notesSidebarHidden,
+    'dashboardIntroCardSeen': dashboardIntroCardSeen,
+    'onboardingCompleted': onboardingCompleted,
+    'quickPanelEnabled': quickPanelEnabled,
+    'quickPanelHintShown': quickPanelHintShown,
+    if (localDbPath != null) 'localDbPath': localDbPath,
+    if (cloudStorageVaultPath != null)
+      'cloudStorageVaultPath': cloudStorageVaultPath,
+    'schemaVersion': schemaVersion,
+  };
 
   AppSettings copyWith({
     DataMode? dataMode,
@@ -134,32 +143,32 @@ class AppSettings {
     NoteRowDensity? notesRowDensity,
     int? notesLastFlagColor,
     List<Map<String, Object?>>? notesRecentSearches,
+    bool? notesSidebarHidden,
     bool? dashboardIntroCardSeen,
     bool? onboardingCompleted,
     bool? quickPanelEnabled,
     bool? quickPanelHintShown,
     String? localDbPath,
     String? cloudStorageVaultPath,
-  }) =>
-      AppSettings(
-        dataMode: dataMode ?? this.dataMode,
-        cloudProvider: cloudProvider ?? this.cloudProvider,
-        geoCaptureEnabled: geoCaptureEnabled ?? this.geoCaptureEnabled,
-        receiptExtractorMode: receiptExtractorMode ?? this.receiptExtractorMode,
-        receiptCloudConsent: receiptCloudConsent ?? this.receiptCloudConsent,
-        launcherRecents: launcherRecents ?? this.launcherRecents,
-        notesFilterUsage: notesFilterUsage ?? this.notesFilterUsage,
-        notesRowDensity: notesRowDensity ?? this.notesRowDensity,
-        notesLastFlagColor: notesLastFlagColor ?? this.notesLastFlagColor,
-        notesRecentSearches: notesRecentSearches ?? this.notesRecentSearches,
-        dashboardIntroCardSeen:
-            dashboardIntroCardSeen ?? this.dashboardIntroCardSeen,
-        onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
-        quickPanelEnabled: quickPanelEnabled ?? this.quickPanelEnabled,
-        quickPanelHintShown: quickPanelHintShown ?? this.quickPanelHintShown,
-        localDbPath: localDbPath ?? this.localDbPath,
-        cloudStorageVaultPath:
-            cloudStorageVaultPath ?? this.cloudStorageVaultPath,
-        schemaVersion: schemaVersion,
-      );
+  }) => AppSettings(
+    dataMode: dataMode ?? this.dataMode,
+    cloudProvider: cloudProvider ?? this.cloudProvider,
+    geoCaptureEnabled: geoCaptureEnabled ?? this.geoCaptureEnabled,
+    receiptExtractorMode: receiptExtractorMode ?? this.receiptExtractorMode,
+    receiptCloudConsent: receiptCloudConsent ?? this.receiptCloudConsent,
+    launcherRecents: launcherRecents ?? this.launcherRecents,
+    notesFilterUsage: notesFilterUsage ?? this.notesFilterUsage,
+    notesRowDensity: notesRowDensity ?? this.notesRowDensity,
+    notesLastFlagColor: notesLastFlagColor ?? this.notesLastFlagColor,
+    notesRecentSearches: notesRecentSearches ?? this.notesRecentSearches,
+    notesSidebarHidden: notesSidebarHidden ?? this.notesSidebarHidden,
+    dashboardIntroCardSeen:
+        dashboardIntroCardSeen ?? this.dashboardIntroCardSeen,
+    onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+    quickPanelEnabled: quickPanelEnabled ?? this.quickPanelEnabled,
+    quickPanelHintShown: quickPanelHintShown ?? this.quickPanelHintShown,
+    localDbPath: localDbPath ?? this.localDbPath,
+    cloudStorageVaultPath: cloudStorageVaultPath ?? this.cloudStorageVaultPath,
+    schemaVersion: schemaVersion,
+  );
 }

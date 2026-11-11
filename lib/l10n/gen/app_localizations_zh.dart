@@ -2883,7 +2883,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNotesListFilterBody =>
-      '打开侧边栏（☰）即可按已置顶、已标记（按颜色）、今天、领域、标签或智能筛选来筛选；数字表示各项包含的笔记数。长按你保存的搜索可重命名、移动或删除。在宽屏上，侧边栏会一直显示在列表旁。';
+      '打开侧边栏（☰）即可按已置顶、已标记（按颜色）、今天、领域、标签或智能筛选来筛选；数字表示各项包含的笔记数。长按你保存的搜索可重命名、移动或删除。在宽屏上，侧边栏会一直显示在列表旁，直到你用侧边栏按钮将其隐藏。';
+
+  @override
+  String get helpNotesListSidebarTitle => '隐藏侧边栏';
+
+  @override
+  String get helpNotesListSidebarBody =>
+      '在宽屏上，侧边栏会显示在列表旁。轻点顶部的侧边栏按钮可将其隐藏，为打开的笔记腾出更多空间；再次轻点即可恢复。每台设备会分别记住自己的选择。';
 
   @override
   String get notesTokenHasPhoto => '含照片';
@@ -3059,6 +3066,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesMenuTooltip => '筛选和列表';
+
+  @override
+  String get notesHideSidebarTooltip => '隐藏侧边栏';
+
+  @override
+  String get notesShowSidebarTooltip => '显示侧边栏';
 
   @override
   String get notesChipMoreTooltip => '更多筛选';

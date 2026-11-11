@@ -61,19 +61,36 @@ void main() {
       AppSettings.fromJson({'notesRowDensity': 'bogus'}).notesRowDensity,
       NoteRowDensity.standard,
     );
-    final s = const AppSettings().copyWith(notesRowDensity: NoteRowDensity.rich);
+    final s = const AppSettings().copyWith(
+      notesRowDensity: NoteRowDensity.rich,
+    );
     expect(s.toJson()['notesRowDensity'], 'rich');
-    expect(AppSettings.fromJson(s.toJson()).notesRowDensity, NoteRowDensity.rich);
+    expect(
+      AppSettings.fromJson(s.toJson()).notesRowDensity,
+      NoteRowDensity.rich,
+    );
   });
 
-  test('notesLastFlagColor defaults to 0, round-trips, keeps unknown values',
-      () {
-    expect(AppSettings.defaults.notesLastFlagColor, 0);
-    expect(AppSettings.fromJson({}).notesLastFlagColor, 0);
-    final s = const AppSettings().copyWith(notesLastFlagColor: 4);
-    expect(s.toJson()['notesLastFlagColor'], 4);
-    expect(AppSettings.fromJson(s.toJson()).notesLastFlagColor, 4);
-    expect(AppSettings.fromJson({'notesLastFlagColor': 9}).notesLastFlagColor,
-        9);
+  test(
+    'notesLastFlagColor defaults to 0, round-trips, keeps unknown values',
+    () {
+      expect(AppSettings.defaults.notesLastFlagColor, 0);
+      expect(AppSettings.fromJson({}).notesLastFlagColor, 0);
+      final s = const AppSettings().copyWith(notesLastFlagColor: 4);
+      expect(s.toJson()['notesLastFlagColor'], 4);
+      expect(AppSettings.fromJson(s.toJson()).notesLastFlagColor, 4);
+      expect(
+        AppSettings.fromJson({'notesLastFlagColor': 9}).notesLastFlagColor,
+        9,
+      );
+    },
+  );
+
+  test('notesSidebarHidden defaults to false and round-trips', () {
+    expect(AppSettings.defaults.notesSidebarHidden, isFalse);
+    expect(AppSettings.fromJson({}).notesSidebarHidden, isFalse);
+    final s = const AppSettings().copyWith(notesSidebarHidden: true);
+    expect(s.toJson()['notesSidebarHidden'], isTrue);
+    expect(AppSettings.fromJson(s.toJson()).notesSidebarHidden, isTrue);
   });
 }
