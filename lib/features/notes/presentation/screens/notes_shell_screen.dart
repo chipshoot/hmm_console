@@ -10,6 +10,21 @@ import '../widgets/notes_sidebar.dart';
 import 'note_detail_screen.dart';
 import 'notes_list_screen.dart';
 
+/// Wide layouts: the open note fills the screen (side panel and list
+/// hidden). Session-only: auto-disposed, so Notes always reopens with the
+/// list showing.
+final notesDetailExpandedProvider =
+    NotifierProvider.autoDispose<NotesDetailExpanded, bool>(
+      NotesDetailExpanded.new,
+    );
+
+class NotesDetailExpanded extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void toggle() => state = !state;
+}
+
 class NotesShellScreen extends ConsumerWidget {
   const NotesShellScreen({super.key});
 
@@ -22,9 +37,12 @@ class NotesShellScreen extends ConsumerWidget {
         if (!isWide) return const NotesListScreen();
 
         final selectedId = ref.watch(selectedNoteIdProvider);
+        // With no note open there is nothing to fill the screen with.
+        final expanded =
+            selectedId != null && ref.watch(notesDetailExpandedProvider);
         final dockable = constraints.maxWidth >= kNotesSidebarBreakpoint;
         final hidden = dockable && ref.watch(notesSidebarHiddenProvider);
-        final docked = dockable && !hidden;
+        final docked = dockable && !hidden && !expanded;
         final data = docked ? ref.watch(notesListStateProvider).value : null;
         return Scaffold(
           body: Row(
@@ -67,23 +85,34 @@ class NotesShellScreen extends ConsumerWidget {
                           key: ValueKey('notes-sidebar-hidden'),
                         ),
                 ),
-              SizedBox(
-                key: const ValueKey('notes-list-pane'),
-                width: 360,
-                child: NotesListScreen(
-                  sidebarDocked: docked,
-                  onToggleSidebar: dockable
-                      ? () => ref
-                            .read(settingsProvider.notifier)
-                            .setNotesSidebarHidden(!hidden)
-                      : null,
+              // Offstage, not removed: the list keeps its scroll and search
+              // while the note is full screen.
+              Offstage(
+                offstage: expanded,
+                child: SizedBox(
+                  key: const ValueKey('notes-list-pane'),
+                  width: 360,
+                  child: NotesListScreen(
+                    sidebarDocked: docked,
+                    onToggleSidebar: dockable
+                        ? () => ref
+                              .read(settingsProvider.notifier)
+                              .setNotesSidebarHidden(!hidden)
+                        : null,
+                  ),
                 ),
               ),
-              const VerticalDivider(width: 1),
+              if (!expanded) const VerticalDivider(width: 1),
               Expanded(
                 child: selectedId == null
                     ? Center(child: Text(l.notesSelectNote))
-                    : NoteDetailScreen(noteId: selectedId),
+                    : NoteDetailScreen(
+                        noteId: selectedId,
+                        expanded: expanded,
+                        onToggleExpanded: () => ref
+                            .read(notesDetailExpandedProvider.notifier)
+                            .toggle(),
+                      ),
               ),
             ],
           ),

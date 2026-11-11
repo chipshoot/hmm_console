@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart' show CupertinoButton;
+import 'package:flutter/cupertino.dart' show CupertinoButton, CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +16,7 @@ import '../../../../core/notes/editing/edit_dispatch.dart';
 import '../../../../core/notes/note_state.dart';
 import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/widgets/app_scaffold.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../data/models/hmm_note.dart';
 import '../../rendering/note_display.dart';
@@ -85,8 +86,18 @@ final noteDetailProvider = FutureProvider.autoDispose
 enum _MenuAction { edit, raw, pin, flag, delete, manageIn, restore }
 
 class NoteDetailScreen extends ConsumerWidget {
-  const NoteDetailScreen({super.key, required this.noteId});
+  const NoteDetailScreen({
+    super.key,
+    required this.noteId,
+    this.expanded = false,
+    this.onToggleExpanded,
+  });
   final int noteId;
+
+  /// Wide layouts only: whether the note fills the screen, and the button
+  /// that switches it. Null on phones, where the top-left is the back button.
+  final bool expanded;
+  final VoidCallback? onToggleExpanded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -101,6 +112,24 @@ class NoteDetailScreen extends ConsumerWidget {
         data: (d) => catalogLabel(d.catalog?.name, l),
         orElse: () => 'Note',
       ),
+      leading: switch (onToggleExpanded) {
+        final toggle? => HmmIconButton(
+          key: const Key('noteDetailExpandToggle'),
+          tooltip: expanded
+              ? l.notesCollapseNoteTooltip
+              : l.notesExpandNoteTooltip,
+          icon: switch ((Theme.of(context).platform, expanded)) {
+            (TargetPlatform.iOS || TargetPlatform.macOS, false) =>
+              CupertinoIcons.arrow_up_left_arrow_down_right,
+            (TargetPlatform.iOS || TargetPlatform.macOS, true) =>
+              CupertinoIcons.arrow_down_right_arrow_up_left,
+            (_, false) => Icons.open_in_full,
+            (_, true) => Icons.close_fullscreen,
+          },
+          onPressed: toggle,
+        ),
+        null => null,
+      },
       actions: [
         const HelpButton(helpId: HelpId.noteDetail),
         async.maybeWhen(

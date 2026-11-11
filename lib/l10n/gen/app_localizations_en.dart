@@ -2834,6 +2834,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'A note moved to Recently Deleted shows a banner. Tap Restore to put it back in your notes.';
 
   @override
+  String get helpNoteDetailExpandTitle => 'Full screen';
+
+  @override
+  String get helpNoteDetailExpandBody =>
+      'On a wide screen, tap the full-screen button at the top left to hide the side panel and the list so the note fills the screen. Tap it again to bring them back. Notes always opens with the list showing.';
+
+  @override
+  String get notesExpandNoteTooltip => 'Full screen';
+
+  @override
+  String get notesCollapseNoteTooltip => 'Exit full screen';
+
+  @override
   String get helpNoteDetailManageTitle => 'Manage in …';
 
   @override

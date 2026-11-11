@@ -5150,6 +5150,30 @@ abstract class AppLocalizations {
   /// **'A note moved to Recently Deleted shows a banner. Tap Restore to put it back in your notes.'**
   String get helpNoteDetailRestoreBody;
 
+  /// No description provided for @helpNoteDetailExpandTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get helpNoteDetailExpandTitle;
+
+  /// No description provided for @helpNoteDetailExpandBody.
+  ///
+  /// In en, this message translates to:
+  /// **'On a wide screen, tap the full-screen button at the top left to hide the side panel and the list so the note fills the screen. Tap it again to bring them back. Notes always opens with the list showing.'**
+  String get helpNoteDetailExpandBody;
+
+  /// No description provided for @notesExpandNoteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get notesExpandNoteTooltip;
+
+  /// No description provided for @notesCollapseNoteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit full screen'**
+  String get notesCollapseNoteTooltip;
+
   /// No description provided for @helpNoteDetailManageTitle.
   ///
   /// In en, this message translates to:

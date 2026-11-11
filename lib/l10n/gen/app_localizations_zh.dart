@@ -2746,6 +2746,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpNoteDetailRestoreBody => '已移到“最近删除”的笔记会显示横幅。点按“恢复”即可将其放回笔记中。';
 
   @override
+  String get helpNoteDetailExpandTitle => '全屏显示';
+
+  @override
+  String get helpNoteDetailExpandBody =>
+      '在宽屏上，轻点左上角的全屏按钮可隐藏侧边栏和列表，让笔记占满整个屏幕。再次轻点即可恢复。每次打开笔记时都会显示列表。';
+
+  @override
+  String get notesExpandNoteTooltip => '全屏显示';
+
+  @override
+  String get notesCollapseNoteTooltip => '退出全屏';
+
+  @override
   String get helpNoteDetailManageTitle => '在其他位置管理';
 
   @override

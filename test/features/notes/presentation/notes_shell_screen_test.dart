@@ -281,6 +281,74 @@ void main() {
       expect(tester.getRect(title.first).top, greaterThanOrEqualTo(44));
     });
 
+    for (final w in [1100.0, 800.0]) {
+      testWidgets('at $w pt the note goes full screen and back', (
+        tester,
+      ) async {
+        final container = await pump(tester, w);
+        container.read(selectedNoteIdProvider.notifier).select(1);
+        await tester.pumpAndSettle();
+        final before = tester.state(find.byType(NotesListScreen));
+
+        await tester.tap(find.byTooltip('Full screen'));
+        await tester.pumpAndSettle();
+        expect(find.byType(NotesSidebar), findsNothing);
+        expect(find.byType(NotesListScreen), findsNothing);
+        expect(tester.getSize(find.byType(NoteDetailScreen)).width, w);
+        expect(
+          container.read(settingsProvider).value!.notesSidebarHidden,
+          isFalse,
+        );
+
+        await tester.tap(find.byTooltip('Exit full screen'));
+        await tester.pumpAndSettle();
+        expect(find.byType(NotesListScreen), findsOneWidget);
+        expect(tester.state(find.byType(NotesListScreen)), same(before));
+        expect(
+          find.byType(NotesSidebar),
+          w >= 1000 ? findsOneWidget : findsNothing,
+        );
+      });
+    }
+
+    testWidgets('full screen is not remembered when Notes opens again', (
+      tester,
+    ) async {
+      final container = await pump(tester, 1100);
+      container.read(selectedNoteIdProvider.notifier).select(1);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Full screen'));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const SizedBox(),
+        ),
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: ThemeData(extensions: const [AppColors.light]),
+            home: const NotesShellScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(NotesListScreen), findsOneWidget);
+      expect(find.byTooltip('Full screen'), findsOneWidget);
+    });
+
+    testWidgets('on a phone the note has no full-screen button', (
+      tester,
+    ) async {
+      await pump(tester, 400);
+      expect(find.byTooltip('Full screen'), findsNothing);
+    });
+
     testWidgets('a saved hidden choice starts with the panel hidden', (
       tester,
     ) async {
