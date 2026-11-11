@@ -232,6 +232,55 @@ void main() {
       );
     });
 
+    testWidgets('on an iPad the button sits beside the back arrow and the '
+        'title keeps its own row', (tester) async {
+      tester.view.physicalSize = const Size(1194, 834);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: ThemeData(
+              platform: TargetPlatform.iOS,
+              extensions: const [AppColors.light],
+            ),
+            home: Builder(
+              builder: (c) => Scaffold(
+                body: TextButton(
+                  onPressed: () => Navigator.of(c).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const NotesShellScreen(),
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      final listPane = find.byKey(const ValueKey('notes-list-pane'));
+      final back = tester.getRect(
+        find.descendant(
+          of: listPane,
+          matching: find.byKey(const Key('appScaffoldBack')),
+        ),
+      );
+      final toggle = tester.getRect(
+        find.byKey(const Key('notesSidebarToggle')),
+      );
+      expect(toggle.left, greaterThanOrEqualTo(back.right));
+      expect(toggle.left - back.right, lessThan(8));
+      final title = find.descendant(of: listPane, matching: find.text('Notes'));
+      expect(tester.getRect(title.first).top, greaterThanOrEqualTo(44));
+    });
+
     testWidgets('a saved hidden choice starts with the panel hidden', (
       tester,
     ) async {

@@ -234,6 +234,24 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               )
             : null,
         bottomBar: multi.active ? const NotesBulkBar() : null,
+        // In the wide shell: the side-panel button sits beside the back
+        // arrow, and the narrow column keeps its large title row.
+        largeTitleFollowsPane: widget.onToggleSidebar != null,
+        leadingActions: [
+          if (widget.onToggleSidebar case final toggle?)
+            HmmIconButton(
+              key: const Key('notesSidebarToggle'),
+              tooltip: widget.sidebarDocked
+                  ? l.notesHideSidebarTooltip
+                  : l.notesShowSidebarTooltip,
+              icon: switch (Theme.of(context).platform) {
+                TargetPlatform.iOS ||
+                TargetPlatform.macOS => CupertinoIcons.sidebar_left,
+                _ => Icons.view_sidebar_outlined,
+              },
+              onPressed: toggle,
+            ),
+        ],
         drawer:
             data == null ||
                 widget.sidebarDocked ||
@@ -257,20 +275,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                   : () => multiNotifier.enter(),
               child: Text(multi.active ? l.notesDoneAction : l.commonEdit),
             ),
-          if (widget.onToggleSidebar case final toggle?)
-            HmmIconButton(
-              key: const Key('notesSidebarToggle'),
-              tooltip: widget.sidebarDocked
-                  ? l.notesHideSidebarTooltip
-                  : l.notesShowSidebarTooltip,
-              icon: switch (Theme.of(context).platform) {
-                TargetPlatform.iOS ||
-                TargetPlatform.macOS => CupertinoIcons.sidebar_left,
-                _ => Icons.view_sidebar_outlined,
-              },
-              onPressed: toggle,
-            )
-          else if (!widget.sidebarDocked)
+          if (widget.onToggleSidebar == null && !widget.sidebarDocked)
             // A Builder: this context is above the Scaffold AppScaffold builds.
             Builder(
               builder: (context) => HmmIconButton(
