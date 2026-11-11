@@ -31,19 +31,25 @@ class NotesShellScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    // Watch here, not inside the LayoutBuilder: its builder runs after
+    // build(), when Riverpod has already dropped this widget's subscriptions.
+    // In release builds an auto-disposed provider (full screen) can be
+    // disposed in that gap, so a tap would be lost.
+    final selectedId = ref.watch(selectedNoteIdProvider);
+    final expandedChoice = ref.watch(notesDetailExpandedProvider);
+    final sidebarHidden = ref.watch(notesSidebarHiddenProvider);
+    final listData = ref.watch(notesListStateProvider).value;
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= kNotesWideBreakpoint;
         if (!isWide) return const NotesListScreen();
 
-        final selectedId = ref.watch(selectedNoteIdProvider);
         // With no note open there is nothing to fill the screen with.
-        final expanded =
-            selectedId != null && ref.watch(notesDetailExpandedProvider);
+        final expanded = selectedId != null && expandedChoice;
         final dockable = constraints.maxWidth >= kNotesSidebarBreakpoint;
-        final hidden = dockable && ref.watch(notesSidebarHiddenProvider);
+        final hidden = dockable && sidebarHidden;
         final docked = dockable && !hidden && !expanded;
-        final data = docked ? ref.watch(notesListStateProvider).value : null;
+        final data = docked ? listData : null;
         return Scaffold(
           body: Row(
             children: [
