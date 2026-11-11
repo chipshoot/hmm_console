@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../../../core/widgets/adaptive_icon.dart';
 import 'package:flutter/cupertino.dart'
     show CupertinoButton, CupertinoIcons, CupertinoSlidingSegmentedControl;
 import 'package:flutter/material.dart';
@@ -280,13 +281,21 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
             Builder(
               builder: (context) => HmmIconButton(
                 tooltip: l.notesMenuTooltip,
-                icon: Icons.menu,
+                icon: adaptiveIcon(
+                  context,
+                  material: Icons.menu,
+                  apple: CupertinoIcons.line_horizontal_3,
+                ),
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
             ),
           HmmIconButton(
             tooltip: l.notesViewTooltip,
-            icon: Icons.tune,
+            icon: adaptiveIcon(
+              context,
+              material: Icons.tune,
+              apple: CupertinoIcons.line_horizontal_3_decrease_circle,
+            ),
             onPressed: data == null
                 ? null
                 : () => showNotesViewMenu(
@@ -301,7 +310,11 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           ),
           HmmIconButton(
             tooltip: l.notesSubsystemsTitle,
-            icon: Icons.widgets_outlined,
+            icon: adaptiveIcon(
+              context,
+              material: Icons.widgets_outlined,
+              apple: CupertinoIcons.square_grid_2x2,
+            ),
             onPressed: () => context.push('/notes/subsystems'),
           ),
           const HelpButton(helpId: HelpId.notesList),
@@ -337,7 +350,11 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                     if (_canSave(effective))
                       HmmIconButton(
                         tooltip: l.notesSaveSearchTooltip,
-                        icon: Icons.bookmark_add_outlined,
+                        icon: adaptiveIcon(
+                          context,
+                          material: Icons.bookmark_add_outlined,
+                          apple: CupertinoIcons.bookmark,
+                        ),
                         onPressed: () => _saveSearch(data, l),
                       ),
                   ],

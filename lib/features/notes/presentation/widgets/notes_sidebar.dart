@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../../../../core/widgets/adaptive_icon.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/help/undoable_action.dart';
@@ -178,7 +180,15 @@ class NotesSidebar extends ConsumerWidget {
                 if (count != null) Text('$count'),
                 if (selected) ...[
                   if (count != null) const SizedBox(width: 8),
-                  Icon(Icons.check, color: c.accent),
+                  Icon(
+                    adaptiveIcon(
+                      context,
+                      material: Icons.check,
+                      apple: CupertinoIcons.checkmark,
+                    ),
+                    size: 18,
+                    color: c.accent,
+                  ),
                 ],
               ],
             ),
@@ -214,14 +224,30 @@ class NotesSidebar extends ConsumerWidget {
             onTap: () => pick(const AllSource()),
           ),
           tile(
-            leading: Icon(Icons.push_pin_outlined, color: c.accent),
+            leading: Icon(
+              adaptiveIcon(
+                context,
+                material: Icons.push_pin_outlined,
+                apple: CupertinoIcons.pin,
+              ),
+              size: 22,
+              color: c.accent,
+            ),
             title: l.notesTokenPinned,
             count: counts?.pinned,
             selected: source == const PinnedSource(),
             onTap: () => pick(const PinnedSource()),
           ),
           tile(
-            leading: Icon(Icons.flag_outlined, color: c.accent),
+            leading: Icon(
+              adaptiveIcon(
+                context,
+                material: Icons.flag_outlined,
+                apple: CupertinoIcons.flag,
+              ),
+              size: 22,
+              color: c.accent,
+            ),
             title: l.notesSidebarFlagged,
             count: flaggedTotal,
             selected: source == const FlaggedSource(),
@@ -237,7 +263,15 @@ class NotesSidebar extends ConsumerWidget {
               onTap: () => pick(FlaggedSource(color: e.key)),
             ),
           tile(
-            leading: Icon(Icons.today_outlined, color: c.accent),
+            leading: Icon(
+              adaptiveIcon(
+                context,
+                material: Icons.today_outlined,
+                apple: CupertinoIcons.calendar_today,
+              ),
+              size: 22,
+              color: c.accent,
+            ),
             title: l.notesGroupToday,
             selected: source == const TodaySource(),
             onTap: () => pick(const TodaySource()),
@@ -254,7 +288,15 @@ class NotesSidebar extends ConsumerWidget {
           header(l.notesSidebarTags),
           for (final t in tags)
             tile(
-              leading: Icon(Icons.label_outline, color: c.accent),
+              leading: Icon(
+                adaptiveIcon(
+                  context,
+                  material: Icons.label_outline,
+                  apple: CupertinoIcons.tag,
+                ),
+                size: 22,
+                color: c.accent,
+              ),
               title: t.name,
               count: t.count,
               selected: source == TagSource(tagId: t.id),
@@ -262,7 +304,15 @@ class NotesSidebar extends ConsumerWidget {
                   pick(TagSource(tagId: t.id), usageKey: usageKeyForTag(t.id)),
             ),
           tile(
-            leading: Icon(Icons.edit_outlined, color: c.accent),
+            leading: Icon(
+              adaptiveIcon(
+                context,
+                material: Icons.edit_outlined,
+                apple: CupertinoIcons.pencil,
+              ),
+              size: 22,
+              color: c.accent,
+            ),
             title: l.notesManageTagsRow,
             selected: false,
             onTap: () {
@@ -276,7 +326,15 @@ class NotesSidebar extends ConsumerWidget {
           for (final s in smart)
             if (isBuiltInSmartFilter(s.id))
               tile(
-                leading: Icon(Icons.auto_awesome_outlined, color: c.accent),
+                leading: Icon(
+                  adaptiveIcon(
+                    context,
+                    material: Icons.auto_awesome_outlined,
+                    apple: CupertinoIcons.sparkles,
+                  ),
+                  size: 22,
+                  color: c.accent,
+                ),
                 title: smartFilterDisplayName(s, l),
                 selected: source == SmartSource(savedId: s.id),
                 onTap: () => pickSmart(s),
@@ -287,14 +345,30 @@ class NotesSidebar extends ConsumerWidget {
           if (saved.isNotEmpty) header(l.notesSavedSearchesHeader),
           for (var i = 0; i < saved.length; i++)
             tile(
-              leading: Icon(Icons.bookmark_outline, color: c.accent),
+              leading: Icon(
+                adaptiveIcon(
+                  context,
+                  material: Icons.bookmark_outline,
+                  apple: CupertinoIcons.bookmark,
+                ),
+                size: 22,
+                color: c.accent,
+              ),
               title: saved[i].name,
               selected: source == SmartSource(savedId: saved[i].id),
               onTap: () => pickSmart(saved[i]),
               onLongPress: () => onSavedMenu(saved[i], i),
             ),
           tile(
-            leading: Icon(Icons.delete_outline, color: c.accent),
+            leading: Icon(
+              adaptiveIcon(
+                context,
+                material: Icons.delete_outline,
+                apple: CupertinoIcons.trash,
+              ),
+              size: 22,
+              color: c.accent,
+            ),
             title: l.notesRecentlyDeletedTitle,
             count: ref.watch(recentlyDeletedProvider).value?.length,
             selected: false,

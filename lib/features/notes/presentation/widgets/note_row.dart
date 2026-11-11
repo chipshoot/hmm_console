@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../../../../core/widgets/adaptive_icon.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
@@ -171,13 +173,29 @@ class NoteRow extends ConsumerWidget {
                           ),
                           if (pinned) ...[
                             const SizedBox(width: 4),
-                            Icon(Icons.push_pin, size: 14, color: c.accent),
+                            Icon(
+                              adaptiveIcon(
+                                context,
+                                material: Icons.push_pin,
+                                apple: CupertinoIcons.pin_fill,
+                              ),
+                              size: 14,
+                              color: c.accent,
+                            ),
                           ],
                           const SizedBox(width: 6),
                           Text(timeText, style: muted),
                           if (flag != null) ...[
                             const SizedBox(width: 4),
-                            Icon(Icons.flag, size: 14, color: flag.color),
+                            Icon(
+                              adaptiveIcon(
+                                context,
+                                material: Icons.flag,
+                                apple: CupertinoIcons.flag_fill,
+                              ),
+                              size: 14,
+                              color: flag.color,
+                            ),
                           ],
                         ],
                       ),
@@ -265,7 +283,13 @@ class NoteRow extends ConsumerWidget {
       final shown = tags.take(2).map((t) => t.name).join(', ');
       final extra = tags.length - 2;
       parts.add([
-        icon(Icons.sell_outlined),
+        icon(
+          adaptiveIcon(
+            context,
+            material: Icons.sell_outlined,
+            apple: CupertinoIcons.tag,
+          ),
+        ),
         TextSpan(
           text: extra > 0
               ? ' $shown ${l.notesRowMoreTags('$extra')}'
@@ -277,12 +301,27 @@ class NoteRow extends ConsumerWidget {
     final count =
         (a.primaryImage == null ? 0 : 1) + a.images.length + a.files.length;
     if (count > 0) {
-      parts.add([icon(Icons.attach_file), TextSpan(text: ' $count')]);
+      parts.add([
+        icon(
+          adaptiveIcon(
+            context,
+            material: Icons.attach_file,
+            apple: CupertinoIcons.paperclip,
+          ),
+        ),
+        TextSpan(text: ' $count'),
+      ]);
     }
     if (note.location != null) {
       final label = note.locationLabel;
       parts.add([
-        icon(Icons.place_outlined),
+        icon(
+          adaptiveIcon(
+            context,
+            material: Icons.place_outlined,
+            apple: CupertinoIcons.location,
+          ),
+        ),
         if (label != null && label.isNotEmpty) TextSpan(text: ' $label'),
       ]);
     }
@@ -325,7 +364,16 @@ class NoteRow extends ConsumerWidget {
         image is VaultRef &&
         (image.sensitive || isSensitiveVaultPath(image.path));
     if (sensitive) {
-      return box(Icon(Icons.lock_outline, color: scheme.onSurfaceVariant));
+      return box(
+        Icon(
+          adaptiveIcon(
+            context,
+            material: Icons.lock_outline,
+            apple: CupertinoIcons.lock,
+          ),
+          color: scheme.onSurfaceVariant,
+        ),
+      );
     }
     final resolver = ref.watch(attachmentResolverProvider);
     return resolver.when(

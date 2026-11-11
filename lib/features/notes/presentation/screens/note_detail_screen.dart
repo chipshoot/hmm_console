@@ -140,6 +140,16 @@ class NoteDetailScreen extends ConsumerWidget {
                 managePlaceFor(catalogName) ?? NoteManagePlace.ownScreen;
             final deleted = d.note.isDeleted;
             return PopupMenuButton<_MenuAction>(
+              // iOS: the Apple ⋯ circle, sized and tinted like the other
+              // top-bar buttons.
+              icon: switch (Theme.of(context).platform) {
+                TargetPlatform.iOS || TargetPlatform.macOS => Icon(
+                  CupertinoIcons.ellipsis_circle,
+                  size: 22,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                _ => const Icon(Icons.more_vert),
+              },
               onSelected: (a) async {
                 switch (a) {
                   case _MenuAction.edit:

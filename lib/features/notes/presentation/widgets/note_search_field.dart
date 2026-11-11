@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../../../../core/widgets/adaptive_icon.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/widgets/hmm_icon_button.dart';
@@ -143,7 +145,13 @@ class NoteSearchFieldState extends State<NoteSearchField> {
             controller: _controller,
             focusNode: widget.focusNode,
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: Icon(
+                adaptiveIcon(
+                  context,
+                  material: Icons.search,
+                  apple: CupertinoIcons.search,
+                ),
+              ),
               hintText: widget.hintText,
               isDense: true,
               border: const OutlineInputBorder(),
@@ -151,7 +159,11 @@ class NoteSearchFieldState extends State<NoteSearchField> {
               suffixIcon: _hasText
                   ? HmmIconButton(
                       key: const Key('notesSearchClear'),
-                      icon: Icons.clear,
+                      icon: adaptiveIcon(
+                        context,
+                        material: Icons.clear,
+                        apple: CupertinoIcons.xmark_circle_fill,
+                      ),
                       tooltip: widget.clearTooltip,
                       onPressed: _clear,
                     )

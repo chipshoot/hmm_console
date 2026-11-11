@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/gen/app_localizations.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../widgets/adaptive_icon.dart';
 import '../widgets/hmm_icon_button.dart';
 import 'help_registry.dart';
 import 'help_sheet.dart';
@@ -14,7 +16,11 @@ class HelpButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return HmmIconButton(
-      icon: Icons.help_outline,
+      icon: adaptiveIcon(
+        context,
+        material: Icons.help_outline,
+        apple: CupertinoIcons.question_circle,
+      ),
       tooltip: l.helpButtonTooltip,
       onPressed: () => showHelpSheet(context, helpFor(helpId, l)),
     );

@@ -146,7 +146,7 @@ Project ID: `home-made-message`. Firebase emulators configured in `firebase.json
 ### Shared Rules
 - Never use a widget that looks wrong on either platform
 - Switches, dialogs, text fields, sheets: branch on `Theme.of(context).platform` for the Cupertino / Material variant (`flutter_platform_widgets` is not a dependency)
-- **Icon buttons:** always `HmmIconButton` (`lib/core/widgets/hmm_icon_button.dart`) with a localized tooltip. `test/core/help/icon_button_guard_test.dart` fails on new raw `IconButton`s; its allow-list only shrinks.
+- **Icon buttons:** always `HmmIconButton` (`lib/core/widgets/hmm_icon_button.dart`) with a localized tooltip. `test/core/help/icon_button_guard_test.dart` fails on new raw `IconButton`s; its allow-list only shrinks. On iOS/macOS it draws Apple Mail–style buttons (22 pt glyph in the accent colour, 44 pt target); pick the glyph with `adaptiveIcon(context, material: Icons.x, apple: CupertinoIcons.y)` (`lib/core/widgets/adaptive_icon.dart`). The Notes screens use Apple glyphs on iOS; other screens still pass Material glyphs.
 - **Screen help:** every new screen adds a `HelpId` + case in `lib/core/help/help_registry.dart` and a `HelpButton` in its top bar. ARB keys: `help<Screen>Title`, `help<Screen>Summary`, `help<Screen><Control>Title` / `Body`; the entry's icon is the control's own `Icons.*` constant. Changing a control means updating its help entry.
 - **Actions that move or hide data** use `showUndoableAction` (`lib/core/help/undoable_action.dart`): commits immediately, distinct messages for done / failed / undone / undo-failed, no WidgetRef or BuildContext after an await. Permanent deletes keep their confirmation dialog.
 - Platform check pattern: use `Theme.of(context).platform` or `dart:io Platform`
