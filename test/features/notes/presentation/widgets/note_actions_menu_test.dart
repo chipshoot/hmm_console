@@ -390,6 +390,33 @@ void main() {
       expect(find.text('Select'), findsOneWidget);
     });
 
+    // Portrait stacks the preview above the actions; a preview that grows to
+    // the full height left the actions no room (only the preview showed).
+    for (final size in const [
+      Size(390, 844),
+      Size(375, 667),
+      Size(820, 1180),
+    ]) {
+      testWidgets('portrait $size shows every action on screen', (t) async {
+        t.view.physicalSize = size * 3;
+        t.view.devicePixelRatio = 3;
+        addTearDown(t.view.reset);
+        await t.pumpWidget(
+          _app(_FakeMutate(), _FakeSharer(), platform: TargetPlatform.iOS),
+        );
+        await t.pumpAndSettle();
+
+        await _holdRow(t, _firstRow);
+
+        expect(t.takeException(), isNull);
+        final screen = Offset.zero & size;
+        for (final label in ['Tags…', 'Share…', 'Select', 'Delete']) {
+          final rect = t.getRect(find.text(label));
+          expect(screen.contains(rect.center), isTrue, reason: '$label $rect');
+        }
+      });
+    }
+
     testWidgets('a contact note shows the disabled Manage / Share from', (
       t,
     ) async {

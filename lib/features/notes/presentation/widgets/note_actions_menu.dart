@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/help/undoable_action.dart';
@@ -353,9 +354,12 @@ class NoteContextMenu extends ConsumerWidget {
             type: MaterialType.transparency,
             // The overlay squeezes the preview into an animated box; an
             // OverflowBox keeps the row at its own width and height so it is
-            // scaled, never re-laid-out into an overflow.
+            // scaled, never re-laid-out into an overflow. deferToChild: the
+            // box takes the row's height, not all it is offered — in portrait
+            // the menu sheet gets only what the preview leaves.
             child: ClipRect(
               child: OverflowBox(
+                fit: OverflowBoxFit.deferToChild,
                 alignment: Alignment.topLeft,
                 minWidth: constraints.maxWidth,
                 maxWidth: constraints.maxWidth,
