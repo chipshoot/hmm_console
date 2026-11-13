@@ -101,4 +101,38 @@ void main() {
     });
     expect(NoteAttachmentsCodec.encode(NoteAttachmentsCodec.decode(raw)), raw);
   });
+
+  test('non-object link preview entries are preserved', () {
+    final valid = {'url': 'https://x.com/v', 'provider': 'web', 'title': 't'};
+    final raw = jsonEncode({
+      'linkPreviews': ['x', 3, null, valid],
+    });
+    final a = NoteAttachmentsCodec.decode(raw);
+    expect(a.linkPreviews, hasLength(1));
+    expect(a.preservedLinkPreviews, ['x', 3, null]);
+    final out = NoteAttachmentsCodec.toJson(a)['linkPreviews'] as List;
+    expect(out, hasLength(4));
+    expect(out.skip(1), ['x', 3, null]);
+    expect(
+      NoteAttachmentsCodec.decode(jsonEncode(NoteAttachmentsCodec.toJson(a))),
+      a,
+    );
+  });
+
+  test('durationSeconds accepts a double', () {
+    final p = LinkPreview.fromJson({
+      'url': 'https://x.com/v',
+      'title': 't',
+      'durationSeconds': 212.0,
+    });
+    expect(p.durationSeconds, 212);
+  });
+
+  test('non-list linkPreviews goes to extra and is re-emitted', () {
+    final raw = jsonEncode({'linkPreviews': 'oops'});
+    final a = NoteAttachmentsCodec.decode(raw);
+    expect(a.linkPreviews, isEmpty);
+    expect(a.extra['linkPreviews'], 'oops');
+    expect(NoteAttachmentsCodec.toJson(a)['linkPreviews'], 'oops');
+  });
 }

@@ -293,7 +293,7 @@ class NoteAttachmentsCodec {
       preservedFiles,
     );
 
-    final preservedLinks = <Map<String, dynamic>>[];
+    final preservedLinks = <Object?>[];
     final links = <LinkPreview>[];
     final rawLinks = json['linkPreviews'];
     if (rawLinks != null && rawLinks is! List) {
@@ -301,7 +301,8 @@ class NoteAttachmentsCodec {
     } else if (rawLinks is List) {
       for (final e in rawLinks) {
         if (e is! Map<String, dynamic>) {
-          throw const FormatException('each link preview must be an object');
+          preservedLinks.add(e);
+          continue;
         }
         try {
           links.add(LinkPreview.fromJson(e));

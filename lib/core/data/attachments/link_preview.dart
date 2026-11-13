@@ -70,7 +70,7 @@ final class LinkPreview {
       url: url,
       provider: LinkProvider.fromWire(provider is String ? provider : ''),
       title: title,
-      durationSeconds: duration is int ? duration : null,
+      durationSeconds: duration is num ? duration.toInt() : null,
       thumbnail: thumbnail,
     );
   }

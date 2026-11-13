@@ -191,7 +191,7 @@ final class NoteAttachments {
     List<Map<String, dynamic>> preservedImages = const [],
     List<Map<String, dynamic>> preservedFiles = const [],
     List<LinkPreview> linkPreviews = const [],
-    List<Map<String, dynamic>> preservedLinkPreviews = const [],
+    List<Object?> preservedLinkPreviews = const [],
     Map<String, dynamic> extra = const {},
   }) : images = List.unmodifiable(images),
        files = List.unmodifiable(files),
@@ -231,7 +231,7 @@ final class NoteAttachments {
   final List<LinkPreview> linkPreviews;
 
   /// Raw `linkPreviews` entries this build cannot parse, kept verbatim.
-  final List<Map<String, dynamic>> preservedLinkPreviews;
+  final List<Object?> preservedLinkPreviews;
 
   /// Unknown top-level keys, plus the raw `primaryImage` when unsupported.
   final Map<String, dynamic> extra;
@@ -289,7 +289,7 @@ final class NoteAttachments {
       if (t != null) out.add(t.path);
     }
     for (final m in preservedLinkPreviews) {
-      addRaw(m['thumbnail']);
+      if (m is Map) addRaw(m['thumbnail']);
     }
     return out;
   }
