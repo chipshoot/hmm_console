@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/attachments/attachment_ref.dart';
 import '../../../core/data/attachments/attachment_providers.dart';
+import '../../../core/data/attachments/link_preview.dart';
 import '../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../core/data/attachments/picker/image_byte_source.dart';
@@ -11,6 +12,7 @@ import '../../../core/data/repository_providers.dart';
 import '../../../core/notes/note_state.dart';
 import '../data/general_catalog.dart';
 import '../data/models/hmm_note.dart';
+import '../links/link_preview_fetcher.dart';
 import 'note_delete_policy.dart';
 
 class MutateNote {
@@ -173,6 +175,53 @@ class MutateNote {
     return ref
         .read(hmmNoteRepositoryProvider)
         .updateNote(noteId, HmmNoteUpdate(attachments: attachments));
+  }
+
+  /// Sets the note's link previews to [kept] followed by [added]. Each added
+  /// thumbnail is persisted to the vault first; one that fails to persist
+  /// leaves its preview without a thumbnail. The note is read fresh and
+  /// rebuilt with `copyWith`, so earlier writes and every other attachment
+  /// (including preserved and unknown data) are kept. Null when the note is
+  /// gone.
+  Future<HmmNote?> saveLinkPreviews(
+    int noteId, {
+    required List<LinkPreview> kept,
+    required List<FetchedLinkPreview> added,
+  }) async {
+    final saved = <LinkPreview>[];
+    for (final f in added) {
+      VaultRef? thumb;
+      final bytes = f.thumbnailBytes;
+      if (bytes != null && bytes.isNotEmpty) {
+        try {
+          final picker = await ref.read(imageAttachmentPickerProvider.future);
+          thumb = await picker.persistToVault(
+            noteId: noteId,
+            bytes: bytes,
+            originalName: 'link-thumb',
+            contentTypeHint: f.thumbnailContentType,
+          );
+        } catch (_) {
+          thumb = null;
+        }
+      }
+      saved.add(
+        LinkPreview(
+          url: f.url,
+          provider: f.provider,
+          title: f.title,
+          durationSeconds: f.durationSeconds,
+          thumbnail: thumb,
+        ),
+      );
+    }
+    final repo = ref.read(hmmNoteRepositoryProvider);
+    final current = await repo.getNoteById(noteId);
+    if (current == null) return null;
+    final updated = current.effectiveAttachments.copyWith(
+      linkPreviews: [...kept, ...saved],
+    );
+    return repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
   }
 
   /// Persist a picked PDF's bytes into the note's vault and append the

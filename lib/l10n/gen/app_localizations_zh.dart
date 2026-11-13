@@ -3417,4 +3417,19 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNoteDetailVideoLinkBody =>
       '单独一行的 YouTube 或哔哩哔哩链接会显示为卡片。点按即可在对应应用中观看；左上角的 ◀ Hmm 按钮可返回此笔记。';
+
+  @override
+  String get notesAddVideoLinkTooltip => '添加视频链接';
+
+  @override
+  String get notesAddVideoLinkTitle => '添加视频链接';
+
+  @override
+  String get notesAddVideoLinkHint => '粘贴 YouTube 或哔哩哔哩链接';
+
+  @override
+  String get notesAddVideoLinkAdd => '添加';
+
+  @override
+  String get notesAddVideoLinkInvalid => '这不是有效的链接';
 }
