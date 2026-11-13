@@ -39,8 +39,9 @@ final _png = Uint8List.fromList(const [
 ]);
 
 class _FakeFetcher implements LinkPreviewFetcher {
-  _FakeFetcher({this.fail = false, this.delay});
+  _FakeFetcher({this.fail = false, this.failFirst = false, this.delay});
   final bool fail;
+  final bool failFirst;
   final Duration? delay;
   final calls = <String>[];
 
@@ -48,7 +49,7 @@ class _FakeFetcher implements LinkPreviewFetcher {
   Future<FetchedLinkPreview?> fetch(String url) async {
     calls.add(url);
     if (delay != null) await Future<void>.delayed(delay!);
-    if (fail) return null;
+    if (fail || (failFirst && calls.length == 1)) return null;
     return FetchedLinkPreview(
       url: url,
       provider: LinkProvider.youtube,
@@ -181,10 +182,11 @@ class _TestMutate extends MutateNote {
 class _Harness {
   _Harness({
     bool fail = false,
+    bool failFirst = false,
     Duration? delay,
     this.initialLocation = '/new',
     this.platform,
-  }) : fetcher = _FakeFetcher(fail: fail, delay: delay);
+  }) : fetcher = _FakeFetcher(fail: fail, failFirst: failFirst, delay: delay);
   final _FakeFetcher fetcher;
   final String initialLocation;
   final TargetPlatform? platform;
@@ -319,6 +321,22 @@ void main() {
     // Typing more does not refetch a link that already failed.
     await _typeBody(tester, '$_yt\nmore');
     expect(h.fetcher.calls, [_yt]);
+  });
+
+  testWidgets('a link line re-added after removal is fetched again', (
+    tester,
+  ) async {
+    final h = _Harness(failFirst: true);
+    await h.pump(tester);
+    await _typeBody(tester, _yt);
+    expect(h.fetcher.calls, [_yt]);
+    expect(find.byType(VideoLinkCard), findsNothing);
+
+    await _typeBody(tester, '');
+    await _typeBody(tester, _yt);
+
+    expect(h.fetcher.calls, [_yt, _yt]);
+    expect(find.byType(VideoLinkCard), findsOneWidget);
   });
 
   testWidgets('add video link button inserts the url on its own line and '

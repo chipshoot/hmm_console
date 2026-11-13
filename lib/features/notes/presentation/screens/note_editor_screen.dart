@@ -558,7 +558,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   /// Starts a fetch for every video link line not yet looked at.
   void _detectNow() {
-    for (final url in standaloneUrlsIn(_bodyCtrl.text)) {
+    final urls = standaloneUrlsIn(_bodyCtrl.text);
+    // A link line that was removed may be pasted again: forget it.
+    _linkAttempted.removeWhere((u) => !urls.contains(u));
+    for (final url in urls) {
       _fetchLink(url);
     }
   }
