@@ -119,8 +119,17 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   /// URLs already fetched this session, so a failed one is not retried.
   final Set<String> _linkAttempted = {};
 
+  /// Fetches running now, by URL; Save waits for them (capped).
+  final Map<String, Future<FetchedLinkPreview?>> _inFlight = {};
+
   /// Debounces link detection while typing.
   Timer? _detectTimer;
+
+  /// Read once in initState, so no fetch reads `ref` after an await.
+  late final LinkPreviewFetcher _fetcher;
+
+  /// How long Save waits for link previews still being fetched.
+  static const _fetchCap = Duration(seconds: 5);
 
   @override
   void initState() {
@@ -128,6 +137,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _noteId = widget.noteId;
     _parentId = widget.presetParentId;
     _noteDate = DateTime.now();
+    _fetcher = ref.read(linkPreviewFetcherProvider);
     if (widget.noteId == null && widget.presetParentId == null) {
       // Opened from a tag's list: start with that tag. No lookup when the
       // list's live tag names are not loaded yet.
@@ -199,6 +209,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         for (final p in note.effectiveAttachments.linkPreviews) p.url: p,
       };
       setState(() {});
+      // A link line saved without a preview gets one now.
+      _detectNow();
     }
     await _loadTags();
   }
@@ -496,20 +508,33 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 
-  /// Saves the previews of the link lines still in the body: stored ones
-  /// kept, fetched ones added, the rest dropped. Writes only on a change.
+  /// Saves the previews of the link lines still in the body. Detects any
+  /// link not yet looked at, then waits up to [_fetchCap] for running
+  /// fetches; one still running then is left out and its line stays plain.
+  /// `saveLinkPreviews` keeps the stored previews whose lines remain (read
+  /// fresh) and writes only on a change.
   Future<void> _saveLinkPreviews(int noteId, MutateNote mutate) async {
+    _detectTimer?.cancel();
+    _detectNow();
+    final arrived = <String, FetchedLinkPreview>{};
+    if (_inFlight.isNotEmpty) {
+      await Future.wait([
+        for (final e in _inFlight.entries)
+          e.value.timeout(_fetchCap, onTimeout: () => null).then((r) {
+            if (r != null) arrived[e.key] = r;
+          }),
+      ]);
+    }
     final present = standaloneUrlsIn(_bodyCtrl.text);
-    final kept = _savedLinks.values
-        .where((p) => present.contains(p.url))
-        .toList();
-    final added = _pendingLinks.values
-        .where((p) => present.contains(p.url))
-        .toList();
-    if (added.isEmpty && kept.length == _savedLinks.length) return;
+    // No link lines now and none stored at load: nothing to keep or add.
+    if (present.isEmpty && _savedLinks.isEmpty) return;
+    final added = {
+      ..._pendingLinks,
+      ...arrived,
+    }.values.where((p) => present.contains(p.url)).toList();
     final note = await mutate.saveLinkPreviews(
       noteId,
-      kept: kept,
+      presentUrls: present,
       added: added,
     );
     if (note == null || !mounted) return;
@@ -527,41 +552,52 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   void _scheduleDetect() {
     _detectTimer?.cancel();
     _detectTimer = Timer(const Duration(milliseconds: 600), () {
-      if (!mounted) return;
-      for (final url in standaloneUrlsIn(_bodyCtrl.text)) {
-        _fetchLink(url);
-      }
+      if (mounted) _detectNow();
     });
   }
 
-  /// Fetches [url]'s preview once per session. A failure leaves the line a
-  /// plain link.
+  /// Starts a fetch for every video link line not yet looked at.
+  void _detectNow() {
+    for (final url in standaloneUrlsIn(_bodyCtrl.text)) {
+      _fetchLink(url);
+    }
+  }
+
+  /// Fetches a video link's preview once per session. Other links, and a
+  /// failed fetch, leave the line a plain link.
   Future<void> _fetchLink(String url) async {
+    if (parseVideoLink(url) == null) return;
     if (_savedLinks.containsKey(url) || _pendingLinks.containsKey(url)) {
       return;
     }
     if (!_linkAttempted.add(url)) return;
-    final fetcher = ref.read(linkPreviewFetcherProvider);
-    final result = await fetcher.fetch(url);
+    final future = _fetcher.fetch(url);
+    _inFlight[url] = future;
+    final result = await future;
+    _inFlight.remove(url);
     if (result == null || !mounted) return;
     setState(() => _pendingLinks[url] = result);
   }
 
-  /// Asks for a video link (prefilled from the clipboard) and inserts it on
-  /// its own line at the cursor, then fetches its preview straight away.
+  /// Asks for a video link and inserts it on its own line at the cursor,
+  /// then fetches its preview straight away. Off Apple platforms the field
+  /// is prefilled from a clipboard link; on iOS / macOS it starts empty
+  /// (reading the clipboard there prompts; the user pastes instead).
   Future<void> _addVideoLink() async {
-    var initial = '';
-    try {
-      final data = await Clipboard.getData(Clipboard.kTextPlain);
-      final text = data?.text;
-      if (text != null) initial = standaloneUrl(text) ?? '';
-    } catch (_) {
-      // No clipboard: start empty.
-    }
-    if (!mounted) return;
     final platform = Theme.of(context).platform;
     final isApple =
         platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    var initial = '';
+    if (!isApple) {
+      try {
+        final data = await Clipboard.getData(Clipboard.kTextPlain);
+        final text = data?.text;
+        if (text != null) initial = standaloneUrl(text) ?? '';
+      } catch (_) {
+        // No clipboard: start empty.
+      }
+      if (!mounted) return;
+    }
     final dialog = isApple
         ? showCupertinoDialog<String>(
             context: context,

@@ -115,7 +115,7 @@ void main() {
 
     final saved = await mutate.saveLinkPreviews(
       1,
-      kept: const [],
+      presentUrls: const {'https://youtu.be/dQw4w9WgXcQ'},
       added: [_fetched('https://youtu.be/dQw4w9WgXcQ')],
     );
 
@@ -135,7 +135,7 @@ void main() {
 
     final saved = await mutate.saveLinkPreviews(
       1,
-      kept: const [],
+      presentUrls: const {'https://youtu.be/dQw4w9WgXcQ'},
       added: [_fetched('https://youtu.be/dQw4w9WgXcQ')],
     );
 
@@ -173,7 +173,7 @@ void main() {
 
     await mutate.saveLinkPreviews(
       1,
-      kept: const [kept],
+      presentUrls: {kept.url, 'https://youtu.be/dQw4w9WgXcQ'},
       added: [_fetched('https://youtu.be/dQw4w9WgXcQ')],
     );
 
@@ -189,6 +189,68 @@ void main() {
     ]);
   });
 
+  test('kept comes from the fresh note, not the editor', () async {
+    // Synced from another device after the editor opened.
+    const synced = LinkPreview(
+      url: 'https://www.bilibili.com/video/BV1xx411c7mD',
+      provider: LinkProvider.bilibili,
+      title: 'Synced',
+    );
+    final picker = _FakePicker();
+    final repo = _FakeRepo(
+      _note(NoteAttachments(linkPreviews: const [synced])),
+    );
+    final mutate = containerWith(picker, repo).read(mutateNoteProvider);
+
+    await mutate.saveLinkPreviews(
+      1,
+      presentUrls: {synced.url, 'https://youtu.be/dQw4w9WgXcQ'},
+      added: [_fetched('https://youtu.be/dQw4w9WgXcQ')],
+    );
+
+    expect(repo.written!.linkPreviews.map((p) => p.url), [
+      synced.url,
+      'https://youtu.be/dQw4w9WgXcQ',
+    ]);
+  });
+
+  test('an added preview already stored is not added again', () async {
+    const stored = LinkPreview(
+      url: 'https://youtu.be/dQw4w9WgXcQ',
+      provider: LinkProvider.youtube,
+      title: 'Stored',
+    );
+    final picker = _FakePicker();
+    final repo = _FakeRepo(
+      _note(NoteAttachments(linkPreviews: const [stored])),
+    );
+    final mutate = containerWith(picker, repo).read(mutateNoteProvider);
+
+    final r = await mutate.saveLinkPreviews(
+      1,
+      presentUrls: {stored.url},
+      added: [_fetched(stored.url)],
+    );
+
+    expect(picker.calls, isEmpty);
+    expect(repo.written, isNull); // unchanged: no write
+    expect(r!.effectiveAttachments.linkPreviews, const [stored]);
+  });
+
+  test('drops stored previews whose line is gone', () async {
+    const gone = LinkPreview(
+      url: 'https://youtu.be/aaaaaaaaaaa',
+      provider: LinkProvider.youtube,
+      title: 'Gone',
+    );
+    final repo = _FakeRepo(_note(NoteAttachments(linkPreviews: const [gone])));
+    final mutate = containerWith(_FakePicker(), repo).read(mutateNoteProvider);
+
+    await mutate.saveLinkPreviews(1, presentUrls: const {}, added: const []);
+
+    expect(repo.written!.linkPreviews, isEmpty);
+  });
+
   test('returns null when the note is gone', () async {
     final picker = _FakePicker();
     final c = ProviderContainer(
@@ -200,7 +262,7 @@ void main() {
     addTearDown(c.dispose);
     final r = await c
         .read(mutateNoteProvider)
-        .saveLinkPreviews(1, kept: const [], added: const []);
+        .saveLinkPreviews(1, presentUrls: const {}, added: const []);
     expect(r, isNull);
   });
 }

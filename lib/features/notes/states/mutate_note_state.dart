@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/attachments/attachment_ref.dart';
@@ -177,19 +178,27 @@ class MutateNote {
         .updateNote(noteId, HmmNoteUpdate(attachments: attachments));
   }
 
-  /// Sets the note's link previews to [kept] followed by [added]. Each added
+  /// Sets the note's link previews from a fresh read: the stored previews
+  /// whose URL is in [presentUrls] (so one synced from another device in the
+  /// meantime survives), then each of [added] not already stored. Each added
   /// thumbnail is persisted to the vault first; one that fails to persist
-  /// leaves its preview without a thumbnail. The note is read fresh and
-  /// rebuilt with `copyWith`, so earlier writes and every other attachment
-  /// (including preserved and unknown data) are kept. Null when the note is
-  /// gone.
+  /// leaves its preview without a thumbnail. The attachments are rebuilt
+  /// with `copyWith`, so every other slot (including preserved and unknown
+  /// data) is kept. Writes only when the list changes; returns the note
+  /// either way, or null when it is gone.
   Future<HmmNote?> saveLinkPreviews(
     int noteId, {
-    required List<LinkPreview> kept,
+    required Set<String> presentUrls,
     required List<FetchedLinkPreview> added,
   }) async {
+    final repo = ref.read(hmmNoteRepositoryProvider);
+    final stored = (await repo.getNoteById(noteId))?.effectiveAttachments;
+    final storedUrls = {...?stored?.linkPreviews.map((p) => p.url)};
     final saved = <LinkPreview>[];
     for (final f in added) {
+      if (storedUrls.contains(f.url) || !presentUrls.contains(f.url)) {
+        continue;
+      }
       VaultRef? thumb;
       final bytes = f.thumbnailBytes;
       if (bytes != null && bytes.isNotEmpty) {
@@ -215,12 +224,23 @@ class MutateNote {
         ),
       );
     }
-    final repo = ref.read(hmmNoteRepositoryProvider);
+    // Read again: the thumbnail writes above took time.
     final current = await repo.getNoteById(noteId);
     if (current == null) return null;
-    final updated = current.effectiveAttachments.copyWith(
-      linkPreviews: [...kept, ...saved],
+    final existing = current.effectiveAttachments;
+    final kept = existing.linkPreviews.where(
+      (p) => presentUrls.contains(p.url),
     );
+    final keptUrls = {for (final p in kept) p.url};
+    final next = [
+      ...kept,
+      for (final p in saved)
+        if (!keptUrls.contains(p.url)) p,
+    ];
+    if (const ListEquality<LinkPreview>().equals(next, existing.linkPreviews)) {
+      return current;
+    }
+    final updated = existing.copyWith(linkPreviews: next);
     return repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
   }
 

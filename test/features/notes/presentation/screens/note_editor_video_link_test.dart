@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,13 +39,15 @@ final _png = Uint8List.fromList(const [
 ]);
 
 class _FakeFetcher implements LinkPreviewFetcher {
-  _FakeFetcher({this.fail = false});
+  _FakeFetcher({this.fail = false, this.delay});
   final bool fail;
+  final Duration? delay;
   final calls = <String>[];
 
   @override
   Future<FetchedLinkPreview?> fetch(String url) async {
     calls.add(url);
+    if (delay != null) await Future<void>.delayed(delay!);
     if (fail) return null;
     return FetchedLinkPreview(
       url: url,
@@ -163,21 +166,32 @@ class _TestMutate extends MutateNote {
   @override
   Future<HmmNote?> saveLinkPreviews(
     int noteId, {
-    required List<LinkPreview> kept,
+    required Set<String> presentUrls,
     required List<FetchedLinkPreview> added,
   }) {
     linkSaves++;
-    return super.saveLinkPreviews(noteId, kept: kept, added: added);
+    return super.saveLinkPreviews(
+      noteId,
+      presentUrls: presentUrls,
+      added: added,
+    );
   }
 }
 
 class _Harness {
-  _Harness({bool fail = false}) : fetcher = _FakeFetcher(fail: fail);
+  _Harness({
+    bool fail = false,
+    Duration? delay,
+    this.initialLocation = '/new',
+    this.platform,
+  }) : fetcher = _FakeFetcher(fail: fail, delay: delay);
   final _FakeFetcher fetcher;
+  final String initialLocation;
+  final TargetPlatform? platform;
   final repo = _MemRepo();
   _TestMutate? mutate;
   late final GoRouter router = GoRouter(
-    initialLocation: '/new',
+    initialLocation: initialLocation,
     routes: [
       GoRoute(
         path: '/',
@@ -215,7 +229,10 @@ class _Harness {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           routerConfig: router,
-          theme: ThemeData(extensions: const [AppColors.light]),
+          theme: ThemeData(
+            platform: platform,
+            extensions: const [AppColors.light],
+          ),
         ),
       ),
     );
@@ -430,6 +447,11 @@ void main() {
     await _save(tester);
 
     expect(h.repo.note!.effectiveAttachments.linkPreviews, isEmpty);
+    // The dropped thumbnail is no longer retained, so GC can collect it.
+    expect(
+      h.repo.note!.effectiveAttachments.vaultPaths,
+      isNot(contains('attachments/note-1/thumb.png')),
+    );
   });
 
   testWidgets('second save keeps previews', (tester) async {
@@ -437,7 +459,8 @@ void main() {
     await h.pump(tester);
     await _typeBody(tester, 'Watch\n$_yt');
     await _save(tester);
-    expect(h.mutate!.linkSaves, 1);
+    final writes = h.repo.attachmentWrites;
+    expect(writes, 1);
 
     h.router.go('/edit');
     await tester.pumpAndSettle();
@@ -448,10 +471,101 @@ void main() {
 
     expect(h.fetcher.calls, [_yt]);
     // Unchanged previews are not rewritten.
-    expect(h.mutate!.linkSaves, 1);
+    expect(h.repo.attachmentWrites, writes);
     final previews = h.repo.note!.effectiveAttachments.linkPreviews;
     expect(previews, hasLength(1));
     expect(previews.single.thumbnail?.path, 'attachments/note-1/thumb.png');
     expect(h.repo.note!.content, 'Watch closely\n$_yt');
+  });
+
+  testWidgets('plain web link is not fetched', (tester) async {
+    final h = _Harness();
+    await h.pump(tester);
+    await _typeBody(tester, 'Read\nhttps://example.com/article');
+    await _save(tester);
+
+    expect(h.fetcher.calls, isEmpty);
+    expect(h.repo.note!.effectiveAttachments.linkPreviews, isEmpty);
+  });
+
+  testWidgets('add video link does not read the clipboard on iOS', (
+    tester,
+  ) async {
+    _clipboard = _yt;
+    final h = _Harness(platform: TargetPlatform.iOS);
+    await h.pump(tester);
+
+    await tester.tap(find.byTooltip('Add video link'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CupertinoAlertDialog), findsOneWidget);
+    final field = tester.widget<CupertinoTextField>(
+      find.descendant(
+        of: find.byType(CupertinoAlertDialog),
+        matching: find.byType(CupertinoTextField),
+      ),
+    );
+    expect(field.controller!.text, isEmpty);
+  });
+
+  testWidgets('link pasted right before save still gets a card', (
+    tester,
+  ) async {
+    final h = _Harness(delay: const Duration(seconds: 2));
+    await h.pump(tester);
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Hi');
+    await tester.enterText(_body, 'Watch\n$_yt');
+    await tester.pump();
+    // Save before the 600 ms debounce fires.
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    expect(h.fetcher.calls, [_yt]);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    expect(find.text('home'), findsOneWidget);
+    final previews = h.repo.note!.effectiveAttachments.linkPreviews;
+    expect(previews.single.url, _yt);
+    expect(previews.single.thumbnail?.path, 'attachments/note-1/thumb.png');
+  });
+
+  testWidgets('slow fetch past the cap saves without card', (tester) async {
+    final h = _Harness(delay: const Duration(seconds: 8));
+    await h.pump(tester);
+    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Hi');
+    await tester.enterText(_body, 'Watch\n$_yt');
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+
+    expect(find.text('home'), findsOneWidget);
+    expect(h.repo.note!.content, 'Watch\n$_yt');
+    expect(h.repo.note!.effectiveAttachments.linkPreviews, isEmpty);
+    // Let the abandoned fetch finish; the closed editor ignores it.
+    await tester.pump(const Duration(seconds: 3));
+    expect(h.repo.note!.effectiveAttachments.linkPreviews, isEmpty);
+  });
+
+  testWidgets('opening a note with an unpreviewed link line fetches it', (
+    tester,
+  ) async {
+    final h = _Harness(initialLocation: '/edit');
+    h.repo.note = HmmNote(
+      id: 1,
+      uuid: 'u1',
+      subject: 'Old note',
+      authorId: 1,
+      createDate: DateTime(2026, 1, 1),
+      content: 'Watch\n$_yt',
+    );
+    await h.pump(tester);
+
+    expect(h.fetcher.calls, [_yt]);
+    expect(find.byType(VideoLinkCard), findsOneWidget);
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(h.repo.note!.effectiveAttachments.linkPreviews.single.url, _yt);
   });
 }
