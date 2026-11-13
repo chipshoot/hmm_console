@@ -25,7 +25,9 @@ class MutateNote {
     NoteLocation? location,
   }) async {
     final catalog = await ensureGeneralCatalog(ref);
-    final note = await ref.read(hmmNoteRepositoryProvider).createNote(
+    final note = await ref
+        .read(hmmNoteRepositoryProvider)
+        .createNote(
           HmmNoteCreate(
             subject: subject.trim(),
             catalogId: catalog.id,
@@ -60,13 +62,16 @@ class MutateNote {
     DateTime? noteDate,
     NoteLocation? location,
   }) async {
-    final note = await ref.read(hmmNoteRepositoryProvider).updateNote(
+    final note = await ref
+        .read(hmmNoteRepositoryProvider)
+        .updateNote(
           id,
           HmmNoteUpdate(
-              subject: subject?.trim(),
-              content: markdownBody,
-              noteDate: noteDate,
-              location: location),
+            subject: subject?.trim(),
+            content: markdownBody,
+            noteDate: noteDate,
+            location: location,
+          ),
         );
     return note;
   }
@@ -138,7 +143,7 @@ class MutateNote {
     final current = await repo.getNoteById(noteId);
     if (current == null) return null;
     final existing = current.effectiveAttachments;
-    final updated = NoteAttachments(
+    final updated = existing.copyWith(
       primaryImage: existing.primaryImage ?? added,
       images: existing.primaryImage == null
           ? existing.images
@@ -184,11 +189,7 @@ class MutateNote {
     final current = await repo.getNoteById(noteId);
     if (current == null) return null;
     final existing = current.effectiveAttachments;
-    final updated = NoteAttachments(
-      primaryImage: existing.primaryImage,
-      images: existing.images,
-      files: [...existing.files, added],
-    );
+    final updated = existing.copyWith(files: [...existing.files, added]);
     return repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
   }
 
@@ -199,22 +200,26 @@ class MutateNote {
     AttachmentPickSource source = AttachmentPickSource.gallery,
   }) async {
     final picker = await ref.read(imageAttachmentPickerProvider.future);
-    final VaultRef? picked =
-        await picker.pickForNote(noteId: noteId, source: source);
+    final VaultRef? picked = await picker.pickForNote(
+      noteId: noteId,
+      source: source,
+    );
     if (picked == null) return null;
 
     final repo = ref.read(hmmNoteRepositoryProvider);
     final current = await repo.getNoteById(noteId);
     if (current == null) return null;
     final existing = current.effectiveAttachments;
-    final updated = NoteAttachments(
+    final updated = existing.copyWith(
       primaryImage: existing.primaryImage ?? picked,
       images: existing.primaryImage == null
           ? existing.images
           : [...existing.images, picked],
     );
-    final note =
-        await repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
+    final note = await repo.updateNote(
+      noteId,
+      HmmNoteUpdate(attachments: updated),
+    );
     return note;
   }
 }

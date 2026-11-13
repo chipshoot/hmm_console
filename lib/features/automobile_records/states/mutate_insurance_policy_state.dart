@@ -92,20 +92,24 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
     final picker = await ref.read(imageAttachmentPickerProvider.future);
     final refs = <VaultRef>[];
     for (final img in images) {
-      refs.add(await picker.persistToVault(
-        noteId: noteId,
-        bytes: img.bytes,
-        originalName: img.originalName,
-        contentTypeHint: img.contentType,
-      ));
+      refs.add(
+        await picker.persistToVault(
+          noteId: noteId,
+          bytes: img.bytes,
+          originalName: img.originalName,
+          contentTypeHint: img.contentType,
+        ),
+      );
     }
     for (final f in files) {
-      refs.add(await picker.persistFileToVault(
-        noteId: noteId,
-        bytes: f.bytes,
-        originalName: f.originalName,
-        contentType: f.contentType ?? 'application/pdf',
-      ));
+      refs.add(
+        await picker.persistFileToVault(
+          noteId: noteId,
+          bytes: f.bytes,
+          originalName: f.originalName,
+          contentType: f.contentType ?? 'application/pdf',
+        ),
+      );
     }
     return refs;
   }
@@ -146,7 +150,10 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
       contacts: p.contacts,
       createdDate: p.createdDate,
       lastModifiedDate: p.lastModifiedDate,
-      attachments: NoteAttachments(
+      // The policy's own attachments are the stored base (edit) so preserved
+      // entries and unknown keys carry over.
+      attachments: p.attachments.copyWith(
+        clearPrimaryImage: true,
         images: all.where(isImage).toList(),
         files: all.where((r) => !isImage(r)).toList(),
       ),
@@ -156,7 +163,8 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
   Future<void> delete(int autoId, int id) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-        () => ref.read(insuranceRepositoryModeProvider).deletePolicy(autoId, id));
+      () => ref.read(insuranceRepositoryModeProvider).deletePolicy(autoId, id),
+    );
     if (state.hasValue) _invalidate();
   }
 
@@ -168,5 +176,5 @@ class MutateInsurancePolicyState extends AsyncNotifier<void> {
 
 final mutateInsurancePolicyStateProvider =
     AsyncNotifierProvider<MutateInsurancePolicyState, void>(
-  () => MutateInsurancePolicyState(),
-);
+      () => MutateInsurancePolicyState(),
+    );

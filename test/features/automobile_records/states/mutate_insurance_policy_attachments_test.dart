@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'dart:convert';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,40 +52,44 @@ class _FakePicker implements IImageAttachmentPicker {
   final _MemVault vault;
   int _n = 0;
   @override
-  Future<VaultRef?> pickForNote(
-          {required int noteId,
-          AttachmentPickSource source = AttachmentPickSource.gallery}) async =>
-      null;
+  Future<VaultRef?> pickForNote({
+    required int noteId,
+    AttachmentPickSource source = AttachmentPickSource.gallery,
+  }) async => null;
   @override
-  Future<VaultRef> persistToVault(
-      {required int noteId,
-      required Uint8List bytes,
-      required String originalName,
-      String? contentTypeHint,
-      bool sensitive = false}) async {
+  Future<VaultRef> persistToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    String? contentTypeHint,
+    bool sensitive = false,
+  }) async {
     final path = 'attachments/note-$noteId/img${_n++}.jpg';
     await vault.putBytes(path, bytes, contentType: 'image/jpeg');
     return VaultRef(
-        path: path,
-        contentType: 'image/jpeg',
-        byteSize: bytes.length,
-        originalName: originalName);
+      path: path,
+      contentType: 'image/jpeg',
+      byteSize: bytes.length,
+      originalName: originalName,
+    );
   }
 
   @override
-  Future<VaultRef> persistFileToVault(
-      {required int noteId,
-      required Uint8List bytes,
-      required String originalName,
-      required String contentType,
-      bool sensitive = false}) async {
+  Future<VaultRef> persistFileToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    required String contentType,
+    bool sensitive = false,
+  }) async {
     final path = 'attachments/note-$noteId/file${_n++}.pdf';
     await vault.putBytes(path, bytes, contentType: contentType);
     return VaultRef(
-        path: path,
-        contentType: contentType,
-        byteSize: bytes.length,
-        originalName: originalName);
+      path: path,
+      contentType: contentType,
+      byteSize: bytes.length,
+      originalName: originalName,
+    );
   }
 }
 
@@ -94,8 +100,6 @@ class _StubMode extends DataModeNotifier {
   @override
   DataMode build() => _m;
 }
-
-
 
 /// Delegates to the real repository but fails the final write, to prove the
 /// vault is not emptied by a save that never lands.
@@ -123,8 +127,16 @@ class _FailingUpdateRepo implements IInsuranceRepository {
   Future<AutoInsurancePolicy> getPolicyById(int autoId, int id) =>
       inner.getPolicyById(autoId, id);
   @override
-  Future<void> deletePolicy(int autoId, int id) => inner.deletePolicy(autoId, id);
+  Future<void> deletePolicy(int autoId, int id) =>
+      inner.deletePolicy(autoId, id);
 }
+
+const _videoRaw = {
+  'kind': 'vault',
+  'path': 'attachments/note-1/clip.mov',
+  'contentType': 'video/quicktime',
+  'byteSize': 9,
+};
 
 void main() {
   late HmmDatabase db;
@@ -144,19 +156,22 @@ void main() {
       );
 
   PickedImageBytes card() => PickedImageBytes(
-        bytes: Uint8List.fromList([1, 2, 3]),
-        originalName: 'card.jpg',
-        contentType: 'image/jpeg',
-      );
+    bytes: Uint8List.fromList([1, 2, 3]),
+    originalName: 'card.jpg',
+    contentType: 'image/jpeg',
+  );
 
   Future<ProviderContainer> container({DataMode mode = DataMode.local}) async {
-    final c = ProviderContainer(overrides: [
-      insuranceRepositoryModeProvider.overrideWithValue(insuranceRepo),
-      vaultStoreProvider.overrideWith((ref) async => vault),
-      imageAttachmentPickerProvider
-          .overrideWith((ref) async => _FakePicker(vault)),
-      dataModeProvider.overrideWith(() => _StubMode(mode)),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        insuranceRepositoryModeProvider.overrideWithValue(insuranceRepo),
+        vaultStoreProvider.overrideWith((ref) async => vault),
+        imageAttachmentPickerProvider.overrideWith(
+          (ref) async => _FakePicker(vault),
+        ),
+        dataModeProvider.overrideWith(() => _StubMode(mode)),
+      ],
+    );
     addTearDown(c.dispose);
     return c;
   }
@@ -164,11 +179,14 @@ void main() {
   setUp(() async {
     db = HmmDatabase(NativeDatabase.memory());
     vault = _MemVault();
-    final aid = await db.into(db.authors).insert(
+    final aid = await db
+        .into(db.authors)
+        .insert(
           AuthorsCompanion.insert(accountName: 'insurance-notifier-tester'),
         );
-    final author =
-        await (db.select(db.authors)..where((a) => a.id.equals(aid))).getSingle();
+    final author = await (db.select(
+      db.authors,
+    )..where((a) => a.id.equals(aid))).getSingle();
     insuranceRepo = LocalInsuranceRepository(
       LocalHmmNoteRepository(db, () async => author),
       LocalNoteCatalogRepository(db),
@@ -177,20 +195,22 @@ void main() {
 
   tearDown(() async => db.close());
 
-  test('create writes picked bytes to the vault and merges the ref back',
-      () async {
-    final c = await container();
-    final created = await c
-        .read(mutateInsurancePolicyStateProvider.notifier)
-        .create(1, policy(), pendingImages: [card()]);
+  test(
+    'create writes picked bytes to the vault and merges the ref back',
+    () async {
+      final c = await container();
+      final created = await c
+          .read(mutateInsurancePolicyStateProvider.notifier)
+          .create(1, policy(), pendingImages: [card()]);
 
-    expect(vault.store, hasLength(1));
-    expect(created!.attachments.images, hasLength(1));
+      expect(vault.store, hasLength(1));
+      expect(created!.attachments.images, hasLength(1));
 
-    // And it is actually persisted, not just returned in memory.
-    final reloaded = await insuranceRepo.getPolicyById(1, created.id);
-    expect(reloaded.attachments.images, hasLength(1));
-  });
+      // And it is actually persisted, not just returned in memory.
+      final reloaded = await insuranceRepo.getPolicyById(1, created.id);
+      expect(reloaded.attachments.images, hasLength(1));
+    },
+  );
 
   test('create carries contacts through the attachment merge', () async {
     // The merge rebuilds the policy field by field; a field it forgets is lost.
@@ -199,9 +219,9 @@ void main() {
         .read(mutateInsurancePolicyStateProvider.notifier)
         .create(
           1,
-          policy(contacts: [
-            const ContactInfo(name: 'Ada', phone: '555')
-          ]),
+          policy(
+            contacts: [const ContactInfo(name: 'Ada', phone: '555')],
+          ),
           pendingImages: [card()],
         );
 
@@ -213,7 +233,9 @@ void main() {
   test('create with no picks never touches the vault', () async {
     // Initialising the vault can fail; a plain save must not depend on it.
     final c = await container();
-    await c.read(mutateInsurancePolicyStateProvider.notifier).create(1, policy());
+    await c
+        .read(mutateInsurancePolicyStateProvider.notifier)
+        .create(1, policy());
     expect(vault.store, isEmpty);
   });
 
@@ -234,7 +256,9 @@ void main() {
         .create(1, policy(), pendingImages: [card()]);
     final ref = created!.attachments.images.single as VaultRef;
 
-    await c.read(mutateInsurancePolicyStateProvider.notifier).edit(
+    await c
+        .read(mutateInsurancePolicyStateProvider.notifier)
+        .edit(
           1,
           created.id,
           AutoInsurancePolicy(
@@ -254,45 +278,82 @@ void main() {
     expect(reloaded.attachments.isEmpty, isTrue);
   });
 
-  test('a failed write does not destroy the removed attachment bytes', () async {
-    // Deleting before the write meant a failed save left the bytes gone while
-    // the stored note still listed their paths - an attachment that exists on
-    // screen and fails to open.
-    final failing = _FailingUpdateRepo(insuranceRepo);
-    final c = ProviderContainer(overrides: [
-      insuranceRepositoryModeProvider.overrideWithValue(failing),
-      vaultStoreProvider.overrideWith((ref) async => vault),
-      imageAttachmentPickerProvider
-          .overrideWith((ref) async => _FakePicker(vault)),
-      dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
-    ]);
-    addTearDown(c.dispose);
-
-    final created = await c
-        .read(mutateInsurancePolicyStateProvider.notifier)
-        .create(1, policy(), pendingImages: [card()]);
-    final ref = created!.attachments.images.single as VaultRef;
-
-    failing.failNext = true;
-    await c.read(mutateInsurancePolicyStateProvider.notifier).edit(
-          1,
-          created.id,
-          AutoInsurancePolicy(
-            id: created.id,
-            automobileId: 1,
-            provider: 'Intact',
-            policyNumber: 'POL-1',
-            effectiveDate: created.effectiveDate,
-            expiryDate: created.expiryDate,
-            premium: 1200,
+  test(
+    'a failed write does not destroy the removed attachment bytes',
+    () async {
+      // Deleting before the write meant a failed save left the bytes gone while
+      // the stored note still listed their paths - an attachment that exists on
+      // screen and fails to open.
+      final failing = _FailingUpdateRepo(insuranceRepo);
+      final c = ProviderContainer(
+        overrides: [
+          insuranceRepositoryModeProvider.overrideWithValue(failing),
+          vaultStoreProvider.overrideWith((ref) async => vault),
+          imageAttachmentPickerProvider.overrideWith(
+            (ref) async => _FakePicker(vault),
           ),
-          removed: [ref],
-        );
+          dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
+        ],
+      );
+      addTearDown(c.dispose);
 
-    // The save failed, so the note still references these bytes; they must
-    // still be there.
-    expect(vault.deleted, isNot(contains(ref.path)));
-    expect(vault.store.containsKey(ref.path), isTrue);
+      final created = await c
+          .read(mutateInsurancePolicyStateProvider.notifier)
+          .create(1, policy(), pendingImages: [card()]);
+      final ref = created!.attachments.images.single as VaultRef;
+
+      failing.failNext = true;
+      await c
+          .read(mutateInsurancePolicyStateProvider.notifier)
+          .edit(
+            1,
+            created.id,
+            AutoInsurancePolicy(
+              id: created.id,
+              automobileId: 1,
+              provider: 'Intact',
+              policyNumber: 'POL-1',
+              effectiveDate: created.effectiveDate,
+              expiryDate: created.expiryDate,
+              premium: 1200,
+            ),
+            removed: [ref],
+          );
+
+      // The save failed, so the note still references these bytes; they must
+      // still be there.
+      expect(vault.deleted, isNot(contains(ref.path)));
+      expect(vault.store.containsKey(ref.path), isTrue);
+    },
+  );
+
+  test('editing a policy keeps preserved unknown attachment data', () async {
+    final c = await container();
+    final created = await insuranceRepo.createPolicy(1, policy());
+    await (db.update(db.notes)..where((t) => t.id.equals(created.id))).write(
+      NotesCompanion(
+        attachments: Value(
+          jsonEncode({
+            'files': [_videoRaw],
+            'linkPreviews': [
+              {'url': 'u'},
+            ],
+          }),
+        ),
+      ),
+    );
+    final loaded = await insuranceRepo.getPolicyById(1, created.id);
+
+    await c
+        .read(mutateInsurancePolicyStateProvider.notifier)
+        .edit(1, created.id, loaded, pendingImages: [card()]);
+
+    final raw = (await (db.select(
+      db.notes,
+    )..where((t) => t.id.equals(created.id))).getSingle()).attachments!;
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    expect(jsonEncode(json['files']), contains('clip.mov'));
+    expect(json['linkPreviews'], isNotNull);
+    expect((json['images'] as List), hasLength(1));
   });
-
 }

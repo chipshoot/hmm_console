@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../attachments/attachment_providers.dart';
-import '../attachments/attachment_ref.dart';
 import '../attachments/attachment_ref_codec.dart';
 import '../data_mode.dart';
 import '../sync/cloud_sync_provider.dart';
@@ -202,15 +201,7 @@ class NotePurgeService {
       row.attachments == null;
 
   static Set<String> _vaultPathsOf(String? raw) {
-    final a = NoteAttachmentsCodec.decode(raw);
-    return {
-      for (final ref in <AttachmentRef?>[
-        a.primaryImage,
-        ...a.images,
-        ...a.files,
-      ])
-        if (ref is VaultRef) ref.path,
-    };
+    return NoteAttachmentsCodec.decode(raw).vaultPaths;
   }
 
   /// Release the purged note's vault files that no remaining note references

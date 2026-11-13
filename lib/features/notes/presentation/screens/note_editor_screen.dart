@@ -460,7 +460,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         : null;
     await mutate.setAttachments(
       noteId,
-      NoteAttachments(primaryImage: primary, images: images, files: base.files),
+      base.copyWith(
+        primaryImage: primary,
+        clearPrimaryImage: primary == null,
+        images: images,
+      ),
     );
   }
 

@@ -170,7 +170,7 @@ Implemented in `lib/core/network/` against the REST API at `https://api.homemade
 - **`data_mode.dart`** — `DataMode` enum (`local`, `cloudStorage`, `cloudApi`) and `DataModeNotifier` (persisted via `shared_preferences`; legacy `api` value maps to `cloudApi`).
 - **`repository_providers.dart`** — selects each repository impl by mode. `local` and `cloudStorage` both use the local Drift store; `cloudApi` uses API-backed repositories.
 - **`sync/`** — the cloud-sync engine for `cloudStorage` mode: `CloudSyncProvider` (abstract) with `onedrive_sync_provider` (OneDrive via `onedrive_graph_client`/`onedrive_auth`) and `api_sync_provider`, coordinated by `sync_orchestrator` / `sync_controller`, with `sync_meta_repository` and `sync_models` tracking state. See `docs/sync_contract.md`, `docs/cloud_storage_setup.md`, and `docs/data-layer-unification-plan.md`.
-- **`vault/` + `attachments/`** — note attachment storage mirroring the backend `Hmm.Core.Vault`: `vault_store` interface with `local_vault_store` / `api_vault_store`, `vault_gc` for garbage collection, and attachment ref codecs/providers.
+- **`vault/` + `attachments/`** — note attachment storage mirroring the backend `Hmm.Core.Vault`: `vault_store` interface with `local_vault_store` / `api_vault_store`, `vault_gc` for garbage collection, and attachment ref codecs/providers. The attachment codec preserves unknown entries and keys (e.g. `video/*` refs, `linkPreviews`) written by newer builds; new code must rebuild attachments with `NoteAttachments.copyWith` and collect vault paths with `vaultPaths`, never by re-listing known fields.
 
 ## Local Testing Environment
 1. Backend start: run ../hmm/docker/test-env.ps1 or test-env.sh, based on current platform
