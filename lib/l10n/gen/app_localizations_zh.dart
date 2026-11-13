@@ -3407,4 +3407,14 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNotesListTagsBody =>
       '可在笔记编辑器中或通过长按菜单的“标签…”添加标签。在侧边栏选择标签可查看其笔记；“管理标签…”可重命名、合并或删除标签。';
+
+  @override
+  String get notesVideoLinkUnavailable => '可能已无法观看';
+
+  @override
+  String get helpNoteDetailVideoLinkTitle => '视频链接';
+
+  @override
+  String get helpNoteDetailVideoLinkBody =>
+      '单独一行的 YouTube 或哔哩哔哩链接会显示为卡片。点按即可在对应应用中观看；左上角的 ◀ Hmm 按钮可返回此笔记。';
 }

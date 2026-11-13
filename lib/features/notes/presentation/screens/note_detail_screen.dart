@@ -27,6 +27,7 @@ import '../../states/note_selection.dart';
 import '../../states/recently_deleted_provider.dart';
 import '../catalog_labels.dart';
 import '../widgets/note_swipe_actions.dart' show deleteNoteWithUndo;
+import '../widgets/video_link_card.dart' show LinkCardData;
 import '../widgets/markdown_view.dart';
 import '../widgets/note_file_card_list.dart';
 import '../widgets/note_flag_sheet.dart';
@@ -311,7 +312,13 @@ class NoteDetailScreen extends ConsumerWidget {
                       readOnly: true,
                     ),
                   const SizedBox(height: 12),
-                  MarkdownView(markdown),
+                  MarkdownView(
+                    markdown,
+                    linkCards: {
+                      for (final p in d.note.effectiveAttachments.linkPreviews)
+                        p.url: LinkCardData.fromPreview(p),
+                    },
+                  ),
                 ],
               );
             },

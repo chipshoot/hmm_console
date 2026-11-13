@@ -17,6 +17,8 @@ import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/data/vault/sensitive_path.dart';
+import '../../links/video_link.dart';
+import 'video_link_card.dart';
 import '../../../../core/data/attachments/widgets/sensitive_attachment_image.dart';
 
 /// Max on-screen height of an inline image; the whole image scales to the
@@ -25,9 +27,11 @@ const double kInlineImageMaxHeight = 360.0;
 
 /// Routes a tapped Markdown link URL by scheme: a `hmm-note://<uuid>` link to
 /// [onNote]; an `http(s)` link to [onExternal]; anything else is ignored.
-void dispatchMarkdownLink(String? href,
-    {required void Function(String uuid) onNote,
-    required void Function(Uri url) onExternal}) {
+void dispatchMarkdownLink(
+  String? href, {
+  required void Function(String uuid) onNote,
+  required void Function(Uri url) onExternal,
+}) {
   if (href == null) return;
   final uuid = parseNoteUri(href);
   if (uuid != null) {
@@ -52,6 +56,7 @@ class NoteMarkdownBody extends StatelessWidget {
     this.selectable = true,
     this.onNoteLinkTap,
     this.onExternalLinkTap,
+    this.linkCards = const {},
   });
 
   final String data;
@@ -65,17 +70,21 @@ class NoteMarkdownBody extends StatelessWidget {
   /// Tapped an external `http(s)` link. Defaults to opening via url_launcher.
   final void Function(Uri url)? onExternalLinkTap;
 
+  /// Link previews by URL. A body line holding only one of these URLs renders
+  /// as a [VideoLinkCard]. Empty = the body renders as plain Markdown.
+  final Map<String, LinkCardData> linkCards;
+
   Widget _box(Widget child) => ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: kInlineImageMaxHeight),
-        child: child,
-      );
+    constraints: const BoxConstraints(maxHeight: kInlineImageMaxHeight),
+    child: child,
+  );
 
   Widget _placeholder() => _box(
-        const ColoredBox(
-          color: Color(0xFFF2F2F7),
-          child: Center(child: Icon(Icons.broken_image_outlined)),
-        ),
-      );
+    const ColoredBox(
+      color: Color(0xFFF2F2F7),
+      child: Center(child: Icon(Icons.broken_image_outlined)),
+    ),
+  );
 
   Widget _buildImage(BuildContext context, MarkdownImageConfig config) {
     final url = config.uri.toString();
@@ -84,8 +93,13 @@ class NoteMarkdownBody extends StatelessWidget {
     if (pendingUuid != null) {
       final bytes = pendingBytes?[pendingUuid];
       if (bytes == null) return _placeholder();
-      return _box(Image.memory(bytes,
-          fit: BoxFit.contain, alignment: Alignment.topCenter));
+      return _box(
+        Image.memory(
+          bytes,
+          fit: BoxFit.contain,
+          alignment: Alignment.topCenter,
+        ),
+      );
     }
 
     final path = parseImageUri(url);
@@ -94,40 +108,45 @@ class NoteMarkdownBody extends StatelessWidget {
       // unused for display.
       final sensitive = isSensitiveVaultPath(path);
       final ref = VaultRef(
-          path: path,
-          contentType: 'application/octet-stream',
-          byteSize: 0,
-          sensitive: sensitive);
-      return _box(GestureDetector(
-        onTap: () => showFullscreenImage(context, ref),
-        child: sensitive
-            ? SensitiveAttachmentImage(
-                ref: ref,
-                resolver: resolver!,
-                fit: BoxFit.contain,
-                alignment: Alignment.topCenter,
-                semanticLabel: config.alt,
-              )
-            : AttachmentImage(
-                ref: ref,
-                resolver: resolver!,
-                fit: BoxFit.contain,
-                alignment: Alignment.topCenter,
-                semanticLabel: config.alt,
-              ),
-      ));
+        path: path,
+        contentType: 'application/octet-stream',
+        byteSize: 0,
+        sensitive: sensitive,
+      );
+      return _box(
+        GestureDetector(
+          onTap: () => showFullscreenImage(context, ref),
+          child: sensitive
+              ? SensitiveAttachmentImage(
+                  ref: ref,
+                  resolver: resolver!,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.topCenter,
+                  semanticLabel: config.alt,
+                )
+              : AttachmentImage(
+                  ref: ref,
+                  resolver: resolver!,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.topCenter,
+                  semanticLabel: config.alt,
+                ),
+        ),
+      );
     }
 
     // A normal external image (e.g. http/https) — render it like the default
     // Markdown image handler would, since sizedImageBuilder intercepts all.
     if (config.uri.hasScheme &&
         (config.uri.isScheme('http') || config.uri.isScheme('https'))) {
-      return _box(Image.network(
-        url,
-        fit: BoxFit.contain,
-        alignment: Alignment.topCenter,
-        errorBuilder: (_, _, _) => _placeholder(),
-      ));
+      return _box(
+        Image.network(
+          url,
+          fit: BoxFit.contain,
+          alignment: Alignment.topCenter,
+          errorBuilder: (_, _, _) => _placeholder(),
+        ),
+      );
     }
 
     return _placeholder();
@@ -137,27 +156,55 @@ class NoteMarkdownBody extends StatelessWidget {
     // Best-effort external open. Genuinely swallow failures (no handler app, or
     // a platform exception) via catchError so a bad link never surfaces as an
     // unhandled async error or crashes the note view.
-    unawaited(launchUrl(url, mode: LaunchMode.externalApplication)
-        .catchError((_) => false));
+    unawaited(
+      launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      ).catchError((_) => false),
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _markdown(BuildContext context, String text, {Key? key}) {
     return MarkdownBody(
       // flutter_markdown re-parses (and so re-runs the image builder) only
       // when the text changes. The resolver usually arrives a frame after
       // the first build; keying on it rebuilds the images then, instead of
       // leaving the "no resolver yet" placeholder for good.
-      key: ObjectKey(resolver),
-      data: data,
+      key: key,
+      data: text,
       selectable: selectable,
       sizedImageBuilder: (config) => _buildImage(context, config),
       onTapLink: (text, href, title) => dispatchMarkdownLink(
         href,
         onNote: (uuid) => onNoteLinkTap?.call(uuid),
-        onExternal: (url) =>
-            (onExternalLinkTap ?? _launchExternal)(url),
+        onExternal: (url) => (onExternalLinkTap ?? _launchExternal)(url),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (linkCards.isEmpty) {
+      return _markdown(context, data, key: ObjectKey(resolver));
+    }
+    final segments = splitCardSegments(data, linkCards.keys.toSet());
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, seg) in segments.indexed)
+          switch (seg) {
+            MarkdownSegment(:final text) => _markdown(
+              context,
+              text,
+              key: ObjectKey((resolver, i)),
+            ),
+            CardSegment(:final url) => VideoLinkCard(
+              key: ValueKey('card-$i-$url'),
+              data: linkCards[url]!,
+              resolver: resolver,
+            ),
+          },
+      ],
     );
   }
 }
@@ -165,9 +212,10 @@ class NoteMarkdownBody extends StatelessWidget {
 /// Backwards-compatible read-only Markdown view. Existing call sites use
 /// `MarkdownView(markdown)`; it now resolves inline images too.
 class MarkdownView extends ConsumerWidget {
-  const MarkdownView(this.data, {super.key});
+  const MarkdownView(this.data, {super.key, this.linkCards = const {}});
 
   final String data;
+  final Map<String, LinkCardData> linkCards;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -175,15 +223,20 @@ class MarkdownView extends ConsumerWidget {
     return NoteMarkdownBody(
       data: data,
       resolver: resolver,
+      linkCards: linkCards,
       onNoteLinkTap: (uuid) => unawaited(_openNote(context, ref, uuid)),
     );
   }
 
   Future<void> _openNote(
-      BuildContext context, WidgetRef ref, String uuid) async {
+    BuildContext context,
+    WidgetRef ref,
+    String uuid,
+  ) async {
     try {
-      final note =
-          await ref.read(hmmNoteRepositoryProvider).getNoteByUuid(uuid);
+      final note = await ref
+          .read(hmmNoteRepositoryProvider)
+          .getNoteByUuid(uuid);
       if (!context.mounted) return;
       if (note != null) {
         context.push('/notes/${note.id}');
@@ -195,7 +248,8 @@ class MarkdownView extends ConsumerWidget {
     }
     if (!context.mounted) return;
     final l = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.notesLinkedUnavailable)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l.notesLinkedUnavailable)));
   }
 }

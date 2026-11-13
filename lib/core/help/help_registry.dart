@@ -290,6 +290,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpNoteDetailManageTitle,
         body: l.helpNoteDetailManageBody,
       ),
+      HelpEntry(
+        icon: Icons.smart_display_outlined,
+        title: l.helpNoteDetailVideoLinkTitle,
+        body: l.helpNoteDetailVideoLinkBody,
+      ),
     ],
   ),
   HelpId.notesRecentlyDeleted => ScreenHelp(
