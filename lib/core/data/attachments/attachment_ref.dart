@@ -6,6 +6,8 @@
 
 import 'package:collection/collection.dart';
 
+import 'link_preview.dart';
+
 /// Storage providers for [CloudFileRef].
 enum CloudProvider {
   oneDrive('oneDrive'),
@@ -188,11 +190,15 @@ final class NoteAttachments {
     List<AttachmentRef> files = const [],
     List<Map<String, dynamic>> preservedImages = const [],
     List<Map<String, dynamic>> preservedFiles = const [],
+    List<LinkPreview> linkPreviews = const [],
+    List<Map<String, dynamic>> preservedLinkPreviews = const [],
     Map<String, dynamic> extra = const {},
   }) : images = List.unmodifiable(images),
        files = List.unmodifiable(files),
        preservedImages = List.unmodifiable(preservedImages),
        preservedFiles = List.unmodifiable(preservedFiles),
+       linkPreviews = List.unmodifiable(linkPreviews),
+       preservedLinkPreviews = List.unmodifiable(preservedLinkPreviews),
        extra = Map.unmodifiable(extra) {
     final p = primaryImage;
     if (p != null) {
@@ -221,6 +227,12 @@ final class NoteAttachments {
   /// Raw `files` entries this build does not understand, kept verbatim.
   final List<Map<String, dynamic>> preservedFiles;
 
+  /// Link cards (video links etc.) shown in the note body.
+  final List<LinkPreview> linkPreviews;
+
+  /// Raw `linkPreviews` entries this build cannot parse, kept verbatim.
+  final List<Map<String, dynamic>> preservedLinkPreviews;
+
   /// Unknown top-level keys, plus the raw `primaryImage` when unsupported.
   final Map<String, dynamic> extra;
 
@@ -230,6 +242,8 @@ final class NoteAttachments {
       files.isEmpty &&
       preservedImages.isEmpty &&
       preservedFiles.isEmpty &&
+      linkPreviews.isEmpty &&
+      preservedLinkPreviews.isEmpty &&
       extra.isEmpty;
   bool get isNotEmpty => !isEmpty;
 
@@ -239,6 +253,7 @@ final class NoteAttachments {
     bool clearPrimaryImage = false,
     List<AttachmentRef>? images,
     List<AttachmentRef>? files,
+    List<LinkPreview>? linkPreviews,
   }) => NoteAttachments(
     primaryImage: clearPrimaryImage
         ? null
@@ -247,6 +262,8 @@ final class NoteAttachments {
     files: files ?? this.files,
     preservedImages: preservedImages,
     preservedFiles: preservedFiles,
+    linkPreviews: linkPreviews ?? this.linkPreviews,
+    preservedLinkPreviews: preservedLinkPreviews,
     extra: extra,
   );
 
@@ -267,6 +284,13 @@ final class NoteAttachments {
     preservedImages.forEach(addRaw);
     preservedFiles.forEach(addRaw);
     addRaw(extra['primaryImage']);
+    for (final l in linkPreviews) {
+      final t = l.thumbnail;
+      if (t != null) out.add(t.path);
+    }
+    for (final m in preservedLinkPreviews) {
+      addRaw(m['thumbnail']);
+    }
     return out;
   }
 
@@ -281,6 +305,8 @@ final class NoteAttachments {
         _deep.equals(other.files, files) &&
         _deep.equals(other.preservedImages, preservedImages) &&
         _deep.equals(other.preservedFiles, preservedFiles) &&
+        _deep.equals(other.linkPreviews, linkPreviews) &&
+        _deep.equals(other.preservedLinkPreviews, preservedLinkPreviews) &&
         _deep.equals(other.extra, extra);
   }
 
@@ -291,6 +317,8 @@ final class NoteAttachments {
     _deep.hash(files),
     _deep.hash(preservedImages),
     _deep.hash(preservedFiles),
+    _deep.hash(linkPreviews),
+    _deep.hash(preservedLinkPreviews),
     _deep.hash(extra),
   );
 
@@ -298,5 +326,6 @@ final class NoteAttachments {
   String toString() =>
       'NoteAttachments(primaryImage: $primaryImage, '
       'images: $images, files: $files, preservedImages: $preservedImages, '
-      'preservedFiles: $preservedFiles, extra: $extra)';
+      'preservedFiles: $preservedFiles, linkPreviews: $linkPreviews, '
+      'extra: $extra)';
 }

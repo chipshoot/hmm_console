@@ -13,6 +13,7 @@ import 'dart:convert';
 
 import '../vault/vault_path.dart';
 import 'attachment_ref.dart';
+import 'link_preview.dart';
 
 /// MIME types accepted in v1. Must match the schema's `contentType`
 /// enum.
@@ -260,7 +261,10 @@ class NoteAttachmentsCodec {
     AttachmentRef? primary;
     final extra = <String, dynamic>{};
     for (final e in json.entries) {
-      if (e.key != 'primaryImage' && e.key != 'images' && e.key != 'files') {
+      if (e.key != 'primaryImage' &&
+          e.key != 'images' &&
+          e.key != 'files' &&
+          !(e.key == 'linkPreviews' && e.value is List)) {
         extra[e.key] = e.value;
       }
     }
@@ -289,6 +293,24 @@ class NoteAttachmentsCodec {
       preservedFiles,
     );
 
+    final preservedLinks = <Map<String, dynamic>>[];
+    final links = <LinkPreview>[];
+    final rawLinks = json['linkPreviews'];
+    if (rawLinks != null && rawLinks is! List) {
+      extra['linkPreviews'] = rawLinks;
+    } else if (rawLinks is List) {
+      for (final e in rawLinks) {
+        if (e is! Map<String, dynamic>) {
+          throw const FormatException('each link preview must be an object');
+        }
+        try {
+          links.add(LinkPreview.fromJson(e));
+        } on FormatException {
+          preservedLinks.add(e);
+        }
+      }
+    }
+
     try {
       return NoteAttachments(
         primaryImage: primary,
@@ -296,6 +318,8 @@ class NoteAttachmentsCodec {
         files: files,
         preservedImages: preservedImages,
         preservedFiles: preservedFiles,
+        linkPreviews: links,
+        preservedLinkPreviews: preservedLinks,
         extra: extra,
       );
     } on ArgumentError catch (e) {
@@ -345,6 +369,11 @@ class NoteAttachmentsCodec {
       'files': [
         ...value.files.map(AttachmentRefCodec.toJson),
         ...value.preservedFiles,
+      ],
+    if (value.linkPreviews.isNotEmpty || value.preservedLinkPreviews.isNotEmpty)
+      'linkPreviews': [
+        ...value.linkPreviews.map((l) => l.toJson()),
+        ...value.preservedLinkPreviews,
       ],
   };
 }
