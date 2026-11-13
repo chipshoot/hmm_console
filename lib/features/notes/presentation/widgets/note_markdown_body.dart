@@ -17,9 +17,9 @@ import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/data/vault/sensitive_path.dart';
+import '../../../../core/data/attachments/widgets/sensitive_attachment_image.dart';
 import '../../links/video_link.dart';
 import 'video_link_card.dart';
-import '../../../../core/data/attachments/widgets/sensitive_attachment_image.dart';
 
 /// Max on-screen height of an inline image; the whole image scales to the
 /// column width and is capped here so a tall image doesn't dominate.
@@ -196,7 +196,7 @@ class NoteMarkdownBody extends StatelessWidget {
             MarkdownSegment(:final text) => _markdown(
               context,
               text,
-              key: ObjectKey((resolver, i)),
+              key: ValueKey((resolver, i)),
             ),
             CardSegment(:final url) => VideoLinkCard(
               key: ValueKey('card-$i-$url'),

@@ -68,6 +68,14 @@ void main() {
       final s = splitCardSegments('a\n$yt', <String>{});
       expect(s.single, isA<MarkdownSegment>());
     });
+    test('an indented url line stays markdown in both functions', () {
+      final md = 'a\n\n  $yt\n\nb';
+      expect(standaloneUrlsIn(md), isEmpty);
+      final segs = splitCardSegments(md, {yt});
+      expect(segs, hasLength(1));
+      expect(segs.single, isA<MarkdownSegment>());
+    });
+
     test('standaloneUrlsIn skips fences', () {
       expect(standaloneUrlsIn('$yt\n~~~\nhttps://b23.tv/x\n~~~'), {yt});
     });

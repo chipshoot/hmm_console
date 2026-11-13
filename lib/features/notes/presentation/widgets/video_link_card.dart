@@ -237,7 +237,11 @@ class _VideoLinkCardState extends State<VideoLinkCard> {
 
     return Semantics(
       button: true,
-      label: d.title,
+      label: [
+        d.title,
+        _siteLabel(),
+        if (_unavailable) l.notesVideoLinkUnavailable,
+      ].where((e) => e.isNotEmpty).join(', '),
       excludeSemantics: true,
       onTap: _open,
       child: InkWell(

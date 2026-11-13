@@ -89,6 +89,14 @@ final class CardSegment extends BodySegment {
   final String url;
 }
 
+/// Like [standaloneUrl], but the URL must start in column 0 (a trailing space
+/// is fine). An indented line may belong to a list item, quote or code block,
+/// so it stays Markdown. The note view and the editor both use this.
+String? _cardLineUrl(String line) {
+  if (line.isNotEmpty && line.trimLeft().length != line.length) return null;
+  return standaloneUrl(line);
+}
+
 bool _isFence(String line) {
   final t = line.trimLeft();
   return t.startsWith('```') || t.startsWith('~~~');
@@ -111,7 +119,7 @@ List<BodySegment> splitCardSegments(String markdown, Set<String> cardUrls) {
       buf.add(line);
       continue;
     }
-    final url = inFence ? null : standaloneUrl(line);
+    final url = inFence ? null : _cardLineUrl(line);
     if (url != null && cardUrls.contains(url)) {
       flush();
       out.add(CardSegment(url));
@@ -132,7 +140,7 @@ Set<String> standaloneUrlsIn(String markdown) {
       continue;
     }
     if (inFence) continue;
-    final u = standaloneUrl(line);
+    final u = _cardLineUrl(line);
     if (u != null) out.add(u);
   }
   return out;

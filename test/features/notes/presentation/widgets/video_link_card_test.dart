@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/link_preview.dart';
+import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/video_link_card.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
@@ -104,6 +106,34 @@ void main() {
     expect(find.textContaining(':'), findsNothing);
   });
 
+  testWidgets('a thumbnail that fails to resolve gives the title-only row', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        VideoLinkCard(
+          resolver: _FailingResolver(),
+          data: const LinkCardData(
+            url: 'https://youtu.be/x',
+            provider: LinkProvider.youtube,
+            title: 'A clip',
+            durationSeconds: 60,
+            thumbnail: VaultRef(
+              path: 'attachments/n/t.jpg',
+              contentType: 'image/jpeg',
+              byteSize: 1,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(Image), findsNothing);
+    expect(find.text('1:00'), findsNothing);
+    expect(find.text('A clip'), findsOneWidget);
+  });
+
   testWidgets('tap launches the original url externally', (tester) async {
     Uri? launched;
     await tester.pumpWidget(
@@ -162,6 +192,12 @@ void main() {
     await tester.pump();
     expect(find.text('May no longer be available'), findsOneWidget);
   });
+}
+
+class _FailingResolver implements IAttachmentResolver {
+  @override
+  Future<Uint8List?> resolve(AttachmentRef ref) async =>
+      throw Exception('boom');
 }
 
 final _png = Uint8List.fromList(<int>[

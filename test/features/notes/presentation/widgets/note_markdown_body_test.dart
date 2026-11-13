@@ -156,6 +156,23 @@ void main() {
     ),
   );
 
+  Widget wrapBodyWith(
+    IAttachmentResolver resolver,
+    Map<String, LinkCardData> cards,
+  ) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(
+      body: SingleChildScrollView(
+        child: NoteMarkdownBody(
+          data: 'before\n\n$cardUrl\n\nafter',
+          resolver: resolver,
+          linkCards: cards,
+        ),
+      ),
+    ),
+  );
+
   testWidgets('renders a card for a card line and markdown around it', (
     tester,
   ) async {
@@ -181,5 +198,23 @@ void main() {
     await tester.pump();
     expect(find.byType(VideoLinkCard), findsNothing);
     expect(find.byType(MarkdownBody), findsOneWidget);
+  });
+
+  testWidgets('segments keep their state across a rebuild with equal inputs', (
+    tester,
+  ) async {
+    final resolver = _FakeResolver(_png);
+    Widget build() => wrapBodyWith(resolver, {
+      cardUrl: const LinkCardData(
+        url: cardUrl,
+        provider: LinkProvider.youtube,
+        title: 'Card title',
+      ),
+    });
+    await tester.pumpWidget(build());
+    final before = tester.element(find.byType(MarkdownBody).first);
+    await tester.pumpWidget(build());
+    final after = tester.element(find.byType(MarkdownBody).first);
+    expect(identical(before, after), isTrue);
   });
 }
