@@ -33,7 +33,9 @@ const int _maxPathLength = 1024;
 
 void _requireMap(Object? value, String label) {
   if (value is! Map<String, dynamic>) {
-    throw FormatException('$label: expected an object, got ${value.runtimeType}');
+    throw FormatException(
+      '$label: expected an object, got ${value.runtimeType}',
+    );
   }
 }
 
@@ -61,9 +63,17 @@ String? _optionalString(
   return v;
 }
 
+/// Thrown by [AttachmentRefCodec.fromJson] only for an unknown `kind` or a
+/// `contentType` this build does not allow — i.e. data a newer build may
+/// legitimately have written. [NoteAttachmentsCodec] preserves such entries
+/// instead of failing the whole note.
+class UnsupportedAttachmentException extends FormatException {
+  const UnsupportedAttachmentException(super.message);
+}
+
 String _validateContentType(String value) {
   if (!_allowedContentTypes.contains(value)) {
-    throw FormatException(
+    throw UnsupportedAttachmentException(
       'contentType "$value" is not allowed (expected one of '
       '${_allowedContentTypes.toList()..sort()})',
     );
@@ -114,16 +124,18 @@ class AttachmentRefCodec {
       'vault' => _vaultFromJson(json),
       'phasset' => _phAssetFromJson(json),
       'cloudFile' => _cloudFileFromJson(json),
-      _ => throw FormatException('Unknown AttachmentRef kind: "$kind"'),
+      _ => throw UnsupportedAttachmentException(
+        'Unknown AttachmentRef kind: "$kind"',
+      ),
     };
   }
 
   /// Serialize a single ref to a JSON object.
   static Map<String, dynamic> toJson(AttachmentRef ref) => switch (ref) {
-        final VaultRef v => _vaultToJson(v),
-        final PhAssetRef p => _phAssetToJson(p),
-        final CloudFileRef c => _cloudFileToJson(c),
-      };
+    final VaultRef v => _vaultToJson(v),
+    final PhAssetRef p => _phAssetToJson(p),
+    final CloudFileRef c => _cloudFileToJson(c),
+  };
 
   static VaultRef _vaultFromJson(Map<String, dynamic> j) {
     final path = _requireString(j, 'path');
@@ -138,8 +150,11 @@ class AttachmentRefCodec {
     }
     return VaultRef(
       path: path,
-      originalName:
-          _optionalString(j, 'originalName', maxLength: _maxOriginalNameLength),
+      originalName: _optionalString(
+        j,
+        'originalName',
+        maxLength: _maxOriginalNameLength,
+      ),
       contentType: _validateContentType(_requireString(j, 'contentType')),
       byteSize: _requireByteSize(j),
       sensitive: _optionalBool(j, 'sensitive'),
@@ -147,13 +162,13 @@ class AttachmentRefCodec {
   }
 
   static Map<String, dynamic> _vaultToJson(VaultRef r) => {
-        'kind': 'vault',
-        'path': r.path,
-        if (r.originalName != null) 'originalName': r.originalName,
-        'contentType': r.contentType,
-        'byteSize': r.byteSize,
-        if (r.sensitive) 'sensitive': true,
-      };
+    'kind': 'vault',
+    'path': r.path,
+    if (r.originalName != null) 'originalName': r.originalName,
+    'contentType': r.contentType,
+    'byteSize': r.byteSize,
+    if (r.sensitive) 'sensitive': true,
+  };
 
   static PhAssetRef _phAssetFromJson(Map<String, dynamic> j) {
     final id = _requireString(j, 'id');
@@ -162,20 +177,23 @@ class AttachmentRefCodec {
     }
     return PhAssetRef(
       id: id,
-      originalName:
-          _optionalString(j, 'originalName', maxLength: _maxOriginalNameLength),
+      originalName: _optionalString(
+        j,
+        'originalName',
+        maxLength: _maxOriginalNameLength,
+      ),
       contentType: _validateContentType(_requireString(j, 'contentType')),
       byteSize: _optionalByteSize(j),
     );
   }
 
   static Map<String, dynamic> _phAssetToJson(PhAssetRef r) => {
-        'kind': 'phasset',
-        'id': r.id,
-        if (r.originalName != null) 'originalName': r.originalName,
-        'contentType': r.contentType,
-        if (r.byteSize != null) 'byteSize': r.byteSize,
-      };
+    'kind': 'phasset',
+    'id': r.id,
+    if (r.originalName != null) 'originalName': r.originalName,
+    'contentType': r.contentType,
+    if (r.byteSize != null) 'byteSize': r.byteSize,
+  };
 
   static CloudFileRef _cloudFileFromJson(Map<String, dynamic> j) {
     final path = _requireString(j, 'path');
@@ -188,21 +206,24 @@ class AttachmentRefCodec {
     return CloudFileRef(
       provider: CloudProvider.fromWire(_requireString(j, 'provider')),
       path: path,
-      originalName:
-          _optionalString(j, 'originalName', maxLength: _maxOriginalNameLength),
+      originalName: _optionalString(
+        j,
+        'originalName',
+        maxLength: _maxOriginalNameLength,
+      ),
       contentType: _validateContentType(_requireString(j, 'contentType')),
       byteSize: _optionalByteSize(j),
     );
   }
 
   static Map<String, dynamic> _cloudFileToJson(CloudFileRef r) => {
-        'kind': 'cloudFile',
-        'provider': r.provider.wireName,
-        'path': r.path,
-        if (r.originalName != null) 'originalName': r.originalName,
-        'contentType': r.contentType,
-        if (r.byteSize != null) 'byteSize': r.byteSize,
-      };
+    'kind': 'cloudFile',
+    'provider': r.provider.wireName,
+    'path': r.path,
+    if (r.originalName != null) 'originalName': r.originalName,
+    'contentType': r.contentType,
+    if (r.byteSize != null) 'byteSize': r.byteSize,
+  };
 }
 
 /// Codec for the `Notes.attachments` JSON column value (the
@@ -232,46 +253,51 @@ class NoteAttachmentsCodec {
     return jsonEncode(toJson(value));
   }
 
-  /// Parse from an already-decoded JSON object.
+  /// Parse from an already-decoded JSON object. Entries this build does not
+  /// understand (unknown kind / contentType) and unknown top-level keys are
+  /// kept verbatim so a re-save does not strip them.
   static NoteAttachments fromJson(Map<String, dynamic> json) {
     AttachmentRef? primary;
-    if (json.containsKey('primaryImage') && json['primaryImage'] != null) {
+    final extra = <String, dynamic>{};
+    for (final e in json.entries) {
+      if (e.key != 'primaryImage' && e.key != 'images' && e.key != 'files') {
+        extra[e.key] = e.value;
+      }
+    }
+    if (json['primaryImage'] != null) {
       _requireMap(json['primaryImage'], 'primaryImage');
-      primary =
-          AttachmentRefCodec.fromJson(json['primaryImage'] as Map<String, dynamic>);
+      final raw = json['primaryImage'] as Map<String, dynamic>;
+      try {
+        primary = AttachmentRefCodec.fromJson(raw);
+      } on UnsupportedAttachmentException {
+        extra['primaryImage'] = raw;
+      }
     }
 
-    var images = const <AttachmentRef>[];
-    final imagesRaw = json['images'];
-    if (imagesRaw != null) {
-      if (imagesRaw is! List) {
-        throw const FormatException('"images" must be an array');
-      }
-      images = imagesRaw.map((e) {
-        if (e is! Map<String, dynamic>) {
-          throw const FormatException('each image must be an object');
-        }
-        return AttachmentRefCodec.fromJson(e);
-      }).toList(growable: false);
-    }
-
-    var files = const <AttachmentRef>[];
-    final filesRaw = json['files'];
-    if (filesRaw != null) {
-      if (filesRaw is! List) {
-        throw const FormatException('"files" must be an array');
-      }
-      files = filesRaw.map((e) {
-        if (e is! Map<String, dynamic>) {
-          throw const FormatException('each file must be an object');
-        }
-        return AttachmentRefCodec.fromJson(e);
-      }).toList(growable: false);
-    }
+    final preservedImages = <Map<String, dynamic>>[];
+    final preservedFiles = <Map<String, dynamic>>[];
+    final images = _decodeList(
+      json['images'],
+      'images',
+      'each image must be an object',
+      preservedImages,
+    );
+    final files = _decodeList(
+      json['files'],
+      'files',
+      'each file must be an object',
+      preservedFiles,
+    );
 
     try {
       return NoteAttachments(
-          primaryImage: primary, images: images, files: files);
+        primaryImage: primary,
+        images: images,
+        files: files,
+        preservedImages: preservedImages,
+        preservedFiles: preservedFiles,
+        extra: extra,
+      );
     } on ArgumentError catch (e) {
       // Surface disjointness as a FormatException so callers handle
       // one error type for bad input.
@@ -279,15 +305,46 @@ class NoteAttachmentsCodec {
     }
   }
 
+  static List<AttachmentRef> _decodeList(
+    Object? raw,
+    String key,
+    String entryError,
+    List<Map<String, dynamic>> preserved,
+  ) {
+    if (raw == null) return const [];
+    if (raw is! List) {
+      throw FormatException('"$key" must be an array');
+    }
+    final known = <AttachmentRef>[];
+    for (final e in raw) {
+      if (e is! Map<String, dynamic>) {
+        throw FormatException(entryError);
+      }
+      try {
+        known.add(AttachmentRefCodec.fromJson(e));
+      } on UnsupportedAttachmentException {
+        preserved.add(e);
+      }
+    }
+    return known;
+  }
+
   /// Serialize to a JSON object. `files` is omitted when empty so existing
-  /// images-only payloads stay byte-identical to pre-Phase-3a.
+  /// images-only payloads stay byte-identical to pre-Phase-3a. Preserved
+  /// entries follow the known ones; a known `primaryImage` overrides a
+  /// preserved one.
   static Map<String, dynamic> toJson(NoteAttachments value) => {
-        if (value.primaryImage != null)
-          'primaryImage': AttachmentRefCodec.toJson(value.primaryImage!),
-        'images':
-            value.images.map(AttachmentRefCodec.toJson).toList(growable: false),
-        if (value.files.isNotEmpty)
-          'files':
-              value.files.map(AttachmentRefCodec.toJson).toList(growable: false),
-      };
+    ...value.extra,
+    if (value.primaryImage != null)
+      'primaryImage': AttachmentRefCodec.toJson(value.primaryImage!),
+    'images': [
+      ...value.images.map(AttachmentRefCodec.toJson),
+      ...value.preservedImages,
+    ],
+    if (value.files.isNotEmpty || value.preservedFiles.isNotEmpty)
+      'files': [
+        ...value.files.map(AttachmentRefCodec.toJson),
+        ...value.preservedFiles,
+      ],
+  };
 }
