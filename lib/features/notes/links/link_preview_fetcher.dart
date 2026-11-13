@@ -86,6 +86,24 @@ class LinkPreviewFetcher {
   }
 
   Future<FetchedLinkPreview?> _bilibili(String url, BilibiliTarget t) async {
+    FetchedLinkPreview? viaApi;
+    try {
+      viaApi = await _bilibiliApi(url, t);
+    } catch (_) {
+      viaApi = null;
+    }
+    if (viaApi != null) return viaApi;
+    // The API is bot-checked (HTTP 412 with an HTML page); the public page's
+    // og tags still give a title and thumbnail, just no length.
+    final id = t.bvid ?? 'av${t.aid}';
+    return _web(
+      url,
+      Uri.parse('https://www.bilibili.com/video/$id'),
+      provider: LinkProvider.bilibili,
+    );
+  }
+
+  Future<FetchedLinkPreview?> _bilibiliApi(String url, BilibiliTarget t) async {
     final query = t.bvid != null ? 'bvid=${t.bvid}' : 'aid=${t.aid}';
     final res = await _dio.get<Map<String, dynamic>>(
       'https://api.bilibili.com/x/web-interface/view?$query',
@@ -101,6 +119,8 @@ class LinkPreviewFetcher {
     final thumb = await _thumbnail(
       pic is String && pic.startsWith('http://')
           ? 'https://${pic.substring(7)}'
+          : pic is String && pic.startsWith('//')
+          ? 'https:$pic'
           : pic,
     );
     return FetchedLinkPreview(
@@ -113,7 +133,11 @@ class LinkPreviewFetcher {
     );
   }
 
-  Future<FetchedLinkPreview?> _web(String url, Uri uri) async {
+  Future<FetchedLinkPreview?> _web(
+    String url,
+    Uri uri, {
+    LinkProvider provider = LinkProvider.web,
+  }) async {
     final res = await _dio.getUri<String>(
       uri,
       options: Options(responseType: ResponseType.plain),
@@ -124,12 +148,16 @@ class LinkPreviewFetcher {
     if (title == null || title.isEmpty) return null;
     var image = _og(html, 'image');
     if (image != null) {
-      image = uri.resolve(image).toString();
+      try {
+        image = uri.resolve(image).toString();
+      } catch (_) {
+        image = null;
+      }
     }
     final thumb = await _thumbnail(image);
     return FetchedLinkPreview(
       url: url,
-      provider: LinkProvider.web,
+      provider: provider,
       title: title,
       thumbnailBytes: thumb?.$1,
       thumbnailContentType: thumb?.$2,
@@ -166,7 +194,7 @@ String? _og(String html, String prop) {
   final p = RegExp.escape(prop);
   final metas = RegExp(r'<meta\b[^>]*>', caseSensitive: false);
   final propRe = RegExp(
-    'property\\s*=\\s*["\']og:$p["\']',
+    '(?:property|name)\\s*=\\s*["\']og:$p["\']',
     caseSensitive: false,
   );
   final contentRe = RegExp(

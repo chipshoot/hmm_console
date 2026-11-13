@@ -208,4 +208,118 @@ void main() {
       expect(p.thumbnailContentType, isNull);
     }
   });
+
+  const bvUrl = 'https://www.bilibili.com/video/BV1xx411c7mD';
+  const bvApi =
+      'https://api.bilibili.com/x/web-interface/view?bvid=BV1xx411c7mD';
+  ResponseBody bvPage() => _html(
+    '<meta property="og:title" content="Page title">'
+    '<meta property="og:image" content="https://i0.hdslb.com/p.jpg">',
+  );
+
+  group('bilibili fallback', () {
+    test('bilibili api html page falls back to og tags', () async {
+      final a = _FakeAdapter({
+        bvApi: (_) => ResponseBody.fromString(
+          '<html>verify</html>',
+          412,
+          headers: {
+            Headers.contentTypeHeader: ['text/html'],
+          },
+        ),
+        bvUrl: (_) => bvPage(),
+        'https://i0.hdslb.com/p.jpg': (_) => _img(3),
+      });
+      final p = await _fetcher(a).fetch(bvUrl);
+      expect(p!.provider, LinkProvider.bilibili);
+      expect(p.title, 'Page title');
+      expect(p.durationSeconds, isNull);
+      expect(p.thumbnailBytes, hasLength(3));
+    });
+
+    test('bilibili api data null falls back', () async {
+      final a = _FakeAdapter({
+        bvApi: (_) => _json({'code': 0, 'data': null}),
+        bvUrl: (_) => bvPage(),
+      });
+      final p = await _fetcher(a).fetch(bvUrl);
+      expect(p!.provider, LinkProvider.bilibili);
+      expect(p.title, 'Page title');
+    });
+
+    test('aid falls back to the av page', () async {
+      final a = _FakeAdapter({
+        'https://www.bilibili.com/video/av170001': (_) => bvPage(),
+      });
+      final p = await _fetcher(
+        a,
+      ).fetch('https://www.bilibili.com/video/av170001');
+      expect(p!.title, 'Page title');
+    });
+
+    test('both failing returns null', () async {
+      expect(await _fetcher(_FakeAdapter({})).fetch(bvUrl), isNull);
+    });
+  });
+
+  test('malformed og:image keeps preview without thumbnail', () async {
+    final a = _FakeAdapter({
+      'https://example.com/p': (_) => _html(
+        '<meta property="og:title" content="T">'
+        '<meta property="og:image" content="http://[bad">',
+      ),
+    });
+    final p = await _fetcher(a).fetch('https://example.com/p');
+    expect(p!.title, 'T');
+    expect(p.thumbnailBytes, isNull);
+  });
+
+  test('protocol-relative bilibili pic is fetched over https', () async {
+    final a = _FakeAdapter({
+      bvApi: (_) => _json({
+        'code': 0,
+        'data': {'title': 'B', 'pic': '//i0.hdslb.com/a.jpg', 'duration': 1},
+      }),
+      'https://i0.hdslb.com/a.jpg': (_) => _img(2),
+    });
+    final p = await _fetcher(a).fetch(bvUrl);
+    expect(p!.thumbnailBytes, hasLength(2));
+  });
+
+  test('missing bilibili pic keeps preview without thumbnail', () async {
+    final a = _FakeAdapter({
+      bvApi: (_) => _json({
+        'code': 0,
+        'data': {'title': 'B', 'duration': 9},
+      }),
+    });
+    final p = await _fetcher(a).fetch(bvUrl);
+    expect(p!.durationSeconds, 9);
+    expect(p.thumbnailBytes, isNull);
+  });
+
+  test('b23 redirect to non-bilibili url returns null', () async {
+    final a = _FakeAdapter({
+      'https://b23.tv/zzz': (o) => ResponseBody(
+        Stream.value(Uint8List(0)),
+        200,
+        isRedirect: true,
+        redirects: [RedirectRecord(302, 'GET', Uri.parse('https://x.com/a'))],
+      ),
+    });
+    expect(await _fetcher(a).fetch('https://b23.tv/zzz'), isNull);
+  });
+
+  test('og tags with name attribute', () async {
+    final a = _FakeAdapter({
+      'https://example.com/n': (_) => _html(
+        '<meta name="og:title" content="Named">'
+        '<meta content="https://example.com/n.png" name="og:image">',
+      ),
+      'https://example.com/n.png': (_) => _img(1, 'image/png'),
+    });
+    final p = await _fetcher(a).fetch('https://example.com/n');
+    expect(p!.title, 'Named');
+    expect(p.thumbnailBytes, hasLength(1));
+  });
 }
