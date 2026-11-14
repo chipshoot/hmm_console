@@ -13,6 +13,9 @@ class FakeVideoPlatform implements VideoPlatform {
   bool saveResult;
   final played = <String>[];
   final saved = <String>[];
+  final excluded = <String>[];
+  final endedTasks = <int>[];
+  int beganTasks = 0;
 
   @override
   Future<VideoProbe> probe(
@@ -37,4 +40,13 @@ class FakeVideoPlatform implements VideoPlatform {
     saved.add(videoPath);
     return saveResult;
   }
+
+  @override
+  Future<void> excludeFromBackup(String path) async => excluded.add(path);
+
+  @override
+  Future<int?> beginBackgroundTask() async => ++beganTasks;
+
+  @override
+  Future<void> endBackgroundTask(int id) async => endedTasks.add(id);
 }

@@ -79,6 +79,10 @@ class _Files implements IVaultFileStore {
   Future<void> importFile(String p, File s) async {}
   @override
   Future<File?> localFile(String p) async => file;
+  @override
+  Future<void> offload(String p) async {}
+  @override
+  File? downloadTarget(String p) => null;
 }
 
 final _catalog = NoteCatalog(

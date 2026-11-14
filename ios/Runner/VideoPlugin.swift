@@ -24,8 +24,25 @@ class VideoPlugin: NSObject {
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any]
+
+    switch call.method {
+    case "beginBackgroundTask":
+      beginBackgroundTask(result: result)
+      return
+    case "endBackgroundTask":
+      guard let id = args?["id"] as? Int else {
+        result(FlutterError(code: "bad_args", message: "Missing id", details: nil))
+        return
+      }
+      endBackgroundTask(id: id, result: result)
+      return
+    default:
+      break
+    }
+
     guard let path = args?["path"] as? String else {
-      if call.method == "probe" || call.method == "play" || call.method == "saveToPhotos" {
+      if call.method == "probe" || call.method == "play" || call.method == "saveToPhotos"
+        || call.method == "excludeFromBackup" {
         result(FlutterError(code: "bad_args", message: "Missing path", details: nil))
       } else {
         result(FlutterMethodNotImplemented)
@@ -48,9 +65,52 @@ class VideoPlugin: NSObject {
     case "saveToPhotos":
       saveToPhotos(url: url, result: result)
 
+    case "excludeFromBackup":
+      excludeFromBackup(url: url, result: result)
+
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  // MARK: backup + background
+
+  private func excludeFromBackup(url: URL, result: FlutterResult) {
+    var target = url
+    var values = URLResourceValues()
+    values.isExcludedFromBackup = true
+    do {
+      try target.setResourceValues(values)
+      result(nil)
+    } catch {
+      result(FlutterError(code: "failed",
+                          message: error.localizedDescription,
+                          details: nil))
+    }
+  }
+
+  private var backgroundTasks: [Int: UIBackgroundTaskIdentifier] = [:]
+
+  private func beginBackgroundTask(result: FlutterResult) {
+    var taskId = UIBackgroundTaskIdentifier.invalid
+    taskId = UIApplication.shared.beginBackgroundTask(withName: "hmm.videoUpload") {
+      [weak self] in
+      self?.backgroundTasks[taskId.rawValue] = nil
+      UIApplication.shared.endBackgroundTask(taskId)
+    }
+    if taskId == .invalid {
+      result(nil)
+      return
+    }
+    backgroundTasks[taskId.rawValue] = taskId
+    result(taskId.rawValue)
+  }
+
+  private func endBackgroundTask(id: Int, result: FlutterResult) {
+    if let taskId = backgroundTasks.removeValue(forKey: id) {
+      UIApplication.shared.endBackgroundTask(taskId)
+    }
+    result(nil)
   }
 
   // MARK: probe

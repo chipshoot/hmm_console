@@ -11,7 +11,10 @@ void main() {
 
   setUp(() {
     tmp = Directory.systemTemp.createTempSync('vault_file_store_');
-    store = LocalVaultStore(rootDir: Directory('${tmp.path}/vault'));
+    store = LocalVaultStore(
+      rootDir: Directory('${tmp.path}/vault'),
+      offloadDir: Directory('${tmp.path}/offload'),
+    );
   });
   tearDown(() => tmp.deleteSync(recursive: true));
 
@@ -51,5 +54,59 @@ void main() {
         store.importFile(
             'attachments/note-1/a.mov', File('${tmp.path}/nope.mov')),
         throwsA(isA<VaultStoreException>()));
+  });
+
+  group('offload root', () {
+    const path = 'attachments/note-1/u.mov';
+
+    test('offload moves a video into the offload root', () async {
+      await store.importFile(path, makeSource());
+      await store.offload(path);
+      final moved = File('${tmp.path}/offload/$path');
+      expect(moved.readAsBytesSync(), [1, 2, 3]);
+      expect(File('${tmp.path}/vault/$path').existsSync(), isFalse);
+      await store.offload(path); // no-op when already there
+      expect(moved.existsSync(), isTrue);
+    });
+
+    test('offloaded video is found, listed and deleted', () async {
+      await store.importFile(path, makeSource());
+      await store.offload(path);
+      expect((await store.localFile(path))!.path, '${tmp.path}/offload/$path');
+      expect(await store.exists(path), isTrue);
+      final paths = (await store.list('')).map((e) => e.relativePath);
+      expect(paths.where((e) => e == path), hasLength(1));
+      await store.delete(path);
+      expect(await store.exists(path), isFalse);
+      expect(File('${tmp.path}/offload/$path').existsSync(), isFalse);
+    });
+
+    test('vault root wins when both roots have the file', () async {
+      await store.importFile(path, makeSource());
+      File('${tmp.path}/offload/$path')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync([9]);
+      expect((await store.localFile(path))!.path, '${tmp.path}/vault/$path');
+    });
+
+    test('offload refuses a non-video path', () async {
+      await expectLater(
+        store.offload('attachments/note-1/a.jpg'),
+        throwsArgumentError,
+      );
+    });
+
+    test('offload of a missing file throws VaultStoreException', () async {
+      await expectLater(
+        store.offload(path),
+        throwsA(isA<VaultStoreException>()),
+      );
+    });
+
+    test('downloadTarget points into the offload root', () {
+      expect(store.downloadTarget(path)!.path, '${tmp.path}/offload/$path');
+      final bare = LocalVaultStore(rootDir: Directory('${tmp.path}/vault'));
+      expect(bare.downloadTarget(path), isNull);
+    });
   });
 }
