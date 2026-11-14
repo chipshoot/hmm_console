@@ -22,7 +22,11 @@ class _MemVault implements IVaultStore {
           {String? contentType}) async =>
       files[relativePath] = bytes;
   @override
-  Future<Uint8List> getBytes(String relativePath) async => files[relativePath]!;
+  Future<Uint8List> getBytes(String relativePath) async {
+    if (relativePath.endsWith('.mov')) throw StateError('read $relativePath');
+    return files[relativePath]!;
+  }
+
   @override
   Future<bool> exists(String relativePath) async =>
       files.containsKey(relativePath);
@@ -35,6 +39,8 @@ class _MemVault implements IVaultStore {
 class _MemProvider extends CloudSyncProvider {
   final Map<String, Uint8List> remote = {};
   bool throwOnPush = false;
+  final List<String> pushedPaths = [];
+  final List<String> pulledPaths = [];
   @override
   String get providerId => 'fake';
   @override
@@ -57,12 +63,16 @@ class _MemProvider extends CloudSyncProvider {
   Future<Set<String>> listAttachmentPaths() async => remote.keys.toSet();
   @override
   Future<void> pushAttachment(String path, Uint8List bytes) async {
+    pushedPaths.add(path);
     if (throwOnPush) throw Exception('boom');
     remote[path] = bytes;
   }
 
   @override
-  Future<Uint8List?> pullAttachment(String path) async => remote[path];
+  Future<Uint8List?> pullAttachment(String path) async {
+    pulledPaths.add(path);
+    return remote[path];
+  }
 }
 
 void main() {
@@ -148,5 +158,35 @@ void main() {
     final r2 = await orchestrator.syncNow();
     expect(r2.pushedAttachments, 0);
     expect(r2.pulledAttachments, 0);
+  });
+
+  test('reconcile skips video paths', () async {
+    String videoJson(String n, String v, String poster) =>
+        '{"images":[],"files":[],"videos":[{"video":{"kind":"vault",'
+        '"path":"attachments/$n/$v","contentType":"video/quicktime",'
+        '"byteSize":3},"poster":{"kind":"vault",'
+        '"path":"attachments/$n/$poster","contentType":"image/jpeg",'
+        '"byteSize":3}}]}';
+    await db.into(db.notes).insert(NotesCompanion.insert(
+          subject: 's',
+          authorId: 1,
+          uuid: const Value('n1'),
+          attachments: Value(videoJson('note-1', 'v.mov', 'v.jpg')),
+        ));
+    await db.into(db.notes).insert(NotesCompanion.insert(
+          subject: 's2',
+          authorId: 1,
+          uuid: const Value('n2'),
+          attachments: Value(videoJson('note-2', 'w.mov', 'w.jpg')),
+        ));
+    vault.files['attachments/note-1/v.mov'] = Uint8List.fromList([1, 2, 3]);
+    vault.files['attachments/note-1/v.jpg'] = Uint8List.fromList([4, 5, 6]);
+    provider.remote['attachments/note-2/w.mov'] = Uint8List.fromList([9]);
+
+    final r = await orchestrator.syncNow();
+    expect(provider.pushedPaths, contains('attachments/note-1/v.jpg'));
+    expect(provider.pushedPaths.where((p) => p.endsWith('.mov')), isEmpty);
+    expect(provider.pulledPaths.where((p) => p.endsWith('.mov')), isEmpty);
+    expect(r.errors.where((e) => e.toString().contains('.mov')), isEmpty);
   });
 }
