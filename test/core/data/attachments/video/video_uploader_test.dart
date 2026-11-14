@@ -12,10 +12,15 @@ class _FakeFiles implements IVaultFileStore {
   _FakeFiles(this.file);
   final File? file;
   final offloaded = <String>[];
+  Object? offloadError;
   @override
   Future<File?> localFile(String p) async => file;
   @override
-  Future<void> offload(String p) async => offloaded.add(p);
+  Future<void> offload(String p) async {
+    if (offloadError != null) throw offloadError!;
+    offloaded.add(p);
+  }
+
   @override
   Future<void> importFile(String p, File s) async {}
   @override
@@ -30,6 +35,7 @@ class _FakeProvider extends CloudSyncProvider {
   bool gone = false; // next chunk throws once
   Object? failWith;
   Duration delay = Duration.zero;
+  void Function()? afterChunk;
 
   @override
   String get providerId => 'fake';
@@ -54,6 +60,7 @@ class _FakeProvider extends CloudSyncProvider {
       throw const LargeUploadSessionGone();
     }
     chunks.add((h, offset, chunk.length));
+    afterChunk?.call();
     return offset + chunk.length >= total;
   }
 
@@ -198,5 +205,52 @@ void main() {
     await a;
     await b;
     expect(provider.chunks, hasLength(3));
+  });
+
+  test('a failing offload after a complete upload drops the entry', () async {
+    files.offloadError = StateError('no offload root');
+    final u = make();
+    await u.enqueue('v.mp4');
+    await u.run();
+    expect(provider.chunks, hasLength(3));
+    expect(await store.read('fake'), isEmpty);
+    expect(u.states.value, isEmpty);
+    await u.run();
+    expect(provider.chunks, hasLength(3));
+    expect(provider.started, 1);
+  });
+
+  test('a file truncated mid-upload fails without an empty chunk', () async {
+    final u = make();
+    await u.enqueue('v.mp4');
+    provider.afterChunk = () => video.writeAsBytesSync(List.filled(10, 1));
+    await u.run();
+    expect(provider.chunks.every((c) => c.$3 > 0), isTrue);
+    expect(provider.chunks, hasLength(1));
+    expect(u.states.value['v.mp4']!.phase, VideoUploadPhase.failed);
+    expect(await store.read('fake'), hasLength(1));
+  });
+
+  test('a file whose length changed since enqueue is not uploaded', () async {
+    final u = make();
+    await u.enqueue('v.mp4');
+    video.writeAsBytesSync(List.filled(10, 1));
+    await u.run();
+    expect(provider.chunks, isEmpty);
+    expect(provider.started, 0);
+    expect(await store.read('fake'), isEmpty);
+    expect(u.states.value, isEmpty);
+  });
+
+  test('stops mid-upload when the network turns metered', () async {
+    final u = make();
+    await u.enqueue('v.mp4');
+    provider.afterChunk = () => unmetered = false;
+    await u.run();
+    expect(provider.chunks, hasLength(1));
+    final st = u.states.value['v.mp4']!;
+    expect(st.phase, VideoUploadPhase.waitingForWifi);
+    expect(st.sent, 10);
+    expect((await store.read('fake')).single.sent, 10);
   });
 }

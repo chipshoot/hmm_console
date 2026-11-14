@@ -154,6 +154,11 @@ class VideoUploader {
 
   Future<void> _upload(VideoUploadEntry entry, File file) async {
     final total = entry.total;
+    if (await file.length() != total) {
+      // Replaced or truncated since it was queued; the session is useless.
+      await _drop(entry);
+      return;
+    }
     var current = entry;
     var restarted = false;
 
@@ -175,9 +180,26 @@ class VideoUploader {
     final raf = await file.open();
     try {
       while (true) {
+        final stored = (await _store.read(
+          _pid,
+        )).where((e) => e.path == entry.path).firstOrNull;
+        if (stored != null && stored.mobileOk != current.mobileOk) {
+          current = current.copyWith(mobileOk: stored.mobileOk);
+        }
+        if (!current.mobileOk && !await _unmetered()) {
+          current = current.copyWith(sent: offset);
+          await _store.put(_pid, current);
+          _set(
+            entry.path,
+            VideoUploadState(VideoUploadPhase.waitingForWifi, offset, total),
+          );
+          return;
+        }
         final len = (total - offset) < _fragment ? total - offset : _fragment;
+        if (len <= 0) throw StateError('Nothing left to read');
         await raf.setPosition(offset);
         final chunk = await raf.read(len);
+        if (chunk.length != len) throw StateError('Short read');
         bool done;
         try {
           done = await _provider.uploadLargeChunk(
@@ -204,7 +226,12 @@ class VideoUploader {
     } finally {
       await raf.close();
     }
-    await _files.offload(entry.path);
+    // The upload is complete; a failed offload must not cause a re-upload.
+    try {
+      await _files.offload(entry.path);
+    } catch (e) {
+      debugPrint('Video offload failed: ${e.runtimeType}');
+    }
     await _drop(entry);
   }
 }
