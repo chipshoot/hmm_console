@@ -11,6 +11,7 @@ import '../../sync/sync_orchestrator.dart';
 import '../../vault/vault_file_store.dart';
 import '../../vault/vault_gc.dart';
 import '../attachment_providers.dart';
+import '../../sync/video_upload_scheduler.dart' show VideoUploadRunner;
 import 'video_upload_queue.dart';
 
 enum VideoUploadPhase { queued, waitingForWifi, uploading, failed }
@@ -27,7 +28,7 @@ class VideoUploadState {
 /// Uploads videos to the cloud provider in resumable chunks, one entry at a
 /// time, never holding more than one chunk in memory. Entries wait for an
 /// unmetered network unless the user allowed mobile data for them.
-class VideoUploader {
+class VideoUploader implements VideoUploadRunner {
   VideoUploader({
     required CloudSyncProvider provider,
     required VideoUploadQueueStore store,
@@ -67,6 +68,7 @@ class VideoUploader {
     _states.value = next;
   }
 
+  @override
   Future<void> load() async {
     for (final e in await _store.read(_pid)) {
       _set(e.path, VideoUploadState(VideoUploadPhase.queued, e.sent, e.total));
@@ -93,6 +95,7 @@ class VideoUploader {
     await run();
   }
 
+  @override
   Future<void> run() => _running ??= _runAll().whenComplete(() {
     _running = null;
   });

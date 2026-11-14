@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../attachments/attachment_providers.dart';
+import '../attachments/video/remote_video_index.dart';
+import '../attachments/video/video_uploader.dart';
 import '../attachments/video_attachment.dart';
 import '../vault/vault_gc.dart';
 import '../vault/vault_store.dart';
@@ -49,6 +53,8 @@ class SyncOrchestrator {
     void Function()? onSettingsApplied,
     Future<int> Function()? currentAuthorId,
     PendingRemotePurgeStore? pendingPurges,
+    this.onLocalVideoMissingRemotely,
+    this.onRemoteVideos,
   }) : _db = db,
        _meta = meta,
        _vaultStore = vaultStore,
@@ -93,6 +99,13 @@ class SyncOrchestrator {
   /// settings-unaware callers (the local-only tier) don't have to
   /// supply a callback.
   final void Function()? _onSettingsApplied;
+
+  /// A referenced video exists on this device but not in the cloud. Videos
+  /// never move through the orchestrator; the upload queue takes them.
+  final void Function(String path)? onLocalVideoMissingRemotely;
+
+  /// The video paths the cloud listed this sync (photos and files excluded).
+  final void Function(Set<String> remoteVideoPaths)? onRemoteVideos;
 
   bool get isActive => provider != null;
 
@@ -1101,9 +1114,16 @@ class SyncOrchestrator {
     final remote = await p.listAttachmentPaths();
     var pushed = 0, pulled = 0;
     for (final path in referenced) {
-      // Videos are too large to move as whole in-memory byte arrays; stage 3
-      // moves them with a chunked upload. Until then they stay on-device.
-      if (isVideoVaultPath(path)) continue;
+      // Videos are too large to move as whole in-memory byte arrays; the
+      // resumable upload queue moves them. Here we only hand it the work.
+      if (isVideoVaultPath(path)) {
+        if (onLocalVideoMissingRemotely != null &&
+            await vault.exists(path) &&
+            !remote.contains(path)) {
+          onLocalVideoMissingRemotely!(path);
+        }
+        continue;
+      }
       final localHas = await vault.exists(path);
       final remoteHas = remote.contains(path);
       if (localHas && !remoteHas) {
@@ -1143,6 +1163,7 @@ class SyncOrchestrator {
         }
       }
     }
+    onRemoteVideos?.call(remote.where(isVideoVaultPath).toSet());
     return (pushed, pulled);
   }
 
@@ -1225,8 +1246,23 @@ final syncOrchestratorProvider = Provider<SyncOrchestrator>((ref) {
     // bus so the per-feature settings notifiers reload from disk and
     // the UI reflects the new values immediately.
     onSettingsApplied: () => ref.read(settingsBusProvider.notifier).bump(),
+    // Both read lazily, inside the callback: videoUploaderProvider watches
+    // this provider, so reading it while building would be a cycle.
+    onLocalVideoMissingRemotely: (path) => unawaited(_enqueueVideo(ref, path)),
+    onRemoteVideos: (paths) =>
+        ref.read(remoteVideoIndexProvider).update(paths),
   );
 });
+
+Future<void> _enqueueVideo(Ref ref, String path) async {
+  try {
+    final uploader = await ref.read(videoUploaderProvider.future);
+    await uploader?.enqueue(path);
+  } catch (e) {
+    // Type only: a DioException's text can carry a pre-authenticated URL.
+    debugPrint('SyncOrchestrator: video enqueue failed (${e.runtimeType})');
+  }
+}
 
 /// Accumulates wall-clock time per [SyncPhase] for one run.
 ///
