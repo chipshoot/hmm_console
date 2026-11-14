@@ -6416,6 +6416,72 @@ abstract class AppLocalizations {
   /// **'Couldn\'t restore the video'**
   String get notesVideoRestoreFailed;
 
+  /// No description provided for @notesVideoUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {percent}%'**
+  String notesVideoUploading(String percent);
+
+  /// No description provided for @notesVideoWaitingForWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for Wi-Fi'**
+  String get notesVideoWaitingForWifi;
+
+  /// No description provided for @notesVideoUploadRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload will retry'**
+  String get notesVideoUploadRetry;
+
+  /// No description provided for @notesVideoStillUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Still uploading from another device'**
+  String get notesVideoStillUploading;
+
+  /// No description provided for @notesVideoMobileDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload over mobile data?'**
+  String get notesVideoMobileDataTitle;
+
+  /// No description provided for @notesVideoMobileDataBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is {size}. Uploading it now uses that much mobile data.'**
+  String notesVideoMobileDataBody(String size);
+
+  /// No description provided for @notesVideoMobileDataUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload now using mobile data'**
+  String get notesVideoMobileDataUpload;
+
+  /// No description provided for @notesVideoMobileDataCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for Wi-Fi'**
+  String get notesVideoMobileDataCancel;
+
+  /// No description provided for @notesVideoDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download and play'**
+  String get notesVideoDownload;
+
+  /// No description provided for @notesVideoDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {percent}%. Tap to cancel.'**
+  String notesVideoDownloading(String percent);
+
+  /// No description provided for @notesVideoDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download the video'**
+  String get notesVideoDownloadFailed;
+
   /// No description provided for @helpNoteDetailVideoTitle.
   ///
   /// In en, this message translates to:
@@ -6425,7 +6491,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNoteDetailVideoBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap a video to play it full screen. Long press it for Save to Photos, Share or Remove from note. To add one, edit the note and tap the video button.'**
+  /// **'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi, and other devices download it when you tap play. Long press it for Save to Photos, Share or Remove.'**
   String get helpNoteDetailVideoBody;
 
   /// No description provided for @notesAddVideoTooltip.
