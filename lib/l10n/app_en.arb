@@ -1644,5 +1644,19 @@
   "notesAddVideoLinkTitle": "Add video link",
   "notesAddVideoLinkHint": "Paste a YouTube or Bilibili link",
   "notesAddVideoLinkAdd": "Add",
-  "notesAddVideoLinkInvalid": "That doesn't look like a link"
+  "notesAddVideoLinkInvalid": "That doesn't look like a link",
+  "notesVideoPlay": "Play video",
+  "notesVideoNotOnDevice": "This video is only on the device that added it, for now.",
+  "notesVideoSaveToPhotos": "Save to Photos",
+  "notesVideoShare": "Share…",
+  "notesVideoRemove": "Remove from note",
+  "notesVideoSaved": "Saved to Photos",
+  "notesVideoPhotosDenied": "Hmm can't add to Photos. Allow it in Settings.",
+  "notesVideoSaveFailed": "Couldn't save the video",
+  "notesVideoRemoved": "Video removed",
+  "notesVideoRemoveFailed": "Couldn't remove the video",
+  "notesVideoRestored": "Video restored",
+  "notesVideoRestoreFailed": "Couldn't restore the video",
+  "helpNoteDetailVideoTitle": "Videos",
+  "helpNoteDetailVideoBody": "Tap a video to play it full screen. Long press it for Save to Photos, Share or Remove from note. To add one, edit the note and tap the video button."
 }

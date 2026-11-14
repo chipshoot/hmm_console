@@ -3432,4 +3432,47 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesAddVideoLinkInvalid => '这不是有效的链接';
+
+  @override
+  String get notesVideoPlay => '播放视频';
+
+  @override
+  String get notesVideoNotOnDevice => '此视频目前仅保存在添加它的设备上。';
+
+  @override
+  String get notesVideoSaveToPhotos => '存储到照片';
+
+  @override
+  String get notesVideoShare => '分享…';
+
+  @override
+  String get notesVideoRemove => '从笔记中移除';
+
+  @override
+  String get notesVideoSaved => '已存储到照片';
+
+  @override
+  String get notesVideoPhotosDenied => 'Hmm 无法存入照片，请在设置中允许。';
+
+  @override
+  String get notesVideoSaveFailed => '无法存储视频';
+
+  @override
+  String get notesVideoRemoved => '已移除视频';
+
+  @override
+  String get notesVideoRemoveFailed => '无法移除视频';
+
+  @override
+  String get notesVideoRestored => '已恢复视频';
+
+  @override
+  String get notesVideoRestoreFailed => '无法恢复视频';
+
+  @override
+  String get helpNoteDetailVideoTitle => '视频';
+
+  @override
+  String get helpNoteDetailVideoBody =>
+      '轻点视频即可全屏播放。长按可存储到照片、分享或从笔记中移除。要添加视频，请编辑笔记并轻点视频按钮。';
 }

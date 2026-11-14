@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/attachments/attachment_ref.dart';
 import '../../../core/data/attachments/attachment_providers.dart';
 import '../../../core/data/attachments/link_preview.dart';
+import '../../../core/data/attachments/video_attachment.dart';
 import '../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../core/data/attachments/picker/image_byte_source.dart';
@@ -176,6 +177,50 @@ class MutateNote {
     return ref
         .read(hmmNoteRepositoryProvider)
         .updateNote(noteId, HmmNoteUpdate(attachments: attachments));
+  }
+
+  /// Removes [v] from the note: every `![alt](hmm-attachment://<inlinePath>)`
+  /// in the body and the matching `videos` entry (other slots, preserved
+  /// entries and unknown data are kept). Returns the previous body and
+  /// attachments for undo, or null when the note is gone.
+  Future<({String body, NoteAttachments attachments})?> removeVideo(
+    int noteId,
+    VideoAttachment v,
+  ) async {
+    final repo = ref.read(hmmNoteRepositoryProvider);
+    final note = await repo.getNoteById(noteId);
+    if (note == null) return null;
+    final body = note.content ?? '';
+    final before = note.effectiveAttachments;
+    final line = RegExp(
+      r'!\[[^\]]*\]\(hmm-attachment://' + RegExp.escape(v.inlinePath) + r'\)',
+    );
+    final nextBody = body.replaceAll(line, '');
+    final nextAtts = before.copyWith(
+      videos: [
+        for (final e in before.videos)
+          if (e.video.path != v.video.path) e,
+      ],
+    );
+    await repo.updateNote(
+      noteId,
+      HmmNoteUpdate(content: nextBody, attachments: nextAtts),
+    );
+    return (body: body, attachments: before);
+  }
+
+  /// Writes [body] and [attachments] back verbatim (undo of [removeVideo]).
+  Future<void> restoreBodyAndAttachments(
+    int noteId,
+    String body,
+    NoteAttachments attachments,
+  ) async {
+    await ref
+        .read(hmmNoteRepositoryProvider)
+        .updateNote(
+          noteId,
+          HmmNoteUpdate(content: body, attachments: attachments),
+        );
   }
 
   /// Sets the note's link previews from a fresh read: the stored previews

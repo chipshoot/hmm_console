@@ -6337,6 +6337,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That doesn\'t look like a link'**
   String get notesAddVideoLinkInvalid;
+
+  /// No description provided for @notesVideoPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play video'**
+  String get notesVideoPlay;
+
+  /// No description provided for @notesVideoNotOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is only on the device that added it, for now.'**
+  String get notesVideoNotOnDevice;
+
+  /// No description provided for @notesVideoSaveToPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Photos'**
+  String get notesVideoSaveToPhotos;
+
+  /// No description provided for @notesVideoShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share…'**
+  String get notesVideoShare;
+
+  /// No description provided for @notesVideoRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from note'**
+  String get notesVideoRemove;
+
+  /// No description provided for @notesVideoSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to Photos'**
+  String get notesVideoSaved;
+
+  /// No description provided for @notesVideoPhotosDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Hmm can\'t add to Photos. Allow it in Settings.'**
+  String get notesVideoPhotosDenied;
+
+  /// No description provided for @notesVideoSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the video'**
+  String get notesVideoSaveFailed;
+
+  /// No description provided for @notesVideoRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Video removed'**
+  String get notesVideoRemoved;
+
+  /// No description provided for @notesVideoRemoveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove the video'**
+  String get notesVideoRemoveFailed;
+
+  /// No description provided for @notesVideoRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Video restored'**
+  String get notesVideoRestored;
+
+  /// No description provided for @notesVideoRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore the video'**
+  String get notesVideoRestoreFailed;
+
+  /// No description provided for @helpNoteDetailVideoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get helpNoteDetailVideoTitle;
+
+  /// No description provided for @helpNoteDetailVideoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a video to play it full screen. Long press it for Save to Photos, Share or Remove from note. To add one, edit the note and tap the video button.'**
+  String get helpNoteDetailVideoBody;
 }
 
 class _AppLocalizationsDelegate

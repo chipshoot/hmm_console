@@ -3592,4 +3592,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesAddVideoLinkInvalid => 'That doesn\'t look like a link';
+
+  @override
+  String get notesVideoPlay => 'Play video';
+
+  @override
+  String get notesVideoNotOnDevice =>
+      'This video is only on the device that added it, for now.';
+
+  @override
+  String get notesVideoSaveToPhotos => 'Save to Photos';
+
+  @override
+  String get notesVideoShare => 'Share…';
+
+  @override
+  String get notesVideoRemove => 'Remove from note';
+
+  @override
+  String get notesVideoSaved => 'Saved to Photos';
+
+  @override
+  String get notesVideoPhotosDenied =>
+      'Hmm can\'t add to Photos. Allow it in Settings.';
+
+  @override
+  String get notesVideoSaveFailed => 'Couldn\'t save the video';
+
+  @override
+  String get notesVideoRemoved => 'Video removed';
+
+  @override
+  String get notesVideoRemoveFailed => 'Couldn\'t remove the video';
+
+  @override
+  String get notesVideoRestored => 'Video restored';
+
+  @override
+  String get notesVideoRestoreFailed => 'Couldn\'t restore the video';
+
+  @override
+  String get helpNoteDetailVideoTitle => 'Videos';
+
+  @override
+  String get helpNoteDetailVideoBody =>
+      'Tap a video to play it full screen. Long press it for Save to Photos, Share or Remove from note. To add one, edit the note and tap the video button.';
 }

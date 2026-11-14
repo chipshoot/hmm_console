@@ -18,7 +18,10 @@ import '../../../../core/data/attachments/widgets/fullscreen_image.dart';
 import '../../../../core/data/repository_providers.dart';
 import '../../../../core/data/vault/sensitive_path.dart';
 import '../../../../core/data/attachments/widgets/sensitive_attachment_image.dart';
+import '../../../../core/data/attachments/video/video_picker.dart';
+import '../../../../core/data/attachments/video_attachment.dart';
 import '../../links/video_link.dart';
+import 'video_tile.dart';
 import 'video_link_card.dart';
 
 /// Max on-screen height of an inline image; the whole image scales to the
@@ -57,6 +60,9 @@ class NoteMarkdownBody extends StatelessWidget {
     this.onNoteLinkTap,
     this.onExternalLinkTap,
     this.linkCards = const {},
+    this.videos = const {},
+    this.pendingVideos = const {},
+    this.onVideoLongPress,
   });
 
   final String data;
@@ -74,6 +80,24 @@ class NoteMarkdownBody extends StatelessWidget {
   /// as a [VideoLinkCard]. Empty = the body renders as plain Markdown.
   final Map<String, LinkCardData> linkCards;
 
+  /// Saved videos by [VideoAttachment.inlinePath]: an image line whose path
+  /// is a key renders as a [VideoTile].
+  final Map<String, VideoAttachment> videos;
+
+  /// Unsaved video picks by pending uuid.
+  final Map<String, PickedVideo> pendingVideos;
+
+  final void Function(VideoAttachment)? onVideoLongPress;
+
+  // The Markdown is re-parsed only when this key changes, so it covers
+  // everything the image builder reads besides the text.
+  Key _keyFor(int? segment) => ValueKey((
+    resolver,
+    segment,
+    videos.keys.join('|'),
+    pendingVideos.keys.join('|'),
+  ));
+
   Widget _box(Widget child) => ConstrainedBox(
     constraints: const BoxConstraints(maxHeight: kInlineImageMaxHeight),
     child: child,
@@ -90,6 +114,12 @@ class NoteMarkdownBody extends StatelessWidget {
     final url = config.uri.toString();
 
     final pendingUuid = pendingUuidOf(url);
+    if (pendingUuid != null && pendingVideos.containsKey(pendingUuid)) {
+      return VideoTile(
+        pending: pendingVideos[pendingUuid],
+        resolver: resolver,
+      );
+    }
     if (pendingUuid != null) {
       final bytes = pendingBytes?[pendingUuid];
       if (bytes == null) return _placeholder();
@@ -103,6 +133,14 @@ class NoteMarkdownBody extends StatelessWidget {
     }
 
     final path = parseImageUri(url);
+    final video = path == null ? null : videos[path];
+    if (video != null) {
+      return VideoTile(
+        saved: video,
+        resolver: resolver,
+        onLongPress: onVideoLongPress,
+      );
+    }
     if (path != null && resolver != null) {
       // Render-only ref: VaultResolver resolves by path; the other fields are
       // unused for display.
@@ -185,7 +223,11 @@ class NoteMarkdownBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (linkCards.isEmpty) {
-      return _markdown(context, data, key: ObjectKey(resolver));
+      return _markdown(
+        context,
+        data,
+        key: _keyFor(null),
+      );
     }
     final segments = splitCardSegments(data, linkCards.keys.toSet());
     return Column(
@@ -196,7 +238,7 @@ class NoteMarkdownBody extends StatelessWidget {
             MarkdownSegment(:final text) => _markdown(
               context,
               text,
-              key: ValueKey((resolver, i)),
+              key: _keyFor(i),
             ),
             CardSegment(:final url) => VideoLinkCard(
               key: ValueKey('card-$i-$url'),
@@ -212,10 +254,20 @@ class NoteMarkdownBody extends StatelessWidget {
 /// Backwards-compatible read-only Markdown view. Existing call sites use
 /// `MarkdownView(markdown)`; it now resolves inline images too.
 class MarkdownView extends ConsumerWidget {
-  const MarkdownView(this.data, {super.key, this.linkCards = const {}});
+  const MarkdownView(
+    this.data, {
+    super.key,
+    this.linkCards = const {},
+    this.videos = const {},
+    this.pendingVideos = const {},
+    this.onVideoLongPress,
+  });
 
   final String data;
   final Map<String, LinkCardData> linkCards;
+  final Map<String, VideoAttachment> videos;
+  final Map<String, PickedVideo> pendingVideos;
+  final void Function(VideoAttachment)? onVideoLongPress;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -224,6 +276,9 @@ class MarkdownView extends ConsumerWidget {
       data: data,
       resolver: resolver,
       linkCards: linkCards,
+      videos: videos,
+      pendingVideos: pendingVideos,
+      onVideoLongPress: onVideoLongPress,
       onNoteLinkTap: (uuid) => unawaited(_openNote(context, ref, uuid)),
     );
   }

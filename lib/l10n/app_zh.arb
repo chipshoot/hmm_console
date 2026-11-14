@@ -1050,5 +1050,19 @@
   "notesAddVideoLinkTitle": "添加视频链接",
   "notesAddVideoLinkHint": "粘贴 YouTube 或哔哩哔哩链接",
   "notesAddVideoLinkAdd": "添加",
-  "notesAddVideoLinkInvalid": "这不是有效的链接"
+  "notesAddVideoLinkInvalid": "这不是有效的链接",
+  "notesVideoPlay": "播放视频",
+  "notesVideoNotOnDevice": "此视频目前仅保存在添加它的设备上。",
+  "notesVideoSaveToPhotos": "存储到照片",
+  "notesVideoShare": "分享…",
+  "notesVideoRemove": "从笔记中移除",
+  "notesVideoSaved": "已存储到照片",
+  "notesVideoPhotosDenied": "Hmm 无法存入照片，请在设置中允许。",
+  "notesVideoSaveFailed": "无法存储视频",
+  "notesVideoRemoved": "已移除视频",
+  "notesVideoRemoveFailed": "无法移除视频",
+  "notesVideoRestored": "已恢复视频",
+  "notesVideoRestoreFailed": "无法恢复视频",
+  "helpNoteDetailVideoTitle": "视频",
+  "helpNoteDetailVideoBody": "轻点视频即可全屏播放。长按可存储到照片、分享或从笔记中移除。要添加视频，请编辑笔记并轻点视频按钮。"
 }

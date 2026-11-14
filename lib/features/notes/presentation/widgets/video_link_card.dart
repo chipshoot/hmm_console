@@ -49,6 +49,15 @@ class VideoLinkCard extends StatefulWidget {
   final IAttachmentResolver? resolver;
   final Future<bool> Function(Uri)? launch;
 
+  static String formatDuration(int seconds) {
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    final s = seconds % 60;
+    final ss = s.toString().padLeft(2, '0');
+    if (h > 0) return '$h:${m.toString().padLeft(2, '0')}:$ss';
+    return '$m:$ss';
+  }
+
   @override
   State<VideoLinkCard> createState() => _VideoLinkCardState();
 }
@@ -105,15 +114,6 @@ class _VideoLinkCardState extends State<VideoLinkCard> {
     LinkProvider.web => Uri.tryParse(widget.data.url)?.host ?? '',
   };
 
-  static String formatDuration(int seconds) {
-    final h = seconds ~/ 3600;
-    final m = (seconds % 3600) ~/ 60;
-    final s = seconds % 60;
-    final ss = s.toString().padLeft(2, '0');
-    if (h > 0) return '$h:${m.toString().padLeft(2, '0')}:$ss';
-    return '$m:$ss';
-  }
-
   Widget _thumbnail(Uint8List bytes) {
     final secs = widget.data.durationSeconds;
     return ClipRRect(
@@ -153,7 +153,7 @@ class _VideoLinkCardState extends State<VideoLinkCard> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    formatDuration(secs),
+                    VideoLinkCard.formatDuration(secs),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
