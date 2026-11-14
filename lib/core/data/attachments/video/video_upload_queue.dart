@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,6 +67,16 @@ class VideoUploadEntry {
 class VideoUploadQueueStore {
   static String _key(String providerId) => 'video_upload_queue:$providerId';
 
+  /// Mutations are read-modify-writes across awaits, so they run one at a
+  /// time. Static: separate store instances share one SharedPreferences.
+  static Future<void> _tail = Future.value();
+
+  static Future<T> _serialized<T>(Future<T> Function() op) {
+    final result = _tail.then((_) => op());
+    _tail = result.then<void>((_) {}, onError: (_) {});
+    return result;
+  }
+
   Future<List<VideoUploadEntry>> read(String providerId) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key(providerId));
@@ -79,7 +90,10 @@ class VideoUploadQueueStore {
     }
   }
 
-  Future<void> put(String providerId, VideoUploadEntry e) async {
+  Future<void> put(String providerId, VideoUploadEntry e) =>
+      _serialized(() => _put(providerId, e));
+
+  Future<void> _put(String providerId, VideoUploadEntry e) async {
     final current = await read(providerId);
     final i = current.indexWhere((x) => x.path == e.path);
     if (i >= 0) {
@@ -90,7 +104,10 @@ class VideoUploadQueueStore {
     await _write(providerId, current);
   }
 
-  Future<void> remove(String providerId, String path) async {
+  Future<void> remove(String providerId, String path) =>
+      _serialized(() => _remove(providerId, path));
+
+  Future<void> _remove(String providerId, String path) async {
     final current = await read(providerId);
     final before = current.length;
     current.removeWhere((x) => x.path == path);

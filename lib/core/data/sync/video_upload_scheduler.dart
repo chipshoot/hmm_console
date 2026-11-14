@@ -37,6 +37,7 @@ class VideoUploadScheduler with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _sub;
   VideoUploadRunner? _loaded;
   Future<void>? _inFlight;
+  bool _rerun = false;
   bool _attached = false;
 
   /// Start listening for resume and connectivity changes.
@@ -65,9 +66,24 @@ class VideoUploadScheduler with WidgetsBindingObserver {
   }
 
   /// Run the queue once unless a sync or another run is in progress.
+  ///
+  /// A trigger that lands mid-run is remembered and answered with exactly one
+  /// more run afterwards, so work queued during a run is not stranded. The
+  /// returned future covers the re-run too.
   Future<void> maybeRun() {
     if (_isSyncing()) return Future.value();
-    return _inFlight ??= _run().whenComplete(() => _inFlight = null);
+    if (_inFlight != null) {
+      _rerun = true;
+      return _inFlight!;
+    }
+    return _inFlight = _loop().whenComplete(() => _inFlight = null);
+  }
+
+  Future<void> _loop() async {
+    do {
+      _rerun = false;
+      await _run();
+    } while (_rerun && !_isSyncing());
   }
 
   Future<void> _run() async {

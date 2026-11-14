@@ -97,4 +97,31 @@ void main() {
     expect(runner.runs, 0);
     expect(platform.beganTasks, 0);
   });
+
+  test('triggers during a run coalesce into exactly one re-run', () async {
+    runner.gate = Completer<void>();
+    final f = scheduler.maybeRun();
+    await pumpEventQueue();
+    unawaited(scheduler.maybeRun());
+    unawaited(scheduler.maybeRun());
+    expect(runner.runs, 1);
+    final gate = runner.gate!;
+    runner.gate = null;
+    gate.complete();
+    await f;
+    expect(runner.runs, 2);
+    expect(platform.beganTasks, 2);
+    expect(platform.endedTasks, [1, 2]);
+  });
+
+  test('no re-run when a sync started during the run', () async {
+    runner.gate = Completer<void>();
+    final f = scheduler.maybeRun();
+    await pumpEventQueue();
+    unawaited(scheduler.maybeRun());
+    syncing = true;
+    runner.gate!.complete();
+    await f;
+    expect(runner.runs, 1);
+  });
 }

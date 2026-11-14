@@ -44,4 +44,23 @@ void main() {
     });
     expect(await VideoUploadQueueStore().read('p'), isEmpty);
   });
+
+  test('concurrent puts from separate stores lose nothing', () async {
+    await Future.wait([
+      VideoUploadQueueStore().put(
+        'p',
+        const VideoUploadEntry(path: 'a', total: 1),
+      ),
+      VideoUploadQueueStore().put(
+        'p',
+        const VideoUploadEntry(path: 'b', total: 1),
+      ),
+      VideoUploadQueueStore().put(
+        'p',
+        const VideoUploadEntry(path: 'c', total: 1),
+      ),
+    ]);
+    final read = await VideoUploadQueueStore().read('p');
+    expect(read.map((e) => e.path).toSet(), {'a', 'b', 'c'});
+  });
 }
