@@ -3637,4 +3637,58 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNoteDetailVideoBody =>
       'Tap a video to play it full screen. Long press it for Save to Photos, Share or Remove from note. To add one, edit the note and tap the video button.';
+
+  @override
+  String get notesAddVideoTooltip => 'Add video';
+
+  @override
+  String get notesVideoNeedsOneDrive => 'Videos need OneDrive sync for now';
+
+  @override
+  String get notesVideoSensitiveBlocked =>
+      'Videos can\'t be added to notes with sensitive items yet';
+
+  @override
+  String get notesVideoTooLarge =>
+      'This video is over 2 GB and can\'t be added';
+
+  @override
+  String get notesVideoUnsupported => 'This video format isn\'t supported';
+
+  @override
+  String get notesVideoLargeTitle => 'Large video';
+
+  @override
+  String notesVideoLargeBodyCloud(String size) {
+    return 'This video is $size. It uses that much OneDrive space.';
+  }
+
+  @override
+  String notesVideoLargeBodyLocal(String size) {
+    return 'This video is $size. It uses that much space on this device.';
+  }
+
+  @override
+  String get notesVideoAdd => 'Add';
+
+  @override
+  String get notesVideoAddFailed =>
+      'Some videos couldn\'t be added and were skipped.';
+
+  @override
+  String notesVideoRemoveConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Remove $count videos from this note?',
+      one: 'Remove 1 video from this note?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesVideoRemoveConfirmRemove => 'Remove';
+
+  @override
+  String get notesVideoRemoveConfirmKeep => 'Keep';
 }

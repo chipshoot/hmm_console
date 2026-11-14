@@ -1064,5 +1064,18 @@
   "notesVideoRestored": "已恢复视频",
   "notesVideoRestoreFailed": "无法恢复视频",
   "helpNoteDetailVideoTitle": "视频",
-  "helpNoteDetailVideoBody": "轻点视频即可全屏播放。长按可存储到照片、分享或从笔记中移除。要添加视频，请编辑笔记并轻点视频按钮。"
+  "helpNoteDetailVideoBody": "轻点视频即可全屏播放。长按可存储到照片、分享或从笔记中移除。要添加视频，请编辑笔记并轻点视频按钮。",
+  "notesAddVideoTooltip": "添加视频",
+  "notesVideoNeedsOneDrive": "视频目前需要 OneDrive 同步",
+  "notesVideoSensitiveBlocked": "含有敏感内容的笔记暂时不能添加视频",
+  "notesVideoTooLarge": "该视频超过 2 GB，无法添加",
+  "notesVideoUnsupported": "不支持该视频格式",
+  "notesVideoLargeTitle": "大视频",
+  "notesVideoLargeBodyCloud": "该视频大小为 {size}，将占用相同的 OneDrive 空间。",
+  "notesVideoLargeBodyLocal": "该视频大小为 {size}，将占用本设备相同的存储空间。",
+  "notesVideoAdd": "添加",
+  "notesVideoAddFailed": "部分视频无法添加，已跳过。",
+  "notesVideoRemoveConfirm": "{count, plural, other{从此笔记移除 {count} 个视频？}}",
+  "notesVideoRemoveConfirmRemove": "移除",
+  "notesVideoRemoveConfirmKeep": "保留"
 }

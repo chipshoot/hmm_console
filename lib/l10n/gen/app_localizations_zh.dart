@@ -3475,4 +3475,54 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpNoteDetailVideoBody =>
       '轻点视频即可全屏播放。长按可存储到照片、分享或从笔记中移除。要添加视频，请编辑笔记并轻点视频按钮。';
+
+  @override
+  String get notesAddVideoTooltip => '添加视频';
+
+  @override
+  String get notesVideoNeedsOneDrive => '视频目前需要 OneDrive 同步';
+
+  @override
+  String get notesVideoSensitiveBlocked => '含有敏感内容的笔记暂时不能添加视频';
+
+  @override
+  String get notesVideoTooLarge => '该视频超过 2 GB，无法添加';
+
+  @override
+  String get notesVideoUnsupported => '不支持该视频格式';
+
+  @override
+  String get notesVideoLargeTitle => '大视频';
+
+  @override
+  String notesVideoLargeBodyCloud(String size) {
+    return '该视频大小为 $size，将占用相同的 OneDrive 空间。';
+  }
+
+  @override
+  String notesVideoLargeBodyLocal(String size) {
+    return '该视频大小为 $size，将占用本设备相同的存储空间。';
+  }
+
+  @override
+  String get notesVideoAdd => '添加';
+
+  @override
+  String get notesVideoAddFailed => '部分视频无法添加，已跳过。';
+
+  @override
+  String notesVideoRemoveConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '从此笔记移除 $count 个视频？',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesVideoRemoveConfirmRemove => '移除';
+
+  @override
+  String get notesVideoRemoveConfirmKeep => '保留';
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show File;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,9 @@ import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../../core/data/attachments/video/video_attachment_store.dart';
+import '../../../../core/data/attachments/video/video_picker.dart';
+import '../../../../core/data/attachments/video_attachment.dart';
 import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/vault/encrypted_vault_store.dart'
     show VaultLockedException;
@@ -42,6 +46,7 @@ import '../widgets/note_tag_field.dart';
 import '../widgets/record_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
+import '../../../../core/util/uuid.dart';
 import '../../data/subsystem_anchor.dart';
 import '../../rendering/note_display.dart';
 import '../../states/mutate_note_state.dart';
@@ -110,6 +115,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool _tagsLoaded = true;
   final _tagFieldKey = GlobalKey<NoteTagFieldState>();
 
+  /// Videos picked this session, by the uuid of their `pending/` line.
+  /// Persisted on save; their temp files are deleted when dropped.
+  final Map<String, PickedVideo> _pendingVideos = {};
+
+  /// Videos persisted to the vault but not yet written to the note's
+  /// `videos` (a save that stopped part-way records them on the next save).
+  final List<VideoAttachment> _unrecordedVideos = [];
+
   /// Link previews stored on the note, by URL.
   Map<String, LinkPreview> _savedLinks = {};
 
@@ -176,6 +189,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   void dispose() {
     _detectTimer?.cancel();
+    for (final pick in _pendingVideos.values) {
+      _deleteTemp(pick.tempPath);
+    }
     _subjectCtrl.dispose();
     _bodyCtrl.dispose();
     _bodyFocus.dispose();
@@ -301,6 +317,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     // Read before the awaits below (no ref use after an await), and only
     // when the tags changed: an untouched tag set never needs the repo.
     final tagRepo = _tagsChanged ? ref.read(tagRepositoryProvider) : null;
+    final videoStore = _pendingVideos.isEmpty
+        ? null
+        : ref
+              .read(videoAttachmentStoreProvider.future)
+              .then<VideoAttachmentStore?>((s) => s, onError: (_) => null);
     setState(() => _busy = true);
     try {
       if (_noteId == null) {
@@ -330,10 +351,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         }
         ref.invalidate(noteDetailProvider(_noteId!));
       }
-      // Persist inline image picks referenced in the body, rewrite their
-      // pending placeholders to real vault paths, and reconcile attachments.
+      // Order matters. Videos first: resolveAndRewrite strips every
+      // `pending/` line it does not own, so video lines must be real by
+      // then. Then images, which write the attachments loaded with the
+      // note. Then the video record, read fresh so the image write is kept.
       if (_noteId != null) {
+        if (videoStore != null) {
+          _unrecordedVideos.addAll(
+            await _persistPendingVideos(_noteId!, mutate, videoStore),
+          );
+        }
         await _persistInlineImages(_noteId!, mutate);
+        await _reconcileVideos(_noteId!, mutate);
         ref.invalidate(noteDetailProvider(_noteId!));
       }
       // Attach any PDFs added this session, then clear them.
@@ -476,10 +505,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
     // 2) Detect images that were inline at load but the user removed from the
     //    text. Never drop a stored image silently — confirm first.
+    //    A saved video's line is not an image: _reconcileVideos asks about it.
     final removed = InlineImageController.removedImagePaths(
       _loadedInlinePaths,
       _bodyCtrl.text,
-    ).toSet();
+    ).where((p) => _savedAttachments?.videoForInlinePath(p) == null).toSet();
     var deleteRemoved = false;
     if (removed.isNotEmpty && mounted) {
       deleteRemoved = await _confirmRemoveImages(removed.length);
@@ -506,6 +536,254 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         images: images,
       ),
     );
+  }
+
+  /// Persists each picked video still in the body, rewrites its `pending/`
+  /// line to the video's inline path and saves the body. A video that fails
+  /// is stripped from the body; picks no longer in the body are dropped.
+  /// Every dropped pick's temp file is deleted. Returns the persisted videos.
+  Future<List<VideoAttachment>> _persistPendingVideos(
+    int noteId,
+    MutateNote mutate,
+    Future<VideoAttachmentStore?> storeFuture,
+  ) async {
+    final referenced = {
+      for (final uuid in pendingUuidsIn(_bodyCtrl.text))
+        if (_pendingVideos.containsKey(uuid)) uuid,
+    };
+    final store = referenced.isEmpty ? null : await storeFuture;
+    final uuidToPath = <String, String>{};
+    final added = <VideoAttachment>[];
+    final failed = <String>[];
+    for (final uuid in referenced) {
+      final pick = _pendingVideos[uuid]!;
+      if (store == null) {
+        failed.add(uuid);
+        continue;
+      }
+      try {
+        final v = await store.persist(noteId: noteId, pick: pick);
+        uuidToPath[uuid] = v.inlinePath;
+        added.add(v);
+      } catch (e) {
+        debugPrint('note editor: video persist failed (${e.runtimeType})');
+        failed.add(uuid);
+      }
+    }
+    var text = rewritePendingToVault(_bodyCtrl.text, uuidToPath);
+    for (final uuid in failed) {
+      text = removePendingImage(text, uuid);
+    }
+    for (final e in _pendingVideos.entries) {
+      if (!uuidToPath.containsKey(e.key)) _deleteTemp(e.value.tempPath);
+    }
+    _pendingVideos.clear();
+    if (text != _bodyCtrl.text) {
+      _bodyCtrl.text = text;
+      await mutate.updateGeneral(noteId, markdownBody: text);
+    }
+    if (mounted) {
+      setState(() {});
+      if (failed.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).notesVideoAddFailed),
+          ),
+        );
+      }
+    }
+    return added;
+  }
+
+  /// Writes the note's `videos`: adds the videos persisted this save whose
+  /// lines are still in the body, and drops saved videos whose lines the
+  /// user deleted, after confirming. Keep leaves them attached.
+  Future<void> _reconcileVideos(int noteId, MutateNote mutate) async {
+    final present = imageRefPathsIn(_bodyCtrl.text).toSet();
+    final saved = _savedAttachments;
+    final removed = <String>{
+      for (final p in _loadedInlinePaths)
+        if (saved?.videoForInlinePath(p) != null && !present.contains(p)) p,
+    };
+    if (removed.isNotEmpty) {
+      final confirmed = mounted && await _confirmRemoveVideos(removed.length);
+      if (!confirmed) removed.clear();
+    }
+    final added = [
+      for (final v in _unrecordedVideos)
+        if (present.contains(v.inlinePath)) v,
+    ];
+    if (added.isEmpty && removed.isEmpty) {
+      _unrecordedVideos.clear();
+      return;
+    }
+    final note = await mutate.saveVideos(
+      noteId,
+      added: added,
+      removedInlinePaths: removed,
+    );
+    _unrecordedVideos.clear();
+    if (note != null && mounted) {
+      setState(() => _savedAttachments = note.effectiveAttachments);
+    }
+  }
+
+  /// Asks whether to remove [count] saved videos whose lines were deleted.
+  /// True = remove; Keep or dismiss = keep them attached.
+  Future<bool> _confirmRemoveVideos(int count) async {
+    final l = AppLocalizations.of(context);
+    final platform = Theme.of(context).platform;
+    final isApple =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    final title = Text(l.notesVideoRemoveConfirm(count));
+    final dialog = isApple
+        ? showCupertinoDialog<bool>(
+            context: context,
+            builder: (ctx) => CupertinoAlertDialog(
+              title: title,
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(l.notesVideoRemoveConfirmKeep),
+                ),
+                CupertinoDialogAction(
+                  isDestructiveAction: true,
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(l.notesVideoRemoveConfirmRemove),
+                ),
+              ],
+            ),
+          )
+        : showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: title,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(l.notesVideoRemoveConfirmKeep),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(l.notesVideoRemoveConfirmRemove),
+                ),
+              ],
+            ),
+          );
+    return await dialog ?? false;
+  }
+
+  /// Videos can't go into a note with sensitive items (saved or staged).
+  bool get _videoBlockedBySensitive =>
+      (_savedAttachments?.hasSensitive ?? false) ||
+      _inline.hasSensitivePendingIn(_bodyCtrl.text);
+
+  /// Picks a library video and inserts it at the cursor as a `pending/`
+  /// line; it is persisted on save. Refused in cloudApi and in notes with
+  /// sensitive items; a large video asks first.
+  Future<void> _addVideo() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    void say(String m) => messenger.showSnackBar(SnackBar(content: Text(m)));
+    final mode = ref.read(dataModeProvider);
+    if (mode == DataMode.cloudApi) {
+      say(l.notesVideoNeedsOneDrive);
+      return;
+    }
+    if (_videoBlockedBySensitive) {
+      say(l.notesVideoSensitiveBlocked);
+      return;
+    }
+    final PickedVideo? pick;
+    try {
+      pick = await ref.read(videoPickerProvider).pick();
+    } on VideoPickException catch (e) {
+      say(
+        e.error == VideoPickError.tooLarge
+            ? l.notesVideoTooLarge
+            : l.notesVideoUnsupported,
+      );
+      return;
+    } catch (e) {
+      debugPrint('note editor: video pick failed (${e.runtimeType})');
+      say(l.notesVideoAddFailed);
+      return;
+    }
+    if (pick == null) return;
+    if (!mounted) {
+      _deleteTemp(pick.tempPath);
+      return;
+    }
+    if (pick.verdict == VideoSizeVerdict.warn) {
+      final ok = await _confirmLargeVideo(pick.byteSize, mode);
+      if (!ok || !mounted) {
+        _deleteTemp(pick.tempPath);
+        return;
+      }
+    }
+    final uuid = generateUuid();
+    setState(() {
+      _pendingVideos[uuid] = pick!;
+      insertImageAtCursor(_bodyCtrl, uuid, 'Video');
+    });
+  }
+
+  /// Warns about a large video's size. True = add it.
+  Future<bool> _confirmLargeVideo(int bytes, DataMode mode) async {
+    final l = AppLocalizations.of(context);
+    final size = formatVideoSize(bytes);
+    final body = Text(
+      mode == DataMode.cloudStorage
+          ? l.notesVideoLargeBodyCloud(size)
+          : l.notesVideoLargeBodyLocal(size),
+    );
+    final platform = Theme.of(context).platform;
+    final isApple =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    final dialog = isApple
+        ? showCupertinoDialog<bool>(
+            context: context,
+            builder: (ctx) => CupertinoAlertDialog(
+              title: Text(l.notesVideoLargeTitle),
+              content: body,
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(l.commonCancel),
+                ),
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(l.notesVideoAdd),
+                ),
+              ],
+            ),
+          )
+        : showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(l.notesVideoLargeTitle),
+              content: body,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(l.commonCancel),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(l.notesVideoAdd),
+                ),
+              ],
+            ),
+          );
+    return await dialog ?? false;
+  }
+
+  /// Best-effort delete of a picked video's temp file.
+  static void _deleteTemp(String path) {
+    try {
+      unawaited(File(path).delete().then<void>((_) {}, onError: (_) {}));
+    } catch (_) {}
   }
 
   /// Saves the previews of the link lines still in the body. Detects any
@@ -972,6 +1250,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           resolver: ref.watch(attachmentResolverProvider).value,
                           selectable: false,
                           linkCards: linkCards,
+                          videos: {
+                            for (final v
+                                in _savedAttachments?.videos ??
+                                    const <VideoAttachment>[])
+                              v.inlinePath: v,
+                          },
+                          pendingVideos: _pendingVideos,
                         ),
                       ],
                       const SizedBox(height: 24),
@@ -995,6 +1280,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             onRecord: _addRecording,
             onLinkToNote: _addNoteLink,
             onAddVideoLink: _addVideoLink,
+            onAddVideo: _addVideo,
+            addVideoAvailable:
+                dataMode != DataMode.cloudApi && !_videoBlockedBySensitive,
             enabled: !_busy,
             onDismissKeyboard: keyboardUp
                 ? () => FocusScope.of(context).unfocus()
@@ -1080,6 +1368,16 @@ class _SubsystemStrip extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// A video's size for the large-video warning, base 1024: whole MB below
+/// 1 GiB ("742 MB"), else one-decimal GB ("1.3 GB").
+@visibleForTesting
+String formatVideoSize(int bytes) {
+  const mib = 1024 * 1024;
+  const gib = 1024 * mib;
+  if (bytes < gib) return '${(bytes / mib).round()} MB';
+  return '${(bytes / gib).toStringAsFixed(1)} GB';
 }
 
 /// Inserts [url] at [c]'s cursor (replacing any selection) as a line of its

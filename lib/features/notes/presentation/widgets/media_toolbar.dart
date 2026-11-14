@@ -18,6 +18,8 @@ class MediaToolbar extends StatelessWidget {
     this.onPickSensitive,
     this.onLinkToNote,
     this.onAddVideoLink,
+    this.onAddVideo,
+    this.addVideoAvailable = true,
     this.onDismissKeyboard,
     this.enabled = true,
   });
@@ -37,6 +39,13 @@ class MediaToolbar extends StatelessWidget {
 
   /// When non-null, an "Add video link" toolbar action is shown.
   final VoidCallback? onAddVideoLink;
+
+  /// When non-null, an "Add video" toolbar action is shown.
+  final VoidCallback? onAddVideo;
+
+  /// False dims the video button (videos can't be added here); it still
+  /// calls [onAddVideo] so the editor can say why.
+  final bool addVideoAvailable;
 
   /// When non-null, a trailing keyboard-hide button is shown. The editor
   /// passes this only while the keyboard is up, so the control never appears
@@ -101,6 +110,19 @@ class MediaToolbar extends StatelessWidget {
                 ),
                 tooltip: AppLocalizations.of(context).notesAddVideoLinkTooltip,
                 onPressed: enabled ? onAddVideoLink : null,
+              ),
+            if (onAddVideo != null)
+              Opacity(
+                opacity: addVideoAvailable ? 1 : 0.38,
+                child: HmmIconButton(
+                  icon: adaptiveIcon(
+                    context,
+                    material: Icons.videocam_outlined,
+                    apple: CupertinoIcons.videocam,
+                  ),
+                  tooltip: AppLocalizations.of(context).notesAddVideoTooltip,
+                  onPressed: enabled ? onAddVideo : null,
+                ),
               ),
             if (onDismissKeyboard != null) ...[
               const Spacer(),

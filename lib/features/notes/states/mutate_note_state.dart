@@ -209,6 +209,39 @@ class MutateNote {
     return (body: body, attachments: before);
   }
 
+  /// Sets the note's videos from a fresh read: the stored videos whose
+  /// `inlinePath` is not in [removedInlinePaths], then each of [added] not
+  /// already stored (by video path). Rebuilt with `copyWith`, so every other
+  /// slot (including preserved and unknown data) is kept. Writes only when
+  /// the list changes; returns the note either way, or null when it is gone.
+  Future<HmmNote?> saveVideos(
+    int noteId, {
+    required List<VideoAttachment> added,
+    required Set<String> removedInlinePaths,
+  }) async {
+    final repo = ref.read(hmmNoteRepositoryProvider);
+    final current = await repo.getNoteById(noteId);
+    if (current == null) return null;
+    final existing = current.effectiveAttachments;
+    final kept = [
+      for (final v in existing.videos)
+        if (!removedInlinePaths.contains(v.inlinePath)) v,
+    ];
+    final keptPaths = {for (final v in kept) v.video.path};
+    final next = [
+      ...kept,
+      for (final v in added)
+        if (keptPaths.add(v.video.path)) v,
+    ];
+    if (const ListEquality<VideoAttachment>().equals(next, existing.videos)) {
+      return current;
+    }
+    return repo.updateNote(
+      noteId,
+      HmmNoteUpdate(attachments: existing.copyWith(videos: next)),
+    );
+  }
+
   /// Writes [body] and [attachments] back verbatim (undo of [removeVideo]).
   Future<void> restoreBodyAndAttachments(
     int noteId,
