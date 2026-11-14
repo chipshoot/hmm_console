@@ -1644,5 +1644,54 @@
   "notesAddVideoLinkTitle": "Add video link",
   "notesAddVideoLinkHint": "Paste a YouTube or Bilibili link",
   "notesAddVideoLinkAdd": "Add",
-  "notesAddVideoLinkInvalid": "That doesn't look like a link"
+  "notesAddVideoLinkInvalid": "That doesn't look like a link",
+  "notesVideoPlay": "Play video",
+  "notesVideoNotOnDevice": "This video is only on the device that added it, for now.",
+  "notesVideoSaveToPhotos": "Save to Photos",
+  "notesVideoShare": "Share…",
+  "notesVideoRemove": "Remove from note",
+  "notesVideoSaved": "Saved to Photos",
+  "notesVideoPhotosDenied": "Hmm can't add to Photos. Allow it in Settings.",
+  "notesVideoSaveFailed": "Couldn't save the video",
+  "notesVideoShareFailed": "Couldn't share the video",
+  "notesVideoRemoved": "Video removed",
+  "notesVideoRemoveFailed": "Couldn't remove the video",
+  "notesVideoRestored": "Video restored",
+  "notesVideoRestoreFailed": "Couldn't restore the video",
+  "helpNoteDetailVideoTitle": "Videos",
+  "helpNoteDetailVideoBody": "Tap a video to play it full screen. Long press it for Save to Photos, Share or Remove from note. To add one, edit the note and tap the video button.",
+  "notesAddVideoTooltip": "Add video",
+  "notesVideoNeedsOneDrive": "Videos need OneDrive sync for now",
+  "notesVideoSensitiveBlocked": "Videos can't be added to notes with sensitive items yet",
+  "notesVideoTooLarge": "This video is over 2 GB and can't be added",
+  "notesVideoUnsupported": "This video format isn't supported",
+  "notesVideoLargeTitle": "Large video",
+  "notesVideoLargeBodyCloud": "This video is {size}. It uses that much OneDrive space.",
+  "@notesVideoLargeBodyCloud": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "notesVideoLargeBodyLocal": "This video is {size}. It uses that much space on this device.",
+  "@notesVideoLargeBodyLocal": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "notesVideoAdd": "Add",
+  "notesVideoAddFailed": "Some videos couldn't be added and were skipped.",
+  "notesVideoRemoveConfirm": "{count, plural, =1{Remove 1 video from this note?} other{Remove {count} videos from this note?}}",
+  "@notesVideoRemoveConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notesVideoRemoveConfirmRemove": "Remove",
+  "notesVideoRemoveConfirmKeep": "Keep"
 }

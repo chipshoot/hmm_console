@@ -295,6 +295,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpNoteDetailVideoLinkTitle,
         body: l.helpNoteDetailVideoLinkBody,
       ),
+      HelpEntry(
+        icon: Icons.videocam_outlined,
+        title: l.helpNoteDetailVideoTitle,
+        body: l.helpNoteDetailVideoBody,
+      ),
     ],
   ),
   HelpId.notesRecentlyDeleted => ScreenHelp(

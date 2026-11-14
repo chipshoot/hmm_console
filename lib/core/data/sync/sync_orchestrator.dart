@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../attachments/attachment_providers.dart';
+import '../attachments/video_attachment.dart';
 import '../vault/vault_gc.dart';
 import '../vault/vault_store.dart';
 import '../../../features/settings/data/syncable_settings_repository.dart';
@@ -1100,6 +1101,9 @@ class SyncOrchestrator {
     final remote = await p.listAttachmentPaths();
     var pushed = 0, pulled = 0;
     for (final path in referenced) {
+      // Videos are too large to move as whole in-memory byte arrays; stage 3
+      // moves them with a chunked upload. Until then they stay on-device.
+      if (isVideoVaultPath(path)) continue;
       final localHas = await vault.exists(path);
       final remoteHas = remote.contains(path);
       if (localHas && !remoteHas) {
@@ -1151,6 +1155,8 @@ class SyncOrchestrator {
       'webp' => 'image/webp',
       'pdf' => 'application/pdf',
       'm4a' => 'audio/mp4',
+      'mov' => 'video/quicktime',
+      'mp4' || 'm4v' => 'video/mp4',
       // Unknown extension: store a generic binary type rather than null so a
       // future API vault store has a sensible content type to forward.
       _ => 'application/octet-stream',

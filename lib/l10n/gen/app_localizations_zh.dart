@@ -3432,4 +3432,100 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesAddVideoLinkInvalid => '这不是有效的链接';
+
+  @override
+  String get notesVideoPlay => '播放视频';
+
+  @override
+  String get notesVideoNotOnDevice => '此视频目前仅保存在添加它的设备上。';
+
+  @override
+  String get notesVideoSaveToPhotos => '存储到照片';
+
+  @override
+  String get notesVideoShare => '分享…';
+
+  @override
+  String get notesVideoRemove => '从笔记中移除';
+
+  @override
+  String get notesVideoSaved => '已存储到照片';
+
+  @override
+  String get notesVideoPhotosDenied => 'Hmm 无法存入照片，请在设置中允许。';
+
+  @override
+  String get notesVideoSaveFailed => '无法存储视频';
+
+  @override
+  String get notesVideoShareFailed => '无法分享视频';
+
+  @override
+  String get notesVideoRemoved => '已移除视频';
+
+  @override
+  String get notesVideoRemoveFailed => '无法移除视频';
+
+  @override
+  String get notesVideoRestored => '已恢复视频';
+
+  @override
+  String get notesVideoRestoreFailed => '无法恢复视频';
+
+  @override
+  String get helpNoteDetailVideoTitle => '视频';
+
+  @override
+  String get helpNoteDetailVideoBody =>
+      '轻点视频即可全屏播放。长按可存储到照片、分享或从笔记中移除。要添加视频，请编辑笔记并轻点视频按钮。';
+
+  @override
+  String get notesAddVideoTooltip => '添加视频';
+
+  @override
+  String get notesVideoNeedsOneDrive => '视频目前需要 OneDrive 同步';
+
+  @override
+  String get notesVideoSensitiveBlocked => '含有敏感内容的笔记暂时不能添加视频';
+
+  @override
+  String get notesVideoTooLarge => '该视频超过 2 GB，无法添加';
+
+  @override
+  String get notesVideoUnsupported => '不支持该视频格式';
+
+  @override
+  String get notesVideoLargeTitle => '大视频';
+
+  @override
+  String notesVideoLargeBodyCloud(String size) {
+    return '该视频大小为 $size，将占用相同的 OneDrive 空间。';
+  }
+
+  @override
+  String notesVideoLargeBodyLocal(String size) {
+    return '该视频大小为 $size，将占用本设备相同的存储空间。';
+  }
+
+  @override
+  String get notesVideoAdd => '添加';
+
+  @override
+  String get notesVideoAddFailed => '部分视频无法添加，已跳过。';
+
+  @override
+  String notesVideoRemoveConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '从此笔记移除 $count 个视频？',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notesVideoRemoveConfirmRemove => '移除';
+
+  @override
+  String get notesVideoRemoveConfirmKeep => '保留';
 }

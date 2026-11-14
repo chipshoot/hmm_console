@@ -6337,6 +6337,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That doesn\'t look like a link'**
   String get notesAddVideoLinkInvalid;
+
+  /// No description provided for @notesVideoPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play video'**
+  String get notesVideoPlay;
+
+  /// No description provided for @notesVideoNotOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is only on the device that added it, for now.'**
+  String get notesVideoNotOnDevice;
+
+  /// No description provided for @notesVideoSaveToPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Photos'**
+  String get notesVideoSaveToPhotos;
+
+  /// No description provided for @notesVideoShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share…'**
+  String get notesVideoShare;
+
+  /// No description provided for @notesVideoRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from note'**
+  String get notesVideoRemove;
+
+  /// No description provided for @notesVideoSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to Photos'**
+  String get notesVideoSaved;
+
+  /// No description provided for @notesVideoPhotosDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Hmm can\'t add to Photos. Allow it in Settings.'**
+  String get notesVideoPhotosDenied;
+
+  /// No description provided for @notesVideoSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the video'**
+  String get notesVideoSaveFailed;
+
+  /// No description provided for @notesVideoShareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share the video'**
+  String get notesVideoShareFailed;
+
+  /// No description provided for @notesVideoRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Video removed'**
+  String get notesVideoRemoved;
+
+  /// No description provided for @notesVideoRemoveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove the video'**
+  String get notesVideoRemoveFailed;
+
+  /// No description provided for @notesVideoRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Video restored'**
+  String get notesVideoRestored;
+
+  /// No description provided for @notesVideoRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore the video'**
+  String get notesVideoRestoreFailed;
+
+  /// No description provided for @helpNoteDetailVideoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get helpNoteDetailVideoTitle;
+
+  /// No description provided for @helpNoteDetailVideoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a video to play it full screen. Long press it for Save to Photos, Share or Remove from note. To add one, edit the note and tap the video button.'**
+  String get helpNoteDetailVideoBody;
+
+  /// No description provided for @notesAddVideoTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add video'**
+  String get notesAddVideoTooltip;
+
+  /// No description provided for @notesVideoNeedsOneDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos need OneDrive sync for now'**
+  String get notesVideoNeedsOneDrive;
+
+  /// No description provided for @notesVideoSensitiveBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos can\'t be added to notes with sensitive items yet'**
+  String get notesVideoSensitiveBlocked;
+
+  /// No description provided for @notesVideoTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is over 2 GB and can\'t be added'**
+  String get notesVideoTooLarge;
+
+  /// No description provided for @notesVideoUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This video format isn\'t supported'**
+  String get notesVideoUnsupported;
+
+  /// No description provided for @notesVideoLargeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Large video'**
+  String get notesVideoLargeTitle;
+
+  /// No description provided for @notesVideoLargeBodyCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is {size}. It uses that much OneDrive space.'**
+  String notesVideoLargeBodyCloud(String size);
+
+  /// No description provided for @notesVideoLargeBodyLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is {size}. It uses that much space on this device.'**
+  String notesVideoLargeBodyLocal(String size);
+
+  /// No description provided for @notesVideoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get notesVideoAdd;
+
+  /// No description provided for @notesVideoAddFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some videos couldn\'t be added and were skipped.'**
+  String get notesVideoAddFailed;
+
+  /// No description provided for @notesVideoRemoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Remove 1 video from this note?} other{Remove {count} videos from this note?}}'**
+  String notesVideoRemoveConfirm(int count);
+
+  /// No description provided for @notesVideoRemoveConfirmRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get notesVideoRemoveConfirmRemove;
+
+  /// No description provided for @notesVideoRemoveConfirmKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get notesVideoRemoveConfirmKeep;
 }
 
 class _AppLocalizationsDelegate

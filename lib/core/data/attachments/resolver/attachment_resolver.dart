@@ -11,6 +11,7 @@ import 'dart:typed_data';
 
 import '../../vault/vault_store.dart';
 import '../attachment_ref.dart';
+import '../video_attachment.dart';
 
 abstract interface class IAttachmentResolver {
   /// Return the bytes that should be rendered for [ref], or null if
@@ -21,7 +22,8 @@ abstract interface class IAttachmentResolver {
 }
 
 /// Resolves [VaultRef] via the configured [IVaultStore]. Returns
-/// null for missing files or non-vault refs.
+/// null for missing files, non-vault refs and video files (reading a whole
+/// video into memory is never done; callers show a placeholder).
 class VaultResolver implements IAttachmentResolver {
   const VaultResolver({required this.vaultStore});
 
@@ -30,6 +32,7 @@ class VaultResolver implements IAttachmentResolver {
   @override
   Future<Uint8List?> resolve(AttachmentRef ref) async {
     if (ref is! VaultRef) return null;
+    if (isVideoVaultPath(ref.path)) return null;
     try {
       return await vaultStore.getBytes(ref.path);
     } on VaultStoreException {

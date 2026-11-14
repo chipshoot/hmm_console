@@ -34,6 +34,19 @@ void main() {
       expect(await resolver.resolve(ref), equals(bytes));
     });
 
+    test('never reads a video path (returns null)', () async {
+      await store.putBytes(
+        'attachments/note-1/v.mov',
+        Uint8List.fromList([1, 2, 3]),
+      );
+      const ref = VaultRef(
+        path: 'attachments/note-1/v.mov',
+        contentType: 'application/octet-stream',
+        byteSize: 0,
+      );
+      expect(await resolver.resolve(ref), isNull);
+    });
+
     test('returns null when the vault file is missing', () async {
       const ref = VaultRef(
         path: 'attachments/note-1/gone.jpg',

@@ -11,10 +11,12 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 
+import 'sensitive_path.dart';
+import 'vault_file_store.dart';
 import 'vault_path.dart';
 import 'vault_store.dart';
 
-class LocalVaultStore implements IVaultStore {
+class LocalVaultStore implements IVaultStore, IVaultFileStore {
   /// [rootDir] is the absolute path on disk where the vault's
   /// `attachments/` tree lives. The directory will be created lazily
   /// on the first write.
@@ -63,6 +65,46 @@ class LocalVaultStore implements IVaultStore {
       }
       rethrow;
     }
+  }
+
+  @override
+  Future<void> importFile(String relativePath, File source) async {
+    final target = _fileFor(relativePath);
+    if (isSensitiveVaultPath(relativePath)) {
+      throw ArgumentError.value(
+          relativePath, 'relativePath', 'sensitive paths cannot be imported');
+    }
+    if (!await source.exists()) {
+      throw VaultStoreException('source file not found', relativePath);
+    }
+    await target.parent.create(recursive: true);
+    try {
+      await source.rename(target.path);
+      return;
+    } on FileSystemException {
+      // Different volume: fall through to copy + rename.
+    }
+    final tmp = File('${target.path}.tmp');
+    try {
+      await source.copy(tmp.path);
+      await tmp.rename(target.path);
+    } catch (_) {
+      if (await tmp.exists()) {
+        try {
+          await tmp.delete();
+        } catch (_) {
+          // Swallow — original error is more important.
+        }
+      }
+      rethrow;
+    }
+    await source.delete();
+  }
+
+  @override
+  Future<File?> localFile(String relativePath) async {
+    final f = _fileFor(relativePath);
+    return await f.exists() ? f : null;
   }
 
   @override

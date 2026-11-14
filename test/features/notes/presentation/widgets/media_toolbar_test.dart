@@ -159,4 +159,71 @@ void main() {
     );
     expect(find.byIcon(Icons.smart_display_outlined), findsNothing);
   });
+
+  testWidgets('video button calls onAddVideo, dimmed when unavailable', (
+    t,
+  ) async {
+    var taps = 0;
+    Future<void> pump({required bool available}) => t.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: Scaffold(
+          bottomNavigationBar: MediaToolbar(
+            onPick: (_) {},
+            onPickFile: () {},
+            onRecord: () {},
+            onAddVideo: () => taps++,
+            addVideoAvailable: available,
+          ),
+        ),
+      ),
+    );
+
+    await pump(available: true);
+    expect(find.byTooltip('Add video'), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.byIcon(Icons.videocam_outlined),
+        matching: find.byWidgetPredicate(
+          (w) => w is Opacity && w.opacity == 0.38,
+        ),
+      ),
+      findsNothing,
+    );
+    await t.tap(find.byIcon(Icons.videocam_outlined));
+    expect(taps, 1);
+
+    await pump(available: false);
+    expect(
+      find.ancestor(
+        of: find.byIcon(Icons.videocam_outlined),
+        matching: find.byWidgetPredicate(
+          (w) => w is Opacity && w.opacity == 0.38,
+        ),
+      ),
+      findsOneWidget,
+    );
+    await t.tap(find.byIcon(Icons.videocam_outlined));
+    expect(taps, 2);
+  });
+
+  testWidgets('video button is absent without onAddVideo', (t) async {
+    await t.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: Scaffold(
+          bottomNavigationBar: MediaToolbar(
+            onPick: (_) {},
+            onPickFile: () {},
+            onRecord: () {},
+          ),
+        ),
+      ),
+    );
+    expect(find.byIcon(Icons.videocam_outlined), findsNothing);
+  });
 }

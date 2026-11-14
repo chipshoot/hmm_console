@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/inline_ref_uri.dart';
 import '../../../../core/data/local/database.dart';
@@ -28,6 +29,8 @@ import '../../states/recently_deleted_provider.dart';
 import '../catalog_labels.dart';
 import '../widgets/note_swipe_actions.dart' show deleteNoteWithUndo;
 import '../widgets/video_link_card.dart' show LinkCardData;
+import '../widgets/video_menu.dart';
+import '../widgets/video_tile.dart';
 import '../widgets/markdown_view.dart';
 import '../widgets/note_file_card_list.dart';
 import '../widgets/note_flag_sheet.dart';
@@ -318,7 +321,38 @@ class NoteDetailScreen extends ConsumerWidget {
                       for (final p in d.note.effectiveAttachments.linkPreviews)
                         p.url: LinkCardData.fromPreview(p),
                     },
+                    videos: {
+                      for (final v in d.note.effectiveAttachments.videos)
+                        v.inlinePath: v,
+                    },
+                    onVideoLongPress: (v) => unawaited(
+                      showVideoMenu(
+                        context,
+                        ref,
+                        noteId: noteId,
+                        video: v,
+                      ),
+                    ),
                   ),
+                  for (final v in d.note.effectiveAttachments.videos)
+                    if (!inlinePaths.contains(v.inlinePath))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: VideoTile(
+                          saved: v,
+                          resolver: ref
+                              .watch(attachmentResolverProvider)
+                              .value,
+                          onLongPress: (v) => unawaited(
+                            showVideoMenu(
+                              context,
+                              ref,
+                              noteId: noteId,
+                              video: v,
+                            ),
+                          ),
+                        ),
+                      ),
                 ],
               );
             },

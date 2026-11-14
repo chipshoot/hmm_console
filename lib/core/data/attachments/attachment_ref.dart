@@ -7,6 +7,7 @@
 import 'package:collection/collection.dart';
 
 import 'link_preview.dart';
+import 'video_attachment.dart';
 
 /// Storage providers for [CloudFileRef].
 enum CloudProvider {
@@ -192,6 +193,8 @@ final class NoteAttachments {
     List<Map<String, dynamic>> preservedFiles = const [],
     List<LinkPreview> linkPreviews = const [],
     List<Object?> preservedLinkPreviews = const [],
+    List<VideoAttachment> videos = const [],
+    List<Object?> preservedVideos = const [],
     Map<String, dynamic> extra = const {},
   }) : images = List.unmodifiable(images),
        files = List.unmodifiable(files),
@@ -199,6 +202,8 @@ final class NoteAttachments {
        preservedFiles = List.unmodifiable(preservedFiles),
        linkPreviews = List.unmodifiable(linkPreviews),
        preservedLinkPreviews = List.unmodifiable(preservedLinkPreviews),
+       videos = List.unmodifiable(videos),
+       preservedVideos = List.unmodifiable(preservedVideos),
        extra = Map.unmodifiable(extra) {
     final p = primaryImage;
     if (p != null) {
@@ -233,6 +238,12 @@ final class NoteAttachments {
   /// Raw `linkPreviews` entries this build cannot parse, kept verbatim.
   final List<Object?> preservedLinkPreviews;
 
+  /// Attached videos (video file + poster + metadata).
+  final List<VideoAttachment> videos;
+
+  /// Raw `videos` entries this build cannot parse, kept verbatim.
+  final List<Object?> preservedVideos;
+
   /// Unknown top-level keys, plus the raw `primaryImage` when unsupported.
   final Map<String, dynamic> extra;
 
@@ -244,6 +255,8 @@ final class NoteAttachments {
       preservedFiles.isEmpty &&
       linkPreviews.isEmpty &&
       preservedLinkPreviews.isEmpty &&
+      videos.isEmpty &&
+      preservedVideos.isEmpty &&
       extra.isEmpty;
   bool get isNotEmpty => !isEmpty;
 
@@ -254,6 +267,7 @@ final class NoteAttachments {
     List<AttachmentRef>? images,
     List<AttachmentRef>? files,
     List<LinkPreview>? linkPreviews,
+    List<VideoAttachment>? videos,
   }) => NoteAttachments(
     primaryImage: clearPrimaryImage
         ? null
@@ -264,8 +278,29 @@ final class NoteAttachments {
     preservedFiles: preservedFiles,
     linkPreviews: linkPreviews ?? this.linkPreviews,
     preservedLinkPreviews: preservedLinkPreviews,
+    videos: videos ?? this.videos,
+    preservedVideos: preservedVideos,
     extra: extra,
   );
+
+  /// True when any image or file (known or preserved) is marked sensitive.
+  bool get hasSensitive {
+    for (final r in [?primaryImage, ...images, ...files]) {
+      if (r is VaultRef && r.sensitive) return true;
+    }
+    bool raw(Object? m) => m is Map && m['sensitive'] == true;
+    return preservedImages.any(raw) ||
+        preservedFiles.any(raw) ||
+        raw(extra['primaryImage']);
+  }
+
+  /// The video whose inline path (poster, else video file) is [path].
+  VideoAttachment? videoForInlinePath(String path) {
+    for (final v in videos) {
+      if (v.inlinePath == path) return v;
+    }
+    return null;
+  }
 
   /// Vault paths of every vault entry, known or preserved, so GC / purge
   /// never deletes bytes a newer build still references.
@@ -291,6 +326,17 @@ final class NoteAttachments {
     for (final m in preservedLinkPreviews) {
       if (m is Map) addRaw(m['thumbnail']);
     }
+    for (final v in videos) {
+      out.add(v.video.path);
+      final p = v.poster;
+      if (p != null) out.add(p.path);
+    }
+    for (final m in preservedVideos) {
+      if (m is Map) {
+        addRaw(m['video']);
+        addRaw(m['poster']);
+      }
+    }
     return out;
   }
 
@@ -307,6 +353,8 @@ final class NoteAttachments {
         _deep.equals(other.preservedFiles, preservedFiles) &&
         _deep.equals(other.linkPreviews, linkPreviews) &&
         _deep.equals(other.preservedLinkPreviews, preservedLinkPreviews) &&
+        _deep.equals(other.videos, videos) &&
+        _deep.equals(other.preservedVideos, preservedVideos) &&
         _deep.equals(other.extra, extra);
   }
 
@@ -319,6 +367,8 @@ final class NoteAttachments {
     _deep.hash(preservedFiles),
     _deep.hash(linkPreviews),
     _deep.hash(preservedLinkPreviews),
+    _deep.hash(videos),
+    _deep.hash(preservedVideos),
     _deep.hash(extra),
   );
 
@@ -327,5 +377,6 @@ final class NoteAttachments {
       'NoteAttachments(primaryImage: $primaryImage, '
       'images: $images, files: $files, preservedImages: $preservedImages, '
       'preservedFiles: $preservedFiles, linkPreviews: $linkPreviews, '
+      'videos: $videos, preservedVideos: $preservedVideos, '
       'extra: $extra)';
 }

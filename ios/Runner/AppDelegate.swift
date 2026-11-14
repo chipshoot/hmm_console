@@ -19,5 +19,9 @@ import UIKit
       forPlugin: "DocumentScannerPlugin") {
       DocumentScannerPlugin.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "VideoPlugin") {
+      VideoPlugin.register(with: registrar)
+    }
   }
 }
