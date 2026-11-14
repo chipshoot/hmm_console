@@ -23,6 +23,7 @@
 // cycle.
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -599,6 +600,43 @@ class ApiSyncProvider implements CloudSyncProvider {
 
   @override
   Future<Set<String>> listAttachmentPaths() async => const {};
+
+  // ---- Large files (not supported on the API provider) ----
+
+  @override
+  bool get supportsLargeFiles => false;
+
+  @override
+  Future<String> startLargeUpload(String path, int totalBytes) async =>
+      throw UnsupportedError('Large files are not supported');
+
+  @override
+  Future<int?> largeUploadNextOffset(String handle) async =>
+      throw UnsupportedError('Large files are not supported');
+
+  @override
+  Future<bool> uploadLargeChunk(
+    String handle,
+    Uint8List chunk,
+    int offset,
+    int totalBytes,
+  ) async => throw UnsupportedError('Large files are not supported');
+
+  @override
+  Future<void> cancelLargeUpload(String handle) async =>
+      throw UnsupportedError('Large files are not supported');
+
+  @override
+  Future<bool> largeFileExists(String path) async =>
+      throw UnsupportedError('Large files are not supported');
+
+  @override
+  Future<void> downloadLargeFile(
+    String path,
+    File target, {
+    void Function(int received, int total)? onProgress,
+    TransferCancel? cancel,
+  }) async => throw UnsupportedError('Large files are not supported');
 
   @override
   Future<void> purgeNote(String uuid,

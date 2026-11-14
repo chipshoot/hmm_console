@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../network/idp_token_service.dart';
@@ -83,6 +85,70 @@ class OneDriveSyncProvider implements CloudSyncProvider {
 
   @override
   Future<Set<String>> listAttachmentPaths() => _graph.listAttachments();
+
+  // ---- Large files (upload sessions; the handle is the uploadUrl) ----
+
+  @override
+  bool get supportsLargeFiles => true;
+
+  @override
+  Future<String> startLargeUpload(String path, int totalBytes) =>
+      _graph.createUploadSession(path);
+
+  @override
+  Future<int?> largeUploadNextOffset(String handle) =>
+      _graph.uploadSessionNextOffset(handle);
+
+  @override
+  Future<bool> uploadLargeChunk(
+    String handle,
+    Uint8List chunk,
+    int offset,
+    int totalBytes,
+  ) => _graph.putUploadFragment(handle, chunk, offset, totalBytes);
+
+  @override
+  Future<void> cancelLargeUpload(String handle) =>
+      _graph.deleteUploadSession(handle);
+
+  @override
+  Future<bool> largeFileExists(String path) => _graph.attachmentExists(path);
+
+  @override
+  Future<void> downloadLargeFile(
+    String path,
+    File target, {
+    void Function(int received, int total)? onProgress,
+    TransferCancel? cancel,
+  }) async {
+    await target.parent.create(recursive: true);
+    final part = File('${target.path}.part');
+    final token = CancelToken();
+    cancel?.addListener(() => token.cancel());
+    try {
+      await _graph.downloadAttachmentTo(
+        path,
+        part.path,
+        onProgress: onProgress,
+        cancelToken: token,
+      );
+      if (cancel?.isCancelled ?? false) throw const TransferCancelledException();
+      await part.rename(target.path);
+    } on DioException catch (e) {
+      await _deleteQuietly(part);
+      if (CancelToken.isCancel(e)) throw const TransferCancelledException();
+      rethrow;
+    } catch (_) {
+      await _deleteQuietly(part);
+      rethrow;
+    }
+  }
+
+  static Future<void> _deleteQuietly(File f) async {
+    try {
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
+  }
 
   @override
   Future<void> purgeNote(String uuid,

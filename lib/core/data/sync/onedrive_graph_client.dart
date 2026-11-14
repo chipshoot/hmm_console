@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../network/idp_token_service.dart';
+import 'cloud_sync_provider.dart' show LargeUploadSessionGone;
 import 'onedrive_auth.dart';
 import 'sync_models.dart';
 
@@ -59,8 +60,14 @@ typedef CurrentUserSubResolver = Future<String?> Function();
 /// - `PUT /me/drive/special/approot:/users/{sub}/notes/{id}.json:/content`
 /// - `GET /me/drive/special/approot:/users/{sub}/manifest.json:/content`
 class OneDriveGraphClient {
-  OneDriveGraphClient(this._auth, this._currentUserSub, {Dio? dio})
-    : _dio =
+  OneDriveGraphClient(
+    this._auth,
+    this._currentUserSub, {
+    Dio? dio,
+    Dio? uploadDio,
+  }) : _uploadDio =
+           uploadDio ?? Dio(BaseOptions(validateStatus: (_) => true)),
+       _dio =
           dio ??
           Dio(
             BaseOptions(
@@ -96,6 +103,10 @@ class OneDriveGraphClient {
   final OneDriveAuth _auth;
   final CurrentUserSubResolver _currentUserSub;
   final Dio _dio;
+
+  /// For pre-authenticated upload-session URLs: no auth interceptor, because
+  /// sending a Bearer token to `uploadUrl` is wrong.
+  final Dio _uploadDio;
 
   /// Top of the Microsoft Graph "special app folder" addressing scheme.
   /// The `:` is the delimiter between the special-folder selector and
@@ -270,6 +281,102 @@ class OneDriveGraphClient {
         headers: {Headers.contentLengthHeader: bytes.length},
       ),
     );
+    _throwIfBad(resp);
+  }
+
+  /// Whether the remote vault holds [relativePath] (metadata GET only).
+  Future<bool> attachmentExists(String relativePath) async {
+    final path = await _userPath('vault/$relativePath');
+    final resp = await _dio.get(path);
+    if (resp.statusCode == 404) return false;
+    _throwIfBad(resp);
+    return true;
+  }
+
+  /// Streams the vault file at [relativePath] to [savePath]; never holds the
+  /// whole file in memory.
+  Future<void> downloadAttachmentTo(
+    String relativePath,
+    String savePath, {
+    void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final path = await _userPath('vault/$relativePath', action: 'content');
+    final resp = await _dio.download(
+      path,
+      savePath,
+      onReceiveProgress: onProgress,
+      cancelToken: cancelToken,
+    );
+    _throwIfBad(resp);
+  }
+
+  // ---- Upload sessions (large files) ----
+
+  /// Opens a resumable upload session for [relativePath]; returns the
+  /// pre-authenticated `uploadUrl`.
+  Future<String> createUploadSession(String relativePath) async {
+    final path = await _userPath(
+      'vault/$relativePath',
+      action: 'createUploadSession',
+    );
+    final resp = await _dio.post(
+      path,
+      data: {
+        'item': {'@microsoft.graph.conflictBehavior': 'replace'},
+      },
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    _throwIfBad(resp);
+    final url = (resp.data as Map?)?['uploadUrl'] as String?;
+    if (url == null || url.isEmpty) {
+      throw OneDriveGraphException(
+        statusCode: resp.statusCode ?? 0,
+        message: 'Graph returned no uploadUrl',
+        request: _describeRequest(resp),
+      );
+    }
+    return url;
+  }
+
+  /// The next byte the session expects, or null if the session is gone.
+  Future<int?> uploadSessionNextOffset(String uploadUrl) async {
+    final resp = await _uploadDio.get(uploadUrl);
+    if (resp.statusCode == 404) return null;
+    _throwIfBad(resp);
+    final ranges = (resp.data as Map?)?['nextExpectedRanges'] as List?;
+    if (ranges == null || ranges.isEmpty) return null;
+    return int.parse((ranges.first as String).split('-').first);
+  }
+
+  /// Sends one fragment. True when the upload is complete (200/201), false
+  /// when more is expected (202). Throws [LargeUploadSessionGone] on 404.
+  Future<bool> putUploadFragment(
+    String uploadUrl,
+    Uint8List chunk,
+    int offset,
+    int total,
+  ) async {
+    final resp = await _uploadDio.put(
+      uploadUrl,
+      data: Stream.fromIterable([chunk]),
+      options: Options(
+        contentType: 'application/octet-stream',
+        headers: {
+          Headers.contentLengthHeader: chunk.length,
+          'Content-Range': 'bytes $offset-${offset + chunk.length - 1}/$total',
+        },
+      ),
+    );
+    if (resp.statusCode == 404) throw const LargeUploadSessionGone();
+    _throwIfBad(resp);
+    return resp.statusCode != 202;
+  }
+
+  /// Cancels the session; one that is already gone is success.
+  Future<void> deleteUploadSession(String uploadUrl) async {
+    final resp = await _uploadDio.delete(uploadUrl);
+    if (resp.statusCode == 404) return;
     _throwIfBad(resp);
   }
 
