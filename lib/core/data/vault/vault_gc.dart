@@ -21,7 +21,6 @@
 // background timer), so the user isn't mid-pick when it runs.
 
 import '../local/database.dart';
-import '../attachments/attachment_ref.dart';
 import '../attachments/attachment_ref_codec.dart';
 import 'vault_store.dart';
 
@@ -45,7 +44,8 @@ class VaultGcResult {
   bool get isClean => deletedPaths.isEmpty;
 
   @override
-  String toString() => 'VaultGcResult(deleted: $deletedCount, '
+  String toString() =>
+      'VaultGcResult(deleted: $deletedCount, '
       'bytesReclaimed: $bytesReclaimed)';
 }
 
@@ -101,16 +101,7 @@ Future<Set<String>> collectReferencedVaultPaths(HmmDatabase db) async {
   final paths = <String>{};
   for (final row in rows) {
     final attachments = NoteAttachmentsCodec.decode(row.attachments);
-    final refs = <AttachmentRef?>[
-      attachments.primaryImage,
-      ...attachments.images,
-      ...attachments.files,
-    ];
-    for (final ref in refs) {
-      if (ref is VaultRef) {
-        paths.add(ref.path);
-      }
-    }
+    paths.addAll(attachments.vaultPaths);
   }
   return paths;
 }

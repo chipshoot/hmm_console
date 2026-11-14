@@ -3,10 +3,12 @@
 // collector (against an in-memory Drift db), plus an end-to-end run
 // proving an orphaned file is reclaimed while live attachments stay.
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:drift/native.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/hmm_note_input.dart';
@@ -100,73 +102,81 @@ void main() {
 
     setUp(() async {
       db = HmmDatabase(NativeDatabase.memory());
-      final aid = await db.into(db.authors).insert(
-            AuthorsCompanion.insert(accountName: 'tester'),
-          );
-      author = await (db.select(db.authors)..where((a) => a.id.equals(aid)))
-          .getSingle();
-      catalogId = await db.into(db.noteCatalogs).insert(
-            NoteCatalogsCompanion.insert(name: 'Cat', schema: '{}'),
-          );
+      final aid = await db
+          .into(db.authors)
+          .insert(AuthorsCompanion.insert(accountName: 'tester'));
+      author = await (db.select(
+        db.authors,
+      )..where((a) => a.id.equals(aid))).getSingle();
+      catalogId = await db
+          .into(db.noteCatalogs)
+          .insert(NoteCatalogsCompanion.insert(name: 'Cat', schema: '{}'));
       repo = LocalHmmNoteRepository(db, () async => author);
     });
 
     tearDown(() async => db.close());
 
-    test('collects vault paths from primaryImage + images across notes',
-        () async {
-      await repo.createNote(HmmNoteCreate(
-        subject: 'n1',
-        catalogId: catalogId,
-        attachments: NoteAttachments(
-          primaryImage: const VaultRef(
-            path: 'attachments/note-1/p.jpg',
-            contentType: 'image/jpeg',
-            byteSize: 1,
+    test(
+      'collects vault paths from primaryImage + images across notes',
+      () async {
+        await repo.createNote(
+          HmmNoteCreate(
+            subject: 'n1',
+            catalogId: catalogId,
+            attachments: NoteAttachments(
+              primaryImage: const VaultRef(
+                path: 'attachments/note-1/p.jpg',
+                contentType: 'image/jpeg',
+                byteSize: 1,
+              ),
+              images: const [
+                VaultRef(
+                  path: 'attachments/note-1/g.jpg',
+                  contentType: 'image/jpeg',
+                  byteSize: 1,
+                ),
+              ],
+            ),
           ),
-          images: const [
-            VaultRef(
-              path: 'attachments/note-1/g.jpg',
+        );
+        await repo.createNote(
+          HmmNoteCreate(
+            subject: 'n2',
+            catalogId: catalogId,
+            attachments: NoteAttachments(
+              primaryImage: const VaultRef(
+                path: 'attachments/note-2/p.jpg',
+                contentType: 'image/jpeg',
+                byteSize: 1,
+              ),
+            ),
+          ),
+        );
+
+        final paths = await collectReferencedVaultPaths(db);
+
+        expect(paths, {
+          'attachments/note-1/p.jpg',
+          'attachments/note-1/g.jpg',
+          'attachments/note-2/p.jpg',
+        });
+      },
+    );
+
+    test('includes soft-deleted notes (bytes survive a tombstone)', () async {
+      final n = await repo.createNote(
+        HmmNoteCreate(
+          subject: 'doomed',
+          catalogId: catalogId,
+          attachments: NoteAttachments(
+            primaryImage: const VaultRef(
+              path: 'attachments/note-9/p.jpg',
               contentType: 'image/jpeg',
               byteSize: 1,
             ),
-          ],
-        ),
-      ));
-      await repo.createNote(HmmNoteCreate(
-        subject: 'n2',
-        catalogId: catalogId,
-        attachments: NoteAttachments(
-          primaryImage: const VaultRef(
-            path: 'attachments/note-2/p.jpg',
-            contentType: 'image/jpeg',
-            byteSize: 1,
           ),
         ),
-      ));
-
-      final paths = await collectReferencedVaultPaths(db);
-
-      expect(paths, {
-        'attachments/note-1/p.jpg',
-        'attachments/note-1/g.jpg',
-        'attachments/note-2/p.jpg',
-      });
-    });
-
-    test('includes soft-deleted notes (bytes survive a tombstone)',
-        () async {
-      final n = await repo.createNote(HmmNoteCreate(
-        subject: 'doomed',
-        catalogId: catalogId,
-        attachments: NoteAttachments(
-          primaryImage: const VaultRef(
-            path: 'attachments/note-9/p.jpg',
-            contentType: 'image/jpeg',
-            byteSize: 1,
-          ),
-        ),
-      ));
+      );
       await repo.deleteNote(n.id); // soft delete
 
       final paths = await collectReferencedVaultPaths(db);
@@ -174,31 +184,67 @@ void main() {
     });
 
     test('skips non-vault refs (phasset / cloudFile)', () async {
-      await repo.createNote(HmmNoteCreate(
-        subject: 'smart-refs',
-        catalogId: catalogId,
-        attachments: NoteAttachments(
-          primaryImage: const PhAssetRef(
-            id: 'PH-123',
-            contentType: 'image/heic',
+      await repo.createNote(
+        HmmNoteCreate(
+          subject: 'smart-refs',
+          catalogId: catalogId,
+          attachments: NoteAttachments(
+            primaryImage: const PhAssetRef(
+              id: 'PH-123',
+              contentType: 'image/heic',
+            ),
+            images: const [
+              CloudFileRef(
+                provider: CloudProvider.oneDrive,
+                path: 'Photos/car.jpg',
+                contentType: 'image/jpeg',
+              ),
+              VaultRef(
+                path: 'attachments/note-3/real.jpg',
+                contentType: 'image/jpeg',
+                byteSize: 1,
+              ),
+            ],
           ),
-          images: const [
-            CloudFileRef(
-              provider: CloudProvider.oneDrive,
-              path: 'Photos/car.jpg',
-              contentType: 'image/jpeg',
-            ),
-            VaultRef(
-              path: 'attachments/note-3/real.jpg',
-              contentType: 'image/jpeg',
-              byteSize: 1,
-            ),
-          ],
         ),
-      ));
+      );
 
       final paths = await collectReferencedVaultPaths(db);
       expect(paths, {'attachments/note-3/real.jpg'});
+    });
+
+    test('collectReferencedVaultPaths keeps a preserved video path', () async {
+      final tmp = await Directory.systemTemp.createTemp('hmm_gc_video_');
+      addTearDown(() async {
+        if (await tmp.exists()) await tmp.delete(recursive: true);
+      });
+      final n = await repo.createNote(
+        HmmNoteCreate(subject: 'video', catalogId: catalogId),
+      );
+      await (db.update(db.notes)..where((t) => t.id.equals(n.id))).write(
+        NotesCompanion(
+          attachments: Value(
+            jsonEncode({
+              'files': [
+                {
+                  'kind': 'vault',
+                  'path': 'attachments/note-1/clip.mov',
+                  'contentType': 'video/quicktime',
+                  'byteSize': 9,
+                },
+              ],
+            }),
+          ),
+        ),
+      );
+
+      final paths = await collectReferencedVaultPaths(db);
+      expect(paths, contains('attachments/note-1/clip.mov'));
+
+      final store = LocalVaultStore(rootDir: tmp);
+      await store.putBytes('attachments/note-1/clip.mov', _bytes(9));
+      await VaultGarbageCollector(store).sweep(paths);
+      expect(await store.exists('attachments/note-1/clip.mov'), isTrue);
     });
 
     test('returns empty when no note has attachments', () async {
@@ -218,15 +264,15 @@ void main() {
       final db = HmmDatabase(NativeDatabase.memory());
       addTearDown(db.close);
 
-      final aid = await db.into(db.authors).insert(
-            AuthorsCompanion.insert(accountName: 'tester'),
-          );
-      final author = await (db.select(db.authors)
-            ..where((a) => a.id.equals(aid)))
-          .getSingle();
-      final catalogId = await db.into(db.noteCatalogs).insert(
-            NoteCatalogsCompanion.insert(name: 'Cat', schema: '{}'),
-          );
+      final aid = await db
+          .into(db.authors)
+          .insert(AuthorsCompanion.insert(accountName: 'tester'));
+      final author = await (db.select(
+        db.authors,
+      )..where((a) => a.id.equals(aid))).getSingle();
+      final catalogId = await db
+          .into(db.noteCatalogs)
+          .insert(NoteCatalogsCompanion.insert(name: 'Cat', schema: '{}'));
       final repo = LocalHmmNoteRepository(db, () async => author);
       final store = LocalVaultStore(rootDir: tmp);
 
@@ -236,11 +282,13 @@ void main() {
         contentType: 'image/jpeg',
         byteSize: 3,
       );
-      await repo.createNote(HmmNoteCreate(
-        subject: 'saved',
-        catalogId: catalogId,
-        attachments: NoteAttachments(primaryImage: liveRef),
-      ));
+      await repo.createNote(
+        HmmNoteCreate(
+          subject: 'saved',
+          catalogId: catalogId,
+          attachments: NoteAttachments(primaryImage: liveRef),
+        ),
+      );
       await store.putBytes(liveRef.path, _bytes(3));
       // ...and a stray file from a cancelled pick sits beside it.
       await store.putBytes('attachments/note-1/cancelled.jpg', _bytes(99));
@@ -251,10 +299,7 @@ void main() {
       expect(result.deletedPaths, ['attachments/note-1/cancelled.jpg']);
       expect(result.bytesReclaimed, 99);
       expect(await store.exists(liveRef.path), isTrue);
-      expect(
-        await store.exists('attachments/note-1/cancelled.jpg'),
-        isFalse,
-      );
+      expect(await store.exists('attachments/note-1/cancelled.jpg'), isFalse);
     });
   });
 }

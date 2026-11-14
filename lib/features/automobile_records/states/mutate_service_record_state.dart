@@ -27,9 +27,11 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
 
   Future<void> edit(int autoId, int id, ServiceRecord record) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => ref
-        .read(serviceRecordRepositoryModeProvider)
-        .updateRecord(autoId, id, record));
+    state = await AsyncValue.guard(
+      () => ref
+          .read(serviceRecordRepositoryModeProvider)
+          .updateRecord(autoId, id, record),
+    );
     if (state.hasValue) _invalidate();
   }
 
@@ -54,8 +56,9 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
       final repo = ref.read(serviceRecordRepositoryModeProvider);
 
       // 1. Ensure a note id exists.
-      final ServiceRecord saved =
-          isEdit ? record : await repo.createRecord(autoId, record);
+      final ServiceRecord saved = isEdit
+          ? record
+          : await repo.createRecord(autoId, record);
       final noteId = saved.id;
 
       // 2. Persist pending picks. Removed bytes are deleted in step 5,
@@ -70,26 +73,36 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
       if (!isCloudApi && hasPicks) {
         final picker = await ref.read(imageAttachmentPickerProvider.future);
         for (final img in pendingImages) {
-          newRefs.add(await picker.persistToVault(
-            noteId: noteId,
-            bytes: img.bytes,
-            originalName: img.originalName,
-            contentTypeHint: img.contentType,
-          ));
+          newRefs.add(
+            await picker.persistToVault(
+              noteId: noteId,
+              bytes: img.bytes,
+              originalName: img.originalName,
+              contentTypeHint: img.contentType,
+            ),
+          );
         }
         for (final f in pendingFiles) {
-          newRefs.add(await picker.persistFileToVault(
-            noteId: noteId,
-            bytes: f.bytes,
-            originalName: f.originalName,
-            contentType: f.contentType ?? 'application/pdf',
-          ));
+          newRefs.add(
+            await picker.persistFileToVault(
+              noteId: noteId,
+              bytes: f.bytes,
+              originalName: f.originalName,
+              contentType: f.contentType ?? 'application/pdf',
+            ),
+          );
         }
       }
       // 3. Assemble the merged attachment set (retained + new), split by type.
       bool isImage(VaultRef r) => r.contentType.startsWith('image/');
       final all = [...retained, ...newRefs];
-      final attachments = NoteAttachments(
+      // On edit, rebuild from the stored attachments so unknown entries and
+      // keys written by newer builds survive (copyWith carries them over).
+      final base = (isEdit && !isCloudApi)
+          ? (await repo.getRecordById(autoId, noteId)).attachments
+          : NoteAttachments.empty;
+      final attachments = base.copyWith(
+        clearPrimaryImage: true,
         images: all.where(isImage).toList(),
         files: all.where((r) => !isImage(r)).toList(),
       );
@@ -99,7 +112,10 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
       final needsWrite = isEdit || attachments.isNotEmpty || removed.isNotEmpty;
       if (needsWrite) {
         await repo.updateRecord(
-            autoId, noteId, saved.copyWith(attachments: attachments));
+          autoId,
+          noteId,
+          saved.copyWith(attachments: attachments),
+        );
       }
 
       // 5. Delete removed bytes only AFTER the write lands. Deleting first
@@ -121,8 +137,11 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
 
   Future<void> delete(int autoId, int id) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() =>
-        ref.read(serviceRecordRepositoryModeProvider).deleteRecord(autoId, id));
+    state = await AsyncValue.guard(
+      () => ref
+          .read(serviceRecordRepositoryModeProvider)
+          .deleteRecord(autoId, id),
+    );
     if (state.hasValue) _invalidate();
   }
 
@@ -133,5 +152,5 @@ class MutateServiceRecordState extends AsyncNotifier<void> {
 
 final mutateServiceRecordStateProvider =
     AsyncNotifierProvider<MutateServiceRecordState, void>(
-  () => MutateServiceRecordState(),
-);
+      () => MutateServiceRecordState(),
+    );

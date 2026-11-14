@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +12,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/inline_ref_uri.dart';
+import '../../../../core/data/attachments/link_preview.dart';
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart'
     show AttachmentPickSource;
 import '../../../../core/data/attachments/picker/file_byte_source.dart';
@@ -21,6 +25,9 @@ import '../widgets/inline_image_controller.dart';
 import '../widgets/inline_insert.dart';
 import '../widgets/note_link_picker.dart';
 import '../widgets/note_markdown_body.dart';
+import '../widgets/video_link_card.dart';
+import '../../links/link_preview_fetcher.dart';
+import '../../links/video_link.dart';
 import '../../../../core/data/note_location.dart';
 import '../../../../core/data/local/local_tag_repository.dart'
     show ITagRepository, normalizeTagName;
@@ -103,12 +110,34 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool _tagsLoaded = true;
   final _tagFieldKey = GlobalKey<NoteTagFieldState>();
 
+  /// Link previews stored on the note, by URL.
+  Map<String, LinkPreview> _savedLinks = {};
+
+  /// Previews fetched this session, not yet saved (saved on save).
+  final Map<String, FetchedLinkPreview> _pendingLinks = {};
+
+  /// URLs already fetched this session, so a failed one is not retried.
+  final Set<String> _linkAttempted = {};
+
+  /// Fetches running now, by URL; Save waits for them (capped).
+  final Map<String, Future<FetchedLinkPreview?>> _inFlight = {};
+
+  /// Debounces link detection while typing.
+  Timer? _detectTimer;
+
+  /// Read once in initState, so no fetch reads `ref` after an await.
+  late final LinkPreviewFetcher _fetcher;
+
+  /// How long Save waits for link previews still being fetched.
+  static const _fetchCap = Duration(seconds: 5);
+
   @override
   void initState() {
     super.initState();
     _noteId = widget.noteId;
     _parentId = widget.presetParentId;
     _noteDate = DateTime.now();
+    _fetcher = ref.read(linkPreviewFetcherProvider);
     if (widget.noteId == null && widget.presetParentId == null) {
       // Opened from a tag's list: start with that tag. No lookup when the
       // list's live tag names are not loaded yet.
@@ -146,6 +175,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   @override
   void dispose() {
+    _detectTimer?.cancel();
     _subjectCtrl.dispose();
     _bodyCtrl.dispose();
     _bodyFocus.dispose();
@@ -175,7 +205,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       if (!_parentTouched) _parentId = note.parentNoteId;
       _pendingLocation = note.location;
       _savedFiles = [...note.effectiveAttachments.files];
+      _savedLinks = {
+        for (final p in note.effectiveAttachments.linkPreviews) p.url: p,
+      };
       setState(() {});
+      // A link line saved without a preview gets one now.
+      _detectNow();
     }
     await _loadTags();
   }
@@ -311,6 +346,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       }
       if (_noteId != null && tagRepo != null) {
         await _saveTags(_noteId!, mutate, tagRepo);
+      }
+      // Link previews last: saveLinkPreviews reads the note fresh, so the
+      // writes above (body, images, files) are kept.
+      if (_noteId != null) {
+        await _saveLinkPreviews(_noteId!, mutate);
       }
       return _noteId;
     } on VaultLockedException {
@@ -460,8 +500,120 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         : null;
     await mutate.setAttachments(
       noteId,
-      NoteAttachments(primaryImage: primary, images: images, files: base.files),
+      base.copyWith(
+        primaryImage: primary,
+        clearPrimaryImage: primary == null,
+        images: images,
+      ),
     );
+  }
+
+  /// Saves the previews of the link lines still in the body. Detects any
+  /// link not yet looked at, then waits up to [_fetchCap] for running
+  /// fetches; one still running then is left out and its line stays plain.
+  /// `saveLinkPreviews` keeps the stored previews whose lines remain (read
+  /// fresh) and writes only on a change.
+  Future<void> _saveLinkPreviews(int noteId, MutateNote mutate) async {
+    _detectTimer?.cancel();
+    _detectNow();
+    final arrived = <String, FetchedLinkPreview>{};
+    if (_inFlight.isNotEmpty) {
+      await Future.wait([
+        for (final e in _inFlight.entries)
+          e.value.timeout(_fetchCap, onTimeout: () => null).then((r) {
+            if (r != null) arrived[e.key] = r;
+          }),
+      ]);
+    }
+    final present = standaloneUrlsIn(_bodyCtrl.text);
+    // No link lines now and none stored at load: nothing to keep or add.
+    if (present.isEmpty && _savedLinks.isEmpty) return;
+    final added = {
+      ..._pendingLinks,
+      ...arrived,
+    }.values.where((p) => present.contains(p.url)).toList();
+    final note = await mutate.saveLinkPreviews(
+      noteId,
+      presentUrls: present,
+      added: added,
+    );
+    if (note == null || !mounted) return;
+    setState(() {
+      _savedAttachments = note.effectiveAttachments;
+      _savedLinks = {
+        for (final p in note.effectiveAttachments.linkPreviews) p.url: p,
+      };
+      _pendingLinks.clear();
+    });
+    ref.invalidate(noteDetailProvider(noteId));
+  }
+
+  /// Body changed: look for new link lines once typing pauses.
+  void _scheduleDetect() {
+    _detectTimer?.cancel();
+    _detectTimer = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) _detectNow();
+    });
+  }
+
+  /// Starts a fetch for every video link line not yet looked at.
+  void _detectNow() {
+    final urls = standaloneUrlsIn(_bodyCtrl.text);
+    // A link line that was removed may be pasted again: forget it.
+    _linkAttempted.removeWhere((u) => !urls.contains(u));
+    for (final url in urls) {
+      _fetchLink(url);
+    }
+  }
+
+  /// Fetches a video link's preview once per session. Other links, and a
+  /// failed fetch, leave the line a plain link.
+  Future<void> _fetchLink(String url) async {
+    if (parseVideoLink(url) == null) return;
+    if (_savedLinks.containsKey(url) || _pendingLinks.containsKey(url)) {
+      return;
+    }
+    if (!_linkAttempted.add(url)) return;
+    final future = _fetcher.fetch(url);
+    _inFlight[url] = future;
+    final result = await future;
+    _inFlight.remove(url);
+    if (result == null || !mounted) return;
+    setState(() => _pendingLinks[url] = result);
+  }
+
+  /// Asks for a video link and inserts it on its own line at the cursor,
+  /// then fetches its preview straight away. Off Apple platforms the field
+  /// is prefilled from a clipboard link; on iOS / macOS it starts empty
+  /// (reading the clipboard there prompts; the user pastes instead).
+  Future<void> _addVideoLink() async {
+    final platform = Theme.of(context).platform;
+    final isApple =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    var initial = '';
+    if (!isApple) {
+      try {
+        final data = await Clipboard.getData(Clipboard.kTextPlain);
+        final text = data?.text;
+        if (text != null) initial = standaloneUrl(text) ?? '';
+      } catch (_) {
+        // No clipboard: start empty.
+      }
+      if (!mounted) return;
+    }
+    final dialog = isApple
+        ? showCupertinoDialog<String>(
+            context: context,
+            builder: (_) => _AddVideoLinkDialog(initial: initial),
+          )
+        : showDialog<String>(
+            context: context,
+            builder: (_) => _AddVideoLinkDialog(initial: initial),
+          );
+    final url = await dialog;
+    if (url == null || !mounted) return;
+    setState(() => insertUrlLine(_bodyCtrl, url));
+    _fetchLink(url);
   }
 
   /// Asks whether to delete stored images the user removed from the text.
@@ -651,6 +803,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     // it tells the user to "Set up Secure Vault in Settings", and no such
     // setting exists. Mirror the Settings gate here.
     final dataMode = ref.watch(dataModeProvider);
+    // Cards for the link lines in the body: saved previews, then fetched.
+    final present = standaloneUrlsIn(_bodyCtrl.text);
+    final linkCards = <String, LinkCardData>{
+      for (final p in _savedLinks.values)
+        if (present.contains(p.url)) p.url: LinkCardData.fromPreview(p),
+      for (final p in _pendingLinks.values)
+        if (present.contains(p.url))
+          p.url: LinkCardData(
+            url: p.url,
+            provider: p.provider,
+            title: p.title,
+            durationSeconds: p.durationSeconds,
+            thumbnailBytes: p.thumbnailBytes,
+          ),
+    };
     return Scaffold(
       backgroundColor: c.groupedBackground,
       appBar: _buildNav(context, c),
@@ -772,7 +939,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                         textCapitalization: TextCapitalization.sentences,
                         // Rebuild so the inline-image preview and trailing-card
                         // dedup track edits (e.g. deleting an image line).
-                        onChanged: (_) => setState(() {}),
+                        onChanged: (_) {
+                          setState(() {});
+                          _scheduleDetect();
+                        },
                         style: TextStyle(
                           fontSize: 16,
                           color: c.label,
@@ -784,7 +954,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           isCollapsed: true,
                         ),
                       ),
-                      if (_bodyCtrl.text.contains('hmm-attachment://')) ...[
+                      if (_bodyCtrl.text.contains('hmm-attachment://') ||
+                          linkCards.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Divider(height: 1, thickness: 1, color: c.separator),
                         const SizedBox(height: 8),
@@ -800,6 +971,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           pendingBytes: _inline.pendingBytes,
                           resolver: ref.watch(attachmentResolverProvider).value,
                           selectable: false,
+                          linkCards: linkCards,
                         ),
                       ],
                       const SizedBox(height: 24),
@@ -822,6 +994,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             onPickFile: _addFile,
             onRecord: _addRecording,
             onLinkToNote: _addNoteLink,
+            onAddVideoLink: _addVideoLink,
             enabled: !_busy,
             onDismissKeyboard: keyboardUp
                 ? () => FocusScope.of(context).unfocus()
@@ -905,6 +1078,138 @@ class _SubsystemStrip extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Inserts [url] at [c]'s cursor (replacing any selection) as a line of its
+/// own starting in column 0, and puts the cursor after that line. Adds a line
+/// break only where one is missing; spaces before the cursor on its line are
+/// dropped so the URL never starts indented.
+@visibleForTesting
+void insertUrlLine(TextEditingController c, String url) {
+  final text = c.text;
+  final sel = c.selection;
+  final start = sel.isValid ? sel.start : text.length;
+  final end = sel.isValid ? sel.end : text.length;
+  final before = text.substring(0, start).replaceFirst(RegExp(r'[ \t]+$'), '');
+  final after = text.substring(end);
+  final lead = before.isEmpty || before.endsWith('\n') ? '' : '\n';
+  final trail = after.isEmpty || after.startsWith('\n') ? '' : '\n';
+  final head = '$before$lead$url$trail';
+  final cursor = after.startsWith('\n') ? head.length + 1 : head.length;
+  c.value = TextEditingValue(
+    text: '$head$after',
+    selection: TextSelection.collapsed(offset: cursor),
+  );
+}
+
+/// One-field dialog for a video link. Pops the trimmed URL, or shows an
+/// inline error when the text is not a single http(s) link.
+class _AddVideoLinkDialog extends StatefulWidget {
+  const _AddVideoLinkDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_AddVideoLinkDialog> createState() => _AddVideoLinkDialogState();
+}
+
+class _AddVideoLinkDialogState extends State<_AddVideoLinkDialog> {
+  late final _ctrl = TextEditingController(text: widget.initial);
+  bool _invalid = false;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final url = standaloneUrl(_ctrl.text);
+    if (url == null) {
+      setState(() => _invalid = true);
+      return;
+    }
+    Navigator.of(context).pop(url);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final platform = Theme.of(context).platform;
+    final isApple =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    void onChanged(String _) {
+      if (_invalid) setState(() => _invalid = false);
+    }
+
+    if (isApple) {
+      return CupertinoAlertDialog(
+        title: Text(l.notesAddVideoLinkTitle),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CupertinoTextField(
+                controller: _ctrl,
+                autofocus: true,
+                placeholder: l.notesAddVideoLinkHint,
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+                onChanged: onChanged,
+                onSubmitted: (_) => _submit(),
+              ),
+              if (_invalid)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    l.notesAddVideoLinkInvalid,
+                    style: const TextStyle(
+                      color: CupertinoColors.destructiveRed,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l.commonCancel),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: _submit,
+            child: Text(l.notesAddVideoLinkAdd),
+          ),
+        ],
+      );
+    }
+    return AlertDialog(
+      title: Text(l.notesAddVideoLinkTitle),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        keyboardType: TextInputType.url,
+        autocorrect: false,
+        decoration: InputDecoration(
+          hintText: l.notesAddVideoLinkHint,
+          errorText: _invalid ? l.notesAddVideoLinkInvalid : null,
+        ),
+        onChanged: onChanged,
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonCancel),
+        ),
+        FilledButton(onPressed: _submit, child: Text(l.notesAddVideoLinkAdd)),
+      ],
     );
   }
 }

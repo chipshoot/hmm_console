@@ -1,7 +1,9 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/attachments/attachment_ref.dart';
 import '../../../core/data/attachments/attachment_providers.dart';
+import '../../../core/data/attachments/link_preview.dart';
 import '../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../core/data/attachments/picker/file_byte_source.dart';
 import '../../../core/data/attachments/picker/image_byte_source.dart';
@@ -11,6 +13,7 @@ import '../../../core/data/repository_providers.dart';
 import '../../../core/notes/note_state.dart';
 import '../data/general_catalog.dart';
 import '../data/models/hmm_note.dart';
+import '../links/link_preview_fetcher.dart';
 import 'note_delete_policy.dart';
 
 class MutateNote {
@@ -25,7 +28,9 @@ class MutateNote {
     NoteLocation? location,
   }) async {
     final catalog = await ensureGeneralCatalog(ref);
-    final note = await ref.read(hmmNoteRepositoryProvider).createNote(
+    final note = await ref
+        .read(hmmNoteRepositoryProvider)
+        .createNote(
           HmmNoteCreate(
             subject: subject.trim(),
             catalogId: catalog.id,
@@ -60,13 +65,16 @@ class MutateNote {
     DateTime? noteDate,
     NoteLocation? location,
   }) async {
-    final note = await ref.read(hmmNoteRepositoryProvider).updateNote(
+    final note = await ref
+        .read(hmmNoteRepositoryProvider)
+        .updateNote(
           id,
           HmmNoteUpdate(
-              subject: subject?.trim(),
-              content: markdownBody,
-              noteDate: noteDate,
-              location: location),
+            subject: subject?.trim(),
+            content: markdownBody,
+            noteDate: noteDate,
+            location: location,
+          ),
         );
     return note;
   }
@@ -138,7 +146,7 @@ class MutateNote {
     final current = await repo.getNoteById(noteId);
     if (current == null) return null;
     final existing = current.effectiveAttachments;
-    final updated = NoteAttachments(
+    final updated = existing.copyWith(
       primaryImage: existing.primaryImage ?? added,
       images: existing.primaryImage == null
           ? existing.images
@@ -170,6 +178,72 @@ class MutateNote {
         .updateNote(noteId, HmmNoteUpdate(attachments: attachments));
   }
 
+  /// Sets the note's link previews from a fresh read: the stored previews
+  /// whose URL is in [presentUrls] (so one synced from another device in the
+  /// meantime survives), then each of [added] not already stored. Each added
+  /// thumbnail is persisted to the vault first; one that fails to persist
+  /// leaves its preview without a thumbnail. The attachments are rebuilt
+  /// with `copyWith`, so every other slot (including preserved and unknown
+  /// data) is kept. Writes only when the list changes; returns the note
+  /// either way, or null when it is gone.
+  Future<HmmNote?> saveLinkPreviews(
+    int noteId, {
+    required Set<String> presentUrls,
+    required List<FetchedLinkPreview> added,
+  }) async {
+    final repo = ref.read(hmmNoteRepositoryProvider);
+    final stored = (await repo.getNoteById(noteId))?.effectiveAttachments;
+    final storedUrls = {...?stored?.linkPreviews.map((p) => p.url)};
+    final saved = <LinkPreview>[];
+    for (final f in added) {
+      if (storedUrls.contains(f.url) || !presentUrls.contains(f.url)) {
+        continue;
+      }
+      VaultRef? thumb;
+      final bytes = f.thumbnailBytes;
+      if (bytes != null && bytes.isNotEmpty) {
+        try {
+          final picker = await ref.read(imageAttachmentPickerProvider.future);
+          thumb = await picker.persistToVault(
+            noteId: noteId,
+            bytes: bytes,
+            originalName: 'link-thumb',
+            contentTypeHint: f.thumbnailContentType,
+          );
+        } catch (_) {
+          thumb = null;
+        }
+      }
+      saved.add(
+        LinkPreview(
+          url: f.url,
+          provider: f.provider,
+          title: f.title,
+          durationSeconds: f.durationSeconds,
+          thumbnail: thumb,
+        ),
+      );
+    }
+    // Read again: the thumbnail writes above took time.
+    final current = await repo.getNoteById(noteId);
+    if (current == null) return null;
+    final existing = current.effectiveAttachments;
+    final kept = existing.linkPreviews.where(
+      (p) => presentUrls.contains(p.url),
+    );
+    final keptUrls = {for (final p in kept) p.url};
+    final next = [
+      ...kept,
+      for (final p in saved)
+        if (!keptUrls.contains(p.url)) p,
+    ];
+    if (const ListEquality<LinkPreview>().equals(next, existing.linkPreviews)) {
+      return current;
+    }
+    final updated = existing.copyWith(linkPreviews: next);
+    return repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
+  }
+
   /// Persist a picked PDF's bytes into the note's vault and append the
   /// resulting VaultRef to the note's `files` list.
   Future<HmmNote?> attachFileBytes(int noteId, PickedFileBytes pick) async {
@@ -184,11 +258,7 @@ class MutateNote {
     final current = await repo.getNoteById(noteId);
     if (current == null) return null;
     final existing = current.effectiveAttachments;
-    final updated = NoteAttachments(
-      primaryImage: existing.primaryImage,
-      images: existing.images,
-      files: [...existing.files, added],
-    );
+    final updated = existing.copyWith(files: [...existing.files, added]);
     return repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
   }
 
@@ -199,22 +269,26 @@ class MutateNote {
     AttachmentPickSource source = AttachmentPickSource.gallery,
   }) async {
     final picker = await ref.read(imageAttachmentPickerProvider.future);
-    final VaultRef? picked =
-        await picker.pickForNote(noteId: noteId, source: source);
+    final VaultRef? picked = await picker.pickForNote(
+      noteId: noteId,
+      source: source,
+    );
     if (picked == null) return null;
 
     final repo = ref.read(hmmNoteRepositoryProvider);
     final current = await repo.getNoteById(noteId);
     if (current == null) return null;
     final existing = current.effectiveAttachments;
-    final updated = NoteAttachments(
+    final updated = existing.copyWith(
       primaryImage: existing.primaryImage ?? picked,
       images: existing.primaryImage == null
           ? existing.images
           : [...existing.images, picked],
     );
-    final note =
-        await repo.updateNote(noteId, HmmNoteUpdate(attachments: updated));
+    final note = await repo.updateNote(
+      noteId,
+      HmmNoteUpdate(attachments: updated),
+    );
     return note;
   }
 }

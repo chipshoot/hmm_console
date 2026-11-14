@@ -6289,6 +6289,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add tags in a note\'s editor or with Tags… on its long-press menu. Pick a tag in the side panel to see its notes; Manage tags… renames, merges or deletes them.'**
   String get helpNotesListTagsBody;
+
+  /// No description provided for @notesVideoLinkUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'May no longer be available'**
+  String get notesVideoLinkUnavailable;
+
+  /// No description provided for @helpNoteDetailVideoLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Video links'**
+  String get helpNoteDetailVideoLinkTitle;
+
+  /// No description provided for @helpNoteDetailVideoLinkBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A YouTube or Bilibili link on its own line shows as a card. Tap it to watch in their app; the ◀ Hmm button at the top-left brings you back to this note.'**
+  String get helpNoteDetailVideoLinkBody;
+
+  /// No description provided for @notesAddVideoLinkTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add video link'**
+  String get notesAddVideoLinkTooltip;
+
+  /// No description provided for @notesAddVideoLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add video link'**
+  String get notesAddVideoLinkTitle;
+
+  /// No description provided for @notesAddVideoLinkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a YouTube or Bilibili link'**
+  String get notesAddVideoLinkHint;
+
+  /// No description provided for @notesAddVideoLinkAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get notesAddVideoLinkAdd;
+
+  /// No description provided for @notesAddVideoLinkInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a link'**
+  String get notesAddVideoLinkInvalid;
 }
 
 class _AppLocalizationsDelegate

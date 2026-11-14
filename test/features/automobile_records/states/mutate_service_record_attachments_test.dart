@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'dart:convert';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,40 +52,44 @@ class _FakePicker implements IImageAttachmentPicker {
   final _MemVault vault;
   int _n = 0;
   @override
-  Future<VaultRef?> pickForNote(
-          {required int noteId,
-          AttachmentPickSource source = AttachmentPickSource.gallery}) async =>
-      null;
+  Future<VaultRef?> pickForNote({
+    required int noteId,
+    AttachmentPickSource source = AttachmentPickSource.gallery,
+  }) async => null;
   @override
-  Future<VaultRef> persistToVault(
-      {required int noteId,
-      required Uint8List bytes,
-      required String originalName,
-      String? contentTypeHint,
-      bool sensitive = false}) async {
+  Future<VaultRef> persistToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    String? contentTypeHint,
+    bool sensitive = false,
+  }) async {
     final path = 'attachments/note-$noteId/img${_n++}.jpg';
     await vault.putBytes(path, bytes, contentType: 'image/jpeg');
     return VaultRef(
-        path: path,
-        contentType: 'image/jpeg',
-        byteSize: bytes.length,
-        originalName: originalName);
+      path: path,
+      contentType: 'image/jpeg',
+      byteSize: bytes.length,
+      originalName: originalName,
+    );
   }
 
   @override
-  Future<VaultRef> persistFileToVault(
-      {required int noteId,
-      required Uint8List bytes,
-      required String originalName,
-      required String contentType,
-      bool sensitive = false}) async {
+  Future<VaultRef> persistFileToVault({
+    required int noteId,
+    required Uint8List bytes,
+    required String originalName,
+    required String contentType,
+    bool sensitive = false,
+  }) async {
     final path = 'attachments/note-$noteId/file${_n++}.pdf';
     await vault.putBytes(path, bytes, contentType: contentType);
     return VaultRef(
-        path: path,
-        contentType: contentType,
-        byteSize: bytes.length,
-        originalName: originalName);
+      path: path,
+      contentType: contentType,
+      byteSize: bytes.length,
+      originalName: originalName,
+    );
   }
 }
 
@@ -94,7 +100,6 @@ class _StubMode extends DataModeNotifier {
   @override
   DataMode build() => _m;
 }
-
 
 /// Delegates to the real repository but fails the final write, to prove the
 /// vault is not emptied by a save that never lands.
@@ -113,26 +118,36 @@ class _FailingUpdateRepo implements IServiceRecordRepository {
   Future<ServiceRecord> createRecord(int autoId, ServiceRecord r) =>
       inner.createRecord(autoId, r);
   @override
-  Future<List<ServiceRecord>> getRecords(int autoId) => inner.getRecords(autoId);
+  Future<List<ServiceRecord>> getRecords(int autoId) =>
+      inner.getRecords(autoId);
   @override
   Future<ServiceRecord> getRecordById(int autoId, int id) =>
       inner.getRecordById(autoId, id);
   @override
-  Future<void> deleteRecord(int autoId, int id) => inner.deleteRecord(autoId, id);
+  Future<void> deleteRecord(int autoId, int id) =>
+      inner.deleteRecord(autoId, id);
 }
 
+const _videoRaw = {
+  'kind': 'vault',
+  'path': 'attachments/note-1/clip.mov',
+  'contentType': 'video/quicktime',
+  'byteSize': 9,
+};
+
 Automobile _seedAuto() => Automobile(
-    id: 0,
-    vin: '1HGBH41JXMN109186',
-    maker: 'Honda',
-    brand: 'Honda',
-    model: 'Civic',
-    year: 2020,
-    plate: 'SVC-1',
-    engineType: 'Gasoline',
-    fuelType: 'Regular',
-    meterReading: 1,
-    isActive: true);
+  id: 0,
+  vin: '1HGBH41JXMN109186',
+  maker: 'Honda',
+  brand: 'Honda',
+  model: 'Civic',
+  year: 2020,
+  plate: 'SVC-1',
+  engineType: 'Gasoline',
+  fuelType: 'Regular',
+  meterReading: 1,
+  isActive: true,
+);
 
 void main() {
   late HmmDatabase db;
@@ -141,13 +156,16 @@ void main() {
   late int autoId;
 
   Future<ProviderContainer> container({DataMode mode = DataMode.local}) async {
-    final c = ProviderContainer(overrides: [
-      serviceRecordRepositoryModeProvider.overrideWithValue(serviceRepo),
-      vaultStoreProvider.overrideWith((ref) async => vault),
-      imageAttachmentPickerProvider
-          .overrideWith((ref) async => _FakePicker(vault)),
-      dataModeProvider.overrideWith(() => _StubMode(mode)),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        serviceRecordRepositoryModeProvider.overrideWithValue(serviceRepo),
+        vaultStoreProvider.overrideWith((ref) async => vault),
+        imageAttachmentPickerProvider.overrideWith(
+          (ref) async => _FakePicker(vault),
+        ),
+        dataModeProvider.overrideWith(() => _StubMode(mode)),
+      ],
+    );
     addTearDown(c.dispose);
     return c;
   }
@@ -158,41 +176,50 @@ void main() {
     final aid = await db
         .into(db.authors)
         .insert(AuthorsCompanion.insert(accountName: 'tester'));
-    final author = await (db.select(db.authors)..where((a) => a.id.equals(aid)))
-        .getSingle();
+    final author = await (db.select(
+      db.authors,
+    )..where((a) => a.id.equals(aid))).getSingle();
     final noteRepo = LocalHmmNoteRepository(db, () async => author);
     final catalogRepo = LocalNoteCatalogRepository(db);
     serviceRepo = LocalServiceRecordRepository(noteRepo, catalogRepo);
-    autoId = (await LocalAutomobileRepository(noteRepo, catalogRepo)
-            .createAutomobile(_seedAuto()))
-        .id;
+    autoId = (await LocalAutomobileRepository(
+      noteRepo,
+      catalogRepo,
+    ).createAutomobile(_seedAuto())).id;
   });
 
   tearDown(() async => db.close());
 
   ServiceRecord newRecord() => ServiceRecord(
-      id: 0,
-      automobileId: autoId,
-      date: DateTime(2026),
-      mileage: 50,
-      types: const [ServiceType.oilChange]);
+    id: 0,
+    automobileId: autoId,
+    date: DateTime(2026),
+    mileage: 50,
+    types: const [ServiceType.oilChange],
+  );
 
   test('new record persists pending image + pdf as VaultRefs', () async {
     final c = await container();
-    await c.read(mutateServiceRecordStateProvider.notifier).save(
-      autoId: autoId,
-      record: newRecord(),
-      isEdit: false,
-      pendingImages: [
-        PickedImageBytes(bytes: Uint8List.fromList([9]), originalName: 'p.jpg')
-      ],
-      pendingFiles: [
-        PickedFileBytes(
-            bytes: Uint8List.fromList([8]),
-            originalName: 'r.pdf',
-            contentType: 'application/pdf')
-      ],
-    );
+    await c
+        .read(mutateServiceRecordStateProvider.notifier)
+        .save(
+          autoId: autoId,
+          record: newRecord(),
+          isEdit: false,
+          pendingImages: [
+            PickedImageBytes(
+              bytes: Uint8List.fromList([9]),
+              originalName: 'p.jpg',
+            ),
+          ],
+          pendingFiles: [
+            PickedFileBytes(
+              bytes: Uint8List.fromList([8]),
+              originalName: 'r.pdf',
+              contentType: 'application/pdf',
+            ),
+          ],
+        );
     final records = await serviceRepo.getRecords(autoId);
     expect(records, hasLength(1));
     expect(records.single.attachments.images, hasLength(1));
@@ -200,63 +227,78 @@ void main() {
     expect(vault.store.keys.where((k) => k.endsWith('.jpg')), isNotEmpty);
   });
 
-  test('line items survive when a new record is saved with a scanned pdf',
-      () async {
-    // Reproduces the receipt-scan flow: the scanned PDF becomes a pending
-    // file attachment, so save() runs step 4 (updateRecord with attachments)
-    // after step 1 created the record with its parts.
-    final c = await container();
-    final record = ServiceRecord(
-      id: 0,
-      automobileId: autoId,
-      date: DateTime(2026),
-      mileage: 50,
-      types: const [ServiceType.oilChange],
-      parts: const [
-        PartItem(
+  test(
+    'line items survive when a new record is saved with a scanned pdf',
+    () async {
+      // Reproduces the receipt-scan flow: the scanned PDF becomes a pending
+      // file attachment, so save() runs step 4 (updateRecord with attachments)
+      // after step 1 created the record with its parts.
+      final c = await container();
+      final record = ServiceRecord(
+        id: 0,
+        automobileId: autoId,
+        date: DateTime(2026),
+        mileage: 50,
+        types: const [ServiceType.oilChange],
+        parts: const [
+          PartItem(
             type: LineItemType.part,
             name: 'Oil filter',
             quantity: 1,
             unitCost: 12.0,
-            currency: 'CAD'),
-        PartItem(
+            currency: 'CAD',
+          ),
+          PartItem(
             type: LineItemType.labour,
             name: 'Labour',
             quantity: 1,
             unitCost: 40.0,
-            currency: 'CAD'),
-      ],
-    );
-    await c.read(mutateServiceRecordStateProvider.notifier).save(
-      autoId: autoId,
-      record: record,
-      isEdit: false,
-      pendingFiles: [
-        PickedFileBytes(
-            bytes: Uint8List.fromList([8]),
-            originalName: 'receipt.pdf',
-            contentType: 'application/pdf')
-      ],
-    );
+            currency: 'CAD',
+          ),
+        ],
+      );
+      await c
+          .read(mutateServiceRecordStateProvider.notifier)
+          .save(
+            autoId: autoId,
+            record: record,
+            isEdit: false,
+            pendingFiles: [
+              PickedFileBytes(
+                bytes: Uint8List.fromList([8]),
+                originalName: 'receipt.pdf',
+                contentType: 'application/pdf',
+              ),
+            ],
+          );
 
-    final records = await serviceRepo.getRecords(autoId);
-    expect(records, hasLength(1));
-    expect(records.single.attachments.files, hasLength(1));
-    expect(records.single.parts, hasLength(2),
-        reason: 'line items must survive the attachment save step');
-    expect(records.single.parts.map((p) => p.name),
-        containsAll(['Oil filter', 'Labour']));
-  });
+      final records = await serviceRepo.getRecords(autoId);
+      expect(records, hasLength(1));
+      expect(records.single.attachments.files, hasLength(1));
+      expect(
+        records.single.parts,
+        hasLength(2),
+        reason: 'line items must survive the attachment save step',
+      );
+      expect(
+        records.single.parts.map((p) => p.name),
+        containsAll(['Oil filter', 'Labour']),
+      );
+    },
+  );
 
   test('removing an attachment deletes its bytes', () async {
     final c = await container();
     final created = await serviceRepo.createRecord(autoId, newRecord());
     const ref = VaultRef(
-        path: 'attachments/note-x/old.pdf',
-        contentType: 'application/pdf',
-        byteSize: 3);
+      path: 'attachments/note-x/old.pdf',
+      contentType: 'application/pdf',
+      byteSize: 3,
+    );
     vault.store[ref.path] = Uint8List.fromList([1, 2, 3]);
-    await c.read(mutateServiceRecordStateProvider.notifier).save(
+    await c
+        .read(mutateServiceRecordStateProvider.notifier)
+        .save(
           autoId: autoId,
           record: created,
           isEdit: true,
@@ -267,20 +309,23 @@ void main() {
 
   test('a plain record with no attachments saves even if the vault fails to '
       'initialise (no attachment work must not touch the vault)', () async {
-    final c = ProviderContainer(overrides: [
-      serviceRecordRepositoryModeProvider.overrideWithValue(serviceRepo),
-      vaultStoreProvider.overrideWith((ref) async => throw StateError('boom')),
-      imageAttachmentPickerProvider
-          .overrideWith((ref) async => throw StateError('boom')),
-      dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        serviceRecordRepositoryModeProvider.overrideWithValue(serviceRepo),
+        vaultStoreProvider.overrideWith(
+          (ref) async => throw StateError('boom'),
+        ),
+        imageAttachmentPickerProvider.overrideWith(
+          (ref) async => throw StateError('boom'),
+        ),
+        dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
+      ],
+    );
     addTearDown(c.dispose);
 
-    await c.read(mutateServiceRecordStateProvider.notifier).save(
-          autoId: autoId,
-          record: newRecord(),
-          isEdit: false,
-        );
+    await c
+        .read(mutateServiceRecordStateProvider.notifier)
+        .save(autoId: autoId, record: newRecord(), isEdit: false);
 
     final records = await serviceRepo.getRecords(autoId);
     expect(records, hasLength(1));
@@ -289,48 +334,100 @@ void main() {
 
   test('cloudApi mode skips vault work', () async {
     final c = await container(mode: DataMode.cloudApi);
-    await c.read(mutateServiceRecordStateProvider.notifier).save(
-      autoId: autoId,
-      record: newRecord(),
-      isEdit: false,
-      pendingImages: [
-        PickedImageBytes(bytes: Uint8List.fromList([9]), originalName: 'p.jpg')
-      ],
-    );
+    await c
+        .read(mutateServiceRecordStateProvider.notifier)
+        .save(
+          autoId: autoId,
+          record: newRecord(),
+          isEdit: false,
+          pendingImages: [
+            PickedImageBytes(
+              bytes: Uint8List.fromList([9]),
+              originalName: 'p.jpg',
+            ),
+          ],
+        );
     // No bytes were written to the vault in cloudApi mode.
     expect(vault.store, isEmpty);
   });
 
-  test('a failed write does not destroy the removed attachment bytes', () async {
-    // Deleting before the write meant a failed save left the bytes gone while
-    // the stored note still listed their paths.
-    final failing = _FailingUpdateRepo(serviceRepo);
-    final c = ProviderContainer(overrides: [
-      serviceRecordRepositoryModeProvider.overrideWithValue(failing),
-      vaultStoreProvider.overrideWith((ref) async => vault),
-      imageAttachmentPickerProvider
-          .overrideWith((ref) async => _FakePicker(vault)),
-      dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
-    ]);
-    addTearDown(c.dispose);
+  test(
+    'a failed write does not destroy the removed attachment bytes',
+    () async {
+      // Deleting before the write meant a failed save left the bytes gone while
+      // the stored note still listed their paths.
+      final failing = _FailingUpdateRepo(serviceRepo);
+      final c = ProviderContainer(
+        overrides: [
+          serviceRecordRepositoryModeProvider.overrideWithValue(failing),
+          vaultStoreProvider.overrideWith((ref) async => vault),
+          imageAttachmentPickerProvider.overrideWith(
+            (ref) async => _FakePicker(vault),
+          ),
+          dataModeProvider.overrideWith(() => _StubMode(DataMode.local)),
+        ],
+      );
+      addTearDown(c.dispose);
 
-    final created = await serviceRepo.createRecord(autoId, newRecord());
-    const ref = VaultRef(
+      final created = await serviceRepo.createRecord(autoId, newRecord());
+      const ref = VaultRef(
         path: 'attachments/note-y/keep.pdf',
         contentType: 'application/pdf',
-        byteSize: 3);
-    vault.store[ref.path] = Uint8List.fromList([1, 2, 3]);
+        byteSize: 3,
+      );
+      vault.store[ref.path] = Uint8List.fromList([1, 2, 3]);
 
-    failing.failNext = true;
-    await c.read(mutateServiceRecordStateProvider.notifier).save(
+      failing.failNext = true;
+      await c
+          .read(mutateServiceRecordStateProvider.notifier)
+          .save(
+            autoId: autoId,
+            record: created,
+            isEdit: true,
+            removed: const [ref],
+          );
+
+      expect(vault.deleted, isNot(contains(ref.path)));
+      expect(vault.store.containsKey(ref.path), isTrue);
+    },
+  );
+
+  test('editing a record keeps preserved unknown attachment data', () async {
+    final c = await container();
+    final created = await serviceRepo.createRecord(autoId, newRecord());
+    await (db.update(db.notes)..where((t) => t.id.equals(created.id))).write(
+      NotesCompanion(
+        attachments: Value(
+          jsonEncode({
+            'files': [_videoRaw],
+            'linkPreviews': [
+              {'url': 'u'},
+            ],
+          }),
+        ),
+      ),
+    );
+
+    await c
+        .read(mutateServiceRecordStateProvider.notifier)
+        .save(
           autoId: autoId,
           record: created,
           isEdit: true,
-          removed: const [ref],
+          pendingImages: [
+            PickedImageBytes(
+              bytes: Uint8List.fromList([9]),
+              originalName: 'p.jpg',
+            ),
+          ],
         );
 
-    expect(vault.deleted, isNot(contains(ref.path)));
-    expect(vault.store.containsKey(ref.path), isTrue);
+    final raw = (await (db.select(
+      db.notes,
+    )..where((t) => t.id.equals(created.id))).getSingle()).attachments!;
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    expect(jsonEncode(json['files']), contains('clip.mov'));
+    expect(json['linkPreviews'], isNotNull);
+    expect((json['images'] as List), hasLength(1));
   });
-
 }

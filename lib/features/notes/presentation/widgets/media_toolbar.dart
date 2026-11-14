@@ -1,7 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/adaptive_icon.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
+import '../../../../l10n/gen/app_localizations.dart';
 
 /// Bottom media toolbar (Apple-Journal style). Phase 1: Photos + Camera. More
 /// buttons (voice, location, PDF) are added in later phases.
@@ -13,6 +17,7 @@ class MediaToolbar extends StatelessWidget {
     required this.onRecord,
     this.onPickSensitive,
     this.onLinkToNote,
+    this.onAddVideoLink,
     this.onDismissKeyboard,
     this.enabled = true,
   });
@@ -29,6 +34,9 @@ class MediaToolbar extends StatelessWidget {
 
   /// When non-null, a "link to a note" toolbar action is shown.
   final VoidCallback? onLinkToNote;
+
+  /// When non-null, an "Add video link" toolbar action is shown.
+  final VoidCallback? onAddVideoLink;
 
   /// When non-null, a trailing keyboard-hide button is shown. The editor
   /// passes this only while the keyboard is up, so the control never appears
@@ -83,6 +91,16 @@ class MediaToolbar extends StatelessWidget {
                 color: c.accent,
                 tooltip: 'Link to a note',
                 onPressed: enabled ? onLinkToNote : null,
+              ),
+            if (onAddVideoLink != null)
+              HmmIconButton(
+                icon: adaptiveIcon(
+                  context,
+                  material: Icons.smart_display_outlined,
+                  apple: CupertinoIcons.play_rectangle,
+                ),
+                tooltip: AppLocalizations.of(context).notesAddVideoLinkTooltip,
+                onPressed: enabled ? onAddVideoLink : null,
               ),
             if (onDismissKeyboard != null) ...[
               const Spacer(),

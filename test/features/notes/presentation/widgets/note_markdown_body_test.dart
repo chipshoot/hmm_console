@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
+import 'package:hmm_console/core/data/attachments/link_preview.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_markdown_body.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/video_link_card.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class _FakeResolver implements IAttachmentResolver {
   const _FakeResolver(this.bytes);
@@ -15,57 +18,203 @@ class _FakeResolver implements IAttachmentResolver {
 
 // Smallest valid PNG.
 final Uint8List _png = Uint8List.fromList(<int>[
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 0x49, 0x48,
-  0x44, 0x52, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 0x1F, 0x15, 0xC4, 0x89,
-  0, 0, 0, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0, 1, 0, 0, 5, 0,
-  1, 0x0D, 0x0A, 0x2D, 0xB4, 0, 0, 0, 0, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42,
-  0x60, 0x82,
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0,
+  0,
+  0,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  1,
+  8,
+  6,
+  0,
+  0,
+  0,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0,
+  0,
+  0,
+  0x0A,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0,
+  1,
+  0,
+  0,
+  5,
+  0,
+  1,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0,
+  0,
+  0,
+  0,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
 ]);
 
 void main() {
   testWidgets('renders a real inline image via the resolver', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      
-      home: Scaffold(
-        body: NoteMarkdownBody(
-          data: '![x](hmm-attachment://attachments/note-1/a.png)',
-          resolver: _FakeResolver(_png),
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+
+        home: Scaffold(
+          body: NoteMarkdownBody(
+            data: '![x](hmm-attachment://attachments/note-1/a.png)',
+            resolver: _FakeResolver(_png),
+          ),
         ),
       ),
-    ));
+    );
     await tester.pump();
     await tester.pump();
     expect(find.byType(Image), findsOneWidget);
   });
 
-  testWidgets('renders a pending inline image from the staged bytes map',
-      (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      
-      home: Scaffold(
-        body: NoteMarkdownBody(
-          data: '![x](hmm-attachment://pending/u1)',
-          pendingBytes: {'u1': _png},
+  testWidgets('renders a pending inline image from the staged bytes map', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+
+        home: Scaffold(
+          body: NoteMarkdownBody(
+            data: '![x](hmm-attachment://pending/u1)',
+            pendingBytes: {'u1': _png},
+          ),
         ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.byType(Image), findsOneWidget);
   });
 
-  testWidgets('renders plain markdown text with no inline image',
-      (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      
-      home: Scaffold(body: NoteMarkdownBody(data: 'hello **world**')),
-    ));
+  testWidgets('renders plain markdown text with no inline image', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+
+        home: Scaffold(body: NoteMarkdownBody(data: 'hello **world**')),
+      ),
+    );
     await tester.pump();
     expect(find.byType(Image), findsNothing);
+  });
+
+  const cardUrl = 'https://youtu.be/abc';
+  Widget wrapBody(Map<String, LinkCardData> cards) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(
+      body: SingleChildScrollView(
+        child: NoteMarkdownBody(
+          data: 'before\n\n$cardUrl\n\nafter',
+          linkCards: cards,
+        ),
+      ),
+    ),
+  );
+
+  Widget wrapBodyWith(
+    IAttachmentResolver resolver,
+    Map<String, LinkCardData> cards,
+  ) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(
+      body: SingleChildScrollView(
+        child: NoteMarkdownBody(
+          data: 'before\n\n$cardUrl\n\nafter',
+          resolver: resolver,
+          linkCards: cards,
+        ),
+      ),
+    ),
+  );
+
+  testWidgets('renders a card for a card line and markdown around it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapBody({
+        cardUrl: const LinkCardData(
+          url: cardUrl,
+          provider: LinkProvider.youtube,
+          title: 'Card title',
+        ),
+      }),
+    );
+    await tester.pump();
+    expect(find.byType(VideoLinkCard), findsOneWidget);
+    expect(find.byType(MarkdownBody), findsNWidgets(2));
+    expect(find.text('before'), findsOneWidget);
+    expect(find.text('after'), findsOneWidget);
+    expect(find.text('Card title'), findsOneWidget);
+  });
+
+  testWidgets('no linkCards renders exactly as before', (tester) async {
+    await tester.pumpWidget(wrapBody(const {}));
+    await tester.pump();
+    expect(find.byType(VideoLinkCard), findsNothing);
+    expect(find.byType(MarkdownBody), findsOneWidget);
+  });
+
+  testWidgets('segments keep their state across a rebuild with equal inputs', (
+    tester,
+  ) async {
+    final resolver = _FakeResolver(_png);
+    Widget build() => wrapBodyWith(resolver, {
+      cardUrl: const LinkCardData(
+        url: cardUrl,
+        provider: LinkProvider.youtube,
+        title: 'Card title',
+      ),
+    });
+    await tester.pumpWidget(build());
+    final before = tester.element(find.byType(MarkdownBody).first);
+    await tester.pumpWidget(build());
+    final after = tester.element(find.byType(MarkdownBody).first);
+    expect(identical(before, after), isTrue);
   });
 }

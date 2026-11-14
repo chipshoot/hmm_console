@@ -1636,5 +1636,13 @@
   "helpManageTagsDeleteTitle": "Delete",
   "helpManageTagsDeleteBody": "Removes the tag from its notes. The notes themselves are kept.",
   "helpNotesListTagsTitle": "Tags",
-  "helpNotesListTagsBody": "Add tags in a note's editor or with Tags… on its long-press menu. Pick a tag in the side panel to see its notes; Manage tags… renames, merges or deletes them."
+  "helpNotesListTagsBody": "Add tags in a note's editor or with Tags… on its long-press menu. Pick a tag in the side panel to see its notes; Manage tags… renames, merges or deletes them.",
+  "notesVideoLinkUnavailable": "May no longer be available",
+  "helpNoteDetailVideoLinkTitle": "Video links",
+  "helpNoteDetailVideoLinkBody": "A YouTube or Bilibili link on its own line shows as a card. Tap it to watch in their app; the ◀ Hmm button at the top-left brings you back to this note.",
+  "notesAddVideoLinkTooltip": "Add video link",
+  "notesAddVideoLinkTitle": "Add video link",
+  "notesAddVideoLinkHint": "Paste a YouTube or Bilibili link",
+  "notesAddVideoLinkAdd": "Add",
+  "notesAddVideoLinkInvalid": "That doesn't look like a link"
 }

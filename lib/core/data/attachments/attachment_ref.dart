@@ -4,6 +4,10 @@
 // src/Hmm.Core/Schemas/NoteAttachments.schema.json for the canonical
 // JSON Schema. Keep this file's shape and the schema in sync.
 
+import 'package:collection/collection.dart';
+
+import 'link_preview.dart';
+
 /// Storage providers for [CloudFileRef].
 enum CloudProvider {
   oneDrive('oneDrive'),
@@ -16,10 +20,10 @@ enum CloudProvider {
 
   /// Inverse of [wireName]; throws [FormatException] on unknown input.
   static CloudProvider fromWire(String s) => switch (s) {
-        'oneDrive' => CloudProvider.oneDrive,
-        'iCloudDrive' => CloudProvider.iCloudDrive,
-        _ => throw FormatException('Unknown cloud provider: $s'),
-      };
+    'oneDrive' => CloudProvider.oneDrive,
+    'iCloudDrive' => CloudProvider.iCloudDrive,
+    _ => throw FormatException('Unknown cloud provider: $s'),
+  };
 }
 
 /// Base of the tagged union. Use pattern matching to handle each
@@ -166,12 +170,17 @@ final class CloudFileRef extends AttachmentRef {
       Object.hash(provider, path, originalName, contentType, byteSize);
 
   @override
-  String toString() => 'CloudFileRef(provider: ${provider.wireName}, '
+  String toString() =>
+      'CloudFileRef(provider: ${provider.wireName}, '
       'path: $path, contentType: $contentType, byteSize: $byteSize)';
 }
 
 /// Per-note attachment payload — the value of the `Notes.attachments`
 /// JSON column. Two slots, disjoint by construction.
+///
+/// Forward compatibility: entries this build cannot parse (a newer build's
+/// kinds / content types) and unknown top-level keys are carried in
+/// [preservedImages], [preservedFiles] and [extra] so a re-save keeps them.
 final class NoteAttachments {
   /// Construct a payload. Throws [ArgumentError] if [primaryImage]
   /// appears in [images] (slots must be disjoint).
@@ -179,8 +188,18 @@ final class NoteAttachments {
     this.primaryImage,
     List<AttachmentRef> images = const [],
     List<AttachmentRef> files = const [],
-  })  : images = List.unmodifiable(images),
-        files = List.unmodifiable(files) {
+    List<Map<String, dynamic>> preservedImages = const [],
+    List<Map<String, dynamic>> preservedFiles = const [],
+    List<LinkPreview> linkPreviews = const [],
+    List<Object?> preservedLinkPreviews = const [],
+    Map<String, dynamic> extra = const {},
+  }) : images = List.unmodifiable(images),
+       files = List.unmodifiable(files),
+       preservedImages = List.unmodifiable(preservedImages),
+       preservedFiles = List.unmodifiable(preservedFiles),
+       linkPreviews = List.unmodifiable(linkPreviews),
+       preservedLinkPreviews = List.unmodifiable(preservedLinkPreviews),
+       extra = Map.unmodifiable(extra) {
     final p = primaryImage;
     if (p != null) {
       for (final img in images) {
@@ -202,31 +221,111 @@ final class NoteAttachments {
   /// Non-image attachments (PDF now, audio later). Rendered by content type.
   final List<AttachmentRef> files;
 
+  /// Raw `images` entries this build does not understand, kept verbatim.
+  final List<Map<String, dynamic>> preservedImages;
+
+  /// Raw `files` entries this build does not understand, kept verbatim.
+  final List<Map<String, dynamic>> preservedFiles;
+
+  /// Link cards (video links etc.) shown in the note body.
+  final List<LinkPreview> linkPreviews;
+
+  /// Raw `linkPreviews` entries this build cannot parse, kept verbatim.
+  final List<Object?> preservedLinkPreviews;
+
+  /// Unknown top-level keys, plus the raw `primaryImage` when unsupported.
+  final Map<String, dynamic> extra;
+
   bool get isEmpty =>
-      primaryImage == null && images.isEmpty && files.isEmpty;
+      primaryImage == null &&
+      images.isEmpty &&
+      files.isEmpty &&
+      preservedImages.isEmpty &&
+      preservedFiles.isEmpty &&
+      linkPreviews.isEmpty &&
+      preservedLinkPreviews.isEmpty &&
+      extra.isEmpty;
   bool get isNotEmpty => !isEmpty;
+
+  /// Copy with replaced slots; preserved entries and [extra] carry over.
+  NoteAttachments copyWith({
+    AttachmentRef? primaryImage,
+    bool clearPrimaryImage = false,
+    List<AttachmentRef>? images,
+    List<AttachmentRef>? files,
+    List<LinkPreview>? linkPreviews,
+  }) => NoteAttachments(
+    primaryImage: clearPrimaryImage
+        ? null
+        : (primaryImage ?? this.primaryImage),
+    images: images ?? this.images,
+    files: files ?? this.files,
+    preservedImages: preservedImages,
+    preservedFiles: preservedFiles,
+    linkPreviews: linkPreviews ?? this.linkPreviews,
+    preservedLinkPreviews: preservedLinkPreviews,
+    extra: extra,
+  );
+
+  /// Vault paths of every vault entry, known or preserved, so GC / purge
+  /// never deletes bytes a newer build still references.
+  Set<String> get vaultPaths {
+    final out = <String>{};
+    for (final r in [?primaryImage, ...images, ...files]) {
+      if (r is VaultRef) out.add(r.path);
+    }
+    void addRaw(Object? m) {
+      if (m is Map && m['kind'] == 'vault') {
+        final p = m['path'];
+        if (p is String && p.isNotEmpty) out.add(p);
+      }
+    }
+
+    preservedImages.forEach(addRaw);
+    preservedFiles.forEach(addRaw);
+    addRaw(extra['primaryImage']);
+    for (final l in linkPreviews) {
+      final t = l.thumbnail;
+      if (t != null) out.add(t.path);
+    }
+    for (final m in preservedLinkPreviews) {
+      if (m is Map) addRaw(m['thumbnail']);
+    }
+    return out;
+  }
+
+  static const _deep = DeepCollectionEquality();
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! NoteAttachments) return false;
-    if (other.primaryImage != primaryImage) return false;
-    if (other.images.length != images.length) return false;
-    for (var i = 0; i < images.length; i++) {
-      if (other.images[i] != images[i]) return false;
-    }
-    if (other.files.length != files.length) return false;
-    for (var i = 0; i < files.length; i++) {
-      if (other.files[i] != files[i]) return false;
-    }
-    return true;
+    return other.primaryImage == primaryImage &&
+        _deep.equals(other.images, images) &&
+        _deep.equals(other.files, files) &&
+        _deep.equals(other.preservedImages, preservedImages) &&
+        _deep.equals(other.preservedFiles, preservedFiles) &&
+        _deep.equals(other.linkPreviews, linkPreviews) &&
+        _deep.equals(other.preservedLinkPreviews, preservedLinkPreviews) &&
+        _deep.equals(other.extra, extra);
   }
 
   @override
-  int get hashCode =>
-      Object.hash(primaryImage, Object.hashAll(images), Object.hashAll(files));
+  int get hashCode => Object.hash(
+    primaryImage,
+    _deep.hash(images),
+    _deep.hash(files),
+    _deep.hash(preservedImages),
+    _deep.hash(preservedFiles),
+    _deep.hash(linkPreviews),
+    _deep.hash(preservedLinkPreviews),
+    _deep.hash(extra),
+  );
 
   @override
-  String toString() => 'NoteAttachments(primaryImage: $primaryImage, '
-      'images: $images, files: $files)';
+  String toString() =>
+      'NoteAttachments(primaryImage: $primaryImage, '
+      'images: $images, files: $files, preservedImages: $preservedImages, '
+      'preservedFiles: $preservedFiles, linkPreviews: $linkPreviews, '
+      'extra: $extra)';
 }

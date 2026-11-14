@@ -50,15 +50,17 @@ class LocalAutomobileRepository implements IAutomobileRepository {
       _autoCatalogSchema,
     );
     final content = _serialize(automobile);
-    final note = await _noteRepo.createNote(HmmNoteCreate(
-      subject: _subjectFor(automobile),
-      content: content,
-      catalogId: catalog.id,
-      // Attachments are read-through on the Automobile entity but
-      // live on the note. Pass the projected payload through to the
-      // note layer so the row's `attachments` column carries them.
-      attachments: _attachmentsFor(automobile),
-    ));
+    final note = await _noteRepo.createNote(
+      HmmNoteCreate(
+        subject: _subjectFor(automobile),
+        content: content,
+        catalogId: catalog.id,
+        // Attachments are read-through on the Automobile entity but
+        // live on the note. Pass the projected payload through to the
+        // note layer so the row's `attachments` column carries them.
+        attachments: _attachmentsFor(automobile),
+      ),
+    );
 
     return _deserialize(note)!;
   }
@@ -78,6 +80,8 @@ class LocalAutomobileRepository implements IAutomobileRepository {
   @override
   Future<void> updateAutomobile(int id, Automobile automobile) async {
     final content = _serialize(automobile);
+    // Rebuild from the stored column so unknown entries/keys survive.
+    final stored = (await _noteRepo.getNoteById(id))?.effectiveAttachments;
     await _noteRepo.updateNote(
       id,
       HmmNoteUpdate(
@@ -86,7 +90,7 @@ class LocalAutomobileRepository implements IAutomobileRepository {
         // with no primary image and no gallery clears the column
         // (writes SQL NULL); otherwise the column is replaced with
         // the current set.
-        attachments: _attachmentsFor(automobile),
+        attachments: _attachmentsFor(automobile, stored),
       ),
     );
   }
@@ -174,35 +178,42 @@ class LocalAutomobileRepository implements IAutomobileRepository {
       'nextServiceDueMeterReading': auto.nextServiceDueMeterReading,
       'notes': auto.notes,
       'auditLog': auto.auditLog
-          .map((e) => {
-                'ts': e.timestamp.toIso8601String(),
-                'field': e.field,
-                'oldValue': e.oldValue,
-                'newValue': e.newValue,
-                'actor': e.actor,
-              })
+          .map(
+            (e) => {
+              'ts': e.timestamp.toIso8601String(),
+              'field': e.field,
+              'oldValue': e.oldValue,
+              'newValue': e.newValue,
+              'actor': e.actor,
+            },
+          )
           .toList(),
       '_v': 1,
     };
-    return jsonEncode({'note': {'content': {'AutomobileInfo': data}}});
+    return jsonEncode({
+      'note': {
+        'content': {'AutomobileInfo': data},
+      },
+    });
   }
 
-  NoteAttachments _attachmentsFor(Automobile auto) {
-    if (auto.primaryImage == null && auto.images.isEmpty && auto.files.isEmpty) {
-      return NoteAttachments.empty;
-    }
-    return NoteAttachments(
+  NoteAttachments _attachmentsFor(Automobile auto, [NoteAttachments? stored]) {
+    final base = stored ?? NoteAttachments.empty;
+    final next = base.copyWith(
       primaryImage: auto.primaryImage,
+      clearPrimaryImage: auto.primaryImage == null,
       images: auto.images,
       files: auto.files,
     );
+    return next.isEmpty ? NoteAttachments.empty : next;
   }
 
   Automobile? _deserialize(HmmNote note) {
     if (note.content == null) return null;
     try {
       final json = jsonDecode(note.content!) as Map<String, dynamic>;
-      final d = json['note']?['content']?['AutomobileInfo'] as Map<String, dynamic>?;
+      final d =
+          json['note']?['content']?['AutomobileInfo'] as Map<String, dynamic>?;
       if (d == null) return null;
 
       return Automobile(
@@ -223,25 +234,37 @@ class LocalAutomobileRepository implements IAutomobileRepository {
         combinedMPG: (d['combinedMPG'] as num?)?.toDouble() ?? 0,
         meterReading: d['meterReading'] as int? ?? 0,
         purchaseMeterReading: d['purchaseMeterReading'] as int?,
-        purchaseDate: d['purchaseDate'] != null ? DateTime.tryParse(d['purchaseDate'] as String) : null,
+        purchaseDate: d['purchaseDate'] != null
+            ? DateTime.tryParse(d['purchaseDate'] as String)
+            : null,
         purchasePrice: (d['purchasePrice'] as num?)?.toDouble(),
         ownershipStatus: d['ownershipStatus'] as String?,
         isActive: d['isActive'] as bool? ?? true,
-        soldDate: d['soldDate'] != null ? DateTime.tryParse(d['soldDate'] as String) : null,
+        soldDate: d['soldDate'] != null
+            ? DateTime.tryParse(d['soldDate'] as String)
+            : null,
         soldMeterReading: d['soldMeterReading'] as int?,
         soldPrice: (d['soldPrice'] as num?)?.toDouble(),
-        registrationExpiryDate: d['registrationExpiryDate'] != null ? DateTime.tryParse(d['registrationExpiryDate'] as String) : null,
+        registrationExpiryDate: d['registrationExpiryDate'] != null
+            ? DateTime.tryParse(d['registrationExpiryDate'] as String)
+            : null,
         registrationNumber: d['registrationNumber'] as String?,
         registrationJurisdiction: d['registrationJurisdiction'] as String?,
         registrationIssuedDate: d['registrationIssuedDate'] is String
             ? DateTime.tryParse(d['registrationIssuedDate'] as String)
             : null,
-        insuranceExpiryDate: d['insuranceExpiryDate'] != null ? DateTime.tryParse(d['insuranceExpiryDate'] as String) : null,
+        insuranceExpiryDate: d['insuranceExpiryDate'] != null
+            ? DateTime.tryParse(d['insuranceExpiryDate'] as String)
+            : null,
         insuranceProvider: d['insuranceProvider'] as String?,
         insurancePolicyNumber: d['insurancePolicyNumber'] as String?,
-        lastServiceDate: d['lastServiceDate'] != null ? DateTime.tryParse(d['lastServiceDate'] as String) : null,
+        lastServiceDate: d['lastServiceDate'] != null
+            ? DateTime.tryParse(d['lastServiceDate'] as String)
+            : null,
         lastServiceMeterReading: d['lastServiceMeterReading'] as int?,
-        nextServiceDueDate: d['nextServiceDueDate'] != null ? DateTime.tryParse(d['nextServiceDueDate'] as String) : null,
+        nextServiceDueDate: d['nextServiceDueDate'] != null
+            ? DateTime.tryParse(d['nextServiceDueDate'] as String)
+            : null,
         nextServiceDueMeterReading: d['nextServiceDueMeterReading'] as int?,
         notes: d['notes'] as String?,
         createdDate: note.createDate,
@@ -273,7 +296,9 @@ class LocalAutomobileRepository implements IAutomobileRepository {
   }
 }
 
-final localAutomobileRepositoryProvider = Provider<IAutomobileRepository>((ref) {
+final localAutomobileRepositoryProvider = Provider<IAutomobileRepository>((
+  ref,
+) {
   return LocalAutomobileRepository(
     ref.watch(localHmmNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),

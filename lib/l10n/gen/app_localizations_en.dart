@@ -3567,4 +3567,29 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpNotesListTagsBody =>
       'Add tags in a note\'s editor or with Tags… on its long-press menu. Pick a tag in the side panel to see its notes; Manage tags… renames, merges or deletes them.';
+
+  @override
+  String get notesVideoLinkUnavailable => 'May no longer be available';
+
+  @override
+  String get helpNoteDetailVideoLinkTitle => 'Video links';
+
+  @override
+  String get helpNoteDetailVideoLinkBody =>
+      'A YouTube or Bilibili link on its own line shows as a card. Tap it to watch in their app; the ◀ Hmm button at the top-left brings you back to this note.';
+
+  @override
+  String get notesAddVideoLinkTooltip => 'Add video link';
+
+  @override
+  String get notesAddVideoLinkTitle => 'Add video link';
+
+  @override
+  String get notesAddVideoLinkHint => 'Paste a YouTube or Bilibili link';
+
+  @override
+  String get notesAddVideoLinkAdd => 'Add';
+
+  @override
+  String get notesAddVideoLinkInvalid => 'That doesn\'t look like a link';
 }

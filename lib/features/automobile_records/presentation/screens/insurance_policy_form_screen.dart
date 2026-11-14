@@ -72,9 +72,7 @@ class _InsurancePolicyFormScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(recordsAutomobileIdProvider.notifier)
-          .set(widget.automobileId);
+      ref.read(recordsAutomobileIdProvider.notifier).set(widget.automobileId);
       if (widget.isEdit) _loadExisting();
     });
   }
@@ -186,17 +184,18 @@ class _InsurancePolicyFormScreenState
                             fieldController: _premiumCtrl,
                             fieldValidator: _validateAmount,
                             label: l.recordsPremium,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             inputFormatters: [_decimalFormatter],
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: AppTextFormField(
-                            fieldController:
-                                TextEditingController(text: _currency),
+                            fieldController: TextEditingController(
+                              text: _currency,
+                            ),
                             fieldValidator: (_) => null,
                             label: l.recordsCurrencyShort,
                           ),
@@ -210,7 +209,8 @@ class _InsurancePolicyFormScreenState
                           (v == null || v.isEmpty) ? null : _validateAmount(v),
                       label: l.recordsDeductible,
                       keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                        decimal: true,
+                      ),
                       inputFormatters: [_decimalFormatter],
                     ),
                     const SizedBox(height: 16),
@@ -230,59 +230,60 @@ class _InsurancePolicyFormScreenState
                     // success, and discard it. Same guard the service-record
                     // form uses.
                     if (ref.watch(dataModeProvider) != DataMode.cloudApi) ...[
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          l.contactBlockTitle,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        TextButton.icon(
-                          key: const Key('addContactButton'),
-                          icon: const Icon(Icons.add),
-                          label: Text(l.contactBlockAdd),
-                          onPressed: () => setState(
-                            () => _contacts = [
-                              ..._contacts,
-                              const ContactInfo(),
-                            ],
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l.contactBlockTitle,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          TextButton.icon(
+                            key: const Key('addContactButton'),
+                            icon: const Icon(Icons.add),
+                            label: Text(l.contactBlockAdd),
+                            onPressed: () => setState(
+                              () => _contacts = [
+                                ..._contacts,
+                                const ContactInfo(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      for (var i = 0; i < _contacts.length; i++)
+                        Padding(
+                          // Keyed by index so removing one does not carry the
+                          // next block's controllers into the removed slot.
+                          key: ValueKey('contactBlock_$i'),
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: ContactInfoEditor(
+                            value: _contacts[i],
+                            onChanged: (c) {
+                              final next = List.of(_contacts);
+                              next[i] = c;
+                              _contacts = next;
+                            },
+                            onRemove: () => setState(() {
+                              final next = List.of(_contacts);
+                              next.removeAt(i);
+                              _contacts = next;
+                            }),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    for (var i = 0; i < _contacts.length; i++)
-                      Padding(
-                        // Keyed by index so removing one does not carry the
-                        // next block's controllers into the removed slot.
-                        key: ValueKey('contactBlock_$i'),
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: ContactInfoEditor(
-                          value: _contacts[i],
-                          onChanged: (c) {
-                            final next = List.of(_contacts);
-                            next[i] = c;
-                            _contacts = next;
-                          },
-                          onRemove: () => setState(() {
-                            final next = List.of(_contacts);
-                            next.removeAt(i);
-                            _contacts = next;
-                          }),
-                        ),
+                      const SizedBox(height: 24),
+                      AttachmentsSection(
+                        items: _attachmentItems,
+                        resolver:
+                            ref.watch(attachmentResolverProvider).value ??
+                            const _NullResolver(),
+                        editable: true,
+                        onAddImage: _addImage,
+                        onAddPdf: _addPdf,
+                        onRemove: _removeItem,
+                        onTap: _openItem,
                       ),
-                    const SizedBox(height: 24),
-                    AttachmentsSection(
-                      items: _attachmentItems,
-                      resolver: ref.watch(attachmentResolverProvider).value ??
-                          const _NullResolver(),
-                      editable: true,
-                      onAddImage: _addImage,
-                      onAddPdf: _addPdf,
-                      onRemove: _removeItem,
-                      onTap: _openItem,
-                    ),
                     ],
                     const SizedBox(height: 24),
                     HighlightButton(
@@ -299,13 +300,13 @@ class _InsurancePolicyFormScreenState
   }
 
   List<AttachmentItem> get _attachmentItems => [
-        for (final p in _pendingImages) PendingImageItem(p),
-        for (final r in _savedRefs)
-          if (r.contentType.startsWith('image/')) SavedAttachmentItem(r),
-        for (final p in _pendingFiles) PendingFileItem(p),
-        for (final r in _savedRefs)
-          if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
-      ];
+    for (final p in _pendingImages) PendingImageItem(p),
+    for (final r in _savedRefs)
+      if (r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+    for (final p in _pendingFiles) PendingFileItem(p),
+    for (final r in _savedRefs)
+      if (!r.contentType.startsWith('image/')) SavedAttachmentItem(r),
+  ];
 
   Future<void> _addImage() async {
     final pick = await ref
@@ -355,24 +356,23 @@ class _InsurancePolicyFormScreenState
     return null;
   }
 
-  static final _decimalFormatter =
-      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'));
+  static final _decimalFormatter = FilteringTextInputFormatter.allow(
+    RegExp(r'[0-9.]'),
+  );
 
   Future<void> _submit() async {
     final l = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
     if (_effective == null || _expiry == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(l.recordsDatesRequired)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.recordsDatesRequired)));
       return;
     }
     if (!_effective!.isBefore(_expiry!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(l.recordsDateOrderInvalid)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.recordsDateOrderInvalid)));
       return;
     }
 
@@ -394,9 +394,14 @@ class _InsurancePolicyFormScreenState
       contacts: _contacts,
       // Retained refs only; newly picked bytes have no vault path until the
       // state writes them against the saved note id.
-      attachments: NoteAttachments(
-        images: _savedRefs.where((r) => r.contentType.startsWith('image/')).toList(),
-        files: _savedRefs.where((r) => !r.contentType.startsWith('image/')).toList(),
+      attachments: (_existing?.attachments ?? NoteAttachments.empty).copyWith(
+        clearPrimaryImage: true,
+        images: _savedRefs
+            .where((r) => r.contentType.startsWith('image/'))
+            .toList(),
+        files: _savedRefs
+            .where((r) => !r.contentType.startsWith('image/'))
+            .toList(),
       ),
     );
 
