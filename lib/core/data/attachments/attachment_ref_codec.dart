@@ -14,6 +14,7 @@ import 'dart:convert';
 import '../vault/vault_path.dart';
 import 'attachment_ref.dart';
 import 'link_preview.dart';
+import 'video_attachment.dart';
 
 /// MIME types accepted in v1. Must match the schema's `contentType`
 /// enum.
@@ -137,6 +138,35 @@ class AttachmentRefCodec {
     final PhAssetRef p => _phAssetToJson(p),
     final CloudFileRef c => _cloudFileToJson(c),
   };
+
+  /// Parse the video ref of a [VideoAttachment]: a vault ref whose content
+  /// type is one of [kVideoExtByContentType]. Throws [FormatException].
+  static VaultRef videoRefFromJson(Map<String, dynamic> json) {
+    if (json['kind'] != 'vault') {
+      throw const FormatException('video: must be a vault ref');
+    }
+    final contentType = _requireString(json, 'contentType');
+    if (!kVideoExtByContentType.containsKey(contentType)) {
+      throw FormatException('video contentType "$contentType" is not allowed');
+    }
+    final path = _requireString(json, 'path');
+    try {
+      vaultRelativePathValidate(path);
+    } on ArgumentError catch (e) {
+      throw FormatException('vault "path" invalid: ${e.message}');
+    }
+    return VaultRef(
+      path: path,
+      originalName: _optionalString(
+        json,
+        'originalName',
+        maxLength: _maxOriginalNameLength,
+      ),
+      contentType: contentType,
+      byteSize: _requireByteSize(json),
+      sensitive: _optionalBool(json, 'sensitive'),
+    );
+  }
 
   static VaultRef _vaultFromJson(Map<String, dynamic> j) {
     final path = _requireString(j, 'path');
@@ -264,7 +294,8 @@ class NoteAttachmentsCodec {
       if (e.key != 'primaryImage' &&
           e.key != 'images' &&
           e.key != 'files' &&
-          !(e.key == 'linkPreviews' && e.value is List)) {
+          !(e.key == 'linkPreviews' && e.value is List) &&
+          !(e.key == 'videos' && e.value is List)) {
         extra[e.key] = e.value;
       }
     }
@@ -312,6 +343,23 @@ class NoteAttachmentsCodec {
       }
     }
 
+    final preservedVideos = <Object?>[];
+    final videos = <VideoAttachment>[];
+    final rawVideos = json['videos'];
+    if (rawVideos is List) {
+      for (final e in rawVideos) {
+        if (e is! Map<String, dynamic>) {
+          preservedVideos.add(e);
+          continue;
+        }
+        try {
+          videos.add(VideoAttachment.fromJson(e));
+        } on FormatException {
+          preservedVideos.add(e);
+        }
+      }
+    }
+
     try {
       return NoteAttachments(
         primaryImage: primary,
@@ -321,6 +369,8 @@ class NoteAttachmentsCodec {
         preservedFiles: preservedFiles,
         linkPreviews: links,
         preservedLinkPreviews: preservedLinks,
+        videos: videos,
+        preservedVideos: preservedVideos,
         extra: extra,
       );
     } on ArgumentError catch (e) {
@@ -375,6 +425,11 @@ class NoteAttachmentsCodec {
       'linkPreviews': [
         ...value.linkPreviews.map((l) => l.toJson()),
         ...value.preservedLinkPreviews,
+      ],
+    if (value.videos.isNotEmpty || value.preservedVideos.isNotEmpty)
+      'videos': [
+        ...value.videos.map((v) => v.toJson()),
+        ...value.preservedVideos,
       ],
   };
 }
