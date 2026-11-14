@@ -141,6 +141,16 @@ class NoteMarkdownBody extends StatelessWidget {
         onLongPress: onVideoLongPress,
       );
     }
+    if (path != null && isVideoVaultPath(path)) {
+      // A video file this note does not list: never resolve it, as that
+      // would read the whole video into memory.
+      return _box(
+        const AspectRatio(
+          aspectRatio: 16 / 9,
+          child: VideoPosterPlaceholder(),
+        ),
+      );
+    }
     if (path != null && resolver != null) {
       // Render-only ref: VaultResolver resolves by path; the other fields are
       // unused for display.

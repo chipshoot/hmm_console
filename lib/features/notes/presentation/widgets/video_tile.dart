@@ -13,6 +13,20 @@ import 'note_markdown_body.dart' show kInlineImageMaxHeight;
 import 'video_link_card.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
 
+/// Dark box with a film glyph: a video with no poster to show. Never reads
+/// any bytes.
+class VideoPosterPlaceholder extends StatelessWidget {
+  const VideoPosterPlaceholder({super.key});
+
+  @override
+  Widget build(BuildContext context) => const ColoredBox(
+    color: Color(0xFF1C1C1E),
+    child: Center(
+      child: Icon(Icons.movie_outlined, color: Colors.white54, size: 40),
+    ),
+  );
+}
+
 /// A video in a note: poster, play button and length. Tap plays it with the
 /// system player; long press hands a saved video to [onLongPress]. Exactly
 /// one of [saved] or [pending] is set.
@@ -46,12 +60,7 @@ class VideoTile extends ConsumerWidget {
   }
 
   Widget _poster() {
-    const dark = ColoredBox(
-      color: Color(0xFF1C1C1E),
-      child: Center(
-        child: Icon(Icons.movie_outlined, color: Colors.white54, size: 40),
-      ),
-    );
+    const dark = VideoPosterPlaceholder();
     final bytes = pending?.posterBytes;
     if (bytes != null) {
       return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
@@ -103,11 +112,15 @@ class VideoTile extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final ms = _durationMs;
     final video = saved;
+    final longPress = video != null && onLongPress != null
+        ? () => onLongPress!(video)
+        : null;
     return Semantics(
       button: true,
       label: l.notesVideoPlay,
       excludeSemantics: true,
       onTap: () => _play(context, ref),
+      onLongPress: longPress,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: kInlineImageMaxHeight),
         child: Align(
@@ -117,9 +130,7 @@ class VideoTile extends ConsumerWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _play(context, ref),
-              onLongPress: video != null && onLongPress != null
-                  ? () => onLongPress!(video)
-                  : null,
+              onLongPress: longPress,
               child: Stack(
                 fit: StackFit.expand,
                 children: [

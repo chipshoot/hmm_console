@@ -1653,6 +1653,7 @@
   "notesVideoSaved": "Saved to Photos",
   "notesVideoPhotosDenied": "Hmm can't add to Photos. Allow it in Settings.",
   "notesVideoSaveFailed": "Couldn't save the video",
+  "notesVideoShareFailed": "Couldn't share the video",
   "notesVideoRemoved": "Video removed",
   "notesVideoRemoveFailed": "Couldn't remove the video",
   "notesVideoRestored": "Video restored",

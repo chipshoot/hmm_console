@@ -116,12 +116,17 @@ class VideoPicker {
     final dir = await _tempDir();
     final posterFile = File('${dir.path}/poster-${generateUuid()}.jpg');
     Uint8List? posterBytes;
-    VideoProbe probe;
+    var probe = const VideoProbe();
     try {
       probe = await _platform.probe(file.path, posterPath: posterFile.path);
       if (probe.posterWritten && await posterFile.exists()) {
         posterBytes = await posterFile.readAsBytes();
       }
+    } catch (_) {
+      // A video that cannot be probed is still attached, just without a
+      // poster or metadata.
+      probe = const VideoProbe();
+      posterBytes = null;
     } finally {
       try {
         if (await posterFile.exists()) await posterFile.delete();

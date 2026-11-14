@@ -357,9 +357,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       // note. Then the video record, read fresh so the image write is kept.
       if (_noteId != null) {
         if (videoStore != null) {
-          _unrecordedVideos.addAll(
-            await _persistPendingVideos(_noteId!, mutate, videoStore),
-          );
+          await _persistPendingVideos(_noteId!, mutate, videoStore);
         }
         await _persistInlineImages(_noteId!, mutate);
         await _reconcileVideos(_noteId!, mutate);
@@ -539,24 +537,29 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   /// Persists each picked video still in the body, rewrites its `pending/`
-  /// line to the video's inline path and saves the body. A video that fails
-  /// is stripped from the body; picks no longer in the body are dropped.
-  /// Every dropped pick's temp file is deleted. Returns the persisted videos.
-  Future<List<VideoAttachment>> _persistPendingVideos(
+  /// line to the video's inline path, saves the body and records the
+  /// persisted videos in the note's `videos`. A video that fails is stripped
+  /// from the body; picks no longer in the body are dropped. Every dropped
+  /// pick's temp file is deleted.
+  Future<void> _persistPendingVideos(
     int noteId,
     MutateNote mutate,
     Future<VideoAttachmentStore?> storeFuture,
   ) async {
+    // Take the picks out first: dispose deletes the temp files of whatever
+    // is left in _pendingVideos, and these are being imported now.
+    final pending = Map.of(_pendingVideos);
+    _pendingVideos.clear();
     final referenced = {
       for (final uuid in pendingUuidsIn(_bodyCtrl.text))
-        if (_pendingVideos.containsKey(uuid)) uuid,
+        if (pending.containsKey(uuid)) uuid,
     };
     final store = referenced.isEmpty ? null : await storeFuture;
     final uuidToPath = <String, String>{};
     final added = <VideoAttachment>[];
     final failed = <String>[];
     for (final uuid in referenced) {
-      final pick = _pendingVideos[uuid]!;
+      final pick = pending[uuid]!;
       if (store == null) {
         failed.add(uuid);
         continue;
@@ -565,6 +568,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         final v = await store.persist(noteId: noteId, pick: pick);
         uuidToPath[uuid] = v.inlinePath;
         added.add(v);
+        // Until saveVideos below succeeds, a later save records it.
+        _unrecordedVideos.add(v);
       } catch (e) {
         debugPrint('note editor: video persist failed (${e.runtimeType})');
         failed.add(uuid);
@@ -574,13 +579,25 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     for (final uuid in failed) {
       text = removePendingImage(text, uuid);
     }
-    for (final e in _pendingVideos.entries) {
+    for (final e in pending.entries) {
       if (!uuidToPath.containsKey(e.key)) _deleteTemp(e.value.tempPath);
     }
-    _pendingVideos.clear();
     if (text != _bodyCtrl.text) {
       _bodyCtrl.text = text;
       await mutate.updateGeneral(noteId, markdownBody: text);
+    }
+    // Record the videos now, so a later step that throws (a relocked vault
+    // in the image step) cannot leave them out of the note. The image
+    // step's attachments write starts from _savedAttachments, which then
+    // already holds them.
+    if (added.isNotEmpty) {
+      final note = await mutate.saveVideos(
+        noteId,
+        added: added,
+        removedInlinePaths: const {},
+      );
+      _unrecordedVideos.removeWhere(added.contains);
+      if (note != null) _savedAttachments = note.effectiveAttachments;
     }
     if (mounted) {
       setState(() {});
@@ -592,7 +609,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         );
       }
     }
-    return added;
   }
 
   /// Writes the note's `videos`: adds the videos persisted this save whose

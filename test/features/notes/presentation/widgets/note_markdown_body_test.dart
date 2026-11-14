@@ -7,6 +7,9 @@ import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.d
 import 'package:hmm_console/core/data/attachments/link_preview.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/note_markdown_body.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/video_link_card.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/video_tile.dart'
+    show VideoPosterPlaceholder;
+import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 class _FakeResolver implements IAttachmentResolver {
@@ -14,6 +17,15 @@ class _FakeResolver implements IAttachmentResolver {
   final Uint8List? bytes;
   @override
   Future<Uint8List?> resolve(AttachmentRef ref) async => bytes;
+}
+
+class _CountingResolver implements IAttachmentResolver {
+  int calls = 0;
+  @override
+  Future<Uint8List?> resolve(AttachmentRef ref) async {
+    calls++;
+    return null;
+  }
 }
 
 // Smallest valid PNG.
@@ -216,5 +228,31 @@ void main() {
     await tester.pumpWidget(build());
     final after = tester.element(find.byType(MarkdownBody).first);
     expect(identical(before, after), isTrue);
+  });
+
+  testWidgets('a video path not in videos shows a placeholder, never resolved', (
+    tester,
+  ) async {
+    final resolver = _CountingResolver();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: NoteMarkdownBody(
+            data: '![Video](hmm-attachment://attachments/note-1/u1.mov)',
+            resolver: resolver,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(VideoPosterPlaceholder), findsOneWidget);
+    expect(find.byType(AttachmentImage), findsNothing);
+    await tester.tap(find.byType(VideoPosterPlaceholder));
+    await tester.pumpAndSettle();
+    expect(find.byType(VideoPosterPlaceholder), findsOneWidget);
+    expect(resolver.calls, 0);
   });
 }

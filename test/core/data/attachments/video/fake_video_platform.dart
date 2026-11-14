@@ -3,8 +3,13 @@ import 'dart:io';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 
 class FakeVideoPlatform implements VideoPlatform {
-  FakeVideoPlatform({this.writePoster = true, this.saveResult = true});
+  FakeVideoPlatform({
+    this.writePoster = true,
+    this.saveResult = true,
+    this.probeThrows = false,
+  });
   final bool writePoster;
+  final bool probeThrows;
   bool saveResult;
   final played = <String>[];
   final saved = <String>[];
@@ -15,6 +20,7 @@ class FakeVideoPlatform implements VideoPlatform {
     required String posterPath,
   }) async {
     if (writePoster) await File(posterPath).writeAsBytes([1, 2, 3]);
+    if (probeThrows) throw StateError('probe failed');
     return VideoProbe(
       durationMs: 48000,
       width: 1920,

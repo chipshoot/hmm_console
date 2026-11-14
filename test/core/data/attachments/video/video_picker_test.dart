@@ -62,6 +62,20 @@ void main() {
       expect(dir.listSync(), isEmpty);
     });
 
+    test('a failing probe still returns the pick, without a poster', () async {
+      final p = await picker(
+        'a.mov',
+        FakeVideoPlatform(probeThrows: true),
+      ).pick();
+      expect(p, isNotNull);
+      expect(p!.posterBytes, isNull);
+      expect(p.durationMs, isNull);
+      expect(p.width, isNull);
+      expect(File(p.tempPath).existsSync(), isTrue);
+      // The poster temp written before the throw is deleted.
+      expect(dir.listSync().map((e) => e.path.split('/').last), ['a.mov']);
+    });
+
     test('cancel returns null', () async {
       expect(await picker(null, FakeVideoPlatform()).pick(), isNull);
     });

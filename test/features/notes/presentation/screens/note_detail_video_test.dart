@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 import 'package:hmm_console/core/data/attachments/video_attachment.dart';
@@ -8,6 +11,7 @@ import 'package:hmm_console/core/data/hmm_note_input.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
+import 'package:hmm_console/core/data/vault/vault_file_store.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
@@ -68,6 +72,15 @@ class _FakeNoteRepo implements IHmmNoteRepository {
   }
 }
 
+class _Files implements IVaultFileStore {
+  _Files(this.file);
+  final File? file;
+  @override
+  Future<void> importFile(String p, File s) async {}
+  @override
+  Future<File?> localFile(String p) async => file;
+}
+
 final _catalog = NoteCatalog(
   id: 1,
   name: 'General',
@@ -80,13 +93,18 @@ Future<_Repo> _pump(
   WidgetTester tester, {
   required String body,
   required NoteAttachments atts,
+  FakeVideoPlatform? platform,
+  File? file,
 }) async {
   final repo = _Repo(body, atts);
   final fake = _FakeNoteRepo(repo);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        videoPlatformProvider.overrideWithValue(FakeVideoPlatform()),
+        videoPlatformProvider.overrideWithValue(
+          platform ?? FakeVideoPlatform(),
+        ),
+        vaultFileStoreProvider.overrideWith((ref) async => _Files(file)),
         hmmNoteRepositoryProvider.overrideWithValue(fake),
         noteDetailProvider(1).overrideWith(
           (ref) async => NoteDetailData(
@@ -151,4 +169,62 @@ void main() {
     );
     expect(find.byType(VideoTile), findsOneWidget);
   });
+
+  Future<void> choose(WidgetTester tester, String item) async {
+    await tester.longPress(find.byType(VideoTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(item));
+    await tester.pumpAndSettle();
+  }
+
+  const notOnDevice =
+      'This video is only on the device that added it, for now.';
+
+  testWidgets('Share with the file missing says not on device', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      body: 'hi\n\n$_line',
+      atts: NoteAttachments(videos: [_video]),
+    );
+    await choose(tester, 'Share…');
+    expect(find.text(notOnDevice), findsOneWidget);
+  });
+
+  testWidgets('Save with the file missing says not on device', (tester) async {
+    final platform = FakeVideoPlatform();
+    await _pump(
+      tester,
+      body: 'hi\n\n$_line',
+      atts: NoteAttachments(videos: [_video]),
+      platform: platform,
+    );
+    await choose(tester, 'Save to Photos');
+    expect(find.text(notOnDevice), findsOneWidget);
+    expect(platform.saved, isEmpty);
+  });
+
+  for (final ok in [true, false]) {
+    testWidgets('Save to Photos ${ok ? 'saved' : 'denied'}', (tester) async {
+      final platform = FakeVideoPlatform(saveResult: ok);
+      await _pump(
+        tester,
+        body: 'hi\n\n$_line',
+        atts: NoteAttachments(videos: [_video]),
+        platform: platform,
+        file: File('/v/u1.mov'),
+      );
+      await choose(tester, 'Save to Photos');
+      expect(platform.saved, ['/v/u1.mov']);
+      expect(
+        find.text(
+          ok
+              ? 'Saved to Photos'
+              : "Hmm can't add to Photos. Allow it in Settings.",
+        ),
+        findsOneWidget,
+      );
+    });
+  }
 }

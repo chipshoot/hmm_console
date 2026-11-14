@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
@@ -114,6 +115,27 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(platform.played, ['/v/u1.mov']);
+  });
+
+  testWidgets('VoiceOver gets the long-press menu of a saved tile', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    VideoAttachment? pressed;
+    await tester.pumpWidget(
+      _wrap(
+        VideoTile(saved: _saved, onLongPress: (v) => pressed = v),
+        FakeVideoPlatform(),
+      ),
+    );
+    final node = tester.getSemantics(find.byType(VideoTile));
+    expect(
+      node.getSemanticsData().hasAction(SemanticsAction.longPress),
+      isTrue,
+    );
+    tester.semantics.longPress(find.semantics.byLabel('Play video'));
+    expect(pressed, same(_saved));
+    handle.dispose();
   });
 
   testWidgets('body renders one video tile and one image', (tester) async {

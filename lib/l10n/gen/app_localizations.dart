@@ -6386,6 +6386,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save the video'**
   String get notesVideoSaveFailed;
 
+  /// No description provided for @notesVideoShareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share the video'**
+  String get notesVideoShareFailed;
+
   /// No description provided for @notesVideoRemoved.
   ///
   /// In en, this message translates to:

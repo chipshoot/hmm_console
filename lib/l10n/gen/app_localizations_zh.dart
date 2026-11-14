@@ -3458,6 +3458,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesVideoSaveFailed => '无法存储视频';
 
   @override
+  String get notesVideoShareFailed => '无法分享视频';
+
+  @override
   String get notesVideoRemoved => '已移除视频';
 
   @override

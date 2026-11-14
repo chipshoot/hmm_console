@@ -20,6 +20,8 @@ import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_tag_repository.dart';
 import 'package:hmm_console/core/data/note_location.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
+import 'package:hmm_console/core/data/vault/encrypted_vault_store.dart'
+    show VaultLockedException;
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/data/subsystem_anchor.dart';
@@ -79,6 +81,8 @@ class _FakeFetcher implements LinkPreviewFetcher {
 }
 
 class _FakeImagePicker implements IImageAttachmentPicker {
+  _FakeImagePicker({this.throwLocked = false});
+  final bool throwLocked;
   var _n = 0;
 
   @override
@@ -88,11 +92,14 @@ class _FakeImagePicker implements IImageAttachmentPicker {
     required String originalName,
     String? contentTypeHint,
     bool sensitive = false,
-  }) async => VaultRef(
-    path: 'attachments/note-$noteId/img${_n++}.png',
-    contentType: 'image/png',
-    byteSize: bytes.length,
-  );
+  }) async {
+    if (throwLocked) throw const VaultLockedException('x');
+    return VaultRef(
+      path: 'attachments/note-$noteId/img${_n++}.png',
+      contentType: 'image/png',
+      byteSize: bytes.length,
+    );
+  }
 
   @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
@@ -237,8 +244,10 @@ class _Harness {
     this.initialLocation = '/new',
     PickedVideo? pick,
     VideoPickException? error,
+    this.imageLocked = false,
   }) : picker = _FakeVideoPicker(result: pick, error: error);
   final DataMode mode;
+  final bool imageLocked;
   final String initialLocation;
   final _FakeVideoPicker picker;
   final store = _FakeVideoStore();
@@ -272,7 +281,7 @@ class _Harness {
           linkPreviewFetcherProvider.overrideWithValue(_FakeFetcher()),
           imageByteSourceProvider.overrideWithValue(_FakeImageSource()),
           imageAttachmentPickerProvider.overrideWith(
-            (ref) async => _FakeImagePicker(),
+            (ref) async => _FakeImagePicker(throwLocked: imageLocked),
           ),
           attachmentResolverProvider.overrideWith(
             (ref) async => _FakeResolver(),
@@ -397,6 +406,31 @@ void main() {
     expect(atts.videos, hasLength(1));
     expect(atts.videos.single.video.path, 'attachments/note-1/new.mov');
     expect(atts.videos.single.inlinePath, 'attachments/note-1/new.jpg');
+  });
+
+  testWidgets('image step locked after a video persisted: video recorded', (
+    tester,
+  ) async {
+    final pick = _pickOf('clip.mov');
+    final h = _Harness(pick: pick, imageLocked: true);
+    await h.pump(tester);
+
+    await _tapAddVideo(tester);
+    await tester.tap(find.byIcon(Icons.photo_library_outlined));
+    await tester.pumpAndSettle();
+    await _save(tester);
+
+    // The save aborted at the image step: still on the editor.
+    expect(find.text('home'), findsNothing);
+    expect(h.store.persisted, [pick]);
+    final note = h.repo.note!;
+    expect(
+      note.content,
+      contains('![Video](hmm-attachment://attachments/note-1/new.jpg)'),
+    );
+    final videos = note.effectiveAttachments.videos;
+    expect(videos, hasLength(1));
+    expect(videos.single.video.path, 'attachments/note-1/new.mov');
   });
 
   testWidgets('pending video removed before save leaves nothing', (

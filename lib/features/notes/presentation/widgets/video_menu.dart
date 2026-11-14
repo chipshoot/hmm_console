@@ -88,7 +88,7 @@ Future<void> showVideoMenu(
     case _VideoAction.save:
       await _save(context, ref, video);
     case _VideoAction.share:
-      await _share(ref, video, origin);
+      await _share(context, ref, video, origin);
     case _VideoAction.remove:
       await _remove(context, ref, noteId, video);
   }
@@ -117,11 +117,21 @@ Future<void> _save(
   }
 }
 
-Future<void> _share(WidgetRef ref, VideoAttachment video, Rect origin) async {
+Future<void> _share(
+  BuildContext context,
+  WidgetRef ref,
+  VideoAttachment video,
+  Rect origin,
+) async {
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final filesFuture = ref.read(vaultFileStoreProvider.future);
+  void say(String t) => messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(t)));
   try {
-    final store = await ref.read(vaultFileStoreProvider.future);
-    final f = await store?.localFile(video.video.path);
-    if (f == null) return;
+    final f = await (await filesFuture)?.localFile(video.video.path);
+    if (f == null) return say(l.notesVideoNotOnDevice);
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(f.path, mimeType: video.video.contentType)],
@@ -130,6 +140,7 @@ Future<void> _share(WidgetRef ref, VideoAttachment video, Rect origin) async {
     );
   } catch (e) {
     debugPrint('video share failed (${e.runtimeType})');
+    say(l.notesVideoShareFailed);
   }
 }
 

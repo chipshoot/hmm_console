@@ -3620,6 +3620,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesVideoSaveFailed => 'Couldn\'t save the video';
 
   @override
+  String get notesVideoShareFailed => 'Couldn\'t share the video';
+
+  @override
   String get notesVideoRemoved => 'Video removed';
 
   @override

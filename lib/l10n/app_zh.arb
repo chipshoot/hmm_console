@@ -1059,6 +1059,7 @@
   "notesVideoSaved": "已存储到照片",
   "notesVideoPhotosDenied": "Hmm 无法存入照片，请在设置中允许。",
   "notesVideoSaveFailed": "无法存储视频",
+  "notesVideoShareFailed": "无法分享视频",
   "notesVideoRemoved": "已移除视频",
   "notesVideoRemoveFailed": "无法移除视频",
   "notesVideoRestored": "已恢复视频",
