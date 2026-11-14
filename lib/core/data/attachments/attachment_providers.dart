@@ -31,6 +31,7 @@ import '../vault/api_vault_store.dart';
 import '../vault/encrypted_vault_store.dart';
 import '../vault/local_vault_store.dart';
 import '../vault/vault_key_cache.dart';
+import '../vault/vault_file_store.dart';
 import '../vault/vault_key_service.dart';
 import '../vault/vault_store.dart';
 
@@ -112,6 +113,15 @@ final baseVaultStoreProvider = FutureProvider<IVaultStore>((ref) async {
   }
   final root = await ref.watch(vaultRootDirectoryProvider.future);
   return LocalVaultStore(rootDir: root);
+});
+
+/// By-path vault access for large files (videos). Null in `cloudApi` (no
+/// on-disk vault). Uses the raw base store, never the encrypting decorator:
+/// videos are never sensitive.
+final vaultFileStoreProvider = FutureProvider<IVaultFileStore?>((ref) async {
+  if (ref.watch(dataModeProvider) == DataMode.cloudApi) return null;
+  final base = await ref.watch(baseVaultStoreProvider.future);
+  return base is IVaultFileStore ? base as IVaultFileStore : null;
 });
 
 /// Platform secure-storage cache for the derived vault key, so a future
