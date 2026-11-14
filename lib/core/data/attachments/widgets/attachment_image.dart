@@ -23,7 +23,14 @@ class AttachmentImage extends StatefulWidget {
     this.loadingPlaceholder,
     this.errorPlaceholder,
     this.semanticLabel,
+    this.retryOn,
   });
+
+  /// When this fires and the last load found nothing, load again. Pass
+  /// `attachmentsPulledSignalProvider` so an image whose file arrives by
+  /// sync after the first try appears without reopening the screen. A shown
+  /// image is never reloaded.
+  final Listenable? retryOn;
 
   /// What to render. Pass null for "no photo set" — the widget
   /// shows [errorPlaceholder] (or a default icon).
@@ -48,24 +55,47 @@ class AttachmentImage extends StatefulWidget {
 class _AttachmentImageState extends State<AttachmentImage> {
   late Future<Uint8List?> _future;
 
+  /// The last finished load found no bytes.
+  bool _missing = false;
+
   @override
   void initState() {
     super.initState();
     _future = _load();
+    widget.retryOn?.addListener(_retry);
   }
 
   @override
   void didUpdateWidget(covariant AttachmentImage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.retryOn != widget.retryOn) {
+      oldWidget.retryOn?.removeListener(_retry);
+      widget.retryOn?.addListener(_retry);
+    }
     if (oldWidget.ref != widget.ref || oldWidget.resolver != widget.resolver) {
       _future = _load();
     }
   }
 
+  @override
+  void dispose() {
+    widget.retryOn?.removeListener(_retry);
+    super.dispose();
+  }
+
+  void _retry() {
+    if (!mounted || !_missing || widget.ref == null) return;
+    setState(() {
+      _future = _load();
+    });
+  }
+
   Future<Uint8List?> _load() async {
     final ref = widget.ref;
     if (ref == null) return null;
-    return widget.resolver.resolve(ref);
+    final bytes = await widget.resolver.resolve(ref);
+    _missing = bytes == null;
+    return bytes;
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
+import 'package:hmm_console/core/data/attachments/video_attachment.dart';
 import 'package:hmm_console/core/data/attachments/widgets/sensitive_attachment_image.dart';
 import 'package:hmm_console/core/notes/note_state.dart';
 import 'package:hmm_console/core/settings/app_settings.dart';
@@ -348,5 +349,65 @@ void main() {
     await t.pumpAndSettle();
     expect(t.takeException(), isNull);
     expect(find.textContaining('Milky', findRichText: true), findsOneWidget);
+  });
+
+  group('videos', () {
+    const video = VideoAttachment(
+      video: VaultRef(
+        path: 'attachments/note-1/v.mov',
+        contentType: 'video/quicktime',
+        byteSize: 9,
+      ),
+      poster: VaultRef(
+        path: 'attachments/note-1/v.jpg',
+        contentType: 'image/jpeg',
+        byteSize: 1,
+      ),
+      durationMs: 7633,
+    );
+    bool thumb(WidgetTester t) => t
+        .widgetList<SizedBox>(find.byType(SizedBox))
+        .any((b) => b.width == 56 && b.height == 56);
+
+    testWidgets('meta line shows a video icon and the video count', (t) async {
+      final note = _note(attachments: NoteAttachments(videos: [video, video]));
+      await t.pumpWidget(_host(_hit(note)));
+      await t.pumpAndSettle();
+
+      expect(find.byIcon(Icons.videocam_outlined), findsOneWidget);
+      expect(_allText(t), contains(' 2'));
+      // Videos are not photos or files: no paperclip.
+      expect(find.byIcon(Icons.attach_file), findsNothing);
+    });
+
+    testWidgets('rich row of a video-only note shows the poster with a play '
+        'badge', (t) async {
+      final note = _note(attachments: NoteAttachments(videos: [video]));
+      await t.pumpWidget(_host(_hit(note), density: NoteRowDensity.rich));
+      await t.pumpAndSettle();
+
+      expect(thumb(t), isTrue);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    });
+
+    testWidgets('a photo wins the thumbnail over a video poster', (t) async {
+      final note = _note(
+        attachments: NoteAttachments(images: [_vault], videos: [video]),
+      );
+      await t.pumpWidget(_host(_hit(note), density: NoteRowDensity.rich));
+      await t.pumpAndSettle();
+
+      expect(thumb(t), isTrue);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    });
+
+    testWidgets('standard rows show no thumbnail for a video', (t) async {
+      final note = _note(attachments: NoteAttachments(videos: [video]));
+      await t.pumpWidget(_host(_hit(note)));
+      await t.pumpAndSettle();
+
+      expect(thumb(t), isFalse);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    });
   });
 }

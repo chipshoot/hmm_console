@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/attachments_pulled_signal.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/inline_ref_uri.dart';
 import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
@@ -63,10 +64,15 @@ class NoteMarkdownBody extends StatelessWidget {
     this.videos = const {},
     this.pendingVideos = const {},
     this.onVideoLongPress,
+    this.retryOn,
   });
 
   final String data;
   final IAttachmentResolver? resolver;
+
+  /// Passed to inline images: a photo missing on first load tries again when
+  /// this fires (its file arrived by sync after the note did).
+  final Listenable? retryOn;
   final Map<String, Uint8List>? pendingBytes;
   final bool selectable;
 
@@ -178,6 +184,7 @@ class NoteMarkdownBody extends StatelessWidget {
                   fit: BoxFit.contain,
                   alignment: Alignment.topCenter,
                   semanticLabel: config.alt,
+                  retryOn: retryOn,
                 ),
         ),
       );
@@ -289,6 +296,7 @@ class MarkdownView extends ConsumerWidget {
       videos: videos,
       pendingVideos: pendingVideos,
       onVideoLongPress: onVideoLongPress,
+      retryOn: ref.watch(attachmentsPulledSignalProvider),
       onNoteLinkTap: (uuid) => unawaited(_openNote(context, ref, uuid)),
     );
   }

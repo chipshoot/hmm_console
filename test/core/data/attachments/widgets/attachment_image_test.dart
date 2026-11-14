@@ -168,6 +168,80 @@ void main() {
 
     expect(find.text('no-photo'), findsOneWidget);
   });
+
+  group('retryOn', () {
+    Widget host(IAttachmentResolver r, Listenable signal) => MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 100,
+          height: 100,
+          child: AttachmentImage(
+            ref: _ref,
+            resolver: r,
+            loadingPlaceholder: _loading,
+            errorPlaceholder: const Text('missing'),
+            retryOn: signal,
+          ),
+        ),
+      ),
+    );
+
+    testWidgets('a missing image loads again when the signal fires '
+        '(the file arrived by sync after the first try)', (tester) async {
+      final resolver = _SwitchingResolver();
+      final signal = ChangeNotifier();
+      addTearDown(signal.dispose);
+      await tester.pumpWidget(host(resolver, signal));
+      await tester.pumpAndSettle();
+      expect(find.text('missing'), findsOneWidget);
+
+      resolver.result = _pngBytes;
+      signal.notifyListeners();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Image), findsOneWidget);
+      expect(find.text('missing'), findsNothing);
+      expect(resolver.calls, 2);
+    });
+
+    testWidgets('a shown image is not reloaded when the signal fires',
+        (tester) async {
+      final resolver = _SwitchingResolver()..result = _pngBytes;
+      final signal = ChangeNotifier();
+      addTearDown(signal.dispose);
+      await tester.pumpWidget(host(resolver, signal));
+      await tester.pumpAndSettle();
+
+      signal.notifyListeners();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Image), findsOneWidget);
+      expect(resolver.calls, 1);
+    });
+
+    testWidgets('stops listening once removed', (tester) async {
+      final resolver = _SwitchingResolver();
+      final signal = ChangeNotifier();
+      addTearDown(signal.dispose);
+      await tester.pumpWidget(host(resolver, signal));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+
+      signal.notifyListeners(); // must not call setState on a dead state
+      await tester.pump();
+      expect(resolver.calls, 1);
+    });
+  });
+}
+
+class _SwitchingResolver implements IAttachmentResolver {
+  Uint8List? result;
+  int calls = 0;
+  @override
+  Future<Uint8List?> resolve(AttachmentRef ref) async {
+    calls++;
+    return result;
+  }
 }
 
 /// Resolver whose Future never completes — used to assert the

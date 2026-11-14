@@ -255,4 +255,41 @@ void main() {
     expect(find.byType(VideoPosterPlaceholder), findsOneWidget);
     expect(resolver.calls, 0);
   });
+
+  testWidgets('an inline photo missing at first loads when retryOn fires',
+      (tester) async {
+    final resolver = _SwitchResolver();
+    final signal = ChangeNotifier();
+    addTearDown(signal.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: NoteMarkdownBody(
+            data: '![p](hmm-attachment://attachments/note-1/p.jpg)',
+            resolver: resolver,
+            retryOn: signal,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(resolver.calls, 1);
+
+    resolver.bytes = _png;
+    signal.notifyListeners();
+    await tester.pumpAndSettle();
+
+    expect(resolver.calls, 2);
+    expect(find.byType(Image), findsOneWidget);
+  });
+}
+
+class _SwitchResolver implements IAttachmentResolver {
+  Uint8List? bytes;
+  int calls = 0;
+  @override
+  Future<Uint8List?> resolve(AttachmentRef ref) async {
+    calls++;
+    return bytes;
+  }
 }

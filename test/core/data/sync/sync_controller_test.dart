@@ -324,6 +324,26 @@ void main() {
     });
   });
 
+  group('onResult', () {
+    test('receives each finished sync result, including thrown ones',
+        () async {
+      final seen = <SyncResult>[];
+      final c = SyncController(
+        syncAction: action.call,
+        now: clock.now,
+        onResult: seen.add,
+      );
+      await c.triggerManualSync();
+      action.throwInstead = StateError('boom');
+      await c.triggerManualSync();
+
+      expect(seen, hasLength(2));
+      expect(seen.first.success, isTrue);
+      expect(seen.last.success, isFalse);
+      c.dispose();
+    });
+  });
+
   group('notifyLocalChange (Part A — debounced auto-sync on write)', () {
     test('debounce coalesces N rapid calls into exactly one sync', () async {
       final c = SyncController(

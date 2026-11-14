@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachment_ref.dart';
+import '../../../../core/data/attachments/attachments_pulled_signal.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
 import '../../../../core/data/local/local_tag_repository.dart';
 import '../../../../core/data/vault/sensitive_path.dart';
@@ -312,6 +313,18 @@ class NoteRow extends ConsumerWidget {
         TextSpan(text: ' $count'),
       ]);
     }
+    if (a.videos.isNotEmpty) {
+      parts.add([
+        icon(
+          adaptiveIcon(
+            context,
+            material: Icons.videocam_outlined,
+            apple: CupertinoIcons.videocam,
+          ),
+        ),
+        TextSpan(text: ' ${a.videos.length}'),
+      ]);
+    }
     if (note.location != null) {
       final label = note.locationLabel;
       parts.add([
@@ -345,8 +358,13 @@ class NoteRow extends ConsumerWidget {
 
   Widget? _thumbnail(BuildContext context, WidgetRef ref) {
     final a = hit.note.effectiveAttachments;
-    final AttachmentRef? image =
+    final AttachmentRef? photo =
         a.primaryImage ?? (a.images.isEmpty ? null : a.images.first);
+    // No photo: a video's poster stands in, marked with a play badge.
+    final poster = photo == null
+        ? a.videos.map((v) => v.poster).nonNulls.firstOrNull
+        : null;
+    final AttachmentRef? image = photo ?? poster;
     if (image == null) return null;
     final radius = BorderRadius.circular(8);
     final scheme = Theme.of(context).colorScheme;
@@ -376,7 +394,8 @@ class NoteRow extends ConsumerWidget {
       );
     }
     final resolver = ref.watch(attachmentResolverProvider);
-    return resolver.when(
+    final retryOn = ref.watch(attachmentsPulledSignalProvider);
+    final thumb = resolver.when(
       loading: () => box(null),
       error: (_, _) => box(null),
       data: (r) => ClipRRect(
@@ -390,9 +409,31 @@ class NoteRow extends ConsumerWidget {
             alignment: Alignment.topCenter,
             loadingPlaceholder: box(null),
             errorPlaceholder: box(null),
+            retryOn: retryOn,
           ),
         ),
       ),
+    );
+    if (poster == null) return thumb;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        thumb,
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0x99000000),
+            shape: BoxShape.circle,
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(2),
+            child: Icon(
+              Icons.play_arrow_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
