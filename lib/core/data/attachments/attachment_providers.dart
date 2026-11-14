@@ -18,6 +18,7 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -127,8 +128,12 @@ Future<Directory> _videoOffloadDir(VideoPlatform platform) async {
   if (!await dir.exists()) await dir.create(recursive: true);
   try {
     await platform.excludeFromBackup(dir.path);
-  } catch (_) {
-    // Best effort: a failed exclusion must not stop the vault opening.
+  } catch (e) {
+    // The vault still opens, but offloaded videos would be backed up: say so.
+    // A native FlutterError arrives here as a PlatformException.
+    debugPrint(
+      'Could not exclude ${dir.path} from backup (${e.runtimeType}): $e',
+    );
   }
   return dir;
 }

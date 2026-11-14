@@ -89,6 +89,20 @@ void main() {
       expect((await store.localFile(path))!.path, '${tmp.path}/vault/$path');
     });
 
+    test('a file in both roots is listed once and deleted from both',
+        () async {
+      await store.importFile(path, makeSource());
+      final dup = File('${tmp.path}/offload/$path')
+        ..createSync(recursive: true)
+        ..writeAsBytesSync([9]);
+      final paths = (await store.list('')).map((e) => e.relativePath);
+      expect(paths.where((e) => e == path), hasLength(1));
+      await store.delete(path);
+      expect(File('${tmp.path}/vault/$path').existsSync(), isFalse);
+      expect(dup.existsSync(), isFalse);
+      expect(await store.exists(path), isFalse);
+    });
+
     test('offload refuses a non-video path', () async {
       await expectLater(
         store.offload('attachments/note-1/a.jpg'),
