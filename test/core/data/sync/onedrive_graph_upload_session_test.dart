@@ -173,4 +173,22 @@ void main() {
     expect(await c.attachmentExists('v/a.mov'), isFalse);
     expect(a.requests.first.uri.path, endsWith('/vault/v/a.mov'));
   });
+
+  test('a failed fragment PUT never puts the uploadUrl query in the error',
+      () async {
+    const secretUrl = 'https://upload.example/session/abc?tempauth=SECRET';
+    final a = RecordingAdapter([const Reply(500)]);
+    Object? caught;
+    try {
+      await makeClient(a)
+          .putUploadFragment(secretUrl, Uint8List.fromList([1]), 0, 1);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught, isA<OneDriveGraphException>());
+    final e = caught as OneDriveGraphException;
+    expect(e.request, isNot(contains('SECRET')));
+    expect(e.toString(), isNot(contains('SECRET')));
+    expect(e.request, contains('PUT https://upload.example/session/abc'));
+  });
 }

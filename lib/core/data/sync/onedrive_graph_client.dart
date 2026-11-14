@@ -536,11 +536,13 @@ class OneDriveGraphClient {
 
   /// `METHOD url`, plus where a redirect landed if it did. A `:/content`
   /// GET is answered with a redirect to a download host, so a failure there
-  /// may not be Graph's at all. The landing URL's query is dropped: it is a
-  /// pre-authenticated link, and this text is shown to be copied.
+  /// may not be Graph's at all. No query is ever kept, on the sent or the
+  /// landing URL: either may be a pre-authenticated link (an upload session's
+  /// `uploadUrl`), and this text is logged and shown to be copied.
   static String _describeRequest(Response resp) {
     final options = resp.requestOptions;
-    final sent = '${options.method} ${options.uri}';
+    final u = options.uri;
+    final sent = '${options.method} ${u.origin}${u.path}';
     final landed = resp.realUri;
     if (landed.host == options.uri.host) return sent;
     return '$sent\n(redirected to ${landed.origin}${landed.path})';
