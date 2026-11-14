@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/video/video_downloads.dart';
 import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/vault/vault_file_store.dart';
+import 'package:hmm_console/features/notes/presentation/widgets/video_menu.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 class _Files implements IVaultFileStore {
   _Files(this.target);
@@ -23,12 +27,21 @@ class _Files implements IVaultFileStore {
 
 class _Provider extends CloudSyncProvider {
   bool exists = true;
+  bool largeOk = true;
+  int existsCalls = 0;
+  Completer<void>? holdDownload;
+  @override
+  bool get supportsLargeFiles => largeOk;
+
   int downloads = 0;
   Object? failWith;
   Future<void> Function(File target, TransferCancel? cancel)? body;
 
   @override
-  Future<bool> largeFileExists(String path) async => exists;
+  Future<bool> largeFileExists(String path) async {
+    existsCalls++;
+    return exists;
+  }
 
   @override
   Future<void> downloadLargeFile(
@@ -39,6 +52,7 @@ class _Provider extends CloudSyncProvider {
   }) async {
     downloads++;
     if (failWith != null) throw failWith!;
+    if (holdDownload != null) await holdDownload!.future;
     onProgress?.call(50, 100);
     if (body != null) return body!(target, cancel);
     await target.writeAsBytes([1, 2, 3]);
@@ -50,6 +64,7 @@ class _Provider extends CloudSyncProvider {
 }
 
 void main() {
+  // (tests below)
   late Directory dir;
   late File target;
   late _Provider provider;
@@ -120,5 +135,50 @@ void main() {
     expect(target.existsSync(), isFalse);
     expect(File('${target.path}.part').existsSync(), isFalse);
     expect(c.read(videoDownloadsProvider), isEmpty);
+  });
+  test('concurrent fetches of one path share one download', () async {
+    provider.holdDownload = Completer<void>();
+    final n = c.read(videoDownloadsProvider.notifier);
+    final a = n.fetch('p');
+    final b = n.fetch('p');
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    provider.holdDownload!.complete();
+    final ra = await a;
+    final rb = await b;
+    expect(provider.downloads, 1);
+    expect(ra.outcome, VideoFetchOutcome.ready);
+    expect(rb.outcome, VideoFetchOutcome.ready);
+    expect(rb.file!.path, ra.file!.path);
+  });
+
+  test('a provider without large-file support is never asked', () async {
+    provider.largeOk = false;
+    final r = await c.read(videoDownloadsProvider.notifier).fetch('p');
+    expect(r.outcome, VideoFetchOutcome.failed);
+    expect(provider.existsCalls, 0);
+    expect(provider.downloads, 0);
+  });
+
+  test('menu helper waits for an active download instead of failing', () async {
+    provider.holdDownload = Completer<void>();
+    final n = c.read(videoDownloadsProvider.notifier);
+    final tile = n.fetch('p');
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    final said = <String>[];
+    final menu = videoFileOrFetch(
+      lookupAppLocalizations(const Locale('en')),
+      n,
+      Future.value(_Files(target)),
+      true,
+      'p',
+      said.add,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    provider.holdDownload!.complete();
+    final f = await menu;
+    await tile;
+    expect(f?.path, target.path);
+    expect(said, isEmpty);
+    expect(provider.downloads, 1);
   });
 }

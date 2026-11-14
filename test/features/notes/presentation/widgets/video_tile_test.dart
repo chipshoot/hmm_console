@@ -15,6 +15,7 @@ import 'package:hmm_console/core/data/attachments/video/video_downloads.dart';
 import 'package:hmm_console/core/data/attachments/video/video_picker.dart';
 import 'package:hmm_console/core/data/attachments/video/video_uploader.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 import 'package:hmm_console/core/data/attachments/video_attachment.dart';
 import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
@@ -66,6 +67,22 @@ class _Mode extends DataModeNotifier {
   DataMode build() => mode;
 }
 
+class _CloudProv extends CloudSyncProvider {
+  _CloudProv({this.large = true});
+  final bool large;
+  int existsCalls = 0;
+  @override
+  bool get supportsLargeFiles => large;
+  @override
+  Future<bool> largeFileExists(String path) async {
+    existsCalls++;
+    return true;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
 class _FakeUploader implements VideoUploader {
   final _s = ValueNotifier<Map<String, VideoUploadState>>(const {});
   final allowed = <String>[];
@@ -107,8 +124,10 @@ Widget _wrapCloud(
   required _FakeDownloads downloads,
   DataMode mode = DataMode.cloudStorage,
   File? file,
+  CloudSyncProvider? cloud,
 }) => ProviderScope(
   overrides: [
+    videoCloudProvider.overrideWithValue(cloud ?? _CloudProv()),
     videoPlatformProvider.overrideWithValue(platform),
     vaultFileStoreProvider.overrideWith((ref) async => _Files(file)),
     dataModeProvider.overrideWith(() => _Mode(mode)),
@@ -211,6 +230,7 @@ void main() {
       File? file,
       DataMode mode = DataMode.cloudStorage,
       VideoFetchResult? immediate,
+      CloudSyncProvider? cloud,
     }) async {
       // Created here, inside the test's fake-async zone.
       gate = Completer();
@@ -225,6 +245,7 @@ void main() {
           downloads: downloads,
           file: file,
           mode: mode,
+          cloud: cloud,
         ),
       );
       await tester.pump();
@@ -303,6 +324,23 @@ void main() {
       await tester.pump();
       expect(downloads.cancelled, [path]);
       expect(platform.played, isEmpty);
+    });
+
+    testWidgets('cloudStorage without large-file support keeps stage-2 '
+        'behaviour', (tester) async {
+      final prov = _CloudProv(large: false);
+      index.update({});
+      await pumpTile(tester, cloud: prov);
+      expect(find.byIcon(Icons.cloud_download_outlined), findsNothing);
+      expect(find.text('Still uploading from another device'), findsNothing);
+      await tester.tap(find.byType(VideoTile));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('This video is only on the device that added it, for now.'),
+        findsOneWidget,
+      );
+      expect(prov.existsCalls, 0);
+      expect(downloads.fetched, isEmpty);
     });
 
     testWidgets('local mode keeps the stage-2 not-on-device message', (

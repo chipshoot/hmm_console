@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data_mode.dart';
 import '../../sync/cloud_sync_provider.dart';
 import '../../sync/sync_orchestrator.dart';
 import '../attachment_providers.dart';
@@ -24,6 +26,15 @@ final videoCloudProvider = Provider<CloudSyncProvider?>(
   (ref) => ref.watch(syncOrchestratorProvider).provider,
 );
 
+/// Whether videos move through the cloud: cloudStorage mode with a provider
+/// that can transfer large files. Otherwise videos stay on the device that
+/// added them.
+final videoCloudEnabledProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(dataModeProvider) == DataMode.cloudStorage &&
+      ref.watch(videoCloudProvider)?.supportsLargeFiles == true,
+);
+
 /// Downloads of videos that another device uploaded. State: vault path ->
 /// fraction 0..1; absent means not downloading.
 class VideoDownloads extends Notifier<Map<String, double>> {
@@ -42,10 +53,19 @@ class VideoDownloads extends Notifier<Map<String, double>> {
     state = next;
   }
 
-  Future<VideoFetchResult> fetch(String path) async {
-    if (_cancels.containsKey(path)) {
-      return const VideoFetchResult(VideoFetchOutcome.failed);
-    }
+  final _inFlight = <String, Future<VideoFetchResult>>{};
+
+  /// Joins a download already running for [path] instead of starting another.
+  Future<VideoFetchResult> fetch(String path) {
+    final running = _inFlight[path];
+    if (running != null) return running;
+    final f = _fetch(path);
+    _inFlight[path] = f;
+    unawaited(f.whenComplete(() => _inFlight.remove(path)));
+    return f;
+  }
+
+  Future<VideoFetchResult> _fetch(String path) async {
     final cancel = TransferCancel();
     _cancels[path] = cancel;
     _setProgress(path, 0);
@@ -57,7 +77,7 @@ class VideoDownloads extends Notifier<Map<String, double>> {
       }
       final provider = ref.read(videoCloudProvider);
       final target = store?.downloadTarget(path);
-      if (provider == null || target == null) {
+      if (provider == null || !provider.supportsLargeFiles || target == null) {
         return const VideoFetchResult(VideoFetchOutcome.failed);
       }
       if (!await provider.largeFileExists(path)) {

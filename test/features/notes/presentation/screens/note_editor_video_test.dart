@@ -12,6 +12,7 @@ import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart'
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/attachments/video/video_attachment_store.dart';
 import 'package:hmm_console/core/data/attachments/video/video_picker.dart';
+import 'package:hmm_console/core/data/attachments/video/video_downloads.dart';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 import 'package:hmm_console/core/data/attachments/video_attachment.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
@@ -275,6 +276,8 @@ class _Harness {
       ProviderScope(
         overrides: [
           dataModeProvider.overrideWith(() => _FixedDataMode(mode)),
+          // The video tile asks which cloud provider is active.
+          videoCloudProvider.overrideWithValue(null),
           videoPlatformProvider.overrideWithValue(FakeVideoPlatform()),
           videoPickerProvider.overrideWithValue(picker),
           videoAttachmentStoreProvider.overrideWith((ref) async => store),

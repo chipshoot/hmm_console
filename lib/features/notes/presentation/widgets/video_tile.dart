@@ -93,7 +93,7 @@ class VideoTile extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final downloads = ref.read(videoDownloadsProvider.notifier);
     final storeFuture = ref.read(vaultFileStoreProvider.future);
-    final cloud = ref.read(dataModeProvider) == DataMode.cloudStorage;
+    final cloud = ref.read(videoCloudEnabledProvider);
     final pend = pending;
     final video = saved;
     void say(String t) => messenger
@@ -254,6 +254,7 @@ class VideoTile extends ConsumerWidget {
     final video = saved;
     final path = video?.video.path;
     final cloudMode = ref.watch(dataModeProvider) == DataMode.cloudStorage;
+    final cloudEnabled = ref.watch(videoCloudEnabledProvider);
     final uploader = cloudMode ? ref.watch(videoUploaderProvider).value : null;
     final index = cloudMode ? ref.read(remoteVideoIndexProvider) : null;
     final progress = path == null
@@ -270,7 +271,7 @@ class VideoTile extends ConsumerWidget {
       listenable: Listenable.merge([uploader?.states, index]),
       builder: (context, _) {
         final up = path == null ? null : uploader?.states.value[path];
-        final fetchable = !isLocal && cloudMode;
+        final fetchable = !isLocal && cloudEnabled;
         final stillUp = fetchable && index?.has(path) == false;
         final percent = progress == null ? 0 : (progress * 100).floor();
         final label = progress != null

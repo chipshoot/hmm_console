@@ -9,7 +9,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/video/video_downloads.dart';
 import '../../../../core/data/attachments/video/video_platform.dart';
-import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/attachments/attachment_ref.dart'
     show NoteAttachments;
 import '../../../../core/data/attachments/video_attachment.dart';
@@ -100,7 +99,8 @@ Future<void> showVideoMenu(
 
 /// The video's local file, downloading it first in cloudStorage mode when this
 /// device doesn't have it. Says why and returns null when it can't.
-Future<File?> _fileOrFetch(
+@visibleForTesting
+Future<File?> videoFileOrFetch(
   AppLocalizations l,
   VideoDownloads downloads,
   Future<IVaultFileStore?> storeFuture,
@@ -138,12 +138,12 @@ Future<void> _save(
   final platform = ref.read(videoPlatformProvider);
   final filesFuture = ref.read(vaultFileStoreProvider.future);
   final downloads = ref.read(videoDownloadsProvider.notifier);
-  final cloud = ref.read(dataModeProvider) == DataMode.cloudStorage;
+  final cloud = ref.read(videoCloudEnabledProvider);
   void say(String t) => messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(t)));
   try {
-    final f = await _fileOrFetch(
+    final f = await videoFileOrFetch(
       l,
       downloads,
       filesFuture,
@@ -170,12 +170,12 @@ Future<void> _share(
   final messenger = ScaffoldMessenger.of(context);
   final filesFuture = ref.read(vaultFileStoreProvider.future);
   final downloads = ref.read(videoDownloadsProvider.notifier);
-  final cloud = ref.read(dataModeProvider) == DataMode.cloudStorage;
+  final cloud = ref.read(videoCloudEnabledProvider);
   void say(String t) => messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(t)));
   try {
-    final f = await _fileOrFetch(
+    final f = await videoFileOrFetch(
       l,
       downloads,
       filesFuture,
