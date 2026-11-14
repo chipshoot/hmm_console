@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/settings/domain/sync_settings.dart';
+import '../attachments/attachments_pulled_signal.dart';
 import '../../../features/settings/providers/sync_settings_provider.dart';
 import 'sync_models.dart';
 import 'sync_orchestrator.dart';
@@ -144,9 +145,14 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
     this.foregroundDebounce = const Duration(milliseconds: 250),
     this.localChangeDebounce = const Duration(seconds: 8),
     ClockNow now = _defaultNow,
+    this.onResult,
   })  : _syncAction = syncAction,
         _canAutoSync = canAutoSync ?? _alwaysAllow,
         _now = now;
+
+  /// Called with every finished sync's result (failures included), after
+  /// [status] updates.
+  final void Function(SyncResult)? onResult;
 
   final SyncAction _syncAction;
   final CanAutoSyncCheck _canAutoSync;
@@ -392,6 +398,7 @@ class SyncController extends ChangeNotifier with WidgetsBindingObserver {
       lastAutoTriggerSkippedForNetwork: false,
     );
     notifyListeners();
+    onResult?.call(result);
     return result;
   }
 
@@ -426,6 +433,7 @@ final syncControllerProvider = Provider<SyncController>((ref) {
       final results = await connectivity.checkConnectivity();
       return results.contains(ConnectivityResult.wifi);
     },
+    onResult: ref.read(attachmentsPulledSignalProvider).onSyncResult,
   );
   ref.onDispose(controller.stop);
   return controller;

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/attachments_pulled_signal.dart';
 import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
 import '../../../../core/data/attachments/video/video_picker.dart';
 import '../../../../core/data/attachments/video/video_platform.dart';
@@ -59,7 +60,7 @@ class VideoTile extends ConsumerWidget {
     return 16 / 9;
   }
 
-  Widget _poster() {
+  Widget _poster(Listenable retryOn) {
     const dark = VideoPosterPlaceholder();
     final bytes = pending?.posterBytes;
     if (bytes != null) {
@@ -73,6 +74,8 @@ class VideoTile extends ConsumerWidget {
         resolver: r,
         fit: BoxFit.cover,
         errorPlaceholder: dark,
+        // The poster can arrive by sync just after the note does.
+        retryOn: retryOn,
       );
     }
     return dark;
@@ -134,7 +137,7 @@ class VideoTile extends ConsumerWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _poster(),
+                  _poster(ref.watch(attachmentsPulledSignalProvider)),
                   const Center(
                     child: DecoratedBox(
                       decoration: BoxDecoration(

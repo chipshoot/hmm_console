@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
+import 'package:hmm_console/core/data/attachments/attachments_pulled_signal.dart';
+import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/data/attachments/video/video_picker.dart';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 import 'package:hmm_console/core/data/attachments/video_attachment.dart';
@@ -157,4 +159,56 @@ void main() {
     // The video's poster and the photo both load through AttachmentImage.
     expect(find.byType(AttachmentImage), findsNWidgets(2));
   });
+
+  testWidgets('a poster that synced in after the first try appears when the '
+      'sync reports downloaded files', (tester) async {
+    final resolver = _LateResolver();
+    await tester.pumpWidget(
+      _wrap(
+        VideoTile(saved: _saved, resolver: resolver),
+        FakeVideoPlatform(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(VideoPosterPlaceholder), findsOneWidget);
+
+    resolver.bytes = _png;
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(VideoTile)),
+    );
+    container
+        .read(attachmentsPulledSignalProvider)
+        .onSyncResult(
+          SyncResult(
+            pulledNotes: 0,
+            pulledAttachments: 1,
+            pushedNotes: 0,
+            pushedAttachments: 0,
+            completedAt: DateTime.utc(2026, 11, 14),
+          ),
+        );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(VideoPosterPlaceholder), findsNothing);
+    expect(find.byType(Image), findsOneWidget);
+  });
 }
+
+class _LateResolver implements IAttachmentResolver {
+  Uint8List? bytes;
+  @override
+  Future<Uint8List?> resolve(AttachmentRef ref) async => bytes;
+}
+
+// 1x1 PNG.
+final Uint8List _png = Uint8List.fromList(<int>[
+  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+  0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+  0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+  0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+  0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+  0x42, 0x60, 0x82,
+]);
