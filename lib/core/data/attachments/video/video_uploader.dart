@@ -84,12 +84,19 @@ class VideoUploader implements VideoUploadRunner {
     _set(path, VideoUploadState(VideoUploadPhase.queued, 0, total));
   }
 
-  Future<void> allowMobileData(String path) async {
+  /// Marks [path] as allowed on mobile data without running the queue; the
+  /// caller then triggers a run (the scheduler, so it holds a background
+  /// task).
+  Future<void> setMobileOk(String path) async {
     final entry = (await _store.read(
       _pid,
     )).where((e) => e.path == path).firstOrNull;
     if (entry == null) return;
     await _store.put(_pid, entry.copyWith(mobileOk: true));
+  }
+
+  Future<void> allowMobileData(String path) async {
+    await setMobileOk(path);
     final running = _running;
     if (running != null) await running;
     await run();
@@ -128,6 +135,13 @@ class VideoUploader implements VideoUploadRunner {
     }
     final file = await _files.localFile(entry.path);
     if (file == null) {
+      await _drop(entry);
+      return true;
+    }
+    // Already in the offload root: a previous run finished the upload and was
+    // killed between offload and drop. Do not upload it again.
+    final offloaded = _files.downloadTarget(entry.path);
+    if (offloaded != null && await offloaded.exists()) {
       await _drop(entry);
       return true;
     }
@@ -186,7 +200,23 @@ class VideoUploader implements VideoUploadRunner {
         final stored = (await _store.read(
           _pid,
         )).where((e) => e.path == entry.path).firstOrNull;
-        if (stored != null && stored.mobileOk != current.mobileOk) {
+        if (stored == null ||
+            await _files.localFile(entry.path) == null ||
+            !(await _referenced()).contains(entry.path)) {
+          // The note was purged (or the file removed) mid-upload: finishing
+          // would leave an orphan in the cloud that nothing ever removes.
+          final session = current.session;
+          if (session != null) {
+            try {
+              await _provider.cancelLargeUpload(session);
+            } catch (e) {
+              debugPrint('Video upload cancel failed: ${e.runtimeType}');
+            }
+          }
+          await _drop(entry);
+          return;
+        }
+        if (stored.mobileOk != current.mobileOk) {
           current = current.copyWith(mobileOk: stored.mobileOk);
         }
         if (!current.mobileOk && !await _unmetered()) {
@@ -248,18 +278,19 @@ Future<bool> _isUnmetered() async {
 /// Null unless the data mode is cloudStorage and the active provider can move
 /// large files and there is an on-disk vault. A FutureProvider because the
 /// vault file store resolves asynchronously.
-final videoUploaderProvider = FutureProvider<VideoUploader?>((ref) async {
-  if (ref.watch(dataModeProvider) != DataMode.cloudStorage) return null;
-  final provider = ref.watch(syncOrchestratorProvider).provider;
-  if (provider == null || !provider.supportsLargeFiles) return null;
-  final files = await ref.watch(vaultFileStoreProvider.future);
-  if (files == null) return null;
-  final db = ref.watch(hmmDatabaseProvider);
-  return VideoUploader(
-    provider: provider,
-    store: VideoUploadQueueStore(),
-    files: files,
-    unmeteredNetwork: _isUnmetered,
-    referencedPaths: () => collectReferencedVaultPaths(db),
-  );
-});
+final FutureProvider<VideoUploader?> videoUploaderProvider =
+    FutureProvider<VideoUploader?>((ref) async {
+      if (ref.watch(dataModeProvider) != DataMode.cloudStorage) return null;
+      final provider = ref.watch(syncOrchestratorProvider).provider;
+      if (provider == null || !provider.supportsLargeFiles) return null;
+      final files = await ref.watch(vaultFileStoreProvider.future);
+      if (files == null) return null;
+      final db = ref.watch(hmmDatabaseProvider);
+      return VideoUploader(
+        provider: provider,
+        store: VideoUploadQueueStore(),
+        files: files,
+        unmeteredNetwork: _isUnmetered,
+        referencedPaths: () => collectReferencedVaultPaths(db),
+      );
+    });

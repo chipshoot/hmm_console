@@ -115,23 +115,24 @@ class VideoUploadScheduler with WidgetsBindingObserver {
   }
 }
 
-final videoUploadSchedulerProvider = Provider<VideoUploadScheduler>((ref) {
-  final controller = ref.watch(syncControllerProvider);
-  final scheduler = VideoUploadScheduler(
-    resolveUploader: () async => ref.read(videoUploaderProvider.future),
-    isSyncing: () => controller.status.isSyncing,
-    platform: ref.watch(videoPlatformProvider),
-    connectivity: Connectivity().onConnectivityChanged,
-  )..attach();
-  void afterSync() => unawaited(scheduler.maybeRun());
-  (controller as Listenable).addListener(afterSync);
-  // A new uploader (data-mode or provider switch) gets its first run here.
-  ref.listen(videoUploaderProvider, (_, next) {
-    if (next.hasValue) afterSync();
-  });
-  ref.onDispose(() {
-    controller.removeListener(afterSync);
-    scheduler.dispose();
-  });
-  return scheduler;
-});
+final Provider<VideoUploadScheduler> videoUploadSchedulerProvider =
+    Provider<VideoUploadScheduler>((ref) {
+      final controller = ref.watch(syncControllerProvider);
+      final scheduler = VideoUploadScheduler(
+        resolveUploader: () async => ref.read(videoUploaderProvider.future),
+        isSyncing: () => controller.status.isSyncing,
+        platform: ref.watch(videoPlatformProvider),
+        connectivity: Connectivity().onConnectivityChanged,
+      )..attach();
+      void afterSync() => unawaited(scheduler.maybeRun());
+      (controller as Listenable).addListener(afterSync);
+      // A new uploader (data-mode or provider switch) gets its first run here.
+      ref.listen<AsyncValue<VideoUploader?>>(videoUploaderProvider, (_, next) {
+        if (next.hasValue) afterSync();
+      });
+      ref.onDispose(() {
+        controller.removeListener(afterSync);
+        scheduler.dispose();
+      });
+      return scheduler;
+    });

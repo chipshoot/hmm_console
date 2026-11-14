@@ -3678,7 +3678,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNoteDetailVideoBody =>
-      'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi, and other devices download it when you tap play. Long press it for Save to Photos, Share or Remove.';
+      'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Save to Photos, Share or Remove.';
 
   @override
   String get notesAddVideoTooltip => 'Add video';

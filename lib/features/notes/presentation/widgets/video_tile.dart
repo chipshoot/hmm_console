@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
@@ -14,6 +15,7 @@ import '../../../../core/data/attachments/video/video_platform.dart';
 import '../../../../core/data/attachments/video/video_uploader.dart';
 import '../../../../core/data/attachments/video_attachment.dart';
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/data/sync/video_upload_scheduler.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../screens/note_editor_screen.dart' show formatVideoSize;
 import 'note_markdown_body.dart' show kInlineImageMaxHeight;
@@ -142,6 +144,7 @@ class VideoTile extends ConsumerWidget {
   Future<void> _askMobileData(
     BuildContext context,
     VideoUploader uploader,
+    VideoUploadScheduler scheduler,
     String path,
     int bytes,
   ) async {
@@ -189,7 +192,18 @@ class VideoTile extends ConsumerWidget {
         ),
       );
     }
-    if (ok == true) unawaited(uploader.allowMobileData(path));
+    if (ok == true) {
+      // Set the flag, then run through the scheduler so the run holds an iOS
+      // background task. Type only in the log: errors can carry URLs.
+      unawaited(() async {
+        try {
+          await uploader.setMobileOk(path);
+          await scheduler.maybeRun();
+        } catch (e) {
+          debugPrint('VideoTile: mobile data upload failed (${e.runtimeType})');
+        }
+      }());
+    }
   }
 
   Widget _chip(String text, {VoidCallback? onTap}) {
@@ -277,31 +291,43 @@ class VideoTile extends ConsumerWidget {
         final label = progress != null
             ? l.notesVideoDownloading('$percent')
             : (fetchable && !stillUp ? l.notesVideoDownload : l.notesVideoPlay);
-        Widget? chip;
+        String? chipText;
+        VoidCallback? chipTap;
         if (stillUp) {
-          chip = _chip(l.notesVideoStillUploading);
+          chipText = l.notesVideoStillUploading;
         } else if (isLocal && up != null) {
           switch (up.phase) {
             case VideoUploadPhase.uploading:
-              chip = _chip(
-                l.notesVideoUploading('${(up.fraction * 100).floor()}'),
+              chipText = l.notesVideoUploading(
+                '${(up.fraction * 100).floor()}',
               );
             case VideoUploadPhase.waitingForWifi:
-              chip = _chip(
-                l.notesVideoWaitingForWifi,
-                onTap: () =>
-                    _askMobileData(context, uploader!, path!, up.total),
+              chipText = l.notesVideoWaitingForWifi;
+              chipTap = () => _askMobileData(
+                context,
+                uploader!,
+                ref.read(videoUploadSchedulerProvider),
+                path!,
+                up.total,
               );
             case VideoUploadPhase.failed:
-              chip = _chip(l.notesVideoUploadRetry);
+              chipText = l.notesVideoUploadRetry;
             case VideoUploadPhase.queued:
               break;
           }
         }
+        final chip = chipText == null ? null : _chip(chipText, onTap: chipTap);
         return Semantics(
           button: true,
-          label: label,
+          // The chips are excluded below, so their text joins the label.
+          label: chipText == null ? label : '$label, $chipText',
           excludeSemantics: true,
+          customSemanticsActions: chipTap == null
+              ? null
+              : {
+                  CustomSemanticsAction(label: l.notesVideoMobileDataUpload):
+                      chipTap,
+                },
           onTap: () => _play(context, ref),
           onLongPress: longPress,
           child: ConstrainedBox(

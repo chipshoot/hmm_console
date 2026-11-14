@@ -3516,7 +3516,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNoteDetailVideoBody =>
-      '轻点视频即可全屏播放。启用 OneDrive 同步后，视频会在 Wi-Fi 下上传，其他设备轻点播放时再下载。长按可存储到照片、分享或移除。';
+      '轻点视频即可全屏播放。启用 OneDrive 同步后，视频会在 Wi-Fi 下上传（轻点“等待 Wi-Fi”可立即使用移动数据上传）；上传完成前，其他设备会显示“另一台设备仍在上传”，完成后轻点播放即可下载。长按可存储到照片、分享或移除。';
 
   @override
   String get notesAddVideoTooltip => '添加视频';

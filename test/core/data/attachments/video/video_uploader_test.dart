@@ -13,8 +13,10 @@ class _FakeFiles implements IVaultFileStore {
   final File? file;
   final offloaded = <String>[];
   Object? offloadError;
+  File? target;
   @override
-  Future<File?> localFile(String p) async => file;
+  Future<File?> localFile(String p) async =>
+      (file?.existsSync() ?? false) ? file : null;
   @override
   Future<void> offload(String p) async {
     if (offloadError != null) throw offloadError!;
@@ -24,7 +26,7 @@ class _FakeFiles implements IVaultFileStore {
   @override
   Future<void> importFile(String p, File s) async {}
   @override
-  File? downloadTarget(String p) => null;
+  File? downloadTarget(String p) => target;
 }
 
 class _FakeProvider extends CloudSyncProvider {
@@ -252,5 +254,50 @@ void main() {
     expect(st.phase, VideoUploadPhase.waitingForWifi);
     expect(st.sent, 10);
     expect((await store.read('fake')).single.sent, 10);
+  });
+
+  test('a file deleted between chunks cancels the session and drops', () async {
+    final u = make();
+    await u.enqueue('v.mp4');
+    provider.afterChunk = () => video.deleteSync();
+    await u.run();
+    expect(provider.chunks, hasLength(1));
+    expect(provider.cancelled, ['s1']);
+    expect(await store.read('fake'), isEmpty);
+    expect(u.states.value, isEmpty);
+    expect(files.offloaded, isEmpty);
+  });
+
+  test('a path unreferenced between chunks cancels and drops', () async {
+    final u = make();
+    await u.enqueue('v.mp4');
+    provider.afterChunk = () => referenced = {};
+    await u.run();
+    expect(provider.chunks, hasLength(1));
+    expect(provider.cancelled, ['s1']);
+    expect(await store.read('fake'), isEmpty);
+    expect(u.states.value, isEmpty);
+  });
+
+  test('an already offloaded file is dropped without uploading', () async {
+    final offRoot = File('${dir.path}/off.mp4')..writeAsBytesSync([1, 2, 3]);
+    files.target = offRoot;
+    final u = make();
+    await u.enqueue('v.mp4');
+    await u.run();
+    expect(provider.started, 0);
+    expect(provider.chunks, isEmpty);
+    expect(files.offloaded, isEmpty);
+    expect(await store.read('fake'), isEmpty);
+    expect(u.states.value, isEmpty);
+  });
+
+  test('setMobileOk only sets the flag and does not run', () async {
+    unmetered = false;
+    final u = make();
+    await u.enqueue('v.mp4');
+    await u.setMobileOk('v.mp4');
+    expect(provider.chunks, isEmpty);
+    expect((await store.read('fake')).single.mobileOk, isTrue);
   });
 }

@@ -16,6 +16,7 @@ import 'package:hmm_console/core/data/attachments/video/video_picker.dart';
 import 'package:hmm_console/core/data/attachments/video/video_uploader.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
+import 'package:hmm_console/core/data/sync/video_upload_scheduler.dart';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 import 'package:hmm_console/core/data/attachments/video_attachment.dart';
 import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
@@ -90,6 +91,13 @@ class _FakeUploader implements VideoUploader {
   ValueListenable<Map<String, VideoUploadState>> get states => _s;
   @override
   Future<void> allowMobileData(String path) async => allowed.add(path);
+  Object? setMobileOkError;
+  @override
+  Future<void> setMobileOk(String path) async {
+    if (setMobileOkError != null) throw setMobileOkError!;
+    allowed.add(path);
+  }
+
   @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
 }
@@ -125,8 +133,11 @@ Widget _wrapCloud(
   DataMode mode = DataMode.cloudStorage,
   File? file,
   CloudSyncProvider? cloud,
+  VideoUploadScheduler? scheduler,
 }) => ProviderScope(
   overrides: [
+    if (scheduler != null)
+      videoUploadSchedulerProvider.overrideWithValue(scheduler),
     videoCloudProvider.overrideWithValue(cloud ?? _CloudProv()),
     videoPlatformProvider.overrideWithValue(platform),
     vaultFileStoreProvider.overrideWith((ref) async => _Files(file)),
@@ -218,11 +229,22 @@ void main() {
     late Completer<VideoFetchResult> gate;
     late _FakeDownloads downloads;
     late FakeVideoPlatform platform;
+    late int schedulerRuns;
+    late VideoUploadScheduler scheduler;
 
     setUp(() {
       uploader = _FakeUploader();
       index = RemoteVideoIndex();
       platform = FakeVideoPlatform();
+      schedulerRuns = 0;
+      scheduler = VideoUploadScheduler(
+        resolveUploader: () async {
+          schedulerRuns++;
+          return null;
+        },
+        isSyncing: () => false,
+        platform: platform,
+      );
     });
 
     Future<void> pumpTile(
@@ -246,6 +268,7 @@ void main() {
           file: file,
           mode: mode,
           cloud: cloud,
+          scheduler: scheduler,
         ),
       );
       await tester.pump();
@@ -260,15 +283,15 @@ void main() {
       expect(find.text('Uploading 34%'), findsOneWidget);
     });
 
-    testWidgets('waiting chip opens the mobile-data dialog and Upload calls '
-        'allowMobileData', (tester) async {
-      uploader._s.value = {
-        path: const VideoUploadState(
-          VideoUploadPhase.waitingForWifi,
-          0,
-          5 * 1024 * 1024,
-        ),
-      };
+    const waiting = VideoUploadState(
+      VideoUploadPhase.waitingForWifi,
+      0,
+      5 * 1024 * 1024,
+    );
+
+    testWidgets('waiting chip opens the mobile-data dialog; Upload sets the '
+        'flag and runs through the scheduler', (tester) async {
+      uploader._s.value = {path: waiting};
       await pumpTile(tester, file: File('/v/u1.mov'));
       await tester.tap(find.text('Waiting for Wi-Fi'));
       await tester.pumpAndSettle();
@@ -277,6 +300,63 @@ void main() {
       await tester.tap(find.text('Upload now using mobile data'));
       await tester.pumpAndSettle();
       expect(uploader.allowed, [path]);
+      expect(schedulerRuns, 1);
+    });
+
+    testWidgets('a failing setMobileOk is caught and does not run', (
+      tester,
+    ) async {
+      uploader._s.value = {path: waiting};
+      uploader.setMobileOkError = StateError('https://secret.example/x');
+      final logs = <String>[];
+      final old = debugPrint;
+      debugPrint = (m, {wrapWidth}) => logs.add(m ?? '');
+      await pumpTile(tester, file: File('/v/u1.mov'));
+      await tester.tap(find.text('Waiting for Wi-Fi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Upload now using mobile data'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(schedulerRuns, 0);
+      expect(logs.any((l) => l.contains('StateError')), isTrue);
+      expect(logs.any((l) => l.contains('secret')), isFalse);
+      debugPrint = old;
+    });
+
+    testWidgets('the semantics label carries the chip text', (tester) async {
+      final handle = tester.ensureSemantics();
+      uploader._s.value = {
+        path: const VideoUploadState(VideoUploadPhase.uploading, 34, 100),
+      };
+      await pumpTile(tester, file: File('/v/u1.mov'));
+      final node = tester.getSemantics(find.byType(VideoTile));
+      expect(node.label, contains('Uploading 34%'));
+      handle.dispose();
+    });
+
+    testWidgets('waiting state exposes a custom action that opens the dialog', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      uploader._s.value = {path: waiting};
+      await pumpTile(tester, file: File('/v/u1.mov'));
+      final node = tester.getSemantics(find.byType(VideoTile));
+      expect(node.label, contains('Waiting for Wi-Fi'));
+      expect(node.getSemanticsData().customSemanticsActionIds, isNotEmpty);
+      final id = node.getSemanticsData().customSemanticsActionIds!.single;
+      final action = CustomSemanticsAction.getAction(id)!;
+      expect(action.label, 'Upload now using mobile data');
+      tester.binding.performSemanticsAction(
+        SemanticsActionEvent(
+          type: SemanticsAction.customAction,
+          viewId: tester.view.viewId,
+          nodeId: node.id,
+          arguments: id,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Upload over mobile data?'), findsOneWidget);
+      handle.dispose();
     });
 
     testWidgets('play before upload finishes says still uploading', (
