@@ -60,6 +60,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app uses your location to find nearby gas stations.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Hmm saves videos from your notes to your photo library when you ask it to.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Hmm uses your photo library so you can attach photos to your vehicles and other records.</string>
 	<key>NSCameraUsageDescription</key>
