@@ -187,6 +187,14 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
   Future<HmmNote> updateNote(int id, HmmNoteUpdate patch) async {
     if (patch.isEmpty) return (await getNoteById(id))!;
     final author = await _currentAuthor();
+    final current = await (_db.select(_db.notes)
+          ..where((n) => n.id.equals(id) & n.authorId.equals(author.id)))
+        .getSingleOrNull();
+    // A save that changes nothing is not an edit: bumping lastModifiedDate
+    // would let it win last-writer-wins over a delete made on another device.
+    if (current != null && !_changes(current, patch)) {
+      return HmmNoteMapper.fromDriftRow(current);
+    }
     final now = DateTime.now().toUtc();
     await (_db.update(_db.notes)
           ..where((n) => n.id.equals(id) & n.authorId.equals(author.id)))
@@ -223,6 +231,35 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
     return note;
   }
 
+  /// Whether [patch] would change any stored value of [row]. Text compares
+  /// null and empty as equal; dates compare to the whole second (Drift
+  /// stores DateTime as unix seconds).
+  static bool _changes(Note row, HmmNoteUpdate patch) {
+    bool text(String? next, String? stored) =>
+        next != null && next != (stored ?? '');
+    int? secs(DateTime? d) =>
+        d == null ? null : d.millisecondsSinceEpoch ~/ 1000;
+    if (patch.subject != null && patch.subject != row.subject) return true;
+    if (text(patch.content, row.content)) return true;
+    if (text(patch.description, row.description)) return true;
+    if (patch.attachments != null &&
+        NoteAttachmentsCodec.encode(patch.attachments!) != row.attachments) {
+      return true;
+    }
+    if (patch.noteDate != null &&
+        secs(patch.noteDate) != secs(row.noteDate ?? row.createDate)) {
+      return true;
+    }
+    final loc = patch.location;
+    if (loc != null &&
+        (loc.latitude != row.latitude ||
+            loc.longitude != row.longitude ||
+            loc.label != row.locationLabel)) {
+      return true;
+    }
+    return false;
+  }
+
   @override
   Future<void> deleteNote(int id) async {
     final author = await _currentAuthor();
@@ -233,6 +270,9 @@ class LocalHmmNoteRepository implements IHmmNoteRepository {
       deletedAt: Value(now),
       lastModifiedDate: Value(now),
     ));
+    // Sync the delete promptly, like any other edit, so another device's
+    // later save cannot overwrite it before it reaches the cloud.
+    _onLocalWrite?.call();
   }
 
   @override

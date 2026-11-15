@@ -555,6 +555,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesKeepAttached => 'Keep attached';
 
   @override
+  String get notesDeletedElsewhereTitle => 'Deleted on another device';
+
+  @override
+  String get notesDeletedElsewhereBody =>
+      'This note was deleted on another device while you were editing it. Restore it with your changes, or discard your changes and leave it in Recently Deleted.';
+
+  @override
+  String get notesDeletedElsewhereRestore => 'Restore and save';
+
+  @override
+  String get notesDeletedElsewhereDiscard => 'Discard changes';
+
+  @override
   String get notesEditAction => 'Edit';
 
   @override

@@ -534,6 +534,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesKeepAttached => '保留附件';
 
   @override
+  String get notesDeletedElsewhereTitle => '已在其他设备上删除';
+
+  @override
+  String get notesDeletedElsewhereBody =>
+      '你编辑时，这条笔记已在其他设备上被删除。可以恢复它并保存你的修改，或放弃修改，让它留在“最近删除”中。';
+
+  @override
+  String get notesDeletedElsewhereRestore => '恢复并保存';
+
+  @override
+  String get notesDeletedElsewhereDiscard => '放弃修改';
+
+  @override
   String get notesEditAction => '编辑';
 
   @override

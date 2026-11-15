@@ -76,6 +76,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool _busy = false;
   bool _loaded = false;
 
+  // The existing note as loaded, to tell whether this session edited it.
+  String _loadedSubject = '';
+  String _loadedBody = '';
+  DateTime? _loadedNoteDate;
+  int? _loadedParentId;
+
   /// Reusable inline-image capability: stages picked bytes + inserts placeholders
   /// for the live preview, and on save persists the picks and rewrites the body's
   /// `pending/<uuid>` placeholders to real vault paths.
@@ -208,6 +214,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       _subjectCtrl.text = note.subject;
       _bodyCtrl.text = note.content ?? '';
       _noteDate = note.effectiveNoteDate.toLocal();
+      _loadedSubject = note.subject;
+      _loadedBody = note.content ?? '';
+      _loadedNoteDate = _noteDate;
+      _loadedParentId = note.parentNoteId;
       _savedAttachments = note.effectiveAttachments;
       _loadedInlinePaths = imageRefPathsIn(note.content ?? '');
       _savedImages = [
@@ -253,6 +263,66 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
+  /// Whether this session changed an existing note: its fields as loaded,
+  /// or anything staged to attach. Images and videos added or removed show
+  /// up as body changes (their lines live in the body).
+  bool get _hasEdits {
+    int secs(DateTime? d) => (d?.millisecondsSinceEpoch ?? 0) ~/ 1000;
+    return _subjectCtrl.text.trim() != _loadedSubject.trim() ||
+        _bodyCtrl.text != _loadedBody ||
+        secs(_noteDate) != secs(_loadedNoteDate) ||
+        _locationCleared ||
+        (_parentTouched && _parentId != _loadedParentId) ||
+        _tagsChanged ||
+        _pendingFiles.isNotEmpty ||
+        _pendingVideos.isNotEmpty;
+  }
+
+  /// Asks what to do with this session's edits when the note was deleted on
+  /// another device meanwhile. True = restore it and save; false = discard.
+  Future<bool> _confirmDeletedElsewhere() async {
+    final l = AppLocalizations.of(context);
+    final platform = Theme.of(context).platform;
+    final isApple =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    final res = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => isApple
+          ? CupertinoAlertDialog(
+              title: Text(l.notesDeletedElsewhereTitle),
+              content: Text(l.notesDeletedElsewhereBody),
+              actions: [
+                CupertinoDialogAction(
+                  isDestructiveAction: true,
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(l.notesDeletedElsewhereDiscard),
+                ),
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(l.notesDeletedElsewhereRestore),
+                ),
+              ],
+            )
+          : AlertDialog(
+              title: Text(l.notesDeletedElsewhereTitle),
+              content: Text(l.notesDeletedElsewhereBody),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(l.notesDeletedElsewhereDiscard),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(l.notesDeletedElsewhereRestore),
+                ),
+              ],
+            ),
+    );
+    return res ?? false;
+  }
+
   bool get _tagsChanged {
     if (!_tagsLoaded) return false;
     Set<String> keys(List<String> v) => {
@@ -288,6 +358,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text(l.notesSubjectRequired)));
       return null;
+    }
+    // Deleted on another device while open here (the delete synced in).
+    // Nothing edited: just close, so it stays in Recently Deleted. Edited:
+    // ask whether to restore it with the edits or discard them.
+    if (widget.noteId != null && _noteId != null) {
+      final fresh = await ref
+          .read(hmmNoteRepositoryProvider)
+          .getNoteById(_noteId!);
+      if (!mounted) return null;
+      if (fresh != null && fresh.isDeleted) {
+        if (!_hasEdits) return _noteId;
+        final restore = await _confirmDeletedElsewhere();
+        if (!mounted) return null;
+        if (!restore) return _noteId;
+        await ref.read(mutateNoteProvider).restore(_noteId!);
+        if (!mounted) return null;
+      }
     }
     // Save-time-lock guard (Task B5, binding constraint): a sensitive pick
     // must be persisted only while the vault is unlocked. Checked BEFORE any

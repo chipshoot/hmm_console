@@ -128,6 +128,10 @@ Given a local record `L` and a remote record `R` for the same id:
 
 **Deletion takes priority when timestamps match** (defensive): if either side says `deleted=true` at the same `updated_at`, the merged record is deleted. (Edge case; unlikely in practice.)
 
+**Delete vs. edit (notes, 2026-11-14).** A save that changes nothing is not an edit: `updateNote` skips the write, so it never bumps `updated_at` or outranks a delete made elsewhere. A delete triggers the debounced auto-sync like any other edit. When the delete has already synced in while the note is open in the editor, Save with edits asks: restore it and save, or discard the edits and leave it deleted.
+
+**On hold — edit saved before the delete arrives.** Device B edits and saves a note (offline, or before its next pull) after device A deleted it. B's edit is newer, so LWW keeps it and the note comes back on A, with no prompt. The wanted behaviour is to ask B's user (restore with my edits / discard and keep deleted). That needs the pull to detect "remote tombstone vs. unsynced local edit", keep both versions until the user decides, and a resolve prompt that can surface from any screen. It changes merge semantics, so it is parked until it gets its own design.
+
 ---
 
 ## 7. Garbage Collection
