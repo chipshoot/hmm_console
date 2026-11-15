@@ -737,7 +737,7 @@
   "helpContactDetailCallTitle": "拨打电话",
   "helpContactDetailCallBody": "点按电话号码即可拨打。",
   "helpContactDetailMapTitle": "在地图中打开",
-  "helpContactDetailMapBody": "点按地址，在地图中查看。",
+  "helpContactDetailMapBody": "点按地址，在地图中查看。中文地址会在 Google 地图中打开（如已安装则打开其应用），因为苹果地图无法准确找到中文地址。",
   "helpContactDetailEditTitle": "编辑",
   "helpContactDetailEditBody": "修改联系人的名称、详细信息或关系。",
   "helpContactDetailRemoveTitle": "移除",

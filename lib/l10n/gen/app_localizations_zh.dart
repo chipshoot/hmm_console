@@ -2400,7 +2400,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpContactDetailMapTitle => '在地图中打开';
 
   @override
-  String get helpContactDetailMapBody => '点按地址，在地图中查看。';
+  String get helpContactDetailMapBody =>
+      '点按地址，在地图中查看。中文地址会在 Google 地图中打开（如已安装则打开其应用），因为苹果地图无法准确找到中文地址。';
 
   @override
   String get helpContactDetailEditTitle => '编辑';

@@ -2468,7 +2468,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get helpContactDetailMapTitle => 'Open in maps';
 
   @override
-  String get helpContactDetailMapBody => 'Tap an address to see it on a map.';
+  String get helpContactDetailMapBody =>
+      'Tap an address to see it on a map. Addresses written in Chinese open in Google Maps (the app if installed), which finds Chinese addresses that Apple Maps can\'t.';
 
   @override
   String get helpContactDetailEditTitle => 'Edit';
