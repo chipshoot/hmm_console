@@ -968,6 +968,7 @@
   "notesShareFrom": "请在{place}中分享",
   "@notesShareFrom": {"placeholders": {"place": {"type": "String"}}},
   "notesShareFailed": "无法分享笔记",
+  "notesShareVideoLabel": "视频",
   "notesAttachToAction": "附加到…",
   "notesAttached": "已附加到“{title}”",
   "@notesAttached": {"placeholders": {"title": {"type": "String"}}},

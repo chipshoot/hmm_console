@@ -3175,6 +3175,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesShareFailed => '无法分享笔记';
 
   @override
+  String get notesShareVideoLabel => '视频';
+
+  @override
   String get notesAttachToAction => '附加到…';
 
   @override

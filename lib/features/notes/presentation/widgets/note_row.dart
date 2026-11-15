@@ -14,7 +14,9 @@ import '../../../../core/notes/catalog_palette.dart';
 import '../../../../core/settings/app_settings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../../../core/data/attachments/video_attachment.dart';
 import '../../query/note_results.dart';
+import 'video_tile.dart';
 import '../../rendering/note_display.dart';
 import '../catalog_labels.dart';
 import 'note_flag_sheet.dart' show noteFlagColorLabel;
@@ -322,7 +324,7 @@ class NoteRow extends ConsumerWidget {
             apple: CupertinoIcons.videocam,
           ),
         ),
-        TextSpan(text: ' ${a.videos.length}'),
+        TextSpan(text: ' ${videoListMark(a.videos)}'),
       ]);
     }
     if (note.location != null) {
@@ -436,4 +438,17 @@ class NoteRow extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// The video part of a notes-list meta line: one video shows its length
+/// (`0:48`); several show the count and the total of their known lengths
+/// (`3 · 2:15`); with no known length, just the count.
+String videoListMark(List<VideoAttachment> videos) {
+  final known = videos.map((v) => v.durationMs).nonNulls.toList();
+  final total = known.fold<int>(0, (a, b) => a + b);
+  if (videos.length == 1) {
+    return known.isEmpty ? '1' : VideoTile.formatLength(total);
+  }
+  if (known.isEmpty) return '${videos.length}';
+  return '${videos.length} · ${VideoTile.formatLength(total)}';
 }

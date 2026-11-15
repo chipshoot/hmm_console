@@ -5888,6 +5888,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t share the note'**
   String get notesShareFailed;
 
+  /// No description provided for @notesShareVideoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get notesShareVideoLabel;
+
   /// No description provided for @notesAttachToAction.
   ///
   /// In en, this message translates to:

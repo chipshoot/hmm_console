@@ -3285,6 +3285,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesShareFailed => 'Couldn\'t share the note';
 
   @override
+  String get notesShareVideoLabel => 'Video';
+
+  @override
   String get notesAttachToAction => 'Attach to…';
 
   @override

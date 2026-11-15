@@ -1546,6 +1546,7 @@
   "notesShareFrom": "Share from {place}",
   "@notesShareFrom": {"placeholders": {"place": {"type": "String"}}},
   "notesShareFailed": "Couldn't share the note",
+  "notesShareVideoLabel": "Video",
   "notesAttachToAction": "Attach to…",
   "notesAttached": "Attached to \"{title}\"",
   "@notesAttached": {"placeholders": {"title": {"type": "String"}}},
