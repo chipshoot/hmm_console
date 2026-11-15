@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../attachments/video/video_cache.dart';
 import '../attachments/video/video_platform.dart';
 import '../attachments/video/video_uploader.dart';
 import 'sync_controller.dart';
@@ -24,15 +25,19 @@ class VideoUploadScheduler with WidgetsBindingObserver {
     required bool Function() isSyncing,
     required VideoPlatform platform,
     Stream<List<ConnectivityResult>>? connectivity,
+    Future<void> Function()? onAttach,
   }) : _resolve = resolveUploader,
        _isSyncing = isSyncing,
        _platform = platform,
-       _connectivity = connectivity;
+       _connectivity = connectivity,
+       _onAttach = onAttach;
 
   final Future<VideoUploadRunner?> Function() _resolve;
   final bool Function() _isSyncing;
   final VideoPlatform _platform;
   final Stream<List<ConnectivityResult>>? _connectivity;
+  final Future<void> Function()? _onAttach;
+  bool _onAttachRan = false;
 
   StreamSubscription<List<ConnectivityResult>>? _sub;
   VideoUploadRunner? _loaded;
@@ -44,6 +49,10 @@ class VideoUploadScheduler with WidgetsBindingObserver {
   void attach() {
     if (_attached) return;
     _attached = true;
+    if (!_onAttachRan) {
+      _onAttachRan = true;
+      unawaited(_runOnAttach());
+    }
     WidgetsBinding.instance.addObserver(this);
     _sub = _connectivity?.listen((results) {
       if (results.contains(ConnectivityResult.wifi) ||
@@ -51,6 +60,16 @@ class VideoUploadScheduler with WidgetsBindingObserver {
         unawaited(maybeRun());
       }
     });
+  }
+
+  Future<void> _runOnAttach() async {
+    try {
+      await _onAttach?.call();
+    } catch (e) {
+      debugPrint(
+        'VideoUploadScheduler: launch sweep failed (${e.runtimeType})',
+      );
+    }
   }
 
   void dispose() {
@@ -123,6 +142,11 @@ final Provider<VideoUploadScheduler> videoUploadSchedulerProvider =
         isSyncing: () => controller.status.isSyncing,
         platform: ref.watch(videoPlatformProvider),
         connectivity: Connectivity().onConnectivityChanged,
+        onAttach: () async {
+          final cache = await ref.read(videoCacheProvider.future);
+          await cache?.sweepStaleParts();
+          await cache?.evictToFit();
+        },
       )..attach();
       void afterSync() => unawaited(scheduler.maybeRun());
       (controller as Listenable).addListener(afterSync);

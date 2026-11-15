@@ -56,6 +56,40 @@ void main() {
     expect(runner.runs, 2);
   });
 
+  test(
+    'onAttach runs once on the first attach, not on later attaches',
+    () async {
+      var calls = 0;
+      final s = VideoUploadScheduler(
+        resolveUploader: () async => runner,
+        isSyncing: () => false,
+        platform: platform,
+        onAttach: () async => calls++,
+      );
+      s.attach();
+      s.attach();
+      await pumpEventQueue();
+      expect(calls, 1);
+      s.dispose();
+      s.attach();
+      await pumpEventQueue();
+      expect(calls, 1);
+      s.dispose();
+    },
+  );
+
+  test('a throwing onAttach does not stop attach', () async {
+    final s = VideoUploadScheduler(
+      resolveUploader: () async => runner,
+      isSyncing: () => false,
+      platform: platform,
+      onAttach: () async => throw StateError('x'),
+    );
+    s.attach();
+    await pumpEventQueue();
+    s.dispose();
+  });
+
   test('runs on resume', () async {
     scheduler.didChangeAppLifecycleState(AppLifecycleState.resumed);
     await pumpEventQueue();

@@ -9,6 +9,7 @@ import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachments_pulled_signal.dart';
 import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
 import '../../../../core/data/attachments/video/remote_video_index.dart';
+import '../../../../core/data/attachments/video/video_cache.dart';
 import '../../../../core/data/attachments/video/video_downloads.dart';
 import '../../../../core/data/attachments/video/video_picker.dart';
 import '../../../../core/data/attachments/video/video_platform.dart';
@@ -135,6 +136,7 @@ class VideoTile extends ConsumerWidget {
         }
       }
       if (file == null) return;
+      unawaited(touchVideo(ref.read(videoCacheIndexProvider.future), path));
       unawaited(platform.play(file.path));
     } catch (e) {
       debugPrint('VideoTile: play failed (${e.runtimeType})');

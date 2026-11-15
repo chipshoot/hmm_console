@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -135,3 +136,20 @@ final videoCacheProvider = FutureProvider<VideoCache?>((ref) async {
     },
   );
 });
+
+/// Records that [path] was just used and, when [cache] is given, trims the
+/// cache with [path] protected. Best effort: a cache failure never reaches
+/// callers.
+Future<void> touchVideo(
+  Future<VideoCacheIndex> index,
+  String path, {
+  Future<VideoCache?> Function()? cache,
+}) async {
+  try {
+    (await index).touch(path);
+    if (cache == null) return;
+    await (await cache())?.evictToFit(protect: {path});
+  } catch (e) {
+    debugPrint('Video cache update failed (${e.runtimeType})');
+  }
+}

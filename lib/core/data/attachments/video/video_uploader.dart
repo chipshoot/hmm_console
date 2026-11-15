@@ -12,6 +12,7 @@ import '../../vault/vault_file_store.dart';
 import '../../vault/vault_gc.dart';
 import '../attachment_providers.dart';
 import '../../sync/video_upload_scheduler.dart' show VideoUploadRunner;
+import 'video_cache.dart';
 import 'video_upload_queue.dart';
 
 enum VideoUploadPhase { queued, waitingForWifi, uploading, failed }
@@ -36,12 +37,14 @@ class VideoUploader implements VideoUploadRunner {
     required Future<bool> Function() unmeteredNetwork,
     required Future<Set<String>> Function() referencedPaths,
     int fragmentBytes = kUploadFragmentBytes,
+    Future<void> Function(String path)? onOffloaded,
   }) : _provider = provider,
        _store = store,
        _files = files,
        _unmetered = unmeteredNetwork,
        _referenced = referencedPaths,
-       _fragment = fragmentBytes;
+       _fragment = fragmentBytes,
+       _onOffloaded = onOffloaded;
 
   final CloudSyncProvider _provider;
   final VideoUploadQueueStore _store;
@@ -49,6 +52,7 @@ class VideoUploader implements VideoUploadRunner {
   final Future<bool> Function() _unmetered;
   final Future<Set<String>> Function() _referenced;
   final int _fragment;
+  final Future<void> Function(String path)? _onOffloaded;
 
   final _states = ValueNotifier<Map<String, VideoUploadState>>(const {});
   Future<void>? _running;
@@ -262,6 +266,11 @@ class VideoUploader implements VideoUploadRunner {
     // The upload is complete; a failed offload must not cause a re-upload.
     try {
       await _files.offload(entry.path);
+      try {
+        await _onOffloaded?.call(entry.path);
+      } catch (e) {
+        debugPrint('Video cache update failed: ${e.runtimeType}');
+      }
     } catch (e) {
       debugPrint('Video offload failed: ${e.runtimeType}');
     }
@@ -292,5 +301,10 @@ final FutureProvider<VideoUploader?> videoUploaderProvider =
         files: files,
         unmeteredNetwork: _isUnmetered,
         referencedPaths: () => collectReferencedVaultPaths(db),
+        onOffloaded: (p) => touchVideo(
+          ref.read(videoCacheIndexProvider.future),
+          p,
+          cache: () => ref.read(videoCacheProvider.future),
+        ),
       );
     });
