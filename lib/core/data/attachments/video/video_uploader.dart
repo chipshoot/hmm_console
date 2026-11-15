@@ -278,7 +278,8 @@ class VideoUploader implements VideoUploadRunner {
   }
 }
 
-Future<bool> _isUnmetered() async {
+/// True on Wi-Fi or ethernet. Shared by the uploader and Keep offline.
+Future<bool> isUnmeteredNetwork() async {
   final r = await Connectivity().checkConnectivity();
   return r.contains(ConnectivityResult.wifi) ||
       r.contains(ConnectivityResult.ethernet);
@@ -299,7 +300,7 @@ final FutureProvider<VideoUploader?> videoUploaderProvider =
         provider: provider,
         store: VideoUploadQueueStore(),
         files: files,
-        unmeteredNetwork: _isUnmetered,
+        unmeteredNetwork: isUnmeteredNetwork,
         referencedPaths: () => collectReferencedVaultPaths(db),
         onOffloaded: (p) => touchVideo(
           ref.read(videoCacheIndexProvider.future),

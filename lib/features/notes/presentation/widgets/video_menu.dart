@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/video/keep_offline.dart';
 import '../../../../core/data/attachments/video/video_downloads.dart';
 import '../../../../core/data/attachments/video/video_platform.dart';
 import '../../../../core/data/attachments/attachment_ref.dart'
@@ -19,9 +20,9 @@ import '../../states/mutate_note_state.dart';
 import '../screens/note_detail_screen.dart' show noteDetailProvider;
 import 'note_actions_menu.dart' show shareOriginFor;
 
-enum _VideoAction { save, share, remove }
+enum _VideoAction { keepOffline, save, share, remove }
 
-/// Long-press menu of a saved video: Save to Photos, Share…, Remove from note.
+/// Long-press menu of a saved video: Keep offline, Save to Photos, Share…, Remove from note.
 Future<void> showVideoMenu(
   BuildContext context,
   WidgetRef ref, {
@@ -33,12 +34,28 @@ Future<void> showVideoMenu(
   final apple =
       platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
   final origin = shareOriginFor(context, context);
+  // Only offered when videos are cached on this device (cloudStorage).
+  KeepOffline? keep;
+  try {
+    keep = await ref.read(keepOfflineProvider.future);
+  } catch (_) {
+    keep = null;
+  }
+  if (!context.mounted) return;
+  final kept = keep?.isKept(video.video.path) ?? false;
   final _VideoAction? choice;
   if (apple) {
     choice = await showCupertinoModalPopup<_VideoAction>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
         actions: [
+          if (keep != null)
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(ctx, _VideoAction.keepOffline),
+              child: Text(
+                kept ? '✓ ${l.notesVideoKeepOffline}' : l.notesVideoKeepOffline,
+              ),
+            ),
           CupertinoActionSheetAction(
             onPressed: () => Navigator.pop(ctx, _VideoAction.save),
             child: Text(l.notesVideoSaveToPhotos),
@@ -66,6 +83,13 @@ Future<void> showVideoMenu(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (keep != null)
+              ListTile(
+                leading: const Icon(Icons.download_for_offline_outlined),
+                title: Text(l.notesVideoKeepOffline),
+                trailing: kept ? const Icon(Icons.check) : null,
+                onTap: () => Navigator.pop(ctx, _VideoAction.keepOffline),
+              ),
             ListTile(
               leading: const Icon(Icons.save_alt),
               title: Text(l.notesVideoSaveToPhotos),
@@ -88,12 +112,33 @@ Future<void> showVideoMenu(
   }
   if (choice == null || !context.mounted) return;
   switch (choice) {
+    case _VideoAction.keepOffline:
+      await _toggleKeepOffline(context, keep, video, !kept);
     case _VideoAction.save:
       await _save(context, ref, video);
     case _VideoAction.share:
       await _share(context, ref, video, origin);
     case _VideoAction.remove:
       await _remove(context, ref, noteId, video);
+  }
+}
+
+Future<void> _toggleKeepOffline(
+  BuildContext context,
+  KeepOffline? keep,
+  VideoAttachment video,
+  bool kept,
+) async {
+  if (keep == null) return;
+  final l = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await keep.set(video.video.path, kept);
+  } catch (e) {
+    debugPrint('keep offline failed (${e.runtimeType})');
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l.notesVideoKeepOfflineFailed)));
   }
 }
 

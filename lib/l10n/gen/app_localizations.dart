@@ -6380,6 +6380,18 @@ abstract class AppLocalizations {
   /// **'Save to Photos'**
   String get notesVideoSaveToPhotos;
 
+  /// No description provided for @notesVideoKeepOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep offline'**
+  String get notesVideoKeepOffline;
+
+  /// No description provided for @notesVideoKeepOfflineFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not change Keep offline'**
+  String get notesVideoKeepOfflineFailed;
+
   /// No description provided for @notesVideoShare.
   ///
   /// In en, this message translates to:
@@ -6515,7 +6527,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNoteDetailVideoBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Save to Photos, Share or Remove.'**
+  /// **'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Keep offline, Save to Photos, Share or Remove. Choose Keep offline to store it on this device for good.'**
   String get helpNoteDetailVideoBody;
 
   /// No description provided for @notesAddVideoTooltip.

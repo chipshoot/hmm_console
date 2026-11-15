@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../attachments/video/keep_offline.dart';
 import '../attachments/video/video_cache.dart';
 import '../attachments/video/video_platform.dart';
 import '../attachments/video/video_uploader.dart';
@@ -26,17 +27,20 @@ class VideoUploadScheduler with WidgetsBindingObserver {
     required VideoPlatform platform,
     Stream<List<ConnectivityResult>>? connectivity,
     Future<void> Function()? onAttach,
+    Future<void> Function()? fetchMissing,
   }) : _resolve = resolveUploader,
        _isSyncing = isSyncing,
        _platform = platform,
        _connectivity = connectivity,
-       _onAttach = onAttach;
+       _onAttach = onAttach,
+       _fetchMissing = fetchMissing;
 
   final Future<VideoUploadRunner?> Function() _resolve;
   final bool Function() _isSyncing;
   final VideoPlatform _platform;
   final Stream<List<ConnectivityResult>>? _connectivity;
   final Future<void> Function()? _onAttach;
+  final Future<void> Function()? _fetchMissing;
   bool _onAttachRan = false;
 
   StreamSubscription<List<ConnectivityResult>>? _sub;
@@ -68,6 +72,17 @@ class VideoUploadScheduler with WidgetsBindingObserver {
     } catch (e) {
       debugPrint(
         'VideoUploadScheduler: launch sweep failed (${e.runtimeType})',
+      );
+    }
+  }
+
+  /// Best effort: starts downloads of kept-offline videos; never fails the run.
+  Future<void> _runFetchMissing() async {
+    try {
+      await _fetchMissing?.call();
+    } catch (e) {
+      debugPrint(
+        'VideoUploadScheduler: keep-offline fetch failed (${e.runtimeType})',
       );
     }
   }
@@ -117,6 +132,7 @@ class VideoUploadScheduler with WidgetsBindingObserver {
       }
       task = await _platform.beginBackgroundTask();
       await uploader.run();
+      await _runFetchMissing();
     } catch (e) {
       // Type only: a DioException's text can carry a pre-authenticated URL.
       debugPrint('VideoUploadScheduler: run failed (${e.runtimeType})');
@@ -146,6 +162,9 @@ final Provider<VideoUploadScheduler> videoUploadSchedulerProvider =
           final cache = await ref.read(videoCacheProvider.future);
           await cache?.sweepStaleParts();
           await cache?.evictToFit();
+        },
+        fetchMissing: () async {
+          await (await ref.read(keepOfflineProvider.future))?.fetchMissing();
         },
       )..attach();
       void afterSync() => unawaited(scheduler.maybeRun());
