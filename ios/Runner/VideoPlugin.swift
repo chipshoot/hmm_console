@@ -29,6 +29,13 @@ class VideoPlugin: NSObject {
     case "beginBackgroundTask":
       beginBackgroundTask(result: result)
       return
+    case "releaseAudio":
+      // The in-place (video_player) player has closed: hand the audio back
+      // so other apps (Music) resume. Errors are ignored, as on full screen.
+      try? AVAudioSession.sharedInstance().setActive(
+        false, options: .notifyOthersOnDeactivation)
+      result(nil)
+      return
     case "endBackgroundTask":
       guard let id = args?["id"] as? Int else {
         result(FlutterError(code: "bad_args", message: "Missing id", details: nil))

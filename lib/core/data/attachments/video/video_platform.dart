@@ -42,6 +42,10 @@ abstract interface class VideoPlatform {
 
   /// Ends a task from [beginBackgroundTask].
   Future<void> endBackgroundTask(int id);
+
+  /// Hands the audio session back after in-place playback ends, so other
+  /// apps (Music) can resume.
+  Future<void> releaseAudio();
 }
 
 /// Talks to `ios/Runner/VideoPlugin.swift`.
@@ -98,6 +102,11 @@ class MethodChannelVideoPlatform implements VideoPlatform {
   Future<void> endBackgroundTask(int id) async {
     await _channel.invokeMethod<void>('endBackgroundTask', {'id': id});
   }
+
+  @override
+  Future<void> releaseAudio() async {
+    await _channel.invokeMethod<void>('releaseAudio');
+  }
 }
 
 /// Everywhere but iOS: no poster, no metadata, the OS opens the file.
@@ -127,6 +136,9 @@ class FallbackVideoPlatform implements VideoPlatform {
 
   @override
   Future<void> endBackgroundTask(int id) async {}
+
+  @override
+  Future<void> releaseAudio() async {}
 }
 
 final videoPlatformProvider = Provider<VideoPlatform>((ref) {

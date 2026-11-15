@@ -21,6 +21,7 @@ class InlineVideoPlayer extends StatefulWidget {
     required this.aspectRatio,
     required this.onFullScreen,
     this.onInitFailed,
+    this.onClosed,
     this.controllerFactory,
   });
 
@@ -34,6 +35,10 @@ class InlineVideoPlayer extends StatefulWidget {
 
   /// The file could not be opened; the caller shows another player instead.
   final VoidCallback? onInitFailed;
+
+  /// The player went away (its controller is disposed); the caller hands the
+  /// audio session back so other apps can resume.
+  final VoidCallback? onClosed;
 
   /// Test seam; defaults to [VideoPlayerController.file].
   final VideoPlayerController Function(File)? controllerFactory;
@@ -76,7 +81,12 @@ class _InlineVideoPlayerState extends State<InlineVideoPlayer> {
   @override
   void dispose() {
     _controller.removeListener(_changed);
-    unawaited(_controller.dispose());
+    // Release only after the player has stopped: iOS refuses to deactivate
+    // a session that is still playing.
+    final onClosed = widget.onClosed;
+    unawaited(
+      _controller.dispose().then((_) => onClosed?.call()).catchError((_) {}),
+    );
     super.dispose();
   }
 

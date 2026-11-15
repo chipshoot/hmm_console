@@ -312,6 +312,18 @@ class _VideoTileState extends ConsumerState<VideoTile> {
     unawaited(ref.read(videoPlatformProvider).play(file.path));
   }
 
+  /// Builds the hand-back for when the in-place player closes. The platform
+  /// is read now: the player usually closes because this tile is going away,
+  /// and `ref` is unusable by then.
+  VoidCallback _releaseAudio() {
+    final platform = ref.read(videoPlatformProvider);
+    return () => unawaited(
+      platform.releaseAudio().catchError((Object e) {
+        debugPrint('VideoTile: audio release failed (${e.runtimeType})');
+      }),
+    );
+  }
+
   Widget _inlinePlayer(File file, VoidCallback? longPress) => ConstrainedBox(
     constraints: const BoxConstraints(maxHeight: kInlineImageMaxHeight),
     child: Align(
@@ -325,6 +337,7 @@ class _VideoTileState extends ConsumerState<VideoTile> {
             aspectRatio: _aspect,
             onFullScreen: (p) => _fullScreen(file, p),
             onInitFailed: () => _inlineFailed(file),
+            onClosed: _releaseAudio(),
             controllerFactory: widget.inlineControllerFactory,
           ),
         ),

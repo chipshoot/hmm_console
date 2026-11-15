@@ -17,6 +17,7 @@ class FakeVideoPlatform implements VideoPlatform {
   final excluded = <String>[];
   final endedTasks = <int>[];
   int beganTasks = 0;
+  int audioReleases = 0;
 
   @override
   Future<VideoProbe> probe(
@@ -53,4 +54,7 @@ class FakeVideoPlatform implements VideoPlatform {
 
   @override
   Future<void> endBackgroundTask(int id) async => endedTasks.add(id);
+
+  @override
+  Future<void> releaseAudio() async => audioReleases++;
 }

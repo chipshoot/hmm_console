@@ -158,6 +158,25 @@ void main() {
     expect(platform.playedAt, [7000]);
   });
 
+  testWidgets('leaving the note after playing in place hands the audio '
+      'back', (tester) async {
+    await pumpTile(
+      tester,
+      size: const Size(1024, 768),
+      file: File('/v/u1.mov'),
+    );
+    await tester.tap(find.byType(VideoTile));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(InlineVideoPlayer), findsOneWidget);
+    expect(platform.audioReleases, 0);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    expect(platform.audioReleases, 1);
+  });
+
   testWidgets('on a phone, tapping calls platform.play', (tester) async {
     await pumpTile(tester, size: const Size(390, 844), file: File('/v/u1.mov'));
     await tester.tap(find.byType(VideoTile));
