@@ -125,6 +125,20 @@ void main() {
     expect(platform.endedTasks, [1]);
   });
 
+  test('fetchMissing still runs when the upload run throws', () async {
+    runner.throwOnRun = true;
+    var fetches = 0;
+    final s = VideoUploadScheduler(
+      resolveUploader: () async => runner,
+      isSyncing: () => false,
+      platform: platform,
+      fetchMissing: () async => fetches++,
+    );
+    await s.maybeRun();
+    expect(fetches, 1);
+    expect(platform.endedTasks, [1]);
+  });
+
   test('does not run while a sync is in progress', () async {
     syncing = true;
     await scheduler.maybeRun();

@@ -119,7 +119,7 @@ Future<void> showVideoMenu(
     case _VideoAction.share:
       await _share(context, ref, video, origin);
     case _VideoAction.remove:
-      await _remove(context, ref, noteId, video);
+      await _remove(context, ref, noteId, video, keep: keep, wasKept: kept);
   }
 }
 
@@ -245,10 +245,22 @@ Future<void> _remove(
   BuildContext context,
   WidgetRef ref,
   int noteId,
-  VideoAttachment video,
-) {
+  VideoAttachment video, {
+  KeepOffline? keep,
+  bool wasKept = false,
+}) {
   final l = AppLocalizations.of(context);
   final mutate = ref.read(mutateNoteProvider);
+  // Best effort: a video no note shows must not stay kept on this device.
+  Future<void> setKept(bool v) async {
+    if (keep == null || !wasKept) return;
+    try {
+      await keep.set(video.video.path, v);
+    } catch (e) {
+      debugPrint('keep offline update failed (${e.runtimeType})');
+    }
+  }
+
   final container = ProviderScope.containerOf(context);
   ({String body, NoteAttachments attachments})? previous;
   return showUndoableAction(
@@ -258,12 +270,14 @@ Future<void> _remove(
       previous = await mutate.removeVideo(noteId, video);
       if (previous == null) throw StateError('Note $noteId not found');
       container.invalidate(noteDetailProvider(noteId));
+      await setKept(false);
     },
     undo: () async {
       final p = previous;
       if (p == null) return;
       await mutate.restoreBodyAndAttachments(noteId, p.body, p.attachments);
       container.invalidate(noteDetailProvider(noteId));
+      await setKept(true);
     },
     done: l.notesVideoRemoved,
     failed: l.notesVideoRemoveFailed,

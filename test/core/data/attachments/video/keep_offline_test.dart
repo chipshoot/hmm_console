@@ -9,6 +9,8 @@ void main() {
   late List<String> fetched;
   late Set<String> local;
   late bool network;
+  // Null: every kept path is still referenced by a note.
+  Set<String>? referenced;
   late KeepOffline keep;
 
   setUp(() async {
@@ -17,6 +19,7 @@ void main() {
     fetched = [];
     local = {};
     network = true;
+    referenced = null;
     keep = KeepOffline(
       index: index,
       fetch: (p) async {
@@ -25,6 +28,7 @@ void main() {
       },
       isLocal: (p) async => local.contains(p),
       mayUseNetwork: () async => network,
+      referencedPaths: () async => referenced ?? index.keptOffline,
     );
   });
 
@@ -64,4 +68,17 @@ void main() {
     expect(await keep.fetchMissing(), 1);
     expect(fetched, ['a.mp4']);
   });
+
+  test(
+    'fetchMissing unmarks and skips kept paths no note references',
+    () async {
+      await index.setKept('a.mp4', true);
+      await index.setKept('gone.mp4', true);
+      referenced = {'a.mp4'};
+      expect(await keep.fetchMissing(), 1);
+      expect(fetched, ['a.mp4']);
+      expect(index.isKept('gone.mp4'), isFalse);
+      expect(index.isKept('a.mp4'), isTrue);
+    },
+  );
 }

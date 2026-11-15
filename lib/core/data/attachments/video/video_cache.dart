@@ -2,8 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data_mode.dart';
+import '../../local/database.dart';
 import '../../sync/sync_orchestrator.dart';
 import '../../vault/vault_file_store.dart';
+import '../../vault/vault_gc.dart';
 import '../attachment_providers.dart';
 import 'video_cache_index.dart';
 import 'video_upload_queue.dart';
@@ -24,25 +27,37 @@ class VideoCacheUsage {
 
 /// Keeps downloaded (offloaded) videos under a size limit, clearing the
 /// least recently used first. Kept-offline videos, videos still queued for
-/// upload and protected paths are never cleared.
+/// upload and protected paths are never cleared. A kept mark only counts
+/// while some note still references the video; otherwise it is an ordinary
+/// download.
 class VideoCache {
   VideoCache({
     required IVaultFileStore files,
     required VideoCacheIndex index,
     required Future<Set<String>> Function() pendingUploads,
+    required Future<Set<String>> Function() referencedPaths,
     int limitBytes = kVideoCacheLimitBytes,
   }) : _files = files,
        _index = index,
        _pendingUploads = pendingUploads,
+       _referenced = referencedPaths,
        _limit = limitBytes;
 
   final IVaultFileStore _files;
   final VideoCacheIndex _index;
   final Future<Set<String>> Function() _pendingUploads;
+  final Future<Set<String>> Function() _referenced;
   final int _limit;
 
-  Future<VideoCacheUsage> usage() async {
+  /// Kept paths that a note still references.
+  Future<Set<String>> _kept() async {
     final kept = _index.keptOffline;
+    if (kept.isEmpty) return kept;
+    return kept.intersection(await _referenced());
+  }
+
+  Future<VideoCacheUsage> usage() async {
+    final kept = await _kept();
     var downloaded = 0;
     var keptCount = 0;
     var keptBytes = 0;
@@ -64,7 +79,7 @@ class VideoCache {
   /// Deletes least-recently-used downloads until the non-kept total is within
   /// the limit. Returns the evicted paths.
   Future<List<String>> evictToFit({Set<String> protect = const {}}) async {
-    final kept = _index.keptOffline;
+    final kept = await _kept();
     final pending = await _pendingUploads();
     final all = (await _files.listOffloaded())
         .where((e) => !kept.contains(e.relativePath))
@@ -98,7 +113,7 @@ class VideoCache {
 
   /// Deletes every non-kept, non-pending download. Returns the bytes freed.
   Future<int> clearDownloaded() async {
-    final kept = _index.keptOffline;
+    final kept = await _kept();
     final pending = await _pendingUploads();
     var freed = 0;
     for (final e in await _files.listOffloaded()) {
@@ -119,15 +134,21 @@ final videoCacheIndexProvider = FutureProvider<VideoCacheIndex>((ref) async {
   return VideoCacheIndex(await SharedPreferences.getInstance());
 });
 
-/// Null when there is no on-disk vault file store.
+/// Null unless the data mode is cloudStorage (only there can a cleared video
+/// be downloaded again) and there is an on-disk vault file store. Not gated on
+/// the cloud provider being signed in: eviction must still work while it
+/// isn't.
 final videoCacheProvider = FutureProvider<VideoCache?>((ref) async {
+  if (ref.watch(dataModeProvider) != DataMode.cloudStorage) return null;
   final files = await ref.watch(vaultFileStoreProvider.future);
   if (files == null) return null;
   final index = await ref.watch(videoCacheIndexProvider.future);
-  final orchestrator = ref.read(syncOrchestratorProvider);
+  final orchestrator = ref.watch(syncOrchestratorProvider);
+  final db = ref.watch(hmmDatabaseProvider);
   return VideoCache(
     files: files,
     index: index,
+    referencedPaths: () => collectReferencedVaultPaths(db),
     pendingUploads: () async {
       final provider = orchestrator.provider;
       if (provider == null) return <String>{};

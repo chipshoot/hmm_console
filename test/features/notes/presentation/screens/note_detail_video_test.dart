@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
+import 'package:hmm_console/core/data/attachments/video/keep_offline.dart';
+import 'package:hmm_console/core/data/attachments/video/video_cache_index.dart';
+import 'package:hmm_console/core/data/attachments/video/video_downloads.dart';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 import 'package:hmm_console/core/data/attachments/video_attachment.dart';
 import 'package:hmm_console/core/data/hmm_note_input.dart';
@@ -18,6 +21,7 @@ import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/video_tile.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/data/attachments/video/fake_video_platform.dart';
 
@@ -108,6 +112,7 @@ Future<_Repo> _pump(
   required NoteAttachments atts,
   FakeVideoPlatform? platform,
   File? file,
+  KeepOffline? keep,
 }) async {
   final repo = _Repo(body, atts);
   final fake = _FakeNoteRepo(repo);
@@ -118,6 +123,7 @@ Future<_Repo> _pump(
           platform ?? FakeVideoPlatform(),
         ),
         vaultFileStoreProvider.overrideWith((ref) async => _Files(file)),
+        if (keep != null) keepOfflineProvider.overrideWith((ref) async => keep),
         hmmNoteRepositoryProvider.overrideWithValue(fake),
         noteDetailProvider(1).overrideWith(
           (ref) async => NoteDetailData(
@@ -172,6 +178,36 @@ void main() {
     expect(repo.note.content, 'hi\n\n$_line\n\nbye');
     expect(repo.note.effectiveAttachments.videos, [_video]);
     expect(find.byType(VideoTile), findsOneWidget);
+  });
+
+  testWidgets('remove clears the kept mark; undo puts it back', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final index = VideoCacheIndex(await SharedPreferences.getInstance());
+    await index.setKept(_video.video.path, true);
+    final keep = KeepOffline(
+      index: index,
+      fetch: (_) async => const VideoFetchResult(VideoFetchOutcome.failed),
+      isLocal: (_) async => true,
+      mayUseNetwork: () async => true,
+      referencedPaths: () async => {_video.video.path},
+    );
+    await _pump(
+      tester,
+      body: 'hi\n\n$_line\n\nbye',
+      atts: NoteAttachments(videos: [_video]),
+      keep: keep,
+    );
+    await tester.longPress(find.byType(VideoTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove from note'));
+    await tester.pumpAndSettle();
+    expect(index.isKept(_video.video.path), isFalse);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(index.isKept(_video.video.path), isTrue);
   });
 
   testWidgets('a video not inline is listed below the body', (tester) async {

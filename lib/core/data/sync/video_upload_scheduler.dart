@@ -131,8 +131,12 @@ class VideoUploadScheduler with WidgetsBindingObserver {
         _loaded = uploader;
       }
       task = await _platform.beginBackgroundTask();
-      await uploader.run();
-      await _runFetchMissing();
+      try {
+        await uploader.run();
+      } finally {
+        // Kept-offline downloads don't depend on the upload run succeeding.
+        await _runFetchMissing();
+      }
     } catch (e) {
       // Type only: a DioException's text can carry a pre-authenticated URL.
       debugPrint('VideoUploadScheduler: run failed (${e.runtimeType})');

@@ -30,6 +30,7 @@ void main() {
       },
       isLocal: (_) async => false,
       mayUseNetwork: () async => true,
+      referencedPaths: () async => {'v/a.mp4'},
     );
     await tester.pumpWidget(
       ProviderScope(
@@ -81,6 +82,7 @@ void main() {
       fetch: (_) async => const VideoFetchResult(VideoFetchOutcome.failed),
       isLocal: (_) async => true,
       mayUseNetwork: () async => true,
+      referencedPaths: () async => {'v/a.mp4'},
     );
     await t.pumpWidget(
       ProviderScope(

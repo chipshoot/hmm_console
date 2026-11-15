@@ -40,10 +40,14 @@ void main() {
   late _Files files;
   late VideoCacheIndex index;
   var pending = <String>{};
+  // Null: every file and kept path is referenced by a note.
+  Set<String>? referenced;
   VideoCache cache() => VideoCache(
     files: files,
     index: index,
     pendingUploads: () async => pending,
+    referencedPaths: () async =>
+        referenced ?? {...files.sizes.keys, ...index.keptOffline},
     limitBytes: 100,
   );
   DateTime t(int n) => DateTime.fromMillisecondsSinceEpoch(n * 1000);
@@ -53,6 +57,7 @@ void main() {
     index = VideoCacheIndex(await SharedPreferences.getInstance());
     files = _Files();
     pending = {};
+    referenced = null;
   });
 
   test(
@@ -116,5 +121,38 @@ void main() {
 
   test('sweepStaleParts returns the count', () async {
     expect(await cache().sweepStaleParts(), 3);
+  });
+
+  group('a kept path no note references is an ordinary download', () {
+    test('usage counts it as downloaded, not kept', () async {
+      files.sizes.addAll({'k.mov': 50, 'gone.mov': 30});
+      await index.setKept('k.mov', true);
+      await index.setKept('gone.mov', true);
+      referenced = {'k.mov'};
+      final u = await cache().usage();
+      expect(u.keptCount, 1);
+      expect(u.keptBytes, 50);
+      expect(u.downloadedBytes, 30);
+    });
+
+    test('evictToFit may evict it; a referenced kept path stays', () async {
+      files.sizes.addAll({'k.mov': 90, 'gone.mov': 90, 'a.mov': 60});
+      await index.setKept('k.mov', true);
+      await index.setKept('gone.mov', true);
+      index.touch('gone.mov', t(1));
+      index.touch('a.mov', t(2));
+      referenced = {'k.mov', 'a.mov'};
+      expect(await cache().evictToFit(), ['gone.mov']);
+      expect(files.sizes.keys, unorderedEquals(['k.mov', 'a.mov']));
+    });
+
+    test('clearDownloaded clears it; a referenced kept path stays', () async {
+      files.sizes.addAll({'k.mov': 30, 'gone.mov': 20});
+      await index.setKept('k.mov', true);
+      await index.setKept('gone.mov', true);
+      referenced = {'k.mov'};
+      expect(await cache().clearDownloaded(), 20);
+      expect(files.deleted, ['gone.mov']);
+    });
   });
 }
