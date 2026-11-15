@@ -19,11 +19,15 @@ void main() {
   late FakeVideoController controller;
   Duration? reported;
   var failed = 0;
+  var closed = 0;
+  var disposedAtClose = false;
 
   setUp(() {
     controller = FakeVideoController();
     reported = null;
     failed = 0;
+    closed = 0;
+    disposedAtClose = false;
   });
 
   Future<void> pumpPlayer(WidgetTester tester) async {
@@ -34,6 +38,10 @@ void main() {
           aspectRatio: 16 / 9,
           onFullScreen: (p) => reported = p,
           onInitFailed: () => failed++,
+          onClosed: () {
+            closed++;
+            disposedAtClose = controller.disposed;
+          },
           controllerFactory: (_) => controller,
         ),
       ),
@@ -81,6 +89,16 @@ void main() {
     await pumpPlayer(tester);
     await tester.pumpWidget(_wrap(const SizedBox()));
     expect(controller.disposed, isTrue);
+  });
+
+  testWidgets('closing the player reports it once, after the controller is '
+      'disposed, so audio can be handed back', (tester) async {
+    await pumpPlayer(tester);
+    expect(closed, 0);
+    await tester.pumpWidget(_wrap(const SizedBox()));
+    await tester.pump();
+    expect(closed, 1);
+    expect(disposedAtClose, isTrue);
   });
 
   testWidgets('a failed start reports it and does not play', (tester) async {
