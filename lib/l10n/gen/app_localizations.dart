@@ -998,6 +998,30 @@ abstract class AppLocalizations {
   /// **'Keep attached'**
   String get notesKeepAttached;
 
+  /// No description provided for @notesDeletedElsewhereTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted on another device'**
+  String get notesDeletedElsewhereTitle;
+
+  /// No description provided for @notesDeletedElsewhereBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This note was deleted on another device while you were editing it. Restore it with your changes, or discard your changes and leave it in Recently Deleted.'**
+  String get notesDeletedElsewhereBody;
+
+  /// No description provided for @notesDeletedElsewhereRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore and save'**
+  String get notesDeletedElsewhereRestore;
+
+  /// No description provided for @notesDeletedElsewhereDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes'**
+  String get notesDeletedElsewhereDiscard;
+
   /// No description provided for @notesEditAction.
   ///
   /// In en, this message translates to:

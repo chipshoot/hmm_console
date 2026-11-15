@@ -39,8 +39,36 @@ void main() {
     expect(writeCount, equals(2));
   });
 
-  test('deleteNote and setParentNote do NOT call onLocalWrite (Phase 1 '
-      'scope is create/update only — see spec §1)', () async {
+  test('deleteNote calls onLocalWrite once, so the delete syncs promptly '
+      '(an unsynced delete was overwritten by a later save on another '
+      'device, 2026-11-14)', () async {
+    final db = HmmDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final authorId = await db
+        .into(db.authors)
+        .insert(AuthorsCompanion.insert(accountName: 'tester'));
+    final author = await (db.select(db.authors)
+          ..where((a) => a.id.equals(authorId)))
+        .getSingle();
+
+    var writeCount = 0;
+    final repo = LocalHmmNoteRepository(
+      db,
+      () async => author,
+      onLocalWrite: () => writeCount++,
+    );
+
+    final created = await repo.createNote(
+      const HmmNoteCreate(subject: 'Hi', catalogId: 1),
+    );
+    writeCount = 0;
+
+    await repo.deleteNote(created.id);
+    expect(writeCount, equals(1));
+  });
+
+  test('setParentNote does NOT call onLocalWrite (still a documented '
+      'Phase 1 gap)', () async {
     final db = HmmDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     final authorId = await db
@@ -62,7 +90,6 @@ void main() {
     );
     writeCount = 0; // ignore the create's own notification
 
-    await repo.deleteNote(created.id);
     await repo.setParentNote(created.id, null);
     expect(writeCount, equals(0));
   });
