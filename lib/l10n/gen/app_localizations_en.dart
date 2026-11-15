@@ -3613,6 +3613,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesVideoPlay => 'Play video';
 
   @override
+  String get notesVideoPause => 'Pause';
+
+  @override
+  String get notesVideoFullScreen => 'Full screen';
+
+  @override
   String get notesVideoNotOnDevice =>
       'This video is only on the device that added it, for now.';
 
@@ -3700,7 +3706,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNoteDetailVideoBody =>
-      'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Keep offline, Save to Photos, Share or Remove. Choose Keep offline to store it on this device for good.';
+      'Tap a video to play it full screen. On iPad it plays in place, with play/pause, a scrub bar and a full-screen button that carries on from the same spot. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Keep offline, Save to Photos, Share or Remove. Choose Keep offline to store it on this device for good.';
 
   @override
   String get notesAddVideoTooltip => 'Add video';

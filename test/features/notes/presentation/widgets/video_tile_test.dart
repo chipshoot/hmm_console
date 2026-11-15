@@ -50,6 +50,18 @@ class _Files implements IVaultFileStore {
   File? downloadTarget(String p) => null;
 }
 
+/// Phone width: these tests cover the system player; the wide (iPad)
+/// in-place player is covered in video_tile_wide_test.dart.
+class _Phone extends StatelessWidget {
+  const _Phone(this.child);
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(size: const Size(390, 844)),
+    child: child,
+  );
+}
+
 class _Resolver implements IAttachmentResolver {
   @override
   Future<Uint8List?> resolve(AttachmentRef ref) async => null;
@@ -66,7 +78,7 @@ Widget _wrap(Widget child, FakeVideoPlatform platform, {File? file}) =>
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: SingleChildScrollView(child: child)),
+        home: _Phone(Scaffold(body: SingleChildScrollView(child: child))),
       ),
     );
 
@@ -158,7 +170,7 @@ Widget _wrapCloud(
   child: MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(body: SingleChildScrollView(child: child)),
+    home: _Phone(Scaffold(body: SingleChildScrollView(child: child))),
   ),
 );
 

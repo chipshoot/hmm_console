@@ -6374,6 +6374,18 @@ abstract class AppLocalizations {
   /// **'Play video'**
   String get notesVideoPlay;
 
+  /// No description provided for @notesVideoPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get notesVideoPause;
+
+  /// No description provided for @notesVideoFullScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get notesVideoFullScreen;
+
   /// No description provided for @notesVideoNotOnDevice.
   ///
   /// In en, this message translates to:
@@ -6533,7 +6545,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNoteDetailVideoBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Keep offline, Save to Photos, Share or Remove. Choose Keep offline to store it on this device for good.'**
+  /// **'Tap a video to play it full screen. On iPad it plays in place, with play/pause, a scrub bar and a full-screen button that carries on from the same spot. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Keep offline, Save to Photos, Share or Remove. Choose Keep offline to store it on this device for good.'**
   String get helpNoteDetailVideoBody;
 
   /// No description provided for @notesAddVideoTooltip.

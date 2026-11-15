@@ -3453,6 +3453,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesVideoPlay => '播放视频';
 
   @override
+  String get notesVideoPause => '暂停';
+
+  @override
+  String get notesVideoFullScreen => '全屏';
+
+  @override
   String get notesVideoNotOnDevice => '此视频目前仅保存在添加它的设备上。';
 
   @override
@@ -3538,7 +3544,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNoteDetailVideoBody =>
-      '轻点视频即可全屏播放。启用 OneDrive 同步后，视频会在 Wi-Fi 下上传（轻点“等待 Wi-Fi”可立即使用移动数据上传）；上传完成前，其他设备会显示“另一台设备仍在上传”，完成后轻点播放即可下载。长按可离线保存、存储到照片、分享或移除。选择“离线保存”可将其永久保存在本设备。';
+      '轻点视频即可全屏播放。在 iPad 上会就地播放，提供播放/暂停、进度条和全屏按钮，全屏后从当前位置继续。启用 OneDrive 同步后，视频会在 Wi-Fi 下上传（轻点“等待 Wi-Fi”可立即使用移动数据上传）；上传完成前，其他设备会显示“另一台设备仍在上传”，完成后轻点播放即可下载。长按可离线保存、存储到照片、分享或移除。选择“离线保存”可将其永久保存在本设备。';
 
   @override
   String get notesAddVideoTooltip => '添加视频';

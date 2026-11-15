@@ -12,6 +12,7 @@ class FakeVideoPlatform implements VideoPlatform {
   final bool probeThrows;
   bool saveResult;
   final played = <String>[];
+  final playedAt = <int?>[];
   final saved = <String>[];
   final excluded = <String>[];
   final endedTasks = <int>[];
@@ -33,7 +34,10 @@ class FakeVideoPlatform implements VideoPlatform {
   }
 
   @override
-  Future<void> play(String videoPath) async => played.add(videoPath);
+  Future<void> play(String videoPath, {int? positionMs}) async {
+    played.add(videoPath);
+    playedAt.add(positionMs);
+  }
 
   @override
   Future<bool> saveToPhotos(String videoPath) async {

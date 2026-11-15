@@ -26,8 +26,9 @@ abstract interface class VideoPlatform {
   /// Reads duration and size and writes a JPEG poster to [posterPath].
   Future<VideoProbe> probe(String videoPath, {required String posterPath});
 
-  /// Plays the video full screen with the system player.
-  Future<void> play(String videoPath);
+  /// Plays the video full screen with the system player, from [positionMs]
+  /// when given (else from the start).
+  Future<void> play(String videoPath, {int? positionMs});
 
   /// Saves the video to the photo library. False means permission was denied.
   Future<bool> saveToPhotos(String videoPath);
@@ -68,8 +69,11 @@ class MethodChannelVideoPlatform implements VideoPlatform {
   }
 
   @override
-  Future<void> play(String videoPath) async {
-    await _channel.invokeMethod<void>('play', {'path': videoPath});
+  Future<void> play(String videoPath, {int? positionMs}) async {
+    await _channel.invokeMethod<void>('play', {
+      'path': videoPath,
+      'positionMs': ?positionMs,
+    });
   }
 
   @override
@@ -107,7 +111,8 @@ class FallbackVideoPlatform implements VideoPlatform {
   }) async => const VideoProbe();
 
   @override
-  Future<void> play(String videoPath) async {
+  Future<void> play(String videoPath, {int? positionMs}) async {
+    // The OS viewer cannot start part way in.
     await OpenFilex.open(videoPath);
   }
 
