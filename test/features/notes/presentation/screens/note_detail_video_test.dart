@@ -12,6 +12,7 @@ import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/data/vault/vault_file_store.dart';
+import 'package:hmm_console/core/data/vault/vault_store.dart' show VaultEntry;
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_detail_screen.dart';
@@ -73,6 +74,14 @@ class _FakeNoteRepo implements IHmmNoteRepository {
 }
 
 class _Files implements IVaultFileStore {
+  @override
+  Future<List<VaultEntry>> listOffloaded() async => const [];
+  @override
+  Future<void> deleteOffloaded(String p) async {}
+  @override
+  Future<DateTime?> offloadedModified(String p) async => null;
+  @override
+  Future<int> deleteStaleParts() async => 0;
   _Files(this.file);
   final File? file;
   @override

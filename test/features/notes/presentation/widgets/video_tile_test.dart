@@ -22,6 +22,7 @@ import 'package:hmm_console/core/data/attachments/video_attachment.dart';
 import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/vault/vault_file_store.dart';
+import 'package:hmm_console/core/data/vault/vault_store.dart' show VaultEntry;
 import 'package:hmm_console/features/notes/presentation/widgets/note_markdown_body.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/video_tile.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -29,6 +30,14 @@ import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import '../../../../core/data/attachments/video/fake_video_platform.dart';
 
 class _Files implements IVaultFileStore {
+  @override
+  Future<List<VaultEntry>> listOffloaded() async => const [];
+  @override
+  Future<void> deleteOffloaded(String p) async {}
+  @override
+  Future<DateTime?> offloadedModified(String p) async => null;
+  @override
+  Future<int> deleteStaleParts() async => 0;
   _Files(this.file);
   final File? file;
   @override
