@@ -2486,6 +2486,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Removes this contact from your list. Tap Undo right after to bring it back.';
 
   @override
+  String get contactEnglishName => 'English name';
+
+  @override
+  String get contactEnglishNameHint =>
+      'Optional. For cheatsheets shown to English speakers.';
+
+  @override
+  String get helpContactEditEnglishNameTitle => 'English name';
+
+  @override
+  String get helpContactEditEnglishNameBody =>
+      'Shown for a name written in Chinese. Add the English name this person or organization uses, such as Michael Wang. It doesn\'t change how the contact is shown or sorted in your list, but search finds it, and a cheatsheet row can show it (pick Contact.englishName) for a card meant for English speakers.';
+
+  @override
   String get helpContactEditTitle => 'Edit contact';
 
   @override

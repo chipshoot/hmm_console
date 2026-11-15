@@ -340,4 +340,18 @@ void main() {
       'Zhang',
     );
   });
+
+  test('a contact English name is offered as a card field', () {
+    const content =
+        '{"note":{"content":{"Contact":{"displayName":"王小明",'
+        '"firstName":"小明","lastName":"王","englishName":"Michael Wang"}}}}';
+    expect(
+      NotePieceExtractor.fieldPaths(content),
+      contains('Contact.englishName'),
+    );
+    expect(
+      NotePieceExtractor.field(content, 'Contact.englishName'),
+      'Michael Wang',
+    );
+  });
 }

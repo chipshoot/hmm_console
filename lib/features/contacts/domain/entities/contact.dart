@@ -97,6 +97,7 @@ class Contact {
     this.nameOrder = ContactNameOrder.auto,
     this.phoneticFamily,
     this.phoneticGiven,
+    this.englishName,
     this.phones = const [],
     this.emails = const [],
     this.addresses = const [],
@@ -134,6 +135,11 @@ class Contact {
   /// automatic pinyin for sort and search; it never changes the display.
   final String? phoneticFamily;
   final String? phoneticGiven;
+
+  /// An optional second name in English (e.g. "Michael Wang" for 王小明),
+  /// for a cheatsheet shown to English speakers. Free text, stored as typed;
+  /// never changes the display name, sort or order.
+  final String? englishName;
 
   final List<ContactPhone> phones;
   final List<ContactEmail> emails;
@@ -192,6 +198,7 @@ class Contact {
     ContactNameOrder? nameOrder,
     Object? phoneticFamily = _kSentinel,
     Object? phoneticGiven = _kSentinel,
+    Object? englishName = _kSentinel,
     List<ContactPhone>? phones,
     List<ContactEmail>? emails,
     List<ContactAddress>? addresses,
@@ -217,6 +224,9 @@ class Contact {
       phoneticGiven: identical(phoneticGiven, _kSentinel)
           ? this.phoneticGiven
           : phoneticGiven as String?,
+      englishName: identical(englishName, _kSentinel)
+          ? this.englishName
+          : englishName as String?,
       phones: phones ?? this.phones,
       emails: emails ?? this.emails,
       addresses: addresses ?? this.addresses,
@@ -240,6 +250,7 @@ class Contact {
       nameOrder: next.nameOrder,
       phoneticFamily: next.phoneticFamily,
       phoneticGiven: next.phoneticGiven,
+      englishName: next.englishName,
       phones: next.phones,
       emails: next.emails,
       addresses: next.addresses,
@@ -276,6 +287,7 @@ class Contact {
           other.nameOrder == nameOrder &&
           other.phoneticFamily == phoneticFamily &&
           other.phoneticGiven == phoneticGiven &&
+          other.englishName == englishName &&
           _sameList(other.phones, phones) &&
           _sameList(other.emails, emails) &&
           _sameList(other.addresses, addresses) &&
@@ -294,6 +306,7 @@ class Contact {
         nameOrder,
         phoneticFamily,
         phoneticGiven,
+        englishName,
         Object.hashAll(phones),
         Object.hashAll(emails),
         Object.hashAll(addresses),

@@ -26,6 +26,30 @@ const _zh = Contact(
 }
 
 void main() {
+  test('the English name is trimmed; a blank one is not stored', () async {
+    final (c, repo) = _setup(_zh);
+    final n = c.read(contactEditStateProvider(_zh).notifier);
+    n.setEnglishName('  Michael Wang ');
+    expect(await n.save(), isTrue);
+    expect((await repo.getContacts()).single.englishName, 'Michael Wang');
+
+    final (c2, repo2) = _setup(_zh);
+    final n2 = c2.read(contactEditStateProvider(_zh).notifier);
+    n2.setEnglishName('   ');
+    expect(await n2.save(), isTrue);
+    expect((await repo2.getContacts()).single.englishName, isNull);
+  });
+
+  test('an organization keeps its English name', () async {
+    final (c, repo) = _setup(_zh);
+    final n = c.read(contactEditStateProvider(_zh).notifier);
+    n.setType(ContactType.organization);
+    n.setOrganizationName('人民医院');
+    n.setEnglishName("People's Hospital");
+    expect(await n.save(), isTrue);
+    expect((await repo.getContacts()).single.englishName, "People's Hospital");
+  });
+
   test('an invalid phonetic refuses save without sending', () async {
     final (c, repo) = _setup(_zh);
     final n = c.read(contactEditStateProvider(_zh).notifier);

@@ -143,6 +143,8 @@ ContactSearchTerms searchTerms(
   }
 
   add(c.displayName);
+  // Typed as people say it ("Michael Wang"); no reversed form or initials.
+  add(c.englishName ?? '');
   if (c.contactType == ContactType.organization) {
     final org = c.organizationName?.trim() ?? '';
     final syl = _syllables(org, null, false, t, onError);

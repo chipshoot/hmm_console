@@ -80,6 +80,11 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
   late final TextEditingController _notes;
   late final TextEditingController _phoneticFamily;
   late final TextEditingController _phoneticGiven;
+  late final TextEditingController _english;
+
+  /// The English name field stays once shown, so clearing it mid-edit on a
+  /// Latin-only contact doesn't make it vanish.
+  late bool _englishShown;
   final _addresses = GlobalKey<AddressEditorState>();
 
   /// "More name options": open for Chinese names or any option set; opens by
@@ -103,6 +108,8 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
     _notes = TextEditingController(text: c.notes ?? '');
     _phoneticFamily = TextEditingController(text: c.phoneticFamily ?? '');
     _phoneticGiven = TextEditingController(text: c.phoneticGiven ?? '');
+    _english = TextEditingController(text: c.englishName ?? '');
+    _englishShown = (c.englishName ?? '').isNotEmpty;
     _nameOptionsOpen =
         ContactName.hasChinese(c.firstName) ||
         ContactName.hasChinese(c.lastName) ||
@@ -122,6 +129,7 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
     _notes.dispose();
     _phoneticFamily.dispose();
     _phoneticGiven.dispose();
+    _english.dispose();
     super.dispose();
   }
 
@@ -375,6 +383,24 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
                   ),
                 ],
               ],
+              // Offered for a name written in Chinese (or one that already
+              // has an English name): a Latin name needs no second one.
+              if (_englishShown || ContactName.hasChinese(c.displayName))
+                _pad(
+                  TextField(
+                    key: const Key('contact-english-name'),
+                    controller: _english,
+                    decoration: InputDecoration(
+                      icon: const Icon(Icons.language),
+                      labelText: l.contactEnglishName,
+                      helperText: l.contactEnglishNameHint,
+                    ),
+                    onChanged: (v) {
+                      _englishShown = true;
+                      notifier.setEnglishName(v);
+                    },
+                  ),
+                ),
               LabeledFieldEditor(
                 keyPrefix: 'phones',
                 title: l.contactPhones,

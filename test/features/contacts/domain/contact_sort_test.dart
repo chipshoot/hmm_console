@@ -314,6 +314,13 @@ void main() {
       expect(m(c, 'zengwei'), isFalse);
     });
 
+    test('the English name is searchable', () {
+      final c = _p('1', '王', '小明').copyWith(englishName: 'Michael Wang');
+      expect(m(c, 'michael'), isTrue);
+      expect(m(c, 'Michael Wang'), isTrue);
+      expect(m(c, 'mike'), isFalse);
+    });
+
     test('a throwing transcriber omits pinyin terms only', () {
       final failing = FakePinyinTranscriber(throwOn: {'张', '伟'});
       final c = _p('1', '张', '伟');

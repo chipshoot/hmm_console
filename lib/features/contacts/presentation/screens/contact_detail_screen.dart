@@ -115,6 +115,13 @@ class ContactDetailScreen extends ConsumerWidget {
                   : relationshipLabel(contact.relationship.category, l),
             ),
           ),
+          if ((contact.englishName ?? '').trim().isNotEmpty)
+            _FieldRow(
+              label: l.contactEnglishName,
+              value: contact.englishName!.trim(),
+              icon: Icons.language,
+              action: ValueAction.none,
+            ),
           if (contact.phones.isNotEmpty) ...[
             _Header(l.contactPhones),
             for (final p in contact.phones)

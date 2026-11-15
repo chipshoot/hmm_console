@@ -66,6 +66,27 @@ Future<InMemoryContactRepository> _mount(
 }
 
 void main() {
+  testWidgets('shows the English name when set', (tester) async {
+    await _mount(
+      tester,
+      id: 'z1',
+      seed: const Contact(
+        id: 'z1',
+        contactType: ContactType.person,
+        lastName: '王',
+        firstName: '小明',
+        englishName: 'Michael Wang',
+      ),
+    );
+    expect(find.text('Michael Wang'), findsOneWidget);
+    expect(find.text('English name'), findsOneWidget);
+  });
+
+  testWidgets('shows no English name row when there is none', (tester) async {
+    await _mount(tester, id: 'd1', seed: _doc);
+    expect(find.text('English name'), findsNothing);
+  });
+
   testWidgets('renders name, relationship and labelled fields', (tester) async {
     await _mount(tester, id: 'd1', seed: _doc);
     expect(find.text('Dana Reyes'), findsOneWidget);
