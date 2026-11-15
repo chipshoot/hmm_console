@@ -3175,6 +3175,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesShareFailed => '无法分享笔记';
 
   @override
+  String get notesShareVideoLabel => '视频';
+
+  @override
   String get notesAttachToAction => '附加到…';
 
   @override
@@ -3450,10 +3453,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesVideoPlay => '播放视频';
 
   @override
+  String get notesVideoPause => '暂停';
+
+  @override
+  String get notesVideoFullScreen => '全屏';
+
+  @override
   String get notesVideoNotOnDevice => '此视频目前仅保存在添加它的设备上。';
 
   @override
   String get notesVideoSaveToPhotos => '存储到照片';
+
+  @override
+  String get notesVideoKeepOffline => '离线保存';
+
+  @override
+  String get notesVideoKeepOfflineFailed => '无法更改离线保存';
 
   @override
   String get notesVideoShare => '分享…';
@@ -3529,7 +3544,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpNoteDetailVideoBody =>
-      '轻点视频即可全屏播放。启用 OneDrive 同步后，视频会在 Wi-Fi 下上传（轻点“等待 Wi-Fi”可立即使用移动数据上传）；上传完成前，其他设备会显示“另一台设备仍在上传”，完成后轻点播放即可下载。长按可存储到照片、分享或移除。';
+      '轻点视频即可全屏播放。在 iPad 上会就地播放，提供播放/暂停、进度条和全屏按钮，全屏后从当前位置继续。启用 OneDrive 同步后，视频会在 Wi-Fi 下上传（轻点“等待 Wi-Fi”可立即使用移动数据上传）；上传完成前，其他设备会显示“另一台设备仍在上传”，完成后轻点播放即可下载。长按可离线保存、存储到照片、分享或移除。选择“离线保存”可将其永久保存在本设备。';
 
   @override
   String get notesAddVideoTooltip => '添加视频';
@@ -3580,4 +3595,81 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notesVideoRemoveConfirmKeep => '保留';
+
+  @override
+  String get settingsVideos => '视频';
+
+  @override
+  String settingsVideosUsage(String used, String limit) {
+    return '$used / $limit';
+  }
+
+  @override
+  String get videoStorageTitle => '视频';
+
+  @override
+  String get videoStorageDownloaded => '已下载';
+
+  @override
+  String get videoStorageKeptOffline => '离线保存';
+
+  @override
+  String videoStorageKeptSummary(int count, String size) {
+    return '$count 个视频 · $size';
+  }
+
+  @override
+  String get videoStorageMobileData => '使用移动数据上传';
+
+  @override
+  String get videoStorageMobileDataHint => '否则视频会等待 Wi-Fi。';
+
+  @override
+  String get videoStorageClear => '清除已下载的视频';
+
+  @override
+  String videoStorageClearConfirm(String size) {
+    return '从本设备移除 $size 已下载的视频？离线保存的视频会保留，其他视频播放时会重新下载。';
+  }
+
+  @override
+  String videoStorageCleared(String size) {
+    return '已清除 $size';
+  }
+
+  @override
+  String get videoStorageClearFailed => '无法清除已下载的视频';
+
+  @override
+  String get helpVideoStorageTitle => '视频';
+
+  @override
+  String get helpVideoStorageSummary => '查看已下载视频在本设备上占用的空间，并控制视频如何上传。';
+
+  @override
+  String get helpVideoStorageDownloadedTitle => '已下载';
+
+  @override
+  String get helpVideoStorageDownloadedBody =>
+      '为在本设备播放而获取的视频。超出上限后，最久未使用的会自动清除。';
+
+  @override
+  String get helpVideoStorageKeptOfflineTitle => '离线保存';
+
+  @override
+  String get helpVideoStorageKeptOfflineBody => '你选择保存在本设备上的视频。它们不会被清除，也不计入上限。';
+
+  @override
+  String get helpVideoStorageMobileDataTitle => '使用移动数据上传';
+
+  @override
+  String get helpVideoStorageMobileDataBody =>
+      '开启后，视频上传和离线保存的下载会使用移动数据。关闭时，它们会等待 Wi-Fi。';
+
+  @override
+  String get helpVideoStorageClearTitle => '清除已下载的视频';
+
+  @override
+  String get helpVideoStorageClearBody =>
+      '从本设备移除已下载的视频。离线保存的视频会保留，其他视频播放时会重新下载。';
 }

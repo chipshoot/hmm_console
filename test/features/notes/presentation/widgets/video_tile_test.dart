@@ -22,6 +22,7 @@ import 'package:hmm_console/core/data/attachments/video_attachment.dart';
 import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
 import 'package:hmm_console/core/data/attachments/resolver/attachment_resolver.dart';
 import 'package:hmm_console/core/data/vault/vault_file_store.dart';
+import 'package:hmm_console/core/data/vault/vault_store.dart' show VaultEntry;
 import 'package:hmm_console/features/notes/presentation/widgets/note_markdown_body.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/video_tile.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -29,6 +30,14 @@ import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import '../../../../core/data/attachments/video/fake_video_platform.dart';
 
 class _Files implements IVaultFileStore {
+  @override
+  Future<List<VaultEntry>> listOffloaded() async => const [];
+  @override
+  Future<void> deleteOffloaded(String p) async {}
+  @override
+  Future<DateTime?> offloadedModified(String p) async => null;
+  @override
+  Future<int> deleteStaleParts() async => 0;
   _Files(this.file);
   final File? file;
   @override
@@ -39,6 +48,18 @@ class _Files implements IVaultFileStore {
   Future<void> offload(String p) async {}
   @override
   File? downloadTarget(String p) => null;
+}
+
+/// Phone width: these tests cover the system player; the wide (iPad)
+/// in-place player is covered in video_tile_wide_test.dart.
+class _Phone extends StatelessWidget {
+  const _Phone(this.child);
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(size: const Size(390, 844)),
+    child: child,
+  );
 }
 
 class _Resolver implements IAttachmentResolver {
@@ -57,7 +78,7 @@ Widget _wrap(Widget child, FakeVideoPlatform platform, {File? file}) =>
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: SingleChildScrollView(child: child)),
+        home: _Phone(Scaffold(body: SingleChildScrollView(child: child))),
       ),
     );
 
@@ -149,7 +170,7 @@ Widget _wrapCloud(
   child: MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(body: SingleChildScrollView(child: child)),
+    home: _Phone(Scaffold(body: SingleChildScrollView(child: child))),
   ),
 );
 

@@ -1,14 +1,17 @@
 import 'dart:async';
+import 'dart:io' show File;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart' show VideoPlayerController;
 
 import '../../../../core/data/attachments/attachment_providers.dart';
 import '../../../../core/data/attachments/attachments_pulled_signal.dart';
 import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
 import '../../../../core/data/attachments/video/remote_video_index.dart';
+import '../../../../core/data/attachments/video/video_cache.dart';
 import '../../../../core/data/attachments/video/video_downloads.dart';
 import '../../../../core/data/attachments/video/video_picker.dart';
 import '../../../../core/data/attachments/video/video_platform.dart';
@@ -17,7 +20,9 @@ import '../../../../core/data/attachments/video_attachment.dart';
 import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/sync/video_upload_scheduler.dart';
 import '../../../../l10n/gen/app_localizations.dart';
-import '../screens/note_editor_screen.dart' show formatVideoSize;
+import '../../../../core/util/format_bytes.dart';
+import '../../states/note_selection.dart' show kNotesWideBreakpoint;
+import 'inline_video_player.dart';
 import 'note_markdown_body.dart' show kInlineImageMaxHeight;
 import 'video_link_card.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
@@ -37,15 +42,16 @@ class VideoPosterPlaceholder extends StatelessWidget {
 }
 
 /// A video in a note: poster, play button and length. Tap plays it with the
-/// system player; long press hands a saved video to [onLongPress]. Exactly
-/// one of [saved] or [pending] is set.
-class VideoTile extends ConsumerWidget {
+/// system player, or in place on a wide screen (iPad); long press hands a
+/// saved video to [onLongPress]. Exactly one of [saved] or [pending] is set.
+class VideoTile extends ConsumerStatefulWidget {
   const VideoTile({
     super.key,
     this.saved,
     this.pending,
     this.resolver,
     this.onLongPress,
+    this.inlineControllerFactory,
   }) : assert(
          (saved == null) != (pending == null),
          'set exactly one of saved or pending',
@@ -56,8 +62,30 @@ class VideoTile extends ConsumerWidget {
   final IAttachmentResolver? resolver;
   final void Function(VideoAttachment)? onLongPress;
 
+  /// Test seam for the in-place player's controller.
+  final VideoPlayerController Function(File)? inlineControllerFactory;
+
   static String formatLength(int ms) =>
       VideoLinkCard.formatDuration(ms ~/ 1000);
+
+  @override
+  ConsumerState<VideoTile> createState() => _VideoTileState();
+}
+
+class _VideoTileState extends ConsumerState<VideoTile> {
+  /// The file playing in place (wide screens only); null shows the poster.
+  File? _inline;
+
+  VideoAttachment? get saved => widget.saved;
+  PickedVideo? get pending => widget.pending;
+  IAttachmentResolver? get resolver => widget.resolver;
+  void Function(VideoAttachment)? get onLongPress => widget.onLongPress;
+
+  @override
+  void didUpdateWidget(VideoTile old) {
+    super.didUpdateWidget(old);
+    if (old.saved?.video.path != widget.saved?.video.path) _inline = null;
+  }
 
   int? get _durationMs => saved?.durationMs ?? pending?.durationMs;
 
@@ -90,6 +118,8 @@ class VideoTile extends ConsumerWidget {
   }
 
   Future<void> _play(BuildContext context, WidgetRef ref) async {
+    // Read at tap time: a wide screen plays in place, a phone full screen.
+    final wide = MediaQuery.sizeOf(context).width >= kNotesWideBreakpoint;
     final platform = ref.read(videoPlatformProvider);
     final messenger = ScaffoldMessenger.of(context);
     final l = AppLocalizations.of(context);
@@ -135,6 +165,11 @@ class VideoTile extends ConsumerWidget {
         }
       }
       if (file == null) return;
+      unawaited(touchVideo(ref.read(videoCacheIndexProvider.future), path));
+      if (wide) {
+        if (mounted) setState(() => _inline = file);
+        return;
+      }
       unawaited(platform.play(file.path));
     } catch (e) {
       debugPrint('VideoTile: play failed (${e.runtimeType})');
@@ -261,8 +296,44 @@ class VideoTile extends ConsumerWidget {
     );
   }
 
+  /// Full screen from the in-place player: continue at [position].
+  void _fullScreen(File file, Duration position) {
+    unawaited(
+      ref
+          .read(videoPlatformProvider)
+          .play(file.path, positionMs: position.inMilliseconds),
+    );
+  }
+
+  /// The in-place player could not open the file: use the system player.
+  void _inlineFailed(File file) {
+    if (!mounted) return;
+    setState(() => _inline = null);
+    unawaited(ref.read(videoPlatformProvider).play(file.path));
+  }
+
+  Widget _inlinePlayer(File file, VoidCallback? longPress) => ConstrainedBox(
+    constraints: const BoxConstraints(maxHeight: kInlineImageMaxHeight),
+    child: Align(
+      alignment: Alignment.topCenter,
+      child: AspectRatio(
+        aspectRatio: _aspect,
+        child: GestureDetector(
+          onLongPress: longPress,
+          child: InlineVideoPlayer(
+            file: file,
+            aspectRatio: _aspect,
+            onFullScreen: (p) => _fullScreen(file, p),
+            onInitFailed: () => _inlineFailed(file),
+            controllerFactory: widget.inlineControllerFactory,
+          ),
+        ),
+      ),
+    ),
+  );
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final ms = _durationMs;
     final video = saved;
@@ -281,6 +352,8 @@ class VideoTile extends ConsumerWidget {
     final longPress = video != null && onLongPress != null
         ? () => onLongPress!(video)
         : null;
+    final inline = _inline;
+    if (inline != null) return _inlinePlayer(inline, longPress);
     return ListenableBuilder(
       listenable: Listenable.merge([uploader?.states, index]),
       builder: (context, _) {
@@ -364,7 +437,7 @@ class VideoTile extends ConsumerWidget {
                                 vertical: 2,
                               ),
                               child: Text(
-                                formatLength(ms),
+                                VideoTile.formatLength(ms),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,

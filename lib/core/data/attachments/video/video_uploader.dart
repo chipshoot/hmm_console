@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../settings/settings_controller.dart';
 import '../../data_mode.dart';
 import '../../local/database.dart';
 import '../../sync/cloud_sync_provider.dart';
@@ -12,6 +13,7 @@ import '../../vault/vault_file_store.dart';
 import '../../vault/vault_gc.dart';
 import '../attachment_providers.dart';
 import '../../sync/video_upload_scheduler.dart' show VideoUploadRunner;
+import 'video_cache.dart';
 import 'video_upload_queue.dart';
 
 enum VideoUploadPhase { queued, waitingForWifi, uploading, failed }
@@ -36,12 +38,14 @@ class VideoUploader implements VideoUploadRunner {
     required Future<bool> Function() unmeteredNetwork,
     required Future<Set<String>> Function() referencedPaths,
     int fragmentBytes = kUploadFragmentBytes,
+    Future<void> Function(String path)? onOffloaded,
   }) : _provider = provider,
        _store = store,
        _files = files,
        _unmetered = unmeteredNetwork,
        _referenced = referencedPaths,
-       _fragment = fragmentBytes;
+       _fragment = fragmentBytes,
+       _onOffloaded = onOffloaded;
 
   final CloudSyncProvider _provider;
   final VideoUploadQueueStore _store;
@@ -49,6 +53,7 @@ class VideoUploader implements VideoUploadRunner {
   final Future<bool> Function() _unmetered;
   final Future<Set<String>> Function() _referenced;
   final int _fragment;
+  final Future<void> Function(String path)? _onOffloaded;
 
   final _states = ValueNotifier<Map<String, VideoUploadState>>(const {});
   Future<void>? _running;
@@ -262,6 +267,11 @@ class VideoUploader implements VideoUploadRunner {
     // The upload is complete; a failed offload must not cause a re-upload.
     try {
       await _files.offload(entry.path);
+      try {
+        await _onOffloaded?.call(entry.path);
+      } catch (e) {
+        debugPrint('Video cache update failed: ${e.runtimeType}');
+      }
     } catch (e) {
       debugPrint('Video offload failed: ${e.runtimeType}');
     }
@@ -269,11 +279,31 @@ class VideoUploader implements VideoUploadRunner {
   }
 }
 
-Future<bool> _isUnmetered() async {
+/// True on Wi-Fi or ethernet. Shared by the uploader and Keep offline.
+Future<bool> isUnmeteredNetwork() async {
   final r = await Connectivity().checkConnectivity();
   return r.contains(ConnectivityResult.wifi) ||
       r.contains(ConnectivityResult.ethernet);
 }
+
+/// The Wi-Fi/ethernet check; a provider so tests can fake it.
+final Provider<Future<bool> Function()> videoUnmeteredCheckProvider =
+    Provider<Future<bool> Function()>((ref) => isUnmeteredNetwork);
+
+/// The one rule for whether video transfers may run now: on Wi-Fi/ethernet,
+/// or whenever "Upload on mobile data" is on. The setting is read at call
+/// time, so toggling it needs no provider rebuild. Used by the uploader and
+/// Keep offline.
+final Provider<Future<bool> Function()> videoMayUseNetworkProvider =
+    Provider<Future<bool> Function()>((ref) {
+      return () async {
+        if (ref.read(settingsProvider).value?.videoUploadOnMobileData ??
+            false) {
+          return true;
+        }
+        return ref.read(videoUnmeteredCheckProvider)();
+      };
+    });
 
 /// Null unless the data mode is cloudStorage and the active provider can move
 /// large files and there is an on-disk vault. A FutureProvider because the
@@ -290,7 +320,12 @@ final FutureProvider<VideoUploader?> videoUploaderProvider =
         provider: provider,
         store: VideoUploadQueueStore(),
         files: files,
-        unmeteredNetwork: _isUnmetered,
+        unmeteredNetwork: ref.read(videoMayUseNetworkProvider),
         referencedPaths: () => collectReferencedVaultPaths(db),
+        onOffloaded: (p) => touchVideo(
+          ref.read(videoCacheIndexProvider.future),
+          p,
+          cache: () => ref.read(videoCacheProvider.future),
+        ),
       );
     });

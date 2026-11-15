@@ -60,7 +60,8 @@ class VideoPlugin: NSObject {
       }
 
     case "play":
-      play(url: url, result: result)
+      let positionMs = (args?["positionMs"] as? NSNumber)?.int64Value ?? 0
+      play(url: url, positionMs: positionMs, result: result)
 
     case "saveToPhotos":
       saveToPhotos(url: url, result: result)
@@ -152,7 +153,7 @@ class VideoPlugin: NSObject {
 
   // MARK: play
 
-  private func play(url: URL, result: @escaping FlutterResult) {
+  private func play(url: URL, positionMs: Int64, result: @escaping FlutterResult) {
     guard let host = Self.presenter() else {
       result(FlutterError(code: "failed",
                           message: "No view controller to present from",
@@ -163,9 +164,14 @@ class VideoPlugin: NSObject {
     try? AVAudioSession.sharedInstance().setActive(true)
 
     let player = AVPlayer(url: url)
-    let controller = AVPlayerViewController()
+    let controller = ReleasingPlayerViewController()
     controller.player = player
     controller.modalPresentationStyle = .fullScreen
+    if positionMs > 0 {
+      // Continue where the in-place player stopped.
+      player.seek(to: CMTime(value: positionMs, timescale: 1000),
+                  toleranceBefore: .zero, toleranceAfter: .zero)
+    }
     host.present(controller, animated: true) {
       player.play()
       result(nil)
@@ -206,5 +212,16 @@ class VideoPlugin: NSObject {
         }
       }
     }
+  }
+}
+
+/// Hands the audio back when the player closes, so other apps (Music) can
+/// resume.
+private class ReleasingPlayerViewController: AVPlayerViewController {
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    player?.pause()
+    try? AVAudioSession.sharedInstance().setActive(
+      false, options: .notifyOthersOnDeactivation)
   }
 }

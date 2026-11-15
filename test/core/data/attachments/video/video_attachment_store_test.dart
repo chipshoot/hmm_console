@@ -17,6 +17,14 @@ class _Vault implements IVaultStore {
 }
 
 class _Files implements IVaultFileStore {
+  @override
+  Future<List<VaultEntry>> listOffloaded() async => const [];
+  @override
+  Future<void> deleteOffloaded(String p) async {}
+  @override
+  Future<DateTime?> offloadedModified(String p) async => null;
+  @override
+  Future<int> deleteStaleParts() async => 0;
   final imported = <String>[];
   @override
   Future<void> importFile(String p, File source) async {

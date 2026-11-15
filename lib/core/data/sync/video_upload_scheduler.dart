@@ -4,6 +4,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../attachments/video/keep_offline.dart';
+import '../attachments/video/video_cache.dart';
 import '../attachments/video/video_platform.dart';
 import '../attachments/video/video_uploader.dart';
 import 'sync_controller.dart';
@@ -24,15 +26,22 @@ class VideoUploadScheduler with WidgetsBindingObserver {
     required bool Function() isSyncing,
     required VideoPlatform platform,
     Stream<List<ConnectivityResult>>? connectivity,
+    Future<void> Function()? onAttach,
+    Future<void> Function()? fetchMissing,
   }) : _resolve = resolveUploader,
        _isSyncing = isSyncing,
        _platform = platform,
-       _connectivity = connectivity;
+       _connectivity = connectivity,
+       _onAttach = onAttach,
+       _fetchMissing = fetchMissing;
 
   final Future<VideoUploadRunner?> Function() _resolve;
   final bool Function() _isSyncing;
   final VideoPlatform _platform;
   final Stream<List<ConnectivityResult>>? _connectivity;
+  final Future<void> Function()? _onAttach;
+  final Future<void> Function()? _fetchMissing;
+  bool _onAttachRan = false;
 
   StreamSubscription<List<ConnectivityResult>>? _sub;
   VideoUploadRunner? _loaded;
@@ -44,6 +53,10 @@ class VideoUploadScheduler with WidgetsBindingObserver {
   void attach() {
     if (_attached) return;
     _attached = true;
+    if (!_onAttachRan) {
+      _onAttachRan = true;
+      unawaited(_runOnAttach());
+    }
     WidgetsBinding.instance.addObserver(this);
     _sub = _connectivity?.listen((results) {
       if (results.contains(ConnectivityResult.wifi) ||
@@ -51,6 +64,27 @@ class VideoUploadScheduler with WidgetsBindingObserver {
         unawaited(maybeRun());
       }
     });
+  }
+
+  Future<void> _runOnAttach() async {
+    try {
+      await _onAttach?.call();
+    } catch (e) {
+      debugPrint(
+        'VideoUploadScheduler: launch sweep failed (${e.runtimeType})',
+      );
+    }
+  }
+
+  /// Best effort: starts downloads of kept-offline videos; never fails the run.
+  Future<void> _runFetchMissing() async {
+    try {
+      await _fetchMissing?.call();
+    } catch (e) {
+      debugPrint(
+        'VideoUploadScheduler: keep-offline fetch failed (${e.runtimeType})',
+      );
+    }
   }
 
   void dispose() {
@@ -97,7 +131,12 @@ class VideoUploadScheduler with WidgetsBindingObserver {
         _loaded = uploader;
       }
       task = await _platform.beginBackgroundTask();
-      await uploader.run();
+      try {
+        await uploader.run();
+      } finally {
+        // Kept-offline downloads don't depend on the upload run succeeding.
+        await _runFetchMissing();
+      }
     } catch (e) {
       // Type only: a DioException's text can carry a pre-authenticated URL.
       debugPrint('VideoUploadScheduler: run failed (${e.runtimeType})');
@@ -123,6 +162,14 @@ final Provider<VideoUploadScheduler> videoUploadSchedulerProvider =
         isSyncing: () => controller.status.isSyncing,
         platform: ref.watch(videoPlatformProvider),
         connectivity: Connectivity().onConnectivityChanged,
+        onAttach: () async {
+          final cache = await ref.read(videoCacheProvider.future);
+          await cache?.sweepStaleParts();
+          await cache?.evictToFit();
+        },
+        fetchMissing: () async {
+          await (await ref.read(keepOfflineProvider.future))?.fetchMissing();
+        },
       )..attach();
       void afterSync() => unawaited(scheduler.maybeRun());
       (controller as Listenable).addListener(afterSync);

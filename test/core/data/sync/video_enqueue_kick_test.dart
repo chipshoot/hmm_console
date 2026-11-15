@@ -9,11 +9,20 @@ import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
 import 'package:hmm_console/core/data/sync/video_upload_scheduler.dart';
 import 'package:hmm_console/core/data/vault/vault_file_store.dart';
+import 'package:hmm_console/core/data/vault/vault_store.dart' show VaultEntry;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../attachments/video/fake_video_platform.dart';
 
 class _Files implements IVaultFileStore {
+  @override
+  Future<List<VaultEntry>> listOffloaded() async => const [];
+  @override
+  Future<void> deleteOffloaded(String p) async {}
+  @override
+  Future<DateTime?> offloadedModified(String p) async => null;
+  @override
+  Future<int> deleteStaleParts() async => 0;
   _Files(this.file);
   final File file;
   @override

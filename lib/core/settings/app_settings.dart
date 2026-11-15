@@ -24,6 +24,7 @@ class AppSettings {
     this.onboardingCompleted = false,
     this.quickPanelEnabled = true,
     this.quickPanelHintShown = false,
+    this.videoUploadOnMobileData = false,
     this.localDbPath,
     this.cloudStorageVaultPath,
     this.schemaVersion = currentSchemaVersion,
@@ -56,6 +57,10 @@ class AppSettings {
   final bool onboardingCompleted;
   final bool quickPanelEnabled;
   final bool quickPanelHintShown;
+
+  /// Per device: let video uploads and Keep offline downloads use mobile
+  /// data. Off means they wait for Wi-Fi.
+  final bool videoUploadOnMobileData;
   final String? localDbPath;
   final String? cloudStorageVaultPath;
   final int schemaVersion;
@@ -103,6 +108,7 @@ class AppSettings {
       onboardingCompleted: j['onboardingCompleted'] as bool? ?? false,
       quickPanelEnabled: j['quickPanelEnabled'] as bool? ?? true,
       quickPanelHintShown: j['quickPanelHintShown'] as bool? ?? false,
+      videoUploadOnMobileData: j['videoUploadOnMobileData'] as bool? ?? false,
       localDbPath: j['localDbPath'] as String?,
       cloudStorageVaultPath: j['cloudStorageVaultPath'] as String?,
       schemaVersion:
@@ -126,6 +132,7 @@ class AppSettings {
     'onboardingCompleted': onboardingCompleted,
     'quickPanelEnabled': quickPanelEnabled,
     'quickPanelHintShown': quickPanelHintShown,
+    'videoUploadOnMobileData': videoUploadOnMobileData,
     if (localDbPath != null) 'localDbPath': localDbPath,
     if (cloudStorageVaultPath != null)
       'cloudStorageVaultPath': cloudStorageVaultPath,
@@ -148,6 +155,7 @@ class AppSettings {
     bool? onboardingCompleted,
     bool? quickPanelEnabled,
     bool? quickPanelHintShown,
+    bool? videoUploadOnMobileData,
     String? localDbPath,
     String? cloudStorageVaultPath,
   }) => AppSettings(
@@ -167,6 +175,8 @@ class AppSettings {
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     quickPanelEnabled: quickPanelEnabled ?? this.quickPanelEnabled,
     quickPanelHintShown: quickPanelHintShown ?? this.quickPanelHintShown,
+    videoUploadOnMobileData:
+        videoUploadOnMobileData ?? this.videoUploadOnMobileData,
     localDbPath: localDbPath ?? this.localDbPath,
     cloudStorageVaultPath: cloudStorageVaultPath ?? this.cloudStorageVaultPath,
     schemaVersion: schemaVersion,

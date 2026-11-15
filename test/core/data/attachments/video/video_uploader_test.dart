@@ -6,9 +6,18 @@ import 'package:hmm_console/core/data/attachments/video/video_upload_queue.dart'
 import 'package:hmm_console/core/data/attachments/video/video_uploader.dart';
 import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/vault/vault_file_store.dart';
+import 'package:hmm_console/core/data/vault/vault_store.dart' show VaultEntry;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeFiles implements IVaultFileStore {
+  @override
+  Future<List<VaultEntry>> listOffloaded() async => const [];
+  @override
+  Future<void> deleteOffloaded(String p) async {}
+  @override
+  Future<DateTime?> offloadedModified(String p) async => null;
+  @override
+  Future<int> deleteStaleParts() async => 0;
   _FakeFiles(this.file);
   final File? file;
   final offloaded = <String>[];

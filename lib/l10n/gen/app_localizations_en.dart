@@ -3285,6 +3285,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesShareFailed => 'Couldn\'t share the note';
 
   @override
+  String get notesShareVideoLabel => 'Video';
+
+  @override
   String get notesAttachToAction => 'Attach to…';
 
   @override
@@ -3610,11 +3613,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesVideoPlay => 'Play video';
 
   @override
+  String get notesVideoPause => 'Pause';
+
+  @override
+  String get notesVideoFullScreen => 'Full screen';
+
+  @override
   String get notesVideoNotOnDevice =>
       'This video is only on the device that added it, for now.';
 
   @override
   String get notesVideoSaveToPhotos => 'Save to Photos';
+
+  @override
+  String get notesVideoKeepOffline => 'Keep offline';
+
+  @override
+  String get notesVideoKeepOfflineFailed => 'Could not change Keep offline';
 
   @override
   String get notesVideoShare => 'Share…';
@@ -3691,7 +3706,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpNoteDetailVideoBody =>
-      'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Save to Photos, Share or Remove.';
+      'Tap a video to play it full screen. On iPad it plays in place, with play/pause, a scrub bar and a full-screen button that carries on from the same spot. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Keep offline, Save to Photos, Share or Remove. Choose Keep offline to store it on this device for good.';
 
   @override
   String get notesAddVideoTooltip => 'Add video';
@@ -3746,4 +3761,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesVideoRemoveConfirmKeep => 'Keep';
+
+  @override
+  String get settingsVideos => 'Videos';
+
+  @override
+  String settingsVideosUsage(String used, String limit) {
+    return '$used of $limit';
+  }
+
+  @override
+  String get videoStorageTitle => 'Videos';
+
+  @override
+  String get videoStorageDownloaded => 'Downloaded';
+
+  @override
+  String get videoStorageKeptOffline => 'Kept offline';
+
+  @override
+  String videoStorageKeptSummary(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count videos · $size',
+      one: '1 video · $size',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get videoStorageMobileData => 'Upload on mobile data';
+
+  @override
+  String get videoStorageMobileDataHint => 'Otherwise videos wait for Wi-Fi.';
+
+  @override
+  String get videoStorageClear => 'Clear downloaded videos';
+
+  @override
+  String videoStorageClearConfirm(String size) {
+    return 'Remove $size of downloaded videos from this device? Kept-offline videos stay. Others download again when you play them.';
+  }
+
+  @override
+  String videoStorageCleared(String size) {
+    return 'Cleared $size';
+  }
+
+  @override
+  String get videoStorageClearFailed => 'Couldn\'t clear downloaded videos';
+
+  @override
+  String get helpVideoStorageTitle => 'Videos';
+
+  @override
+  String get helpVideoStorageSummary =>
+      'See how much space downloaded videos use on this device and control how videos upload.';
+
+  @override
+  String get helpVideoStorageDownloadedTitle => 'Downloaded';
+
+  @override
+  String get helpVideoStorageDownloadedBody =>
+      'Videos fetched to play on this device. The oldest-used are cleared automatically once they pass the limit.';
+
+  @override
+  String get helpVideoStorageKeptOfflineTitle => 'Kept offline';
+
+  @override
+  String get helpVideoStorageKeptOfflineBody =>
+      'Videos you chose to keep on this device. They are never cleared and do not count toward the limit.';
+
+  @override
+  String get helpVideoStorageMobileDataTitle => 'Upload on mobile data';
+
+  @override
+  String get helpVideoStorageMobileDataBody =>
+      'When on, videos upload and Keep offline downloads run on mobile data. When off, they wait for Wi-Fi.';
+
+  @override
+  String get helpVideoStorageClearTitle => 'Clear downloaded videos';
+
+  @override
+  String get helpVideoStorageClearBody =>
+      'Removes downloaded videos from this device. Kept-offline videos stay, and the others download again when you play them.';
 }

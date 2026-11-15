@@ -56,6 +56,44 @@ class LocalVaultStore implements IVaultStore, IVaultFileStore {
   File? downloadTarget(String relativePath) => _offloadFileFor(relativePath);
 
   @override
+  Future<List<VaultEntry>> listOffloaded() async {
+    final dir = _offloadDir;
+    if (dir == null || !await dir.exists()) return const [];
+    final all = await _listRoot(dir, '');
+    return all
+        .where((e) => isVideoVaultPath(e.relativePath))
+        .where((e) => !e.relativePath.endsWith('.part'))
+        .toList();
+  }
+
+  @override
+  Future<void> deleteOffloaded(String relativePath) async {
+    final f = _offloadFileFor(relativePath);
+    if (f != null && await f.exists()) await f.delete();
+  }
+
+  @override
+  Future<DateTime?> offloadedModified(String relativePath) async {
+    final f = _offloadFileFor(relativePath);
+    if (f == null || !await f.exists()) return null;
+    return f.lastModified();
+  }
+
+  @override
+  Future<int> deleteStaleParts() async {
+    final dir = _offloadDir;
+    if (dir == null || !await dir.exists()) return 0;
+    var n = 0;
+    await for (final e in dir.list(recursive: true)) {
+      if (e is File && e.path.endsWith('.part')) {
+        await e.delete();
+        n++;
+      }
+    }
+    return n;
+  }
+
+  @override
   Future<void> offload(String relativePath) async {
     vaultRelativePathValidate(relativePath);
     if (!isVideoVaultPath(relativePath)) {

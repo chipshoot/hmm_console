@@ -10,7 +10,9 @@ import 'package:path/path.dart' as p;
 import '../../../../core/navigation/route_names.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/video/video_cache.dart';
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/util/format_bytes.dart';
 import '../../../../core/data/local/database.dart';
 import '../../../../core/data/vault/vault_gc.dart';
 import '../../../../core/data/sync/onedrive_auth.dart';
@@ -434,6 +436,8 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 GapWidgets.h16,
               ],
+              const _VideosRow(),
+              GapWidgets.h16,
               if (!OneDriveConfig.isConfigured)
                 Text(
                   l.settingsOneDriveClientIdMissing,
@@ -664,6 +668,35 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Settings -> Videos entry (cloudStorage only): a row whose subtitle shows
+/// the downloaded size against the cache limit. The subtitle is left out
+/// when there is no on-disk vault.
+class _VideosRow extends ConsumerWidget {
+  const _VideosRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    // Shared with Settings -> Videos, whose Clear invalidates it.
+    final usage = ref.watch(videoCacheUsageProvider).value;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.videocam_outlined),
+      title: Text(l.settingsVideos),
+      subtitle: usage == null
+          ? null
+          : Text(
+              l.settingsVideosUsage(
+                formatVideoSize(usage.downloadedBytes),
+                formatVideoSize(kVideoCacheLimitBytes),
+              ),
+            ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => context.pushNamed(RouterNames.videoStorage.name),
     );
   }
 }

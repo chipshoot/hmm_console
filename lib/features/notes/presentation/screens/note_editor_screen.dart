@@ -46,6 +46,7 @@ import '../widgets/note_tag_field.dart';
 import '../widgets/record_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/design_tokens.dart';
+import '../../../../core/util/format_bytes.dart';
 import '../../../../core/util/uuid.dart';
 import '../../data/subsystem_anchor.dart';
 import '../../rendering/note_display.dart';
@@ -1471,15 +1472,6 @@ class _SubsystemStrip extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// A video's size for the large-video warning, base 1024: whole MB below
-/// 1 GiB ("742 MB"), else one-decimal GB ("1.3 GB").
-String formatVideoSize(int bytes) {
-  const mib = 1024 * 1024;
-  const gib = 1024 * mib;
-  if (bytes < gib) return '${(bytes / mib).round()} MB';
-  return '${(bytes / gib).toStringAsFixed(1)} GB';
 }
 
 /// Inserts [url] at [c]'s cursor (replacing any selection) as a line of its

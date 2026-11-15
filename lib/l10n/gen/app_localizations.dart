@@ -5888,6 +5888,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t share the note'**
   String get notesShareFailed;
 
+  /// No description provided for @notesShareVideoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get notesShareVideoLabel;
+
   /// No description provided for @notesAttachToAction.
   ///
   /// In en, this message translates to:
@@ -6368,6 +6374,18 @@ abstract class AppLocalizations {
   /// **'Play video'**
   String get notesVideoPlay;
 
+  /// No description provided for @notesVideoPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get notesVideoPause;
+
+  /// No description provided for @notesVideoFullScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get notesVideoFullScreen;
+
   /// No description provided for @notesVideoNotOnDevice.
   ///
   /// In en, this message translates to:
@@ -6379,6 +6397,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save to Photos'**
   String get notesVideoSaveToPhotos;
+
+  /// No description provided for @notesVideoKeepOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep offline'**
+  String get notesVideoKeepOffline;
+
+  /// No description provided for @notesVideoKeepOfflineFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not change Keep offline'**
+  String get notesVideoKeepOfflineFailed;
 
   /// No description provided for @notesVideoShare.
   ///
@@ -6515,7 +6545,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpNoteDetailVideoBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Save to Photos, Share or Remove.'**
+  /// **'Tap a video to play it full screen. On iPad it plays in place, with play/pause, a scrub bar and a full-screen button that carries on from the same spot. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Keep offline, Save to Photos, Share or Remove. Choose Keep offline to store it on this device for good.'**
   String get helpNoteDetailVideoBody;
 
   /// No description provided for @notesAddVideoTooltip.
@@ -6595,6 +6625,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep'**
   String get notesVideoRemoveConfirmKeep;
+
+  /// No description provided for @settingsVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get settingsVideos;
+
+  /// No description provided for @settingsVideosUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {limit}'**
+  String settingsVideosUsage(String used, String limit);
+
+  /// No description provided for @videoStorageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get videoStorageTitle;
+
+  /// No description provided for @videoStorageDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get videoStorageDownloaded;
+
+  /// No description provided for @videoStorageKeptOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept offline'**
+  String get videoStorageKeptOffline;
+
+  /// No description provided for @videoStorageKeptSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 video · {size}} other{{count} videos · {size}}}'**
+  String videoStorageKeptSummary(int count, String size);
+
+  /// No description provided for @videoStorageMobileData.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload on mobile data'**
+  String get videoStorageMobileData;
+
+  /// No description provided for @videoStorageMobileDataHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Otherwise videos wait for Wi-Fi.'**
+  String get videoStorageMobileDataHint;
+
+  /// No description provided for @videoStorageClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear downloaded videos'**
+  String get videoStorageClear;
+
+  /// No description provided for @videoStorageClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {size} of downloaded videos from this device? Kept-offline videos stay. Others download again when you play them.'**
+  String videoStorageClearConfirm(String size);
+
+  /// No description provided for @videoStorageCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared {size}'**
+  String videoStorageCleared(String size);
+
+  /// No description provided for @videoStorageClearFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clear downloaded videos'**
+  String get videoStorageClearFailed;
+
+  /// No description provided for @helpVideoStorageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get helpVideoStorageTitle;
+
+  /// No description provided for @helpVideoStorageSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'See how much space downloaded videos use on this device and control how videos upload.'**
+  String get helpVideoStorageSummary;
+
+  /// No description provided for @helpVideoStorageDownloadedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get helpVideoStorageDownloadedTitle;
+
+  /// No description provided for @helpVideoStorageDownloadedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos fetched to play on this device. The oldest-used are cleared automatically once they pass the limit.'**
+  String get helpVideoStorageDownloadedBody;
+
+  /// No description provided for @helpVideoStorageKeptOfflineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept offline'**
+  String get helpVideoStorageKeptOfflineTitle;
+
+  /// No description provided for @helpVideoStorageKeptOfflineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos you chose to keep on this device. They are never cleared and do not count toward the limit.'**
+  String get helpVideoStorageKeptOfflineBody;
+
+  /// No description provided for @helpVideoStorageMobileDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload on mobile data'**
+  String get helpVideoStorageMobileDataTitle;
+
+  /// No description provided for @helpVideoStorageMobileDataBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, videos upload and Keep offline downloads run on mobile data. When off, they wait for Wi-Fi.'**
+  String get helpVideoStorageMobileDataBody;
+
+  /// No description provided for @helpVideoStorageClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear downloaded videos'**
+  String get helpVideoStorageClearTitle;
+
+  /// No description provided for @helpVideoStorageClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes downloaded videos from this device. Kept-offline videos stay, and the others download again when you play them.'**
+  String get helpVideoStorageClearBody;
 }
 
 class _AppLocalizationsDelegate

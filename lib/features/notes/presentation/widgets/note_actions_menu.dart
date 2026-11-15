@@ -203,7 +203,10 @@ Future<void> _runAction(
       try {
         await ref
             .read(noteSharerProvider)
-            .shareText(shareTextFor(note), origin: origin);
+            .shareText(
+              shareTextFor(note, videoLabel: l.notesShareVideoLabel),
+              origin: origin,
+            );
       } catch (e) {
         debugPrint('NoteActionsMenu: share failed (${e.runtimeType})');
         messenger.showSnackBar(SnackBar(content: Text(l.notesShareFailed)));

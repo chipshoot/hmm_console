@@ -36,6 +36,7 @@ import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_
 import 'package:hmm_console/features/launcher/presentation/launcher_search_screen.dart';
 import 'package:hmm_console/features/launcher/presentation/launcher_manage_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
+import 'package:hmm_console/features/settings/presentation/screens/video_storage_screen.dart';
 import 'driver_licence_routes.dart';
 
 /// Shared with `HomeSyncOverlay`/`SyncPill` (mounted above the router in
@@ -250,6 +251,13 @@ final routerConfig = Provider<GoRouter>(
         path: '/settings',
         name: RouterNames.settings.name,
         builder: (context, state) => const SettingsScreen(),
+        routes: [
+          GoRoute(
+            path: 'videos',
+            name: RouterNames.videoStorage.name,
+            builder: (context, state) => const VideoStorageScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/launcher',
