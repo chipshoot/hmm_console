@@ -6410,6 +6410,12 @@ abstract class AppLocalizations {
   /// **'Could not change Keep offline'**
   String get notesVideoKeepOfflineFailed;
 
+  /// No description provided for @notesVideoKeepOfflineFetchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download this video. It will try again after the next sync.'**
+  String get notesVideoKeepOfflineFetchFailed;
+
   /// No description provided for @notesVideoShare.
   ///
   /// In en, this message translates to:

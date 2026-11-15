@@ -9,6 +9,8 @@ void main() {
   late List<String> fetched;
   late Set<String> local;
   late bool network;
+  late VideoFetchOutcome outcome;
+  late bool fetchThrows;
   // Null: every kept path is still referenced by a note.
   Set<String>? referenced;
   late KeepOffline keep;
@@ -19,12 +21,15 @@ void main() {
     fetched = [];
     local = {};
     network = true;
+    outcome = VideoFetchOutcome.failed;
+    fetchThrows = false;
     referenced = null;
     keep = KeepOffline(
       index: index,
       fetch: (p) async {
         fetched.add(p);
-        return const VideoFetchResult(VideoFetchOutcome.failed);
+        if (fetchThrows) throw StateError('network');
+        return VideoFetchResult(outcome);
       },
       isLocal: (p) async => local.contains(p),
       mayUseNetwork: () async => network,
@@ -36,6 +41,38 @@ void main() {
     await keep.set('a.mp4', true);
     expect(index.isKept('a.mp4'), isTrue);
     expect(fetched, ['a.mp4']);
+  });
+
+  group('a download started by ticking Keep offline', () {
+    Future<int> tick() async {
+      var reported = 0;
+      await keep.set('a.mp4', true, onFetchFailed: () => reported++);
+      await pumpEventQueue();
+      return reported;
+    }
+
+    test('reports a failed download', () async {
+      outcome = VideoFetchOutcome.failed;
+      expect(await tick(), 1);
+      expect(index.isKept('a.mp4'), isTrue);
+    });
+
+    test('reports a download that throws', () async {
+      fetchThrows = true;
+      expect(await tick(), 1);
+    });
+
+    test('does not report a finished, cancelled or still-uploading '
+        'download', () async {
+      for (final o in [
+        VideoFetchOutcome.ready,
+        VideoFetchOutcome.cancelled,
+        VideoFetchOutcome.stillUploading,
+      ]) {
+        outcome = o;
+        expect(await tick(), 0, reason: '$o');
+      }
+    });
   });
 
   test('set true on a local video does not fetch', () async {

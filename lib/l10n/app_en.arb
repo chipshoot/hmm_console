@@ -1657,6 +1657,7 @@
   "notesVideoSaveToPhotos": "Save to Photos",
   "notesVideoKeepOffline": "Keep offline",
   "notesVideoKeepOfflineFailed": "Could not change Keep offline",
+  "notesVideoKeepOfflineFetchFailed": "Couldn't download this video. It will try again after the next sync.",
   "notesVideoShare": "Share…",
   "notesVideoRemove": "Remove from note",
   "notesVideoSaved": "Saved to Photos",
