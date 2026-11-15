@@ -62,6 +62,33 @@ double _top(WidgetTester tester, String key) =>
     tester.getTopLeft(find.byKey(Key(key))).dy;
 
 void main() {
+  testWidgets('a Chinese name shows the English name field; typing sets it', (
+    tester,
+  ) async {
+    final repo = await _mount(tester, seed: _zh);
+    final field = find.byKey(const Key('contact-english-name'));
+    expect(field, findsOneWidget);
+    await tester.enterText(field, 'Michael Zhang');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('contact-save')));
+    await tester.pumpAndSettle();
+    expect((await repo.getContacts()).single.englishName, 'Michael Zhang');
+  });
+
+  testWidgets('a Latin-only name without an English name hides the field', (
+    tester,
+  ) async {
+    await _mount(tester, seed: _latin);
+    expect(find.byKey(const Key('contact-english-name')), findsNothing);
+  });
+
+  testWidgets('a Latin-only name that has an English name still shows it', (
+    tester,
+  ) async {
+    await _mount(tester, seed: _latin.copyWith(englishName: 'Will Zhang'));
+    expect(find.byKey(const Key('contact-english-name')), findsOneWidget);
+  });
+
   testWidgets('a Chinese name opens the options, flips the fields and shows '
       'pinyin hints', (tester) async {
     await _mount(tester, seed: _zh);

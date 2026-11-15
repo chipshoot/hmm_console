@@ -2416,6 +2416,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpContactDetailRemoveBody => '将此联系人从列表中移除。移除后立即点按“撤销”即可恢复。';
 
   @override
+  String get contactEnglishName => '英文名';
+
+  @override
+  String get contactEnglishNameHint => '可选。用于给说英语的人看的速查卡。';
+
+  @override
+  String get helpContactEditEnglishNameTitle => '英文名';
+
+  @override
+  String get helpContactEditEnglishNameBody =>
+      '名字为中文时显示。填写此人或机构使用的英文名，例如 Michael Wang。它不改变联系人在列表中的显示和排序，但可以被搜索到；速查卡的一行可以显示它（选择 Contact.englishName），用于给说英语的人看的卡片。';
+
+  @override
   String get helpContactEditTitle => '编辑联系人';
 
   @override

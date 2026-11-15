@@ -4544,6 +4544,30 @@ abstract class AppLocalizations {
   /// **'Removes this contact from your list. Tap Undo right after to bring it back.'**
   String get helpContactDetailRemoveBody;
 
+  /// No description provided for @contactEnglishName.
+  ///
+  /// In en, this message translates to:
+  /// **'English name'**
+  String get contactEnglishName;
+
+  /// No description provided for @contactEnglishNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. For cheatsheets shown to English speakers.'**
+  String get contactEnglishNameHint;
+
+  /// No description provided for @helpContactEditEnglishNameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'English name'**
+  String get helpContactEditEnglishNameTitle;
+
+  /// No description provided for @helpContactEditEnglishNameBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown for a name written in Chinese. Add the English name this person or organization uses, such as Michael Wang. It doesn\'t change how the contact is shown or sorted in your list, but search finds it, and a cheatsheet row can show it (pick Contact.englishName) for a card meant for English speakers.'**
+  String get helpContactEditEnglishNameBody;
+
   /// No description provided for @helpContactEditTitle.
   ///
   /// In en, this message translates to:

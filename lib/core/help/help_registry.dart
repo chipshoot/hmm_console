@@ -148,6 +148,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         body: l.helpContactEditNameOptionsBody,
       ),
       HelpEntry(
+        icon: Icons.language,
+        title: l.helpContactEditEnglishNameTitle,
+        body: l.helpContactEditEnglishNameBody,
+      ),
+      HelpEntry(
         icon: Icons.add,
         title: l.helpContactEditFieldsTitle,
         body: l.helpContactEditFieldsBody,

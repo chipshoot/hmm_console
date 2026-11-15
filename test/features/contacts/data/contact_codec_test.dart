@@ -623,6 +623,48 @@ void main() {
     });
   });
 
+  group('English name', () {
+    test('stored only when set, and round-trips', () {
+      const plain = Contact(
+        id: 'p',
+        contactType: ContactType.person,
+        lastName: '王',
+        firstName: '小明',
+      );
+      expect(ContactCodec.toMap(plain).containsKey('englishName'), isFalse);
+
+      final set = ContactCodec.toMap(
+        plain.copyWith(englishName: 'Michael Wang'),
+      );
+      expect(set['englishName'], 'Michael Wang');
+      final back = ContactCodec.fromMap(set);
+      expect(back.englishName, 'Michael Wang');
+      expect(jsonEncode(ContactCodec.toMap(back)), jsonEncode(set));
+    });
+
+    test('a contact saved before this field reads as having none', () {
+      final decoded = ContactCodec.fromMap({
+        'schemaVersion': 1,
+        'id': 'x',
+        'contactType': 'person',
+        'firstName': '小明',
+      });
+      expect(decoded.englishName, isNull);
+    });
+
+    test('a wrong-typed English name is kept verbatim until edited', () {
+      final decoded = ContactCodec.fromMap({
+        'schemaVersion': 1,
+        'id': 'x',
+        'contactType': 'person',
+        'firstName': '小明',
+        'englishName': 7,
+      });
+      expect(decoded.englishName, isNull);
+      expect(ContactCodec.toMap(decoded)['englishName'], 7);
+    });
+  });
+
   group('name order and phonetics', () {
     const legacyZh =
         '{"schemaVersion":1,"displayName":"伟 张","id":"c-zh",'

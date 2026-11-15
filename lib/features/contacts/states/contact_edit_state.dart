@@ -69,6 +69,8 @@ class ContactEditState extends Notifier<ContactEditData> {
       _set(state.contact.copyWith(phoneticFamily: v));
   void setPhoneticGiven(String v) =>
       _set(state.contact.copyWith(phoneticGiven: v));
+  void setEnglishName(String v) =>
+      _set(state.contact.copyWith(englishName: v));
 
   void setPhones(List<LabeledFieldEntry> rows) => _set(
     state.contact.copyWith(
@@ -184,6 +186,8 @@ class ContactEditState extends Notifier<ContactEditData> {
           dropPerson ? null : _part(c.phoneticFamily, o.phoneticFamily),
       phoneticGiven:
           dropPerson ? null : _part(c.phoneticGiven, o.phoneticGiven),
+      // Both types have one: a clinic has an English name too.
+      englishName: _part(c.englishName, o.englishName),
       phones: c.phones
           .where((p) =>
               p.number.trim().isNotEmpty ||

@@ -46,6 +46,7 @@ class ContactCodec {
     'nameOrder',
     'phoneticFamily',
     'phoneticGiven',
+    'englishName',
     'phones',
     'emails',
     'addresses',
@@ -114,6 +115,7 @@ class ContactCodec {
     if (order != null) out['nameOrder'] = order;
     _putOptional(out, raw, 'phoneticFamily', c.phoneticFamily);
     _putOptional(out, raw, 'phoneticGiven', c.phoneticGiven);
+    _putOptional(out, raw, 'englishName', c.englishName);
     out['phones'] = _list(c, 'phones', [
       for (final p in c.phones)
         {
@@ -274,6 +276,7 @@ class ContactCodec {
       nameOrder: nameOrder,
       phoneticFamily: r.str('phoneticFamily'),
       phoneticGiven: r.str('phoneticGiven'),
+      englishName: r.str('englishName'),
       phones: _each(r.list('phones'), 'phones', unreadable, (e) {
         final er = _Reader(e);
         return ContactPhone(
