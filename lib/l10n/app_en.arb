@@ -1300,6 +1300,8 @@
   "helpCheatsheetDetailFactsBody": "Each row shows its label with the value from your note underneath. A dash means the row is not linked yet; \"source removed\" means its note was deleted. Tap a phone number or an address to call or map it.",
   "helpCheatsheetDetailKeyPointsTitle": "Key points layout",
   "helpCheatsheetDetailKeyPointsBody": "Rows are numbered on the card's colour, each with its emoji if one was chosen, the label in bold and the value below. Values, actions and photos work as in Facts.",
+  "helpCheatsheetDetailOpenSourceTitle": "Open the note",
+  "helpCheatsheetDetailOpenSourceBody": "Tap the open button on a row to see where its value comes from. A contact opens on its contact screen; other notes open as notes. Long-press the row to see the raw note instead.",
   "helpCheatsheetDetailHeaderTitle": "Cover header",
   "helpCheatsheetDetailHeaderBody": "The top of the card shows its colour and pattern or its cover photo, its icon, its title, and its group with the number of rows. Change the look in the designer.",
   "helpCheatsheetDetailLockTitle": "Locked cover",

@@ -215,6 +215,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         body: l.helpCheatsheetDetailKeyPointsBody,
       ),
       HelpEntry(
+        icon: Icons.open_in_new,
+        title: l.helpCheatsheetDetailOpenSourceTitle,
+        body: l.helpCheatsheetDetailOpenSourceBody,
+      ),
+      HelpEntry(
         icon: Icons.image_outlined,
         title: l.helpCheatsheetDetailHeaderTitle,
         body: l.helpCheatsheetDetailHeaderBody,

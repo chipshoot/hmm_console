@@ -4736,6 +4736,18 @@ abstract class AppLocalizations {
   /// **'Rows are numbered on the card\'s colour, each with its emoji if one was chosen, the label in bold and the value below. Values, actions and photos work as in Facts.'**
   String get helpCheatsheetDetailKeyPointsBody;
 
+  /// No description provided for @helpCheatsheetDetailOpenSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the note'**
+  String get helpCheatsheetDetailOpenSourceTitle;
+
+  /// No description provided for @helpCheatsheetDetailOpenSourceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the open button on a row to see where its value comes from. A contact opens on its contact screen; other notes open as notes. Long-press the row to see the raw note instead.'**
+  String get helpCheatsheetDetailOpenSourceBody;
+
   /// No description provided for @helpCheatsheetDetailHeaderTitle.
   ///
   /// In en, this message translates to:

@@ -2522,6 +2522,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '各行在卡片颜色上编号，若已选择表情符号则一并显示，标签加粗，值显示在下方。值、操作和照片与“信息”布局相同。';
 
   @override
+  String get helpCheatsheetDetailOpenSourceTitle => '打开笔记';
+
+  @override
+  String get helpCheatsheetDetailOpenSourceBody =>
+      '点按一行上的打开按钮，查看其值的来源。联系人会在联系人页面打开，其他笔记以笔记形式打开。长按该行可查看原始笔记。';
+
+  @override
   String get helpCheatsheetDetailHeaderTitle => '封面标题区';
 
   @override

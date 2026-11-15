@@ -774,6 +774,8 @@
   "helpCheatsheetDetailFactsBody": "每一行显示标签，下方是取自笔记的值。短横线表示该行尚未关联；“source removed”表示其笔记已被删除。点按电话号码或地址可拨打或在地图中查看。",
   "helpCheatsheetDetailKeyPointsTitle": "“要点”布局",
   "helpCheatsheetDetailKeyPointsBody": "各行在卡片颜色上编号，若已选择表情符号则一并显示，标签加粗，值显示在下方。值、操作和照片与“信息”布局相同。",
+  "helpCheatsheetDetailOpenSourceTitle": "打开笔记",
+  "helpCheatsheetDetailOpenSourceBody": "点按一行上的打开按钮，查看其值的来源。联系人会在联系人页面打开，其他笔记以笔记形式打开。长按该行可查看原始笔记。",
   "helpCheatsheetDetailHeaderTitle": "封面标题区",
   "helpCheatsheetDetailHeaderBody": "卡片顶部显示其颜色和图案或封面照片、图标、标题，以及所属分组和行数。可在设计器中更改外观。",
   "helpCheatsheetDetailLockTitle": "已锁定的封面",
