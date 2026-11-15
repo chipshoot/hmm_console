@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../settings/settings_controller.dart';
 import '../../data_mode.dart';
 import '../../local/database.dart';
 import '../../sync/cloud_sync_provider.dart';
@@ -285,6 +286,25 @@ Future<bool> isUnmeteredNetwork() async {
       r.contains(ConnectivityResult.ethernet);
 }
 
+/// The Wi-Fi/ethernet check; a provider so tests can fake it.
+final Provider<Future<bool> Function()> videoUnmeteredCheckProvider =
+    Provider<Future<bool> Function()>((ref) => isUnmeteredNetwork);
+
+/// The one rule for whether video transfers may run now: on Wi-Fi/ethernet,
+/// or whenever "Upload on mobile data" is on. The setting is read at call
+/// time, so toggling it needs no provider rebuild. Used by the uploader and
+/// Keep offline.
+final Provider<Future<bool> Function()> videoMayUseNetworkProvider =
+    Provider<Future<bool> Function()>((ref) {
+      return () async {
+        if (ref.read(settingsProvider).value?.videoUploadOnMobileData ??
+            false) {
+          return true;
+        }
+        return ref.read(videoUnmeteredCheckProvider)();
+      };
+    });
+
 /// Null unless the data mode is cloudStorage and the active provider can move
 /// large files and there is an on-disk vault. A FutureProvider because the
 /// vault file store resolves asynchronously.
@@ -300,7 +320,7 @@ final FutureProvider<VideoUploader?> videoUploaderProvider =
         provider: provider,
         store: VideoUploadQueueStore(),
         files: files,
-        unmeteredNetwork: isUnmeteredNetwork,
+        unmeteredNetwork: ref.read(videoMayUseNetworkProvider),
         referencedPaths: () => collectReferencedVaultPaths(db),
         onOffloaded: (p) => touchVideo(
           ref.read(videoCacheIndexProvider.future),

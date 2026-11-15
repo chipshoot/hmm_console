@@ -7,7 +7,7 @@ import '../attachment_providers.dart';
 import 'video_cache.dart' show videoCacheIndexProvider;
 import 'video_cache_index.dart';
 import 'video_downloads.dart';
-import 'video_uploader.dart' show isUnmeteredNetwork;
+import 'video_uploader.dart' show videoMayUseNetworkProvider;
 
 /// Per-device "Keep offline" for videos: a kept video is downloaded to this
 /// device and never cleared by the cache. Not synced.
@@ -73,7 +73,6 @@ final keepOfflineProvider = FutureProvider<KeepOffline?>((ref) async {
     index: index,
     fetch: downloads.fetch,
     isLocal: (p) async => await files.localFile(p) != null,
-    // Task 4 ORs the "Upload on mobile data" setting in here.
-    mayUseNetwork: isUnmeteredNetwork,
+    mayUseNetwork: ref.read(videoMayUseNetworkProvider),
   );
 });

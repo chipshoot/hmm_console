@@ -20,6 +20,7 @@ enum HelpId {
   notesList,
   notesRecentlyDeleted,
   manageTags,
+  videoStorage,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
@@ -341,6 +342,32 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.delete_outline,
         title: l.helpManageTagsDeleteTitle,
         body: l.helpManageTagsDeleteBody,
+      ),
+    ],
+  ),
+  HelpId.videoStorage => ScreenHelp(
+    title: l.helpVideoStorageTitle,
+    summary: l.helpVideoStorageSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.download_done_outlined,
+        title: l.helpVideoStorageDownloadedTitle,
+        body: l.helpVideoStorageDownloadedBody,
+      ),
+      HelpEntry(
+        icon: Icons.offline_pin_outlined,
+        title: l.helpVideoStorageKeptOfflineTitle,
+        body: l.helpVideoStorageKeptOfflineBody,
+      ),
+      HelpEntry(
+        icon: Icons.cell_tower,
+        title: l.helpVideoStorageMobileDataTitle,
+        body: l.helpVideoStorageMobileDataBody,
+      ),
+      HelpEntry(
+        icon: Icons.delete_sweep_outlined,
+        title: l.helpVideoStorageClearTitle,
+        body: l.helpVideoStorageClearBody,
       ),
     ],
   ),

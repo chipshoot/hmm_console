@@ -3752,4 +3752,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notesVideoRemoveConfirmKeep => 'Keep';
+
+  @override
+  String get settingsVideos => 'Videos';
+
+  @override
+  String settingsVideosUsage(String used, String limit) {
+    return '$used of $limit';
+  }
+
+  @override
+  String get videoStorageTitle => 'Videos';
+
+  @override
+  String get videoStorageDownloaded => 'Downloaded';
+
+  @override
+  String get videoStorageKeptOffline => 'Kept offline';
+
+  @override
+  String videoStorageKeptSummary(int count, String size) {
+    return '$count videos · $size';
+  }
+
+  @override
+  String get videoStorageMobileData => 'Upload on mobile data';
+
+  @override
+  String get videoStorageMobileDataHint => 'Otherwise videos wait for Wi-Fi.';
+
+  @override
+  String get videoStorageClear => 'Clear downloaded videos';
+
+  @override
+  String videoStorageClearConfirm(String size) {
+    return 'Remove $size of downloaded videos from this device? Kept-offline videos stay. Others download again when you play them.';
+  }
+
+  @override
+  String videoStorageCleared(String size) {
+    return 'Cleared $size';
+  }
+
+  @override
+  String get helpVideoStorageTitle => 'Videos';
+
+  @override
+  String get helpVideoStorageSummary =>
+      'See how much space downloaded videos use on this device and control how videos upload.';
+
+  @override
+  String get helpVideoStorageDownloadedTitle => 'Downloaded';
+
+  @override
+  String get helpVideoStorageDownloadedBody =>
+      'Videos fetched to play on this device. The oldest-used are cleared automatically once they pass the limit.';
+
+  @override
+  String get helpVideoStorageKeptOfflineTitle => 'Kept offline';
+
+  @override
+  String get helpVideoStorageKeptOfflineBody =>
+      'Videos you chose to keep on this device. They are never cleared and do not count toward the limit.';
+
+  @override
+  String get helpVideoStorageMobileDataTitle => 'Upload on mobile data';
+
+  @override
+  String get helpVideoStorageMobileDataBody =>
+      'When on, videos upload and Keep offline downloads run on mobile data. When off, they wait for Wi-Fi.';
+
+  @override
+  String get helpVideoStorageClearTitle => 'Clear downloaded videos';
+
+  @override
+  String get helpVideoStorageClearBody =>
+      'Removes downloaded videos from this device. Kept-offline videos stay, and the others download again when you play them.';
 }

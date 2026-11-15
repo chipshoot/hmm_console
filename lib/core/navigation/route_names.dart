@@ -20,6 +20,7 @@ enum RouterNames {
   gasLogForm,
   gasStationManagement,
   settings,
+  videoStorage,
   onboarding,
   notesList,
   notesRecentlyDeleted,

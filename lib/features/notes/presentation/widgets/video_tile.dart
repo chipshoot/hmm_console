@@ -18,7 +18,7 @@ import '../../../../core/data/attachments/video_attachment.dart';
 import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/sync/video_upload_scheduler.dart';
 import '../../../../l10n/gen/app_localizations.dart';
-import '../screens/note_editor_screen.dart' show formatVideoSize;
+import '../../../../core/util/format_bytes.dart';
 import 'note_markdown_body.dart' show kInlineImageMaxHeight;
 import 'video_link_card.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
