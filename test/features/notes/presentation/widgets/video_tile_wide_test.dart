@@ -71,8 +71,9 @@ class _FakeDownloads extends VideoDownloads {
     });
   }
 
+  final cancelled = <String>[];
   @override
-  void cancel(String path) {}
+  void cancel(String path) => cancelled.add(path);
 }
 
 const _path = 'attachments/note-1/u1.mov';
@@ -190,7 +191,14 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.byType(InlineVideoPlayer), findsNothing);
 
-    // A second tap while downloading does not start another fetch.
+    // A second tap while downloading cancels rather than starting another
+    // fetch (the fake's cancel is a no-op, so the download carries on).
+    await tester.tap(find.byType(VideoTile));
+    await tester.pump();
+    await tester.pump();
+    expect(downloads.fetched, [_path]);
+    expect(downloads.cancelled, [_path]);
+
     gate.complete(
       VideoFetchResult(VideoFetchOutcome.ready, File('/v/downloaded.mov')),
     );

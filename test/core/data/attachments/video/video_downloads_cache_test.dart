@@ -61,9 +61,11 @@ class _Provider extends CloudSyncProvider {
 class _FakeCache implements VideoCache {
   final calls = <Set<String>>[];
   Object? throwOnEvict;
+  Completer<void>? evictGate;
   @override
   Future<List<String>> evictToFit({Set<String> protect = const {}}) async {
     calls.add(protect);
+    if (evictGate != null) await evictGate!.future;
     if (throwOnEvict != null) throw throwOnEvict!;
     return const [];
   }
@@ -106,6 +108,7 @@ void main() {
     () async {
       final r = await c.read(videoDownloadsProvider.notifier).fetch('p');
       expect(r.outcome, VideoFetchOutcome.ready);
+      await pumpEventQueue();
       expect(index.lastUsed('p'), isNotNull);
       expect(cache.calls, [
         {'p'},
@@ -116,6 +119,7 @@ void main() {
   test('an already-local file only touches', () async {
     target.writeAsBytesSync([9]);
     await c.read(videoDownloadsProvider.notifier).fetch('p');
+    await pumpEventQueue();
     expect(index.lastUsed('p'), isNotNull);
     expect(cache.calls, isEmpty);
   });
@@ -124,6 +128,7 @@ void main() {
     provider.failWith = StateError('x');
     final failed = await c.read(videoDownloadsProvider.notifier).fetch('p');
     expect(failed.outcome, VideoFetchOutcome.failed);
+    await pumpEventQueue();
 
     provider.failWith = null;
     provider.hold = Completer<void>();
@@ -134,6 +139,7 @@ void main() {
     provider.hold!.complete();
     final cancelled = await f;
     expect(cancelled.outcome, VideoFetchOutcome.cancelled);
+    await pumpEventQueue();
     expect(cache.calls, isEmpty);
     expect(index.lastUsed('p'), isNull);
     expect(index.lastUsed('q'), isNull);
@@ -143,5 +149,19 @@ void main() {
     cache.throwOnEvict = StateError('delete failed');
     final r = await c.read(videoDownloadsProvider.notifier).fetch('p');
     expect(r.outcome, VideoFetchOutcome.ready);
+  });
+
+  test('ready does not wait for eviction', () async {
+    cache.evictGate = Completer<void>();
+    final r = await c
+        .read(videoDownloadsProvider.notifier)
+        .fetch('p')
+        .timeout(const Duration(seconds: 1));
+    expect(r.outcome, VideoFetchOutcome.ready);
+    cache.evictGate!.complete();
+    await pumpEventQueue();
+    expect(cache.calls, [
+      {'p'},
+    ]);
   });
 }

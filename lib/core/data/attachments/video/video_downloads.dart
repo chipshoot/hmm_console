@@ -133,12 +133,16 @@ final videoDownloadsProvider =
       // ignore: invalid_use_of_protected_member
       Ref ref() => notifier.ref;
       notifier = VideoDownloads(
-        onReady: (path, {required downloaded}) => touchVideo(
-          ref().read(videoCacheIndexProvider.future),
-          path,
-          cache: downloaded
-              ? () => ref().read(videoCacheProvider.future)
-              : null,
+        // Not awaited: a ready video must not wait for eviction. touchVideo
+        // catches its own errors.
+        onReady: (path, {required downloaded}) async => unawaited(
+          touchVideo(
+            ref().read(videoCacheIndexProvider.future),
+            path,
+            cache: downloaded
+                ? () => ref().read(videoCacheProvider.future)
+                : null,
+          ),
         ),
       );
       return notifier;
