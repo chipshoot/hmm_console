@@ -177,6 +177,18 @@ void main() {
     expect(platform.audioReleases, 1);
   });
 
+  testWidgets('a phone in landscape, wider than the notes breakpoint, still '
+      'plays full screen', (tester) async {
+    // iPhone 14 Pro Max on its side: 932 pt wide, 430 pt tall.
+    await pumpTile(tester, size: const Size(932, 430), file: File('/v/u1.mov'));
+    await tester.tap(find.byType(VideoTile));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(InlineVideoPlayer), findsNothing);
+    expect(platform.played, ['/v/u1.mov']);
+    expect(controllers, isEmpty);
+  });
+
   testWidgets('on a phone, tapping calls platform.play', (tester) async {
     await pumpTile(tester, size: const Size(390, 844), file: File('/v/u1.mov'));
     await tester.tap(find.byType(VideoTile));

@@ -41,8 +41,13 @@ class VideoPosterPlaceholder extends StatelessWidget {
   );
 }
 
+/// Shortest screen side (pt) from which videos play in place. Phones are
+/// below it in either orientation (the largest iPhone is 440 pt); the
+/// smallest iPad is 744 pt.
+const double kInlineVideoMinShortestSide = 600;
+
 /// A video in a note: poster, play button and length. Tap plays it with the
-/// system player, or in place on a wide screen (iPad); long press hands a
+/// system player, or in place on a tablet; long press hands a
 /// saved video to [onLongPress]. Exactly one of [saved] or [pending] is set.
 class VideoTile extends ConsumerStatefulWidget {
   const VideoTile({
@@ -119,7 +124,12 @@ class _VideoTileState extends ConsumerState<VideoTile> {
 
   Future<void> _play(BuildContext context, WidgetRef ref) async {
     // Read at tap time: a wide screen plays in place, a phone full screen.
-    final wide = MediaQuery.sizeOf(context).width >= kNotesWideBreakpoint;
+    // In place only on tablets: a large phone on its side passes the notes
+    // breakpoint but keeps the native full-screen player.
+    final size = MediaQuery.sizeOf(context);
+    final wide =
+        size.width >= kNotesWideBreakpoint &&
+        size.shortestSide >= kInlineVideoMinShortestSide;
     final platform = ref.read(videoPlatformProvider);
     final messenger = ScaffoldMessenger.of(context);
     final l = AppLocalizations.of(context);
