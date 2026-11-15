@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,17 +21,22 @@ const _mb = 1024 * 1024;
 class _FakeCache implements VideoCache {
   int downloaded = (1.2 * _gb).round();
   int cleared = 0;
+  int kept = 2;
+  Object? clearError;
+  Completer<void>? clearGate;
   @override
   Future<VideoCacheUsage> usage() async => VideoCacheUsage(
     downloadedBytes: downloaded,
-    keptCount: 2,
+    keptCount: kept,
     keptBytes: 300 * _mb,
   );
   @override
   Future<int> clearDownloaded() async {
+    cleared++;
+    if (clearGate != null) await clearGate!.future;
+    if (clearError != null) throw clearError!;
     final freed = downloaded;
     downloaded = 0;
-    cleared++;
     return freed;
   }
 
@@ -53,8 +60,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   Future<(_FakeCache, _FakeScheduler, ProviderContainer)> pump(
-    WidgetTester t,
-  ) async {
+    WidgetTester t, {
+    Widget? below,
+  }) async {
     SharedPreferences.setMockInitialValues({});
     final cache = _FakeCache();
     final sched = _FakeScheduler(FakeVideoPlatform());
@@ -72,7 +80,14 @@ void main() {
           theme: AppTheme.lightThemeData,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const VideoStorageScreen(),
+          home: below == null
+              ? const VideoStorageScreen()
+              : Column(
+                  children: [
+                    Expanded(child: const VideoStorageScreen()),
+                    below,
+                  ],
+                ),
         ),
       ),
     );
@@ -82,8 +97,16 @@ void main() {
 
   testWidgets('shows downloaded and kept-offline usage', (t) async {
     await pump(t);
-    expect(find.text('1.2 GB of 2.0 GB'), findsOneWidget);
+    expect(find.text('1.2 GB of 2 GB'), findsOneWidget);
     expect(find.text('2 videos · 300 MB'), findsOneWidget);
+  });
+
+  testWidgets('one kept video is singular', (t) async {
+    final (cache, _, c) = await pump(t);
+    cache.kept = 1;
+    c.invalidate(videoCacheUsageProvider);
+    await t.pumpAndSettle();
+    expect(find.text('1 video · 300 MB'), findsOneWidget);
   });
 
   testWidgets('the toggle sets the setting and kicks the scheduler', (t) async {
@@ -113,7 +136,58 @@ void main() {
     await t.pumpAndSettle();
     expect(cache.cleared, 1);
     expect(find.text('Cleared 1.2 GB'), findsOneWidget);
-    expect(find.text('0 MB of 2.0 GB'), findsOneWidget);
+    expect(find.text('0 MB of 2 GB'), findsOneWidget);
+  });
+
+  Future<void> confirmClear(WidgetTester t) async {
+    await t.tap(find.text('Clear downloaded videos'));
+    await t.pumpAndSettle();
+    await t.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Clear downloaded videos'),
+      ),
+    );
+  }
+
+  testWidgets('a failed Clear says so', (t) async {
+    final (cache, _, _) = await pump(t);
+    cache.clearError = StateError('disk');
+    await confirmClear(t);
+    await t.pumpAndSettle();
+    expect(find.text("Couldn't clear downloaded videos"), findsOneWidget);
+    expect(find.text('1.2 GB of 2 GB'), findsOneWidget);
+  });
+
+  testWidgets('Clear cannot start again while it runs', (t) async {
+    final (cache, _, _) = await pump(t);
+    cache.clearGate = Completer<void>();
+    await confirmClear(t);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Clear downloaded videos'));
+    await t.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    cache.clearGate!.complete();
+    await t.pumpAndSettle();
+    expect(cache.cleared, 1);
+  });
+
+  testWidgets('Clear refreshes the shared usage the Settings row shows', (
+    t,
+  ) async {
+    await pump(
+      t,
+      below: Consumer(
+        builder: (context, ref, _) {
+          final u = ref.watch(videoCacheUsageProvider).value;
+          return Text('row ${u?.downloadedBytes}');
+        },
+      ),
+    );
+    expect(find.text('row ${(1.2 * _gb).round()}'), findsOneWidget);
+    await confirmClear(t);
+    await t.pumpAndSettle();
+    expect(find.text('row 0'), findsOneWidget);
   });
 
   testWidgets('Cancel clears nothing', (t) async {

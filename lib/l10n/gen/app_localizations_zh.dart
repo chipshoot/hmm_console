@@ -3638,6 +3638,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get videoStorageClearFailed => '无法清除已下载的视频';
+
+  @override
   String get helpVideoStorageTitle => '视频';
 
   @override

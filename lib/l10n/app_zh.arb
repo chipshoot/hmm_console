@@ -1135,6 +1135,7 @@
   "@videoStorageClearConfirm": {"placeholders": {"size": {"type": "String"}}},
   "videoStorageCleared": "已清除 {size}",
   "@videoStorageCleared": {"placeholders": {"size": {"type": "String"}}},
+  "videoStorageClearFailed": "无法清除已下载的视频",
   "helpVideoStorageTitle": "视频",
   "helpVideoStorageSummary": "查看已下载视频在本设备上占用的空间，并控制视频如何上传。",
   "helpVideoStorageDownloadedTitle": "已下载",

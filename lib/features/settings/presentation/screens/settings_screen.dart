@@ -681,27 +681,19 @@ class _VideosRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final usage = ref.watch(
-      videoCacheProvider.select((c) => c.value),
-    );
+    // Shared with Settings -> Videos, whose Clear invalidates it.
+    final usage = ref.watch(videoCacheUsageProvider).value;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.videocam_outlined),
       title: Text(l.settingsVideos),
       subtitle: usage == null
           ? null
-          : FutureBuilder<VideoCacheUsage>(
-              future: usage.usage(),
-              builder: (context, snap) {
-                final u = snap.data;
-                if (u == null) return const SizedBox.shrink();
-                return Text(
-                  l.settingsVideosUsage(
-                    formatVideoSize(u.downloadedBytes),
-                    formatVideoSize(kVideoCacheLimitBytes),
-                  ),
-                );
-              },
+          : Text(
+              l.settingsVideosUsage(
+                formatVideoSize(usage.downloadedBytes),
+                formatVideoSize(kVideoCacheLimitBytes),
+              ),
             ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => context.pushNamed(RouterNames.videoStorage.name),

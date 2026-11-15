@@ -6659,7 +6659,7 @@ abstract class AppLocalizations {
   /// No description provided for @videoStorageKeptSummary.
   ///
   /// In en, this message translates to:
-  /// **'{count} videos · {size}'**
+  /// **'{count, plural, =1{1 video · {size}} other{{count} videos · {size}}}'**
   String videoStorageKeptSummary(int count, String size);
 
   /// No description provided for @videoStorageMobileData.
@@ -6691,6 +6691,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cleared {size}'**
   String videoStorageCleared(String size);
+
+  /// No description provided for @videoStorageClearFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clear downloaded videos'**
+  String get videoStorageClearFailed;
 
   /// No description provided for @helpVideoStorageTitle.
   ///

@@ -158,6 +158,15 @@ final videoCacheProvider = FutureProvider<VideoCache?>((ref) async {
   );
 });
 
+/// What downloaded videos use on this device, for Settings and Settings ->
+/// Videos. Null when there is no cache. Invalidate after clearing.
+final videoCacheUsageProvider = FutureProvider.autoDispose<VideoCacheUsage?>((
+  ref,
+) async {
+  final cache = await ref.watch(videoCacheProvider.future);
+  return cache?.usage();
+});
+
 /// Records that [path] was just used and, when [cache] is given, trims the
 /// cache with [path] protected. Best effort: a cache failure never reaches
 /// callers.

@@ -11,23 +11,23 @@ import '../../../../core/util/format_bytes.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 
-/// Null when there is no on-disk vault (nothing to show).
-final _videoUsageProvider = FutureProvider.autoDispose<VideoCacheUsage?>((
-  ref,
-) async {
-  final cache = await ref.watch(videoCacheProvider.future);
-  return cache?.usage();
-});
-
 /// Settings -> Videos: what downloaded videos use on this device, the
 /// "Upload on mobile data" switch, and Clear downloaded videos.
-class VideoStorageScreen extends ConsumerWidget {
+class VideoStorageScreen extends ConsumerStatefulWidget {
   const VideoStorageScreen({super.key});
 
-  Future<void> _setMobileData(WidgetRef ref, bool v) async {
+  @override
+  ConsumerState<VideoStorageScreen> createState() => _VideoStorageScreenState();
+}
+
+class _VideoStorageScreenState extends ConsumerState<VideoStorageScreen> {
+  bool _clearing = false;
+
+  Future<void> _setMobileData(bool v) async {
+    final scheduler = ref.read(videoUploadSchedulerProvider);
     await ref.read(settingsProvider.notifier).setVideoUploadOnMobileData(v);
     try {
-      await ref.read(videoUploadSchedulerProvider).maybeRun();
+      await scheduler.maybeRun();
     } catch (e) {
       debugPrint('Video upload kick failed: ${e.runtimeType}');
     }
@@ -82,27 +82,39 @@ class VideoStorageScreen extends ConsumerWidget {
     return ok ?? false;
   }
 
-  Future<void> _clear(
-    BuildContext context,
-    WidgetRef ref,
-    int downloadedBytes,
-  ) async {
+  Future<void> _clear(int downloadedBytes) async {
+    if (_clearing) return;
+    setState(() => _clearing = true);
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    if (!await _confirmClear(context, l, downloadedBytes)) return;
-    final cache = await ref.read(videoCacheProvider.future);
-    if (cache == null) return;
-    final freed = await cache.clearDownloaded();
-    ref.invalidate(_videoUsageProvider);
-    messenger.showSnackBar(
-      SnackBar(content: Text(l.videoStorageCleared(formatVideoSize(freed)))),
-    );
+    // Captured before any await: the screen may be gone afterwards.
+    final container = ProviderScope.containerOf(context, listen: false);
+    var confirmed = false;
+    try {
+      if (!await _confirmClear(context, l, downloadedBytes)) return;
+      confirmed = true;
+      final cache = await container.read(videoCacheProvider.future);
+      if (cache == null) return;
+      final freed = await cache.clearDownloaded();
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.videoStorageCleared(formatVideoSize(freed)))),
+      );
+    } catch (e) {
+      debugPrint('Clear downloaded videos failed (${e.runtimeType})');
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.videoStorageClearFailed)),
+      );
+    } finally {
+      // Some files may be gone even when it failed part-way.
+      if (confirmed) container.invalidate(videoCacheUsageProvider);
+      if (mounted) setState(() => _clearing = false);
+    }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final usage = ref.watch(_videoUsageProvider).value;
+    final usage = ref.watch(videoCacheUsageProvider).value;
     final onMobile = ref.watch(
       settingsProvider.select((s) => s.value?.videoUploadOnMobileData ?? false),
     );
@@ -141,15 +153,15 @@ class VideoStorageScreen extends ConsumerWidget {
               title: Text(l.videoStorageMobileData),
               subtitle: Text(l.videoStorageMobileDataHint),
               value: onMobile,
-              onChanged: (v) => _setMobileData(ref, v),
+              onChanged: _setMobileData,
             ),
             ListTile(
               leading: const Icon(Icons.delete_sweep_outlined),
               title: Text(l.videoStorageClear),
-              enabled: usage != null,
-              onTap: usage == null
+              enabled: usage != null && !_clearing,
+              onTap: usage == null || _clearing
                   ? null
-                  : () => _clear(context, ref, usage.downloadedBytes),
+                  : () => _clear(usage.downloadedBytes),
             ),
           ],
         ),

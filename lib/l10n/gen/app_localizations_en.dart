@@ -3781,7 +3781,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String videoStorageKeptSummary(int count, String size) {
-    return '$count videos · $size';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count videos · $size',
+      one: '1 video · $size',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3802,6 +3808,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String videoStorageCleared(String size) {
     return 'Cleared $size';
   }
+
+  @override
+  String get videoStorageClearFailed => 'Couldn\'t clear downloaded videos';
 
   @override
   String get helpVideoStorageTitle => 'Videos';
