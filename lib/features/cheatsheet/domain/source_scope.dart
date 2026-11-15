@@ -28,6 +28,11 @@ const kInfrastructureCatalogNames = <String>{
   'Hmm.System.Subsystem',
 };
 
+/// Whether a note in [catalogName] can be a cheatsheet source: anything but
+/// the app's own bookkeeping notes. A note with no known catalog is offered.
+bool isSourceCandidate(String? catalogName) =>
+    catalogName == null || !kInfrastructureCatalogNames.contains(catalogName);
+
 /// The subject areas a card can draw from.
 ///
 /// An identifier rather than a display string: this layer decides which notes

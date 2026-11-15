@@ -56,6 +56,8 @@ class NotesListScreen extends ConsumerStatefulWidget {
     super.key,
     this.sidebarDocked = false,
     this.onToggleSidebar,
+    this.onPick,
+    this.canPick,
   });
 
   /// True when the side panel is docked beside the list: no drawer, no ☰,
@@ -65,6 +67,15 @@ class NotesListScreen extends ConsumerStatefulWidget {
   /// Set where the panel can dock (wide screens): the top bar shows a
   /// side-panel button that hides or shows it instead of ☰ and a drawer.
   final VoidCallback? onToggleSidebar;
+
+  /// Pick mode (see `showNotePicker`): a tap hands the note here instead of
+  /// opening it, and the actions that change notes (swipes, the long-press
+  /// menu, multi-select, subsystems) are gone. Search, tags and filters stay.
+  final ValueChanged<HmmNote>? onPick;
+
+  /// In pick mode, which notes are offered; the rest are left out of the
+  /// list. [catalogName] is the note's catalog, when known.
+  final bool Function(HmmNote note, String? catalogName)? canPick;
 
   @override
   ConsumerState<NotesListScreen> createState() => _NotesListScreenState();
@@ -214,6 +225,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
     final platform = Theme.of(context).platform;
     final isApple =
         platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+    final picking = widget.onPick != null;
 
     return PopScope(
       // Back ends selection first; only then does it leave the screen.
@@ -223,7 +235,9 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       },
       child: AppScaffold(
         rekeyNavBarOnTitleChange: true,
-        title: multi.active
+        title: picking
+            ? l.notesPickTitle
+            : multi.active
             ? l.notesSelectedCount(multi.ids.length)
             : l.notesTitle,
         // Android: a close button leaves selection (Apple has Done below).
@@ -268,7 +282,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
           await ref.read(syncControllerProvider).triggerManualSync();
         },
         actions: [
-          if (isApple && data != null)
+          if (isApple && data != null && !picking)
             CupertinoButton(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               onPressed: multi.active
@@ -308,15 +322,16 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                     onSort: notifier.setSort,
                   ),
           ),
-          HmmIconButton(
-            tooltip: l.notesSubsystemsTitle,
-            icon: adaptiveIcon(
-              context,
-              material: Icons.widgets_outlined,
-              apple: CupertinoIcons.square_grid_2x2,
+          if (!picking)
+            HmmIconButton(
+              tooltip: l.notesSubsystemsTitle,
+              icon: adaptiveIcon(
+                context,
+                material: Icons.widgets_outlined,
+                apple: CupertinoIcons.square_grid_2x2,
+              ),
+              onPressed: () => context.push('/notes/subsystems'),
             ),
-            onPressed: () => context.push('/notes/subsystems'),
-          ),
           const HelpButton(helpId: HelpId.notesList),
         ],
         // No FAB: creating a note now lives in the Quick Access Panel, which
@@ -712,6 +727,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
 
     void open(HmmNote note) {
       _recordRecent();
+      if (widget.onPick case final pick?) {
+        pick(note);
+        return;
+      }
       // Contacts and cheatsheet cards have their own screens; the generic
       // note screen would show raw JSON.
       if (registry.open(
@@ -760,7 +779,7 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
               : () => open(note),
           // iOS/macOS open their context menu instead (below); neither runs
           // while selecting.
-          onLongPress: isApple || selecting.active
+          onLongPress: isApple || selecting.active || widget.onPick != null
               ? null
               : () => showNoteActionsSheet(
                   context,
@@ -773,6 +792,10 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
                 ),
         ),
       );
+      // Picking: a plain row, no swipes and no context menu.
+      if (widget.onPick != null) {
+        return KeyedSubtree(key: ValueKey(note.id), child: rowWidget);
+      }
       final swipeRow = NoteSwipeActions(
         key: ValueKey(note.id),
         note: note,
@@ -795,8 +818,24 @@ class _NotesListScreenState extends ConsumerState<NotesListScreen> {
       );
     }
 
+    final canPick = widget.onPick == null ? null : widget.canPick;
+    final groups = canPick == null
+        ? results.groups
+        : [
+            for (final g in results.groups)
+              if ([
+                    for (final h in g.hits)
+                      if (canPick(
+                        h.note,
+                        data.catalogsById[h.note.catalogId]?.name,
+                      ))
+                        h,
+                  ]
+                  case final hits when hits.isNotEmpty)
+                NoteGroup(key: g.key, hits: hits),
+          ];
     return [
-      for (final group in results.groups)
+      for (final group in groups)
         SliverMainAxisGroup(
           slivers: [
             if (_groupTitle(group.key, l, locale) case final title?)

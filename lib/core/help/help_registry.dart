@@ -256,6 +256,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         body: l.helpCheatsheetDesignerLayoutBody,
       ),
       HelpEntry(
+        icon: Icons.link,
+        title: l.helpCheatsheetDesignerSourceTitle,
+        body: l.helpCheatsheetDesignerSourceBody,
+      ),
+      HelpEntry(
         icon: Icons.add_reaction_outlined,
         title: l.helpCheatsheetDesignerRowEmojiTitle,
         body: l.helpCheatsheetDesignerRowEmojiBody,
