@@ -171,8 +171,10 @@ class VideoPlugin: NSObject {
     try? AVAudioSession.sharedInstance().setActive(true)
 
     let player = AVPlayer(url: url)
-    let controller = ReleasingPlayerViewController()
+    let controller = AVPlayerViewController()
     controller.player = player
+    // Not subclassed (Apple says not to): the delegate hears the close.
+    controller.delegate = self
     controller.modalPresentationStyle = .fullScreen
     if positionMs > 0 {
       // Continue where the in-place player stopped.
@@ -222,13 +224,20 @@ class VideoPlugin: NSObject {
   }
 }
 
-/// Hands the audio back when the player closes, so other apps (Music) can
-/// resume.
-private class ReleasingPlayerViewController: AVPlayerViewController {
-  override func viewDidDisappear(_ animated: Bool) {
-    super.viewDidDisappear(animated)
-    player?.pause()
-    try? AVAudioSession.sharedInstance().setActive(
-      false, options: .notifyOthersOnDeactivation)
+extension VideoPlugin: AVPlayerViewControllerDelegate {
+  /// A modally presented player counts as full screen, so this runs when the
+  /// user closes it (close button or swipe down). Hands the audio back so
+  /// other apps (Music) can resume. A swipe the user abandons is cancelled,
+  /// and playback continues.
+  func playerViewController(
+    _ playerViewController: AVPlayerViewController,
+    willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
+  ) {
+    coordinator.animate(alongsideTransition: nil) { context in
+      guard !context.isCancelled else { return }
+      playerViewController.player?.pause()
+      try? AVAudioSession.sharedInstance().setActive(
+        false, options: .notifyOthersOnDeactivation)
+    }
   }
 }
