@@ -23,11 +23,27 @@ Uri telUri(String phone) {
   return Uri.parse('tel:${international ? '+' : ''}$digits');
 }
 
+/// Chinese (Han) characters, including the CJK extension A block.
+final _han = RegExp(r'[\u3400-\u4DBF\u4E00-\u9FFF]');
+
 /// A maps URL for [address].
 ///
-/// `https://maps.apple.com` rather than a `geo:` scheme so there is always a
-/// handler: iOS and macOS open Maps natively, and everywhere else it resolves
-/// in a browser instead of failing to launch.
-Uri mapsUri(String address) => Uri.parse(
-      'https://maps.apple.com/?q=${Uri.encodeComponent(address.trim())}',
-    );
+/// An address written with Chinese characters opens Google Maps: Apple Maps
+/// search can't find Chinese street addresses and reads "中国" as Japan's
+/// Chūgoku region (a Shanghai address landed in Okayama). Everything else
+/// opens Apple Maps.
+///
+/// Both are `https` rather than a `geo:` scheme so there is always a handler:
+/// the Google Maps link opens the Google Maps app when it is installed, Apple
+/// Maps opens natively on iOS and macOS, and anything else resolves in a
+/// browser instead of failing to launch.
+Uri mapsUri(String address) {
+  final query = address.trim();
+  if (_han.hasMatch(query)) {
+    return Uri.https('www.google.com', '/maps/search/', {
+      'api': '1',
+      'query': query,
+    });
+  }
+  return Uri.parse('https://maps.apple.com/?q=${Uri.encodeComponent(query)}');
+}

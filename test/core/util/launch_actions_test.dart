@@ -38,6 +38,30 @@ void main() {
     test('is https so it resolves on platforms without Apple Maps', () {
       expect(mapsUri('1 Main St').scheme, 'https');
     });
+
+    // Apple Maps search can't find Chinese street addresses and reads "中国"
+    // as Japan's Chūgoku region (Shanghai landed in Okayama, 2026-11-15).
+    test('a Chinese address opens Google Maps with the address as typed', () {
+      const address = '中国 上海市 浦东新区 世纪大道100号 邮编 200120';
+      final uri = mapsUri(address);
+      expect(uri.scheme, 'https');
+      expect(uri.host, 'www.google.com');
+      expect(uri.path, '/maps/search/');
+      expect(uri.queryParameters['api'], '1');
+      expect(uri.queryParameters['query'], address);
+    });
+
+    test('Chinese characters anywhere send it to Google Maps', () {
+      expect(mapsUri('Room 5, 世纪大道100号, Shanghai').host, 'www.google.com');
+    });
+
+    test('an address with no Chinese characters stays on Apple Maps', () {
+      expect(
+        mapsUri('100 Century Ave, Shanghai, China').host,
+        'maps.apple.com',
+      );
+      expect(mapsUri('12 Rue de Rivoli, Paris').host, 'maps.apple.com');
+    });
   });
 }
 

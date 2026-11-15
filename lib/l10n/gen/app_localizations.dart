@@ -4517,7 +4517,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpContactDetailMapBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap an address to see it on a map.'**
+  /// **'Tap an address to see it on a map. Addresses written in Chinese open in Google Maps (the app if installed), which finds Chinese addresses that Apple Maps can\'t.'**
   String get helpContactDetailMapBody;
 
   /// No description provided for @helpContactDetailEditTitle.
