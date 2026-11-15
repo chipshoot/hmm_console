@@ -1063,6 +1063,7 @@
   "notesVideoSaveToPhotos": "存储到照片",
   "notesVideoKeepOffline": "离线保存",
   "notesVideoKeepOfflineFailed": "无法更改离线保存",
+  "notesVideoKeepOfflineFetchFailed": "无法下载此视频，将在下次同步后重试。",
   "notesVideoShare": "分享…",
   "notesVideoRemove": "从笔记中移除",
   "notesVideoSaved": "已存储到照片",

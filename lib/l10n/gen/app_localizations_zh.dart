@@ -3471,6 +3471,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesVideoKeepOfflineFailed => '无法更改离线保存';
 
   @override
+  String get notesVideoKeepOfflineFetchFailed => '无法下载此视频，将在下次同步后重试。';
+
+  @override
   String get notesVideoShare => '分享…';
 
   @override

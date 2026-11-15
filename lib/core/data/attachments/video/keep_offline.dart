@@ -35,11 +35,19 @@ class KeepOffline {
   bool isKept(String path) => _index.isKept(path);
 
   /// Marks or unmarks [path]. Marking persists first, then starts a download
-  /// when the file isn't on this device (not awaited). Unmarking never
-  /// deletes the file; it just becomes cache-evictable.
-  Future<void> set(String path, bool kept) async {
+  /// when the file isn't on this device (not awaited). [onFetchFailed] runs if
+  /// that download fails (the mark stays; the next sync retries). A cancelled
+  /// or still-uploading download is not a failure. Unmarking never deletes the
+  /// file; it just becomes cache-evictable.
+  Future<void> set(
+    String path,
+    bool kept, {
+    VoidCallback? onFetchFailed,
+  }) async {
     await _index.setKept(path, kept);
-    if (kept && !await _isLocal(path)) _start(path);
+    if (kept && !await _isLocal(path)) {
+      _start(path, onFailed: onFetchFailed);
+    }
   }
 
   /// Starts a download for every kept video not on this device, when the
@@ -65,12 +73,15 @@ class KeepOffline {
     return started;
   }
 
-  void _start(String path) {
+  void _start(String path, {VoidCallback? onFailed}) {
     unawaited(
       _fetch(path).then<void>(
-        (_) {},
+        (r) {
+          if (r.outcome == VideoFetchOutcome.failed) onFailed?.call();
+        },
         onError: (Object e) {
           debugPrint('Keep offline fetch failed (${e.runtimeType})');
+          onFailed?.call();
         },
       ),
     );

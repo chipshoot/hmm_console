@@ -17,6 +17,9 @@ VideoAttachment _video() => const VideoAttachment(
 void main() {
   late VideoCacheIndex index;
   late List<String> fetched;
+  var outcome = VideoFetchOutcome.failed;
+
+  setUp(() => outcome = VideoFetchOutcome.failed);
 
   Future<void> open(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -26,7 +29,7 @@ void main() {
       index: index,
       fetch: (p) async {
         fetched.add(p);
-        return const VideoFetchResult(VideoFetchOutcome.failed);
+        return VideoFetchResult(outcome);
       },
       isLocal: (_) async => false,
       mayUseNetwork: () async => true,
@@ -71,6 +74,29 @@ void main() {
     await t.tap(find.text('Keep offline'));
     await t.pumpAndSettle();
     expect(index.isKept('v/a.mp4'), isTrue);
+  });
+
+  testWidgets('a Keep offline download that fails says so', (t) async {
+    await open(t);
+    await t.tap(find.text('Keep offline'));
+    await t.pumpAndSettle();
+    expect(index.isKept('v/a.mp4'), isTrue);
+    expect(
+      find.text(
+        "Couldn't download this video. It will try again after the next sync.",
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a Keep offline download that finishes shows no message', (
+    t,
+  ) async {
+    outcome = VideoFetchOutcome.ready;
+    await open(t);
+    await t.tap(find.text('Keep offline'));
+    await t.pumpAndSettle();
+    expect(find.byType(SnackBar), findsNothing);
   });
 
   testWidgets('a kept video shows the tick', (t) async {

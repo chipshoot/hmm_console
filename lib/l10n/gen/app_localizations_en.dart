@@ -3632,6 +3632,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesVideoKeepOfflineFailed => 'Could not change Keep offline';
 
   @override
+  String get notesVideoKeepOfflineFetchFailed =>
+      'Couldn\'t download this video. It will try again after the next sync.';
+
+  @override
   String get notesVideoShare => 'Share…';
 
   @override

@@ -133,7 +133,17 @@ Future<void> _toggleKeepOffline(
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   try {
-    await keep.set(video.video.path, kept);
+    await keep.set(
+      video.video.path,
+      kept,
+      // Captured above: the menu and even the note may be gone by the time
+      // the download ends.
+      onFetchFailed: () => messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l.notesVideoKeepOfflineFetchFailed)),
+        ),
+    );
   } catch (e) {
     debugPrint('keep offline failed (${e.runtimeType})');
     messenger
