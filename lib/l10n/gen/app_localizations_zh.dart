@@ -3473,11 +3473,50 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesVideoRestoreFailed => '无法恢复视频';
 
   @override
+  String notesVideoUploading(String percent) {
+    return '正在上传 $percent%';
+  }
+
+  @override
+  String get notesVideoWaitingForWifi => '等待 Wi-Fi';
+
+  @override
+  String get notesVideoUploadRetry => '稍后将重试上传';
+
+  @override
+  String get notesVideoStillUploading => '另一台设备仍在上传';
+
+  @override
+  String get notesVideoMobileDataTitle => '使用移动数据上传？';
+
+  @override
+  String notesVideoMobileDataBody(String size) {
+    return '此视频大小为 $size。现在上传将消耗等量的移动数据。';
+  }
+
+  @override
+  String get notesVideoMobileDataUpload => '立即使用移动数据上传';
+
+  @override
+  String get notesVideoMobileDataCancel => '等待 Wi-Fi';
+
+  @override
+  String get notesVideoDownload => '下载并播放';
+
+  @override
+  String notesVideoDownloading(String percent) {
+    return '正在下载 $percent%。轻点可取消。';
+  }
+
+  @override
+  String get notesVideoDownloadFailed => '无法下载此视频';
+
+  @override
   String get helpNoteDetailVideoTitle => '视频';
 
   @override
   String get helpNoteDetailVideoBody =>
-      '轻点视频即可全屏播放。长按可存储到照片、分享或从笔记中移除。要添加视频，请编辑笔记并轻点视频按钮。';
+      '轻点视频即可全屏播放。启用 OneDrive 同步后，视频会在 Wi-Fi 下上传（轻点“等待 Wi-Fi”可立即使用移动数据上传）；上传完成前，其他设备会显示“另一台设备仍在上传”，完成后轻点播放即可下载。长按可存储到照片、分享或移除。';
 
   @override
   String get notesAddVideoTooltip => '添加视频';

@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,7 +10,13 @@ import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/attachments_pulled_signal.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
+import 'package:hmm_console/core/data/attachments/video/remote_video_index.dart';
+import 'package:hmm_console/core/data/attachments/video/video_downloads.dart';
 import 'package:hmm_console/core/data/attachments/video/video_picker.dart';
+import 'package:hmm_console/core/data/attachments/video/video_uploader.dart';
+import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
+import 'package:hmm_console/core/data/sync/video_upload_scheduler.dart';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 import 'package:hmm_console/core/data/attachments/video_attachment.dart';
 import 'package:hmm_console/core/data/attachments/widgets/attachment_image.dart';
@@ -28,6 +35,10 @@ class _Files implements IVaultFileStore {
   Future<void> importFile(String p, File s) async {}
   @override
   Future<File?> localFile(String p) async => file;
+  @override
+  Future<void> offload(String p) async {}
+  @override
+  File? downloadTarget(String p) => null;
 }
 
 class _Resolver implements IAttachmentResolver {
@@ -49,6 +60,98 @@ Widget _wrap(Widget child, FakeVideoPlatform platform, {File? file}) =>
         home: Scaffold(body: SingleChildScrollView(child: child)),
       ),
     );
+
+class _Mode extends DataModeNotifier {
+  _Mode(this.mode);
+  final DataMode mode;
+  @override
+  DataMode build() => mode;
+}
+
+class _CloudProv extends CloudSyncProvider {
+  _CloudProv({this.large = true});
+  final bool large;
+  int existsCalls = 0;
+  @override
+  bool get supportsLargeFiles => large;
+  @override
+  Future<bool> largeFileExists(String path) async {
+    existsCalls++;
+    return true;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+class _FakeUploader implements VideoUploader {
+  final _s = ValueNotifier<Map<String, VideoUploadState>>(const {});
+  final allowed = <String>[];
+  @override
+  ValueListenable<Map<String, VideoUploadState>> get states => _s;
+  @override
+  Future<void> allowMobileData(String path) async => allowed.add(path);
+  Object? setMobileOkError;
+  @override
+  Future<void> setMobileOk(String path) async {
+    if (setMobileOkError != null) throw setMobileOkError!;
+    allowed.add(path);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+class _FakeDownloads extends VideoDownloads {
+  _FakeDownloads(this.gate, this.result);
+  final Completer<VideoFetchResult> gate;
+  final VideoFetchResult? result;
+  final fetched = <String>[];
+  final cancelled = <String>[];
+  @override
+  Future<VideoFetchResult> fetch(String path) {
+    fetched.add(path);
+    state = {path: 0.25};
+    return gate.future.whenComplete(() {
+      if (ref.mounted) state = const {};
+    });
+  }
+
+  @override
+  void cancel(String path) {
+    cancelled.add(path);
+    gate.complete(const VideoFetchResult(VideoFetchOutcome.cancelled));
+  }
+}
+
+Widget _wrapCloud(
+  Widget child,
+  FakeVideoPlatform platform, {
+  required _FakeUploader uploader,
+  required RemoteVideoIndex index,
+  required _FakeDownloads downloads,
+  DataMode mode = DataMode.cloudStorage,
+  File? file,
+  CloudSyncProvider? cloud,
+  VideoUploadScheduler? scheduler,
+}) => ProviderScope(
+  overrides: [
+    if (scheduler != null)
+      videoUploadSchedulerProvider.overrideWithValue(scheduler),
+    videoCloudProvider.overrideWithValue(cloud ?? _CloudProv()),
+    videoPlatformProvider.overrideWithValue(platform),
+    vaultFileStoreProvider.overrideWith((ref) async => _Files(file)),
+    dataModeProvider.overrideWith(() => _Mode(mode)),
+    videoUploaderProvider.overrideWith((ref) async => uploader),
+    remoteVideoIndexProvider.overrideWithValue(index),
+    videoDownloadsProvider.overrideWith(() => downloads),
+  ],
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: SingleChildScrollView(child: child)),
+  ),
+);
 
 const _saved = VideoAttachment(
   video: VaultRef(
@@ -119,6 +222,223 @@ void main() {
     expect(platform.played, ['/v/u1.mov']);
   });
 
+  group('cloud video states', () {
+    const path = 'attachments/note-1/u1.mov';
+    late _FakeUploader uploader;
+    late RemoteVideoIndex index;
+    late Completer<VideoFetchResult> gate;
+    late _FakeDownloads downloads;
+    late FakeVideoPlatform platform;
+    late int schedulerRuns;
+    late VideoUploadScheduler scheduler;
+
+    setUp(() {
+      uploader = _FakeUploader();
+      index = RemoteVideoIndex();
+      platform = FakeVideoPlatform();
+      schedulerRuns = 0;
+      scheduler = VideoUploadScheduler(
+        resolveUploader: () async {
+          schedulerRuns++;
+          return null;
+        },
+        isSyncing: () => false,
+        platform: platform,
+      );
+    });
+
+    Future<void> pumpTile(
+      WidgetTester tester, {
+      File? file,
+      DataMode mode = DataMode.cloudStorage,
+      VideoFetchResult? immediate,
+      CloudSyncProvider? cloud,
+    }) async {
+      // Created here, inside the test's fake-async zone.
+      gate = Completer();
+      if (immediate != null) gate.complete(immediate);
+      downloads = _FakeDownloads(gate, null);
+      await tester.pumpWidget(
+        _wrapCloud(
+          const VideoTile(saved: _saved),
+          platform,
+          uploader: uploader,
+          index: index,
+          downloads: downloads,
+          file: file,
+          mode: mode,
+          cloud: cloud,
+          scheduler: scheduler,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+    }
+
+    testWidgets('uploading chip shows the percent', (tester) async {
+      uploader._s.value = {
+        path: const VideoUploadState(VideoUploadPhase.uploading, 34, 100),
+      };
+      await pumpTile(tester, file: File('/v/u1.mov'));
+      expect(find.text('Uploading 34%'), findsOneWidget);
+    });
+
+    const waiting = VideoUploadState(
+      VideoUploadPhase.waitingForWifi,
+      0,
+      5 * 1024 * 1024,
+    );
+
+    testWidgets('waiting chip opens the mobile-data dialog; Upload sets the '
+        'flag and runs through the scheduler', (tester) async {
+      uploader._s.value = {path: waiting};
+      await pumpTile(tester, file: File('/v/u1.mov'));
+      await tester.tap(find.text('Waiting for Wi-Fi'));
+      await tester.pumpAndSettle();
+      expect(find.text('Upload over mobile data?'), findsOneWidget);
+      expect(find.textContaining('5 MB'), findsOneWidget);
+      await tester.tap(find.text('Upload now using mobile data'));
+      await tester.pumpAndSettle();
+      expect(uploader.allowed, [path]);
+      expect(schedulerRuns, 1);
+    });
+
+    testWidgets('a failing setMobileOk is caught and does not run', (
+      tester,
+    ) async {
+      uploader._s.value = {path: waiting};
+      uploader.setMobileOkError = StateError('https://secret.example/x');
+      final logs = <String>[];
+      final old = debugPrint;
+      debugPrint = (m, {wrapWidth}) => logs.add(m ?? '');
+      await pumpTile(tester, file: File('/v/u1.mov'));
+      await tester.tap(find.text('Waiting for Wi-Fi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Upload now using mobile data'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(schedulerRuns, 0);
+      expect(logs.any((l) => l.contains('StateError')), isTrue);
+      expect(logs.any((l) => l.contains('secret')), isFalse);
+      debugPrint = old;
+    });
+
+    testWidgets('the semantics label carries the chip text', (tester) async {
+      final handle = tester.ensureSemantics();
+      uploader._s.value = {
+        path: const VideoUploadState(VideoUploadPhase.uploading, 34, 100),
+      };
+      await pumpTile(tester, file: File('/v/u1.mov'));
+      final node = tester.getSemantics(find.byType(VideoTile));
+      expect(node.label, contains('Uploading 34%'));
+      handle.dispose();
+    });
+
+    testWidgets('waiting state exposes a custom action that opens the dialog', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      uploader._s.value = {path: waiting};
+      await pumpTile(tester, file: File('/v/u1.mov'));
+      final node = tester.getSemantics(find.byType(VideoTile));
+      expect(node.label, contains('Waiting for Wi-Fi'));
+      expect(node.getSemanticsData().customSemanticsActionIds, isNotEmpty);
+      final id = node.getSemanticsData().customSemanticsActionIds!.single;
+      final action = CustomSemanticsAction.getAction(id)!;
+      expect(action.label, 'Upload now using mobile data');
+      tester.binding.performSemanticsAction(
+        SemanticsActionEvent(
+          type: SemanticsAction.customAction,
+          viewId: tester.view.viewId,
+          nodeId: node.id,
+          arguments: id,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Upload over mobile data?'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('play before upload finishes says still uploading', (
+      tester,
+    ) async {
+      index.update({});
+      await pumpTile(
+        tester,
+        immediate: const VideoFetchResult(VideoFetchOutcome.stillUploading),
+      );
+      expect(find.text('Still uploading from another device'), findsOneWidget);
+      await tester.tap(find.byType(VideoTile));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Still uploading from another device'),
+        findsNWidgets(2),
+      );
+      expect(platform.played, isEmpty);
+    });
+
+    testWidgets('tap downloads then plays', (tester) async {
+      index.update({path});
+      await pumpTile(tester);
+      expect(find.byIcon(Icons.cloud_download_outlined), findsOneWidget);
+      await tester.tap(find.byType(VideoTile));
+      await tester.pump();
+      await tester.pump();
+      expect(downloads.fetched, [path]);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      gate.complete(
+        VideoFetchResult(VideoFetchOutcome.ready, File('/v/downloaded.mov')),
+      );
+      await tester.pumpAndSettle();
+      expect(platform.played, ['/v/downloaded.mov']);
+    });
+
+    testWidgets('second tap during download cancels', (tester) async {
+      index.update({path});
+      await pumpTile(tester);
+      await tester.tap(find.byType(VideoTile));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byType(VideoTile));
+      await tester.pump();
+      await tester.pump();
+      expect(downloads.cancelled, [path]);
+      expect(platform.played, isEmpty);
+    });
+
+    testWidgets('cloudStorage without large-file support keeps stage-2 '
+        'behaviour', (tester) async {
+      final prov = _CloudProv(large: false);
+      index.update({});
+      await pumpTile(tester, cloud: prov);
+      expect(find.byIcon(Icons.cloud_download_outlined), findsNothing);
+      expect(find.text('Still uploading from another device'), findsNothing);
+      await tester.tap(find.byType(VideoTile));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('This video is only on the device that added it, for now.'),
+        findsOneWidget,
+      );
+      expect(prov.existsCalls, 0);
+      expect(downloads.fetched, isEmpty);
+    });
+
+    testWidgets('local mode keeps the stage-2 not-on-device message', (
+      tester,
+    ) async {
+      await pumpTile(tester, mode: DataMode.local);
+      expect(find.byIcon(Icons.cloud_download_outlined), findsNothing);
+      await tester.tap(find.byType(VideoTile));
+      await tester.pump();
+      await tester.pump();
+      expect(
+        find.text('This video is only on the device that added it, for now.'),
+        findsOneWidget,
+      );
+      expect(downloads.fetched, isEmpty);
+    });
+  });
+
   testWidgets('VoiceOver gets the long-press menu of a saved tile', (
     tester,
   ) async {
@@ -164,10 +484,7 @@ void main() {
       'sync reports downloaded files', (tester) async {
     final resolver = _LateResolver();
     await tester.pumpWidget(
-      _wrap(
-        VideoTile(saved: _saved, resolver: resolver),
-        FakeVideoPlatform(),
-      ),
+      _wrap(VideoTile(saved: _saved, resolver: resolver), FakeVideoPlatform()),
     );
     await tester.pumpAndSettle();
     expect(find.byType(VideoPosterPlaceholder), findsOneWidget);
@@ -202,13 +519,71 @@ class _LateResolver implements IAttachmentResolver {
 
 // 1x1 PNG.
 final Uint8List _png = Uint8List.fromList(<int>[
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
-  0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-  0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-  0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
-  0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
-  0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-  0x42, 0x60, 0x82,
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0A,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x05,
+  0x00,
+  0x01,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
 ]);

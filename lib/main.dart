@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/note_purge_scheduler.dart';
 import 'package:hmm_console/core/data/sync/sync_controller.dart';
+import 'package:hmm_console/core/data/sync/video_upload_scheduler.dart';
 import 'package:hmm_console/core/i18n/locale_provider.dart';
 import 'package:hmm_console/core/navigation/router.dart';
 import 'package:hmm_console/core/theme/theme.dart';
@@ -89,6 +90,8 @@ class _MainAppState extends ConsumerState<MainApp> {
     // Keep the purge scheduler alive (and re-created with the controller on a
     // data-mode switch) so its after-sync listener stays attached.
     ref.listen<NotePurgeScheduler>(notePurgeSchedulerProvider, (previous, next) {});
+    // Same for the video upload scheduler (resume, Wi-Fi, after-sync triggers).
+    ref.listen<VideoUploadScheduler>(videoUploadSchedulerProvider, (previous, next) {});
 
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(

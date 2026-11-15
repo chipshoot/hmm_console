@@ -77,4 +77,43 @@ void main() {
     expect(probe.posterWritten, isFalse);
     expect(await FallbackVideoPlatform().saveToPhotos('/t/a.mov'), isFalse);
   });
+
+  test('excludeFromBackup sends the path', () async {
+    MethodCall? seen;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      seen = call;
+      return null;
+    });
+    await MethodChannelVideoPlatform().excludeFromBackup('/t/dir');
+    expect(seen!.method, 'excludeFromBackup');
+    expect(seen!.arguments, {'path': '/t/dir'});
+  });
+
+  test('beginBackgroundTask returns the id', () async {
+    MethodCall? seen;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      seen = call;
+      return 7;
+    });
+    expect(await MethodChannelVideoPlatform().beginBackgroundTask(), 7);
+    expect(seen!.method, 'beginBackgroundTask');
+  });
+
+  test('endBackgroundTask sends the id', () async {
+    MethodCall? seen;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      seen = call;
+      return null;
+    });
+    await MethodChannelVideoPlatform().endBackgroundTask(7);
+    expect(seen!.method, 'endBackgroundTask');
+    expect(seen!.arguments, {'id': 7});
+  });
+
+  test('fallback background helpers are no-ops', () async {
+    final f = FallbackVideoPlatform();
+    await f.excludeFromBackup('/t/dir');
+    expect(await f.beginBackgroundTask(), isNull);
+    await f.endBackgroundTask(1);
+  });
 }

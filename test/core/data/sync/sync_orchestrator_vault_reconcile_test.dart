@@ -18,9 +18,11 @@ String _attJson(String path) =>
 class _MemVault implements IVaultStore {
   final Map<String, Uint8List> files = {};
   @override
-  Future<void> putBytes(String relativePath, Uint8List bytes,
-          {String? contentType}) async =>
-      files[relativePath] = bytes;
+  Future<void> putBytes(
+    String relativePath,
+    Uint8List bytes, {
+    String? contentType,
+  }) async => files[relativePath] = bytes;
   @override
   Future<Uint8List> getBytes(String relativePath) async {
     if (relativePath.endsWith('.mov')) throw StateError('read $relativePath');
@@ -102,12 +104,16 @@ void main() {
   tearDown(() async => db.close());
 
   Future<void> seedNote(String vaultPath) async {
-    await db.into(db.notes).insert(NotesCompanion.insert(
-          subject: 's',
-          authorId: 1,
-          uuid: const Value('n1'),
-          attachments: Value(_attJson(vaultPath)),
-        ));
+    await db
+        .into(db.notes)
+        .insert(
+          NotesCompanion.insert(
+            subject: 's',
+            authorId: 1,
+            uuid: const Value('n1'),
+            attachments: Value(_attJson(vaultPath)),
+          ),
+        );
   }
 
   test('pushes a local-only referenced file to remote', () async {
@@ -167,18 +173,26 @@ void main() {
         '"byteSize":3},"poster":{"kind":"vault",'
         '"path":"attachments/$n/$poster","contentType":"image/jpeg",'
         '"byteSize":3}}]}';
-    await db.into(db.notes).insert(NotesCompanion.insert(
-          subject: 's',
-          authorId: 1,
-          uuid: const Value('n1'),
-          attachments: Value(videoJson('note-1', 'v.mov', 'v.jpg')),
-        ));
-    await db.into(db.notes).insert(NotesCompanion.insert(
-          subject: 's2',
-          authorId: 1,
-          uuid: const Value('n2'),
-          attachments: Value(videoJson('note-2', 'w.mov', 'w.jpg')),
-        ));
+    await db
+        .into(db.notes)
+        .insert(
+          NotesCompanion.insert(
+            subject: 's',
+            authorId: 1,
+            uuid: const Value('n1'),
+            attachments: Value(videoJson('note-1', 'v.mov', 'v.jpg')),
+          ),
+        );
+    await db
+        .into(db.notes)
+        .insert(
+          NotesCompanion.insert(
+            subject: 's2',
+            authorId: 1,
+            uuid: const Value('n2'),
+            attachments: Value(videoJson('note-2', 'w.mov', 'w.jpg')),
+          ),
+        );
     vault.files['attachments/note-1/v.mov'] = Uint8List.fromList([1, 2, 3]);
     vault.files['attachments/note-1/v.jpg'] = Uint8List.fromList([4, 5, 6]);
     provider.remote['attachments/note-2/w.mov'] = Uint8List.fromList([9]);
@@ -188,5 +202,49 @@ void main() {
     expect(provider.pushedPaths.where((p) => p.endsWith('.mov')), isEmpty);
     expect(provider.pulledPaths.where((p) => p.endsWith('.mov')), isEmpty);
     expect(r.errors.where((e) => e.toString().contains('.mov')), isEmpty);
+  });
+
+  group('videos', () {
+    const v = 'attachments/note-1/clip.mov';
+    SyncOrchestrator withHooks(
+      List<String> missing,
+      List<Set<String>> published,
+    ) => SyncOrchestrator(
+      provider: provider,
+      db: db,
+      meta: meta,
+      vaultStore: () async => vault,
+      onLocalVideoMissingRemotely: missing.add,
+      onRemoteVideos: published.add,
+    );
+
+    test('a local video the cloud lacks is enqueued, never pushed', () async {
+      await seedNote(v);
+      vault.files[v] = Uint8List.fromList([1]);
+      final missing = <String>[];
+      final r = await withHooks(missing, []).syncNow();
+      expect(r.errors, isEmpty, reason: r.errors.join('\n'));
+      expect(missing, [v]);
+      expect(provider.pushedPaths, isNot(contains(v)));
+    });
+
+    test('a cloud-only video is not pulled', () async {
+      await seedNote(v);
+      provider.remote[v] = Uint8List.fromList([1]);
+      final missing = <String>[];
+      await withHooks(missing, []).syncNow();
+      expect(missing, isEmpty);
+      expect(provider.pulledPaths, isNot(contains(v)));
+    });
+
+    test('remote video paths are published, not photos', () async {
+      provider.remote[v] = Uint8List.fromList([1]);
+      provider.remote['attachments/note-1/p.jpg'] = Uint8List.fromList([1]);
+      final published = <Set<String>>[];
+      await withHooks([], published).syncNow();
+      expect(published, [
+        {v},
+      ]);
+    });
   });
 }

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'sync_models.dart';
@@ -11,6 +12,49 @@ import 'sync_models.dart';
 ///
 /// Each primitive may throw on transport/auth failure; the orchestrator
 /// catches and converts to [SyncError] entries in the final [SyncResult].
+/// Cooperative cancel flag for a large-file transfer. Cancelling makes the
+/// transfer throw [TransferCancelledException].
+class TransferCancel {
+  bool _cancelled = false;
+  final _listeners = <void Function()>[];
+
+  bool get isCancelled => _cancelled;
+
+  void cancel() {
+    if (_cancelled) return;
+    _cancelled = true;
+    for (final l in List.of(_listeners)) {
+      l();
+    }
+  }
+
+  /// Runs [listener] when [cancel] is called (immediately if already so).
+  void addListener(void Function() listener) {
+    if (_cancelled) {
+      listener();
+    } else {
+      _listeners.add(listener);
+    }
+  }
+}
+
+/// A large-file transfer stopped because its [TransferCancel] was cancelled.
+class TransferCancelledException implements Exception {
+  const TransferCancelledException();
+
+  @override
+  String toString() => 'TransferCancelledException';
+}
+
+/// The remote upload session no longer exists (expired or cancelled); start a
+/// new one.
+class LargeUploadSessionGone implements Exception {
+  const LargeUploadSessionGone();
+
+  @override
+  String toString() => 'LargeUploadSessionGone';
+}
+
 /// Thrown by [CloudSyncProvider.pullNoteStates] when the remote cannot store
 /// note state at all (an Hmm API older than the notes redesign). The caller
 /// keeps every local state and pushes nothing.
@@ -124,6 +168,48 @@ abstract class CloudSyncProvider {
 
   /// The set of vault-relative paths present in the remote vault.
   Future<Set<String>> listAttachmentPaths() async => const {};
+
+  // ---- Large files (resumable upload, streamed download) ----
+  //
+  // Never holds a whole file in memory: upload takes one chunk per call.
+  // Each chunk except the last should be a multiple of 320 KiB.
+
+  /// Whether this provider can move large files.
+  bool get supportsLargeFiles => false;
+
+  /// Opens an upload session for [path]; returns the session handle.
+  Future<String> startLargeUpload(String path, int totalBytes) async =>
+      throw UnsupportedError('Large files are not supported');
+
+  /// The next byte the remote expects, or null if the session is gone.
+  Future<int?> largeUploadNextOffset(String handle) async =>
+      throw UnsupportedError('Large files are not supported');
+
+  /// Uploads [chunk] at [offset]. True once the file is complete. Throws
+  /// [LargeUploadSessionGone] when the session no longer exists.
+  Future<bool> uploadLargeChunk(
+    String handle,
+    Uint8List chunk,
+    int offset,
+    int totalBytes,
+  ) async => throw UnsupportedError('Large files are not supported');
+
+  /// Cancels the session. A session that is already gone is success.
+  Future<void> cancelLargeUpload(String handle) async =>
+      throw UnsupportedError('Large files are not supported');
+
+  /// Whether a file exists remotely at [path].
+  Future<bool> largeFileExists(String path) async =>
+      throw UnsupportedError('Large files are not supported');
+
+  /// Streams the remote file at [path] to [target]. [total] is -1 when
+  /// unknown. Throws [TransferCancelledException] when [cancel] fires.
+  Future<void> downloadLargeFile(
+    String path,
+    File target, {
+    void Function(int received, int total)? onProgress,
+    TransferCancel? cancel,
+  }) async => throw UnsupportedError('Large files are not supported');
 
   // ---- Purge ----
 

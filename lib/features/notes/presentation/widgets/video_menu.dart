@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -6,10 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/data/attachments/attachment_providers.dart';
+import '../../../../core/data/attachments/video/video_downloads.dart';
 import '../../../../core/data/attachments/video/video_platform.dart';
 import '../../../../core/data/attachments/attachment_ref.dart'
     show NoteAttachments;
 import '../../../../core/data/attachments/video_attachment.dart';
+import '../../../../core/data/vault/vault_file_store.dart';
 import '../../../../core/help/undoable_action.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../states/mutate_note_state.dart';
@@ -94,6 +97,37 @@ Future<void> showVideoMenu(
   }
 }
 
+/// The video's local file, downloading it first in cloudStorage mode when this
+/// device doesn't have it. Says why and returns null when it can't.
+@visibleForTesting
+Future<File?> videoFileOrFetch(
+  AppLocalizations l,
+  VideoDownloads downloads,
+  Future<IVaultFileStore?> storeFuture,
+  bool cloud,
+  String path,
+  void Function(String) say,
+) async {
+  final local = await (await storeFuture)?.localFile(path);
+  if (local != null) return local;
+  if (!cloud) {
+    say(l.notesVideoNotOnDevice);
+    return null;
+  }
+  final r = await downloads.fetch(path);
+  switch (r.outcome) {
+    case VideoFetchOutcome.ready:
+      return r.file;
+    case VideoFetchOutcome.stillUploading:
+      say(l.notesVideoStillUploading);
+    case VideoFetchOutcome.failed:
+      say(l.notesVideoDownloadFailed);
+    case VideoFetchOutcome.cancelled:
+      break;
+  }
+  return null;
+}
+
 Future<void> _save(
   BuildContext context,
   WidgetRef ref,
@@ -103,12 +137,21 @@ Future<void> _save(
   final messenger = ScaffoldMessenger.of(context);
   final platform = ref.read(videoPlatformProvider);
   final filesFuture = ref.read(vaultFileStoreProvider.future);
+  final downloads = ref.read(videoDownloadsProvider.notifier);
+  final cloud = ref.read(videoCloudEnabledProvider);
   void say(String t) => messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(t)));
   try {
-    final f = await (await filesFuture)?.localFile(video.video.path);
-    if (f == null) return say(l.notesVideoNotOnDevice);
+    final f = await videoFileOrFetch(
+      l,
+      downloads,
+      filesFuture,
+      cloud,
+      video.video.path,
+      say,
+    );
+    if (f == null) return;
     final ok = await platform.saveToPhotos(f.path);
     say(ok ? l.notesVideoSaved : l.notesVideoPhotosDenied);
   } catch (e) {
@@ -126,12 +169,21 @@ Future<void> _share(
   final l = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final filesFuture = ref.read(vaultFileStoreProvider.future);
+  final downloads = ref.read(videoDownloadsProvider.notifier);
+  final cloud = ref.read(videoCloudEnabledProvider);
   void say(String t) => messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(t)));
   try {
-    final f = await (await filesFuture)?.localFile(video.video.path);
-    if (f == null) return say(l.notesVideoNotOnDevice);
+    final f = await videoFileOrFetch(
+      l,
+      downloads,
+      filesFuture,
+      cloud,
+      video.video.path,
+      say,
+    );
+    if (f == null) return;
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(f.path, mimeType: video.video.contentType)],

@@ -31,6 +31,16 @@ abstract interface class VideoPlatform {
 
   /// Saves the video to the photo library. False means permission was denied.
   Future<bool> saveToPhotos(String videoPath);
+
+  /// Marks [path] (a file or folder) as excluded from device backups.
+  Future<void> excludeFromBackup(String path);
+
+  /// Asks the OS for extra time to finish work after the app is backgrounded.
+  /// Null when unsupported.
+  Future<int?> beginBackgroundTask();
+
+  /// Ends a task from [beginBackgroundTask].
+  Future<void> endBackgroundTask(int id);
 }
 
 /// Talks to `ios/Runner/VideoPlugin.swift`.
@@ -69,6 +79,21 @@ class MethodChannelVideoPlatform implements VideoPlatform {
         }) ??
         false;
   }
+
+  @override
+  Future<void> excludeFromBackup(String path) async {
+    await _channel.invokeMethod<void>('excludeFromBackup', {'path': path});
+  }
+
+  @override
+  Future<int?> beginBackgroundTask() async {
+    return _channel.invokeMethod<int>('beginBackgroundTask');
+  }
+
+  @override
+  Future<void> endBackgroundTask(int id) async {
+    await _channel.invokeMethod<void>('endBackgroundTask', {'id': id});
+  }
 }
 
 /// Everywhere but iOS: no poster, no metadata, the OS opens the file.
@@ -88,6 +113,15 @@ class FallbackVideoPlatform implements VideoPlatform {
 
   @override
   Future<bool> saveToPhotos(String videoPath) async => false;
+
+  @override
+  Future<void> excludeFromBackup(String path) async {}
+
+  @override
+  Future<int?> beginBackgroundTask() async => null;
+
+  @override
+  Future<void> endBackgroundTask(int id) async {}
 }
 
 final videoPlatformProvider = Provider<VideoPlatform>((ref) {

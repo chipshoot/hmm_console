@@ -11,6 +11,7 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 
+import '../attachments/video_attachment.dart' show isVideoVaultPath;
 import 'sensitive_path.dart';
 import 'vault_file_store.dart';
 import 'vault_path.dart';
@@ -20,9 +21,16 @@ class LocalVaultStore implements IVaultStore, IVaultFileStore {
   /// [rootDir] is the absolute path on disk where the vault's
   /// `attachments/` tree lives. The directory will be created lazily
   /// on the first write.
-  LocalVaultStore({required Directory rootDir}) : _rootDir = rootDir;
+  ///
+  /// [offloadDir] is a second root, outside any backup, that holds videos
+  /// already uploaded to the cloud. Null means videos only ever live under
+  /// [rootDir].
+  LocalVaultStore({required Directory rootDir, Directory? offloadDir})
+      : _rootDir = rootDir,
+        _offloadDir = offloadDir;
 
   final Directory _rootDir;
+  final Directory? _offloadDir;
 
   /// Exposed for diagnostics; callers should never join paths
   /// against this directly — use the store's API.
@@ -35,6 +43,56 @@ class LocalVaultStore implements IVaultStore, IVaultFileStore {
     // separator on Windows.
     final segments = relativePath.split('/');
     return File(p.joinAll([_rootDir.path, ...segments]));
+  }
+
+  File? _offloadFileFor(String relativePath) {
+    final dir = _offloadDir;
+    if (dir == null || !isVideoVaultPath(relativePath)) return null;
+    vaultRelativePathValidate(relativePath);
+    return File(p.joinAll([dir.path, ...relativePath.split('/')]));
+  }
+
+  @override
+  File? downloadTarget(String relativePath) => _offloadFileFor(relativePath);
+
+  @override
+  Future<void> offload(String relativePath) async {
+    vaultRelativePathValidate(relativePath);
+    if (!isVideoVaultPath(relativePath)) {
+      throw ArgumentError.value(
+          relativePath, 'relativePath', 'only videos can be offloaded');
+    }
+    final target = _offloadFileFor(relativePath);
+    if (target == null) {
+      throw StateError('no offload root configured');
+    }
+    final source = _fileFor(relativePath);
+    if (!await source.exists()) {
+      if (await target.exists()) return;
+      throw VaultStoreException('file not found', relativePath);
+    }
+    await target.parent.create(recursive: true);
+    try {
+      await source.rename(target.path);
+      return;
+    } on FileSystemException {
+      // Different volume: fall through to copy + rename.
+    }
+    final tmp = File('${target.path}.tmp');
+    try {
+      await source.copy(tmp.path);
+      await tmp.rename(target.path);
+    } catch (_) {
+      if (await tmp.exists()) {
+        try {
+          await tmp.delete();
+        } catch (_) {
+          // Swallow — original error is more important.
+        }
+      }
+      rethrow;
+    }
+    await source.delete();
   }
 
   @override
@@ -104,7 +162,9 @@ class LocalVaultStore implements IVaultStore, IVaultFileStore {
   @override
   Future<File?> localFile(String relativePath) async {
     final f = _fileFor(relativePath);
-    return await f.exists() ? f : null;
+    if (await f.exists()) return f;
+    final off = _offloadFileFor(relativePath);
+    return off != null && await off.exists() ? off : null;
   }
 
   @override
@@ -118,7 +178,9 @@ class LocalVaultStore implements IVaultStore, IVaultFileStore {
 
   @override
   Future<bool> exists(String relativePath) async {
-    return _fileFor(relativePath).exists();
+    if (await _fileFor(relativePath).exists()) return true;
+    final off = _offloadFileFor(relativePath);
+    return off != null && await off.exists();
   }
 
   @override
@@ -127,27 +189,44 @@ class LocalVaultStore implements IVaultStore, IVaultFileStore {
     if (await f.exists()) {
       await f.delete();
     }
+    final off = _offloadFileFor(relativePath);
+    if (off != null && await off.exists()) {
+      await off.delete();
+    }
   }
 
   @override
   Future<List<VaultEntry>> list(String prefix) async {
+    final results = await _listRoot(_rootDir, prefix);
+    final offload = _offloadDir;
+    if (offload == null) return results;
+    final seen = results.map((e) => e.relativePath).toSet();
+    final extra = (await _listRoot(offload, prefix))
+        .where((e) => isVideoVaultPath(e.relativePath))
+        .where((e) => !seen.contains(e.relativePath));
+    if (extra.isEmpty) return results;
+    return [...results, ...extra]
+      ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
+  }
+
+  Future<List<VaultEntry>> _listRoot(Directory root, String prefix) async {
     // Empty prefix == list everything under the root.
     Directory scanRoot;
     String relPrefix;
     if (prefix.isEmpty) {
-      scanRoot = _rootDir;
+      scanRoot = root;
       relPrefix = '';
     } else {
       vaultRelativePathValidate(prefix);
       final segments = prefix.split('/');
       final candidate =
-          Directory(p.joinAll([_rootDir.path, ...segments]));
+          Directory(p.joinAll([root.path, ...segments]));
       if (await candidate.exists()) {
         scanRoot = candidate;
         relPrefix = prefix;
       } else {
         // Prefix might address a single file rather than a folder.
-        final asFile = File(p.joinAll([_rootDir.path, ...segments]));
+        final asFile = File(p.joinAll([root.path, ...segments]));
         if (await asFile.exists()) {
           final stat = await asFile.stat();
           return [
@@ -161,7 +240,7 @@ class LocalVaultStore implements IVaultStore, IVaultFileStore {
     if (!await scanRoot.exists()) return const [];
 
     final results = <VaultEntry>[];
-    final rootPathLen = _rootDir.path.length;
+    final rootPathLen = root.path.length;
     await for (final entity in scanRoot.list(recursive: true)) {
       if (entity is! File) continue;
       // Skip half-written .tmp files left by an interrupted write.

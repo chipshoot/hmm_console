@@ -3635,11 +3635,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesVideoRestoreFailed => 'Couldn\'t restore the video';
 
   @override
+  String notesVideoUploading(String percent) {
+    return 'Uploading $percent%';
+  }
+
+  @override
+  String get notesVideoWaitingForWifi => 'Waiting for Wi-Fi';
+
+  @override
+  String get notesVideoUploadRetry => 'Upload will retry';
+
+  @override
+  String get notesVideoStillUploading => 'Still uploading from another device';
+
+  @override
+  String get notesVideoMobileDataTitle => 'Upload over mobile data?';
+
+  @override
+  String notesVideoMobileDataBody(String size) {
+    return 'This video is $size. Uploading it now uses that much mobile data.';
+  }
+
+  @override
+  String get notesVideoMobileDataUpload => 'Upload now using mobile data';
+
+  @override
+  String get notesVideoMobileDataCancel => 'Wait for Wi-Fi';
+
+  @override
+  String get notesVideoDownload => 'Download and play';
+
+  @override
+  String notesVideoDownloading(String percent) {
+    return 'Downloading $percent%. Tap to cancel.';
+  }
+
+  @override
+  String get notesVideoDownloadFailed => 'Couldn\'t download the video';
+
+  @override
   String get helpNoteDetailVideoTitle => 'Videos';
 
   @override
   String get helpNoteDetailVideoBody =>
-      'Tap a video to play it full screen. Long press it for Save to Photos, Share or Remove from note. To add one, edit the note and tap the video button.';
+      'Tap a video to play it full screen. With OneDrive sync, a video uploads when you\'re on Wi-Fi (tap \"Waiting for Wi-Fi\" to upload now over mobile data), other devices show \"Still uploading\" until it\'s done, then download it when you tap play. Long press it for Save to Photos, Share or Remove.';
 
   @override
   String get notesAddVideoTooltip => 'Add video';

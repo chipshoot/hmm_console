@@ -26,6 +26,12 @@ class _Files implements IVaultFileStore {
 
   @override
   Future<File?> localFile(String p) async => null;
+
+  @override
+  Future<void> offload(String p) async {}
+
+  @override
+  File? downloadTarget(String p) => null;
 }
 
 void main() {

@@ -18,6 +18,7 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -25,6 +26,7 @@ import 'package:path_provider/path_provider.dart';
 import '../data_mode.dart';
 import '../../settings/settings_controller.dart';
 import 'picker/image_attachment_picker.dart';
+import 'video/video_platform.dart';
 import 'picker/image_downsizer.dart';
 import 'resolver/attachment_resolver.dart';
 import '../vault/api_vault_store.dart';
@@ -112,8 +114,29 @@ final baseVaultStoreProvider = FutureProvider<IVaultStore>((ref) async {
     return ref.watch(apiVaultStoreProvider);
   }
   final root = await ref.watch(vaultRootDirectoryProvider.future);
-  return LocalVaultStore(rootDir: root);
+  final offload = await _videoOffloadDir(ref.read(videoPlatformProvider));
+  return LocalVaultStore(rootDir: root, offloadDir: offload);
 });
+
+/// Home for videos already uploaded to the cloud: outside the vault root and
+/// excluded from device backups (the cloud copy is the backup).
+Future<Directory> _videoOffloadDir(VideoPlatform platform) async {
+  final base = Platform.isIOS
+      ? await getLibraryDirectory()
+      : await getApplicationSupportDirectory();
+  final dir = Directory(p.join(base.path, 'HmmVideos'));
+  if (!await dir.exists()) await dir.create(recursive: true);
+  try {
+    await platform.excludeFromBackup(dir.path);
+  } catch (e) {
+    // The vault still opens, but offloaded videos would be backed up: say so.
+    // A native FlutterError arrives here as a PlatformException.
+    debugPrint(
+      'Could not exclude ${dir.path} from backup (${e.runtimeType}): $e',
+    );
+  }
+  return dir;
+}
 
 /// By-path vault access for large files (videos). Null in `cloudApi` (no
 /// on-disk vault). Uses the raw base store, never the encrypting decorator:
