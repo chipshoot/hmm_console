@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/services.dart';
@@ -30,6 +31,10 @@ abstract interface class VideoPlatform {
   /// when given (else from the start).
   Future<void> play(String videoPath, {int? positionMs});
 
+  /// The position, in milliseconds, where the user closed a player opened by
+  /// [play]. Lets the in-place player continue from there.
+  Stream<int> get fullScreenClosed;
+
   /// Saves the video to the photo library. False means permission was denied.
   Future<bool> saveToPhotos(String videoPath);
 
@@ -50,9 +55,20 @@ abstract interface class VideoPlatform {
 
 /// Talks to `ios/Runner/VideoPlugin.swift`.
 class MethodChannelVideoPlatform implements VideoPlatform {
-  MethodChannelVideoPlatform();
+  MethodChannelVideoPlatform() {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method != 'fullScreenClosed') return;
+      final ms = (call.arguments as Map?)?['positionMs'];
+      if (ms is int) _closed.add(ms);
+    });
+  }
 
   static const _channel = MethodChannel('hmm/video');
+
+  final _closed = StreamController<int>.broadcast();
+
+  @override
+  Stream<int> get fullScreenClosed => _closed.stream;
 
   @override
   Future<VideoProbe> probe(
@@ -112,6 +128,10 @@ class MethodChannelVideoPlatform implements VideoPlatform {
 /// Everywhere but iOS: no poster, no metadata, the OS opens the file.
 class FallbackVideoPlatform implements VideoPlatform {
   FallbackVideoPlatform();
+
+  /// The OS viewer reports nothing back.
+  @override
+  Stream<int> get fullScreenClosed => const Stream.empty();
 
   @override
   Future<VideoProbe> probe(

@@ -30,8 +30,10 @@ class InlineVideoPlayer extends StatefulWidget {
   /// Used until the file reports its own size.
   final double aspectRatio;
 
-  /// Called after pausing, with the position to continue from.
-  final void Function(Duration position) onFullScreen;
+  /// Called after pausing, with the position to continue from. Completes
+  /// with where the user closed full screen, or null if unknown; the player
+  /// then moves there, paused.
+  final Future<Duration?> Function(Duration position) onFullScreen;
 
   /// The file could not be opened; the caller shows another player instead.
   final VoidCallback? onInitFailed;
@@ -106,7 +108,9 @@ class _InlineVideoPlayerState extends State<InlineVideoPlayer> {
   Future<void> _fullScreen() async {
     await _controller.pause();
     if (!mounted) return;
-    widget.onFullScreen(_controller.value.position);
+    final closedAt = await widget.onFullScreen(_controller.value.position);
+    if (closedAt == null || !mounted) return;
+    await _controller.seekTo(closedAt);
   }
 
   static String _time(Duration d) => VideoLinkCard.formatDuration(d.inSeconds);
