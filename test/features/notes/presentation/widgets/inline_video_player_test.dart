@@ -36,7 +36,10 @@ void main() {
         InlineVideoPlayer(
           file: File('/v/u1.mov'),
           aspectRatio: 16 / 9,
-          onFullScreen: (p) => reported = p,
+          onFullScreen: (p) async {
+            reported = p;
+            return null;
+          },
           onInitFailed: () => failed++,
           onClosed: () {
             closed++;

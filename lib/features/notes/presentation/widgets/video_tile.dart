@@ -306,13 +306,20 @@ class _VideoTileState extends ConsumerState<VideoTile> {
     );
   }
 
-  /// Full screen from the in-place player: continue at [position].
-  void _fullScreen(File file, Duration position) {
-    unawaited(
-      ref
-          .read(videoPlatformProvider)
-          .play(file.path, positionMs: position.inMilliseconds),
-    );
+  /// Full screen from the in-place player: continue at [position], and
+  /// complete with where the user closed it.
+  Future<Duration?> _fullScreen(File file, Duration position) async {
+    final platform = ref.read(videoPlatformProvider);
+    // Listen before presenting, so a quick close is not missed.
+    final closed = platform.fullScreenClosed.first;
+    try {
+      await platform.play(file.path, positionMs: position.inMilliseconds);
+      return Duration(milliseconds: await closed);
+    } catch (e) {
+      // Type only: errors can carry file paths.
+      debugPrint('VideoTile: full screen failed (${e.runtimeType})');
+      return null;
+    }
   }
 
   /// The in-place player could not open the file: use the system player.

@@ -158,6 +158,31 @@ void main() {
     expect(platform.playedAt, [7000]);
   });
 
+  testWidgets('closing full screen moves the in-place player to where full '
+      'screen stopped', (tester) async {
+    await pumpTile(
+      tester,
+      size: const Size(1024, 768),
+      file: File('/v/u1.mov'),
+    );
+    await tester.tap(find.byType(VideoTile));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    await controllers.single.seekTo(const Duration(seconds: 7));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Full screen'));
+    await tester.pump();
+    expect(platform.playedAt, [7000]);
+
+    // Watched on to 0:31 in the system player, then closed it.
+    platform.closeFullScreen(31000);
+    await tester.pump();
+    await tester.pump();
+    expect(controllers.single.calls.last, 'seekTo 31000');
+    expect(controllers.single.value.isPlaying, isFalse);
+  });
+
   testWidgets('leaving the note after playing in place hands the audio '
       'back', (tester) async {
     await pumpTile(

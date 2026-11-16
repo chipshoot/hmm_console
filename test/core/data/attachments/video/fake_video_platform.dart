@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
@@ -18,6 +19,13 @@ class FakeVideoPlatform implements VideoPlatform {
   final endedTasks = <int>[];
   int beganTasks = 0;
   int audioReleases = 0;
+  final _closed = StreamController<int>.broadcast();
+
+  /// Simulates the user closing the system player at [positionMs].
+  void closeFullScreen(int positionMs) => _closed.add(positionMs);
+
+  @override
+  Stream<int> get fullScreenClosed => _closed.stream;
 
   @override
   Future<VideoProbe> probe(

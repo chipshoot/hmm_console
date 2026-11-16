@@ -10,6 +10,8 @@ import UIKit
 /// loaded into memory. Holds no rules; those live in Dart.
 class VideoPlugin: NSObject {
   private static var instance: VideoPlugin?
+  /// Kept to tell Dart where the user closed the full-screen player.
+  private var channel: FlutterMethodChannel?
 
   static func register(with registrar: FlutterPluginRegistrar) {
     let plugin = VideoPlugin()
@@ -17,6 +19,7 @@ class VideoPlugin: NSObject {
     let channel = FlutterMethodChannel(
       name: "hmm/video",
       binaryMessenger: registrar.messenger())
+    plugin.channel = channel
     channel.setMethodCallHandler { call, result in
       plugin.handle(call, result: result)
     }
@@ -235,7 +238,14 @@ extension VideoPlugin: AVPlayerViewControllerDelegate {
   ) {
     coordinator.animate(alongsideTransition: nil) { context in
       guard !context.isCancelled else { return }
-      playerViewController.player?.pause()
+      let player = playerViewController.player
+      player?.pause()
+      // Tell Dart where playback stopped, so the in-place player can
+      // continue from there instead of jumping back.
+      if let time = player?.currentTime(), time.isValid, time.isNumeric {
+        let ms = Int(CMTimeGetSeconds(time) * 1000)
+        self.channel?.invokeMethod("fullScreenClosed", arguments: ["positionMs": ms])
+      }
       try? AVAudioSession.sharedInstance().setActive(
         false, options: .notifyOthersOnDeactivation)
     }
