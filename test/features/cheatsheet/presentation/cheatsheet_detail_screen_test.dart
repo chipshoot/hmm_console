@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -711,6 +713,34 @@ void main() {
       expect(bar.backgroundColor, expected.background);
       expect(bar.foregroundColor, expected.foreground);
       expect(find.byKey(const Key('card-surface-cover')), findsOneWidget);
+    });
+
+    testWidgets('on iOS the bar buttons use the bar text colour, not the '
+        'app accent', (tester) async {
+      // A Health card's green bar hid the green accent buttons.
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        await mountLook(tester, card);
+        final bar = tester.widget<AppBar>(find.byType(AppBar));
+        for (final key in ['detail-edit', 'detail-delete']) {
+          final icon = find.descendant(
+            of: find.byKey(Key(key)),
+            matching: find.byType(Icon),
+          );
+          expect(
+            IconTheme.of(tester.element(icon)).color,
+            bar.foregroundColor,
+            reason: key,
+          );
+        }
+        final help = find.descendant(
+          of: find.byType(HelpButton),
+          matching: find.byType(Icon),
+        );
+        expect(IconTheme.of(tester.element(help)).color, bar.foregroundColor);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     });
 
     testWidgets('the detail has a help button that explains both layouts, '

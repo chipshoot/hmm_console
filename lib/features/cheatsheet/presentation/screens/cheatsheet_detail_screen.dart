@@ -213,19 +213,34 @@ class CheatsheetDetailScreen extends ConsumerWidget {
         foregroundColor: bar.foreground,
         title: Text(card.title),
         actions: [
-          const HelpButton(helpId: HelpId.cheatsheetDetail),
-          HmmIconButton(
-            key: const Key('detail-edit'),
-            icon: Icons.edit_outlined,
-            tooltip: l.cheatsheetEditTooltip,
-            onPressed: () =>
-                ref.read(cheatsheetEditCardProvider)(context, cardId),
-          ),
-          HmmIconButton(
-            key: const Key('detail-delete'),
-            icon: Icons.delete_outline,
-            tooltip: l.cheatsheetDeleteTooltip,
-            onPressed: () => _confirmDelete(context, ref),
+          // On Apple platforms HmmIconButton tints its glyph with the app
+          // accent, which vanishes on a bar of the same hue (a green Health
+          // card). Give the buttons the bar's own text colour instead.
+          Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(
+                context,
+              ).colorScheme.copyWith(primary: bar.foreground),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const HelpButton(helpId: HelpId.cheatsheetDetail),
+                HmmIconButton(
+                  key: const Key('detail-edit'),
+                  icon: Icons.edit_outlined,
+                  tooltip: l.cheatsheetEditTooltip,
+                  onPressed: () =>
+                      ref.read(cheatsheetEditCardProvider)(context, cardId),
+                ),
+                HmmIconButton(
+                  key: const Key('detail-delete'),
+                  icon: Icons.delete_outline,
+                  tooltip: l.cheatsheetDeleteTooltip,
+                  onPressed: () => _confirmDelete(context, ref),
+                ),
+              ],
+            ),
           ),
         ],
       ),
