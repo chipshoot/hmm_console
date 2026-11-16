@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_providers.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
 import 'package:hmm_console/core/data/attachments/video/remote_video_index.dart';
+import 'package:hmm_console/core/data/attachments/video/video_cache.dart';
+import 'package:hmm_console/core/data/attachments/video/video_cache_index.dart';
 import 'package:hmm_console/core/data/attachments/video/video_downloads.dart';
 import 'package:hmm_console/core/data/attachments/video/video_platform.dart';
 import 'package:hmm_console/core/data/attachments/video_attachment.dart';
@@ -18,6 +20,7 @@ import 'package:hmm_console/core/data/vault/vault_store.dart' show VaultEntry;
 import 'package:hmm_console/features/notes/presentation/widgets/inline_video_player.dart';
 import 'package:hmm_console/features/notes/presentation/widgets/video_tile.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../core/data/attachments/video/fake_video_platform.dart';
@@ -292,5 +295,23 @@ void main() {
     expect(find.byType(InlineVideoPlayer), findsNothing);
     expect(platform.played, ['/v/u1.mov']);
     expect(platform.playedAt, [null]);
+  });
+
+  testWidgets('tapping a local video records it as used in the cache index', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final index = VideoCacheIndex(await SharedPreferences.getInstance());
+    await pumpTile(
+      tester,
+      size: const Size(390, 844),
+      file: File('/v/u1.mov'),
+      extra: [videoCacheIndexProvider.overrideWith((ref) async => index)],
+    );
+    expect(index.lastUsed(_path), isNull);
+    await tester.tap(find.byType(VideoTile));
+    await tester.pump();
+    await tester.pump();
+    expect(index.lastUsed(_path), isNotNull);
   });
 }

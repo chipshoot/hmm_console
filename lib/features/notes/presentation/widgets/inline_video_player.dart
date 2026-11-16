@@ -8,7 +8,7 @@ import 'package:video_player/video_player.dart';
 import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
-import 'video_link_card.dart';
+import '../../../../core/util/format_duration.dart';
 
 /// Plays a video file in place, with a control bar: play/pause, a scrub
 /// slider, elapsed and total time, and a full-screen button. Only built after
@@ -113,7 +113,7 @@ class _InlineVideoPlayerState extends State<InlineVideoPlayer> {
     await _controller.seekTo(closedAt);
   }
 
-  static String _time(Duration d) => VideoLinkCard.formatDuration(d.inSeconds);
+  static String _time(Duration d) => formatClock(d.inSeconds);
 
   Widget _bar(BuildContext context) {
     final l = AppLocalizations.of(context);

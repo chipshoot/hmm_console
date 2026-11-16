@@ -32,6 +32,12 @@ String? pendingUuidOf(String uri) {
 // spaces, so this is lossless for our content.
 final RegExp _imageMd = RegExp(r'!\[[^\]]*\]\(([^)\s]+)');
 
+/// A whole markdown image, `![alt](url "title")` through its close-paren,
+/// with the url captured as group 1 exactly as [_imageMd] does. For callers
+/// that replace the image; finding referenced paths stays with the looser
+/// [_imageMd], which also sees an unclosed image, so its file is kept.
+final RegExp markdownImagePattern = RegExp(r'!\[[^\]]*\]\(([^)\s]+)[^)]*\)');
+
 Iterable<String> _inlineUrls(String markdown) =>
     _imageMd.allMatches(markdown).map((m) => m.group(1)!);
 

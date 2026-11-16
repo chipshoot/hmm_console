@@ -7,6 +7,7 @@ import '../../../../core/data/attachments/attachment_ref.dart';
 import '../../../../core/data/attachments/link_preview.dart';
 import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../../../core/util/format_duration.dart';
 
 /// What a [VideoLinkCard] shows. [thumbnailBytes] (the editor's unsaved
 /// preview) wins over [thumbnail] (a saved vault ref).
@@ -48,15 +49,6 @@ class VideoLinkCard extends StatefulWidget {
   final LinkCardData data;
   final IAttachmentResolver? resolver;
   final Future<bool> Function(Uri)? launch;
-
-  static String formatDuration(int seconds) {
-    final h = seconds ~/ 3600;
-    final m = (seconds % 3600) ~/ 60;
-    final s = seconds % 60;
-    final ss = s.toString().padLeft(2, '0');
-    if (h > 0) return '$h:${m.toString().padLeft(2, '0')}:$ss';
-    return '$m:$ss';
-  }
 
   @override
   State<VideoLinkCard> createState() => _VideoLinkCardState();
@@ -153,7 +145,7 @@ class _VideoLinkCardState extends State<VideoLinkCard> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    VideoLinkCard.formatDuration(secs),
+                    formatClock(secs),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
