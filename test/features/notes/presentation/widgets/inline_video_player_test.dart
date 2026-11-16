@@ -110,4 +110,30 @@ void main() {
     expect(failed, 1);
     expect(controller.calls, ['initialize']);
   });
+
+  testWidgets('dragging the scrubber moves the time label, and releasing '
+      'seeks to the chosen position', (tester) async {
+    await pumpPlayer(tester);
+    final box = tester.getRect(find.byType(Slider));
+    final gesture = await tester.startGesture(
+      Offset(box.left + 24, box.center.dy),
+    );
+    await gesture.moveTo(Offset(box.center.dx, box.center.dy));
+    await tester.pump();
+    // Mid-drag the label follows the thumb but nothing has been sought yet.
+    expect(find.text('0:00'), findsNothing);
+    expect(controller.calls.where((c) => c.startsWith('seekTo')), isEmpty);
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    final chosenMs = slider.value;
+    expect(chosenMs, greaterThan(15000));
+    expect(chosenMs, lessThan(33000));
+
+    await gesture.up();
+    await tester.pump();
+    await tester.pump();
+    expect(controller.calls.last, 'seekTo ${chosenMs.round()}');
+    expect(controller.value.position.inMilliseconds, chosenMs.round());
+    final secs = (chosenMs / 1000).floor();
+    expect(find.text('0:$secs'), findsOneWidget);
+  });
 }

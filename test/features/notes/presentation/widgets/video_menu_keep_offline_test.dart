@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -131,5 +133,48 @@ void main() {
     await t.tap(find.text('open'));
     await t.pumpAndSettle();
     expect(find.byIcon(Icons.check), findsOneWidget);
+  });
+
+  testWidgets('on iOS a kept video shows its tick in the action sheet', (
+    t,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await VideoCacheIndex(prefs).setKept('v/a.mp4', true);
+      final keep = KeepOffline(
+        index: VideoCacheIndex(prefs),
+        fetch: (_) async => const VideoFetchResult(VideoFetchOutcome.failed),
+        isLocal: (_) async => true,
+        mayUseNetwork: () async => true,
+        referencedPaths: () async => {'v/a.mp4'},
+      );
+      await t.pumpWidget(
+        ProviderScope(
+          overrides: [keepOfflineProvider.overrideWith((ref) async => keep)],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Consumer(
+              builder: (context, ref, _) => Scaffold(
+                body: TextButton(
+                  onPressed: () =>
+                      showVideoMenu(context, ref, noteId: 1, video: _video()),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.text('open'));
+      await t.pumpAndSettle();
+      expect(find.byType(CupertinoActionSheet), findsOneWidget);
+      expect(find.text('✓ Keep offline'), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }
