@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +23,9 @@ import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_row.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/screens/cheatsheet_detail_screen.dart';
+import 'package:hmm_console/core/navigation/route_names.dart';
+import 'package:hmm_console/features/contacts/presentation/contact_note_display.dart';
+import 'package:hmm_console/features/notes/rendering/note_display.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 
@@ -129,7 +134,10 @@ const card = CheatsheetCard(
 );
 
 void main() {
+  final rawOpened = <String>[];
+
   setUp(() {
+    rawOpened.clear();
     _SeededCheatsheets.seed = const [card];
     _SeededCheatsheets.removed.clear();
   });
@@ -159,6 +167,9 @@ void main() {
           }),
           cheatsheetOpenSourceProvider.overrideWithValue(
             (_, uuid) => openedSources.add(uuid),
+          ),
+          cheatsheetOpenRawSourceProvider.overrideWithValue(
+            (_, uuid) => rawOpened.add(uuid),
           ),
           cheatsheetEditCardProvider.overrideWithValue(
             (_, id) => edited.add(id),
@@ -220,6 +231,42 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(r.openedSources, ['auto1']);
+  });
+
+  testWidgets('long-pressing a row opens its raw note instead', (tester) async {
+    final r = await mount(tester);
+
+    await tester.longPress(find.byKey(const Key('row-0-value')));
+    await tester.pumpAndSettle();
+
+    expect(rawOpened, ['auto1']);
+    expect(r.openedSources, isEmpty);
+    expect(r.launched, isEmpty);
+  });
+
+  test('a contact source opens the contact screen; others the note screen', () {
+    const registry = NoteDisplayRegistry({
+      ContactNoteDisplay.catalogName: ContactNoteDisplay(),
+    });
+    final contactNote = HmmNote(
+      id: 7,
+      uuid: 'c7',
+      subject: 'Contact:abc',
+      authorId: 1,
+      createDate: DateTime(2026),
+      content: '{"note":{"content":{"Contact":{"id":"abc"}}}}',
+    );
+    final contact = sourceNoteTarget(
+      contactNote,
+      ContactNoteDisplay.catalogName,
+      registry,
+    );
+    expect(contact.route, RouterNames.contactDetail);
+    expect(contact.params, {'id': 'abc'});
+
+    final plain = sourceNoteTarget(autoNote, 'Hmm.AutomobileMan.X', registry);
+    expect(plain.route, RouterNames.noteDetail);
+    expect(plain.params, {'id': '1'});
   });
 
   testWidgets('a launch failure shows a message and does not crash', (
@@ -666,6 +713,34 @@ void main() {
       expect(bar.backgroundColor, expected.background);
       expect(bar.foregroundColor, expected.foreground);
       expect(find.byKey(const Key('card-surface-cover')), findsOneWidget);
+    });
+
+    testWidgets('on iOS the bar buttons use the bar text colour, not the '
+        'app accent', (tester) async {
+      // A Health card's green bar hid the green accent buttons.
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        await mountLook(tester, card);
+        final bar = tester.widget<AppBar>(find.byType(AppBar));
+        for (final key in ['detail-edit', 'detail-delete']) {
+          final icon = find.descendant(
+            of: find.byKey(Key(key)),
+            matching: find.byType(Icon),
+          );
+          expect(
+            IconTheme.of(tester.element(icon)).color,
+            bar.foregroundColor,
+            reason: key,
+          );
+        }
+        final help = find.descendant(
+          of: find.byType(HelpButton),
+          matching: find.byType(Icon),
+        );
+        expect(IconTheme.of(tester.element(help)).color, bar.foregroundColor);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     });
 
     testWidgets('the detail has a help button that explains both layouts, '

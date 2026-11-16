@@ -10,6 +10,7 @@ import 'package:hmm_console/core/data/repository_providers.dart';
 import 'package:hmm_console/core/network/pagination.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_source.dart';
 import 'package:hmm_console/features/cheatsheet/presentation/widgets/source_picker.dart';
+import 'package:hmm_console/features/cheatsheet/domain/source_scope.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 
 /// Pages exactly the way the real repository does, so "no silent cap" is
@@ -122,6 +123,8 @@ void main() {
     WidgetTester tester,
     List<HmmNote> notes, {
     String templateId = 'blank',
+    HmmNote? initialNote,
+    VoidCallback? onBack,
   }) async {
     CheatsheetSource? picked;
     await tester.pumpWidget(
@@ -137,6 +140,8 @@ void main() {
           home: Scaffold(
             body: SourcePicker(
               templateId: templateId,
+              initialNote: initialNote,
+              onBack: onBack,
               onSelected: (s) => picked = s,
             ),
           ),
@@ -186,6 +191,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('source-note-uuid-250')), findsOneWidget);
+  });
+
+  testWidgets('a note chosen on the Notes screen opens straight on its '
+      'pieces, and back returns to the Notes screen', (tester) async {
+    var backs = 0;
+    final picked = await mount(
+      tester,
+      const [],
+      initialNote: autoNote,
+      onBack: () => backs++,
+    );
+
+    expect(find.text('AutomobileInfo.plate'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('source-picker-back')));
+    await tester.pumpAndSettle();
+    expect(backs, 1);
+
+    await tester.tap(find.text('AutomobileInfo.plate'));
+    await tester.pumpAndSettle();
+    expect(picked()!.noteUuid, 'uuid-1');
+    expect(picked()!.locator, 'AutomobileInfo.plate');
+  });
+
+  test('cheatsheet cards and subsystem anchors are not offered as sources', () {
+    expect(isSourceCandidate('Hmm.CheatsheetMan.Cheatsheet'), isFalse);
+    expect(isSourceCandidate('Hmm.System.Subsystem'), isFalse);
+    expect(isSourceCandidate('Hmm.AutomobileMan.AutomobileInfo'), isTrue);
+    expect(isSourceCandidate(null), isTrue);
   });
 
   testWidgets('picking a field returns a field source', (tester) async {

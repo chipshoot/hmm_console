@@ -116,7 +116,8 @@ void main() {
     }
   });
 
-  test('detail help covers both layouts, the header and the lock tile', () {
+  test('detail help covers both layouts, opening the note, the header and '
+      'the lock tile', () {
     final l = lookupAppLocalizations(const Locale('en'));
     final entries = helpFor(HelpId.cheatsheetDetail, l).entries;
     // The designer's layout control draws list_alt / format_list_numbered;
@@ -124,12 +125,14 @@ void main() {
     expect(entries.map((e) => e.icon), [
       Icons.list_alt,
       Icons.format_list_numbered,
+      Icons.open_in_new,
       Icons.image_outlined,
       Icons.lock_outline,
     ]);
     expect(entries.map((e) => e.title), [
       l.helpCheatsheetDetailFactsTitle,
       l.helpCheatsheetDetailKeyPointsTitle,
+      l.helpCheatsheetDetailOpenSourceTitle,
       l.helpCheatsheetDetailHeaderTitle,
       l.helpCheatsheetDetailLockTitle,
     ]);

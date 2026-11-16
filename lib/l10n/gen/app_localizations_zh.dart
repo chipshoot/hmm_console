@@ -488,6 +488,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesAll => '全部';
 
   @override
+  String get notesPickTitle => '选择笔记';
+
+  @override
   String get notesSelectNote => '请选择一条笔记';
 
   @override
@@ -2522,6 +2525,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '各行在卡片颜色上编号，若已选择表情符号则一并显示，标签加粗，值显示在下方。值、操作和照片与“信息”布局相同。';
 
   @override
+  String get helpCheatsheetDetailOpenSourceTitle => '打开笔记';
+
+  @override
+  String get helpCheatsheetDetailOpenSourceBody =>
+      '点按一行上的打开按钮，查看其值的来源。联系人会在联系人页面打开，其他笔记以笔记形式打开。长按该行可查看原始笔记。';
+
+  @override
   String get helpCheatsheetDetailHeaderTitle => '封面标题区';
 
   @override
@@ -2568,6 +2578,13 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpCheatsheetDesignerLayoutBody =>
       '“信息”在每个标签旁显示其值。“要点”为各行编号并使用卡片主题颜色，适合书籍和文档。';
+
+  @override
+  String get helpCheatsheetDesignerSourceTitle => '为一行选择笔记';
+
+  @override
+  String get helpCheatsheetDesignerSourceBody =>
+      '点按一行下方的链接，选择其值的来源。笔记页面会打开，可使用搜索、标签和筛选；点按笔记后，再选择一个字段、一个段落、一张照片或整条笔记。在该步骤返回会回到笔记页面。';
 
   @override
   String get helpCheatsheetDesignerRowEmojiTitle => '行表情符号';

@@ -22,6 +22,8 @@ import '../../domain/entities/cheatsheet_card.dart';
 import '../../domain/entities/cheatsheet_row.dart';
 import '../../domain/entities/cheatsheet_source.dart';
 import '../../states/cheatsheets_state.dart';
+import '../../../notes/data/models/hmm_note.dart';
+import '../../../notes/rendering/note_display.dart';
 import '../../states/derived_field_registry_provider.dart';
 import '../look/card_header.dart';
 import '../look/cheatsheet_palette.dart';
@@ -33,19 +35,54 @@ final cheatsheetResolverProvider = Provider<CheatsheetResolver>(
   ),
 );
 
-/// Opens the note a row points at.
-///
-/// Rows reference notes by **uuid** (stable across devices) but the note route
-/// takes the **local int id**, so this is a lookup, not a string swap. A
-/// source that hasn't synced to this device yet has no local row to open — the
-/// row already renders as "source removed", so this does nothing rather than
+/// Where a row's source opens: the screen that owns the note (a contact opens
+/// on its contact screen, the way the Notes list opens it), else the generic
+/// note screen. Without this a contact showed as raw JSON.
+NoteTarget sourceNoteTarget(
+  HmmNote note,
+  String? catalogName,
+  NoteDisplayRegistry registry,
+) =>
+    registry.targetFor(note, catalogName) ??
+    (route: RouterNames.noteDetail, params: {'id': '${note.id}'});
+
+/// Rows reference notes by **uuid** (stable across devices) but routes take
+/// the **local int id**, so this is a lookup, not a string swap. A source
+/// that hasn't synced to this device yet has no local row to open; the row
+/// already renders as "source removed", so nothing happens rather than
 /// navigating somewhere wrong.
+Future<HmmNote?> _sourceNote(Ref ref, String noteUuid) =>
+    ref.read(hmmNoteRepositoryProvider).getNoteByUuid(noteUuid);
+
+/// Opens the note a row points at, rendered: see [sourceNoteTarget].
 final cheatsheetOpenSourceProvider =
     Provider<void Function(BuildContext, String)>(
       (ref) => (context, noteUuid) async {
-        final note = await ref
-            .read(hmmNoteRepositoryProvider)
-            .getNoteByUuid(noteUuid);
+        final note = await _sourceNote(ref, noteUuid);
+        if (note == null) return;
+        final catalogs = await ref
+            .read(noteCatalogRepositoryProvider)
+            .getCatalogs();
+        if (!context.mounted) return;
+        final catalogName = [
+          for (final c in catalogs)
+            if (c.id == note.catalogId) c.name,
+        ].firstOrNull;
+        final t = sourceNoteTarget(
+          note,
+          catalogName,
+          ref.read(noteDisplayRegistryProvider),
+        );
+        context.pushNamed(t.route.name, pathParameters: t.params);
+      },
+    );
+
+/// Opens the note a row points at as the generic note screen: its raw
+/// stored text, offered by a long press on the row.
+final cheatsheetOpenRawSourceProvider =
+    Provider<void Function(BuildContext, String)>(
+      (ref) => (context, noteUuid) async {
+        final note = await _sourceNote(ref, noteUuid);
         if (note == null || !context.mounted) return;
         context.pushNamed(
           RouterNames.noteDetail.name,
@@ -176,19 +213,34 @@ class CheatsheetDetailScreen extends ConsumerWidget {
         foregroundColor: bar.foreground,
         title: Text(card.title),
         actions: [
-          const HelpButton(helpId: HelpId.cheatsheetDetail),
-          HmmIconButton(
-            key: const Key('detail-edit'),
-            icon: Icons.edit_outlined,
-            tooltip: l.cheatsheetEditTooltip,
-            onPressed: () =>
-                ref.read(cheatsheetEditCardProvider)(context, cardId),
-          ),
-          HmmIconButton(
-            key: const Key('detail-delete'),
-            icon: Icons.delete_outline,
-            tooltip: l.cheatsheetDeleteTooltip,
-            onPressed: () => _confirmDelete(context, ref),
+          // On Apple platforms HmmIconButton tints its glyph with the app
+          // accent, which vanishes on a bar of the same hue (a green Health
+          // card). Give the buttons the bar's own text colour instead.
+          Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(
+                context,
+              ).colorScheme.copyWith(primary: bar.foreground),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const HelpButton(helpId: HelpId.cheatsheetDetail),
+                HmmIconButton(
+                  key: const Key('detail-edit'),
+                  icon: Icons.edit_outlined,
+                  tooltip: l.cheatsheetEditTooltip,
+                  onPressed: () =>
+                      ref.read(cheatsheetEditCardProvider)(context, cardId),
+                ),
+                HmmIconButton(
+                  key: const Key('detail-delete'),
+                  icon: Icons.delete_outline,
+                  tooltip: l.cheatsheetDeleteTooltip,
+                  onPressed: () => _confirmDelete(context, ref),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -309,21 +361,33 @@ class _RowTile extends ConsumerWidget {
     );
   }
 
+  /// Long press on a row with an open button: the raw note instead of its
+  /// rendered screen. Not on the button itself, whose long press shows its
+  /// tooltip.
+  void Function(BuildContext)? _openRaw(WidgetRef ref) {
+    final source = row.source;
+    if (!row.openSource || source == null) return null;
+    return (context) =>
+        ref.read(cheatsheetOpenRawSourceProvider)(context, source.noteUuid);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final valueWidget = _valueWidget(context, ref);
     final trailing = _openSourceButton(context, ref);
 
+    final openRaw = _openRaw(ref);
     if (layout == CardLayout.facts) {
       return ListTile(
         title: Text(row.label),
         subtitle: valueWidget,
         trailing: trailing,
+        onLongPress: openRaw == null ? null : () => openRaw(context),
       );
     }
 
     final emoji = row.emoji;
-    return Container(
+    final tile = Container(
       key: Key('keypoint-$index'),
       margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
       padding: const EdgeInsets.fromLTRB(12, 8, 0, 8),
@@ -385,6 +449,9 @@ class _RowTile extends ConsumerWidget {
         ],
       ),
     );
+    return openRaw == null
+        ? tile
+        : GestureDetector(onLongPress: () => openRaw(context), child: tile);
   }
 }
 

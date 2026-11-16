@@ -296,9 +296,17 @@ class _CheatsheetDesignerScreenState
               onTap: () => _bind(i),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  source == null ? 'Tap to bind' : _summarize(source, l),
-                  style: Theme.of(context).textTheme.bodySmall,
+                child: Row(
+                  children: [
+                    const Icon(Icons.link, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        source == null ? 'Tap to bind' : _summarize(source, l),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

@@ -914,6 +914,12 @@ abstract class AppLocalizations {
   /// **'All'**
   String get notesAll;
 
+  /// No description provided for @notesPickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a note'**
+  String get notesPickTitle;
+
   /// No description provided for @notesSelectNote.
   ///
   /// In en, this message translates to:
@@ -4736,6 +4742,18 @@ abstract class AppLocalizations {
   /// **'Rows are numbered on the card\'s colour, each with its emoji if one was chosen, the label in bold and the value below. Values, actions and photos work as in Facts.'**
   String get helpCheatsheetDetailKeyPointsBody;
 
+  /// No description provided for @helpCheatsheetDetailOpenSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the note'**
+  String get helpCheatsheetDetailOpenSourceTitle;
+
+  /// No description provided for @helpCheatsheetDetailOpenSourceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the open button on a row to see where its value comes from. A contact opens on its contact screen; other notes open as notes. Long-press the row to see the raw note instead.'**
+  String get helpCheatsheetDetailOpenSourceBody;
+
   /// No description provided for @helpCheatsheetDetailHeaderTitle.
   ///
   /// In en, this message translates to:
@@ -4819,6 +4837,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Facts shows each label beside its value. Key points numbers the rows and colours them with the card\'s theme, which suits books and documents.'**
   String get helpCheatsheetDesignerLayoutBody;
+
+  /// No description provided for @helpCheatsheetDesignerSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a note for a row'**
+  String get helpCheatsheetDesignerSourceTitle;
+
+  /// No description provided for @helpCheatsheetDesignerSourceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the link line under a row to choose where its value comes from. The Notes screen opens with its search, tags and filters; tap the note, then choose a field, a section, a photo or the whole note. Back from that step returns to the Notes screen.'**
+  String get helpCheatsheetDesignerSourceBody;
 
   /// No description provided for @helpCheatsheetDesignerRowEmojiTitle.
   ///

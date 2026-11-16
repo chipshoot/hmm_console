@@ -509,6 +509,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesAll => 'All';
 
   @override
+  String get notesPickTitle => 'Choose a note';
+
+  @override
   String get notesSelectNote => 'Select a note';
 
   @override
@@ -2598,6 +2601,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Rows are numbered on the card\'s colour, each with its emoji if one was chosen, the label in bold and the value below. Values, actions and photos work as in Facts.';
 
   @override
+  String get helpCheatsheetDetailOpenSourceTitle => 'Open the note';
+
+  @override
+  String get helpCheatsheetDetailOpenSourceBody =>
+      'Tap the open button on a row to see where its value comes from. A contact opens on its contact screen; other notes open as notes. Long-press the row to see the raw note instead.';
+
+  @override
   String get helpCheatsheetDetailHeaderTitle => 'Cover header';
 
   @override
@@ -2645,6 +2655,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpCheatsheetDesignerLayoutBody =>
       'Facts shows each label beside its value. Key points numbers the rows and colours them with the card\'s theme, which suits books and documents.';
+
+  @override
+  String get helpCheatsheetDesignerSourceTitle => 'Choose a note for a row';
+
+  @override
+  String get helpCheatsheetDesignerSourceBody =>
+      'Tap the link line under a row to choose where its value comes from. The Notes screen opens with its search, tags and filters; tap the note, then choose a field, a section, a photo or the whole note. Back from that step returns to the Notes screen.';
 
   @override
   String get helpCheatsheetDesignerRowEmojiTitle => 'Row emoji';

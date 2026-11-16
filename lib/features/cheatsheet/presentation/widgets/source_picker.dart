@@ -5,6 +5,8 @@ import '../../../../l10n/gen/app_localizations.dart';
 
 import '../../../../core/data/repository_providers.dart';
 import '../../../notes/data/models/hmm_note.dart';
+import '../../../notes/presentation/screens/note_picker.dart';
+import '../../../notes/rendering/note_display.dart';
 import '../../domain/entities/cheatsheet_source.dart';
 import '../../domain/note_piece_extractor.dart';
 import '../../domain/source_scope.dart';
@@ -68,9 +70,19 @@ class SourcePicker extends ConsumerStatefulWidget {
     super.key,
     required this.onSelected,
     required this.templateId,
+    this.initialNote,
+    this.onBack,
   });
 
   final ValueChanged<CheatsheetSource> onSelected;
+
+  /// A note already chosen (on the Notes screen, see [showSourcePicker]):
+  /// the picker opens on its pieces instead of a note list.
+  final HmmNote? initialNote;
+
+  /// With [initialNote]: the back arrow calls this (to choose another note)
+  /// instead of returning to the picker's own note list.
+  final VoidCallback? onBack;
 
   /// The card's template, which decides what gets offered first. Passed in
   /// rather than read from the editor so the picker stays usable from a sheet,
@@ -83,7 +95,7 @@ class SourcePicker extends ConsumerStatefulWidget {
 
 class _SourcePickerState extends ConsumerState<SourcePicker> {
   String _query = '';
-  HmmNote? _note;
+  late HmmNote? _note = widget.initialNote;
 
   void _select(SourceGranularity kind, String? locator) {
     widget.onSelected(CheatsheetSource(
@@ -96,6 +108,10 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // Chosen on the Notes screen: no note list to load.
+    if (widget.initialNote != null) {
+      return SafeArea(child: _granularityStep(context, _note!));
+    }
     final notes = ref.watch(cheatsheetSourceNotesProvider(widget.templateId));
     return SafeArea(
       child: notes.when(
@@ -202,9 +218,19 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
             key: const Key('source-picker-back'),
             icon: const Icon(Icons.arrow_back),
             tooltip: l.cheatsheetSourceBack,
-            onPressed: () => setState(() => _note = null),
+            onPressed: widget.onBack ?? () => setState(() => _note = null),
           ),
-          title: Text(n.subject),
+          // The name people know it by: a contact's name, not its stored
+          // `Contact:<id>` subject.
+          title: Text(
+            ref.watch(noteDisplayRegistryProvider).title(
+                  n,
+                  ref
+                      .watch(cheatsheetSourceCatalogNamesProvider)
+                      .value?[n.catalogId],
+                  l,
+                ),
+          ),
         ),
         const Divider(height: 1),
         Flexible(
@@ -282,15 +308,32 @@ class _SectionLabel extends StatelessWidget {
 
 /// Presents [SourcePicker] as a modal sheet, completing with the chosen
 /// source (or null if dismissed).
+/// Chooses a row's source in two steps: the note, on the Notes screen with its
+/// search, tags and filters (the app's own bookkeeping notes left out); then
+/// which piece of it, in a sheet. Back in the sheet returns to the Notes
+/// screen; leaving either step returns null.
 Future<CheatsheetSource?> showSourcePicker(
   BuildContext context, {
   required String templateId,
-}) =>
-    showModalBottomSheet<CheatsheetSource>(
+}) async {
+  const back = Object();
+  while (true) {
+    final note = await showNotePicker(
+      context,
+      canPick: (_, catalogName) => isSourceCandidate(catalogName),
+    );
+    if (note == null || !context.mounted) return null;
+    final result = await showModalBottomSheet<Object>(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) => SourcePicker(
         templateId: templateId,
+        initialNote: note,
+        onBack: () => Navigator.of(sheetContext).pop(back),
         onSelected: (source) => Navigator.of(sheetContext).pop(source),
       ),
     );
+    if (result is CheatsheetSource) return result;
+    if (!identical(result, back) || !context.mounted) return null;
+  }
+}

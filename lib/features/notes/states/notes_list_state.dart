@@ -250,6 +250,9 @@ class NotesListState extends AsyncNotifier<NotesListData> {
     );
   }
 
+  /// The current search, tags and filters, available before the data loads.
+  NoteQuery get query => _query;
+
   void setQuery(NoteQuery query) {
     _query = query;
     final v = state.value;
