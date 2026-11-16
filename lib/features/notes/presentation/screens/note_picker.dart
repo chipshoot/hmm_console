@@ -18,8 +18,9 @@ Future<HmmNote?> showNotePicker(
 }) async {
   final container = ProviderScope.containerOf(context, listen: false);
   final notifier = container.read(notesListStateProvider.notifier);
-  final saved = (await container.read(notesListStateProvider.future)).query;
-  if (!context.mounted) return null;
+  // Read synchronously. Awaiting the list's data here hung when the Notes
+  // screen sat offstage with its provider paused: nothing happened on tap.
+  final saved = notifier.query;
   final platform = Theme.of(context).platform;
   final apple =
       platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;

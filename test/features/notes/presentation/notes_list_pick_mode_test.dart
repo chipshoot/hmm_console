@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,15 +29,22 @@ class _List extends NotesListState {
   );
 }
 
-Widget _app(Widget home) => ProviderScope(
-  overrides: [notesListStateProvider.overrideWith(_List.new)],
-  child: MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    theme: ThemeData(extensions: const [AppColors.light]),
-    home: home,
-  ),
-);
+/// A Notes list that has not finished loading (or is paused offstage).
+class _Loading extends NotesListState {
+  @override
+  Future<NotesListData> build() => Completer<NotesListData>().future;
+}
+
+Widget _app(Widget home, {NotesListState Function() list = _List.new}) =>
+    ProviderScope(
+      overrides: [notesListStateProvider.overrideWith(list)],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(extensions: const [AppColors.light]),
+        home: home,
+      ),
+    );
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -103,5 +112,30 @@ void main() {
     expect(result?.id, 1);
     // ...and leaving restores what the Notes screen had.
     expect(outer.read(notesListStateProvider).value?.query.text, '');
+  });
+
+  testWidgets('the picker opens even while the Notes list is still loading', (
+    t,
+  ) async {
+    // On the device the Notes list can be offstage and paused, so its data
+    // never arrives until a screen shows it. Waiting for it before opening
+    // the picker meant tapping "Tap to bind" did nothing.
+    await t.pumpWidget(
+      _app(
+        list: _Loading.new,
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => showNotePicker(context),
+              child: const Text('pick'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await t.tap(find.text('pick'));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 500));
+    expect(find.byType(NotesListScreen), findsOneWidget);
   });
 }
