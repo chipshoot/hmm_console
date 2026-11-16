@@ -187,6 +187,8 @@
   "cheatsheetWalletGroupLabel": "分组",
   "cheatsheetNewRow": "新增行",
   "cheatsheetAddRow": "添加行",
+  "cheatsheetTapToBind": "点按以选择笔记",
+  "cheatsheetStartEmpty": "从空白开始",
   "cheatsheetRemoveRow": "删除这一行",
   "cheatsheetSourceLoadFailed": "无法加载笔记：{error}",
   "cheatsheetSourceEmpty": "还没有可引用的笔记。",

@@ -669,6 +669,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cheatsheetAddRow => 'Add row';
 
   @override
+  String get cheatsheetTapToBind => 'Tap to bind';
+
+  @override
+  String get cheatsheetStartEmpty => 'Start empty';
+
+  @override
   String get cheatsheetRemoveRow => 'Remove this row';
 
   @override

@@ -645,6 +645,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cheatsheetAddRow => '添加行';
 
   @override
+  String get cheatsheetTapToBind => '点按以选择笔记';
+
+  @override
+  String get cheatsheetStartEmpty => '从空白开始';
+
+  @override
   String get cheatsheetRemoveRow => '删除这一行';
 
   @override
