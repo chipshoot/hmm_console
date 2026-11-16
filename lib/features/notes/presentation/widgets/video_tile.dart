@@ -24,8 +24,8 @@ import '../../../../core/util/format_bytes.dart';
 import '../../states/note_selection.dart' show kNotesWideBreakpoint;
 import 'inline_video_player.dart';
 import 'note_markdown_body.dart' show kInlineImageMaxHeight;
-import 'video_link_card.dart';
 import '../../../../core/data/attachments/widgets/attachment_image.dart';
+import '../../../../core/util/format_duration.dart';
 
 /// Dark box with a film glyph: a video with no poster to show. Never reads
 /// any bytes.
@@ -69,9 +69,6 @@ class VideoTile extends ConsumerStatefulWidget {
 
   /// Test seam for the in-place player's controller.
   final VideoPlayerController Function(File)? inlineControllerFactory;
-
-  static String formatLength(int ms) =>
-      VideoLinkCard.formatDuration(ms ~/ 1000);
 
   @override
   ConsumerState<VideoTile> createState() => _VideoTileState();
@@ -467,7 +464,7 @@ class _VideoTileState extends ConsumerState<VideoTile> {
                                 vertical: 2,
                               ),
                               child: Text(
-                                VideoTile.formatLength(ms),
+                                formatVideoLength(ms),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,

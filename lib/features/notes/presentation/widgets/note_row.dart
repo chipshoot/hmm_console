@@ -16,11 +16,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../../../core/data/attachments/video_attachment.dart';
 import '../../query/note_results.dart';
-import 'video_tile.dart';
 import '../../rendering/note_display.dart';
 import '../catalog_labels.dart';
 import 'note_flag_sheet.dart' show noteFlagColorLabel;
 import 'note_preview_text.dart';
+import '../../../../core/util/format_duration.dart';
 
 /// One row of the Notes list: a domain-coloured bar, the title (with search
 /// matches marked, a pin and a flag), a preview sized by [density], and a meta
@@ -447,8 +447,8 @@ String videoListMark(List<VideoAttachment> videos) {
   final known = videos.map((v) => v.durationMs).nonNulls.toList();
   final total = known.fold<int>(0, (a, b) => a + b);
   if (videos.length == 1) {
-    return known.isEmpty ? '1' : VideoTile.formatLength(total);
+    return known.isEmpty ? '1' : formatVideoLength(total);
   }
   if (known.isEmpty) return '${videos.length}';
-  return '${videos.length} · ${VideoTile.formatLength(total)}';
+  return '${videos.length} · ${formatVideoLength(total)}';
 }

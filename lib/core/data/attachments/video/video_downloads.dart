@@ -39,12 +39,6 @@ final videoCloudEnabledProvider = Provider<bool>(
 /// Downloads of videos that another device uploaded. State: vault path ->
 /// fraction 0..1; absent means not downloading.
 class VideoDownloads extends Notifier<Map<String, double>> {
-  VideoDownloads({this.onReady});
-
-  /// Called when a fetch resolves to ready; [downloaded] is true when the file
-  /// was actually downloaded, false when it was already local. Best effort.
-  final Future<void> Function(String path, {required bool downloaded})? onReady;
-
   final _cancels = <String, TransferCancel>{};
 
   @override
@@ -115,35 +109,23 @@ class VideoDownloads extends Notifier<Map<String, double>> {
     }
   }
 
+  /// A fetch resolved to ready: mark the video used and, when it was
+  /// actually [downloaded], trim the cache with it protected. Not awaited, so
+  /// a ready video never waits for eviction; touchVideo catches its own
+  /// errors.
   Future<void> _ready(String path, {required bool downloaded}) async {
-    try {
-      await onReady?.call(path, downloaded: downloaded);
-    } catch (e) {
-      debugPrint('VideoDownloads: cache hook failed (${e.runtimeType})');
-    }
+    if (!ref.mounted) return;
+    unawaited(
+      touchVideo(
+        ref.read(videoCacheIndexProvider.future),
+        path,
+        cache: downloaded ? () => ref.read(videoCacheProvider.future) : null,
+      ),
+    );
   }
 
   void cancel(String path) => _cancels[path]?.cancel();
 }
 
 final videoDownloadsProvider =
-    NotifierProvider<VideoDownloads, Map<String, double>>(() {
-      late final VideoDownloads notifier;
-      // The notifier's own ref, read only after it is built.
-      // ignore: invalid_use_of_protected_member
-      Ref ref() => notifier.ref;
-      notifier = VideoDownloads(
-        // Not awaited: a ready video must not wait for eviction. touchVideo
-        // catches its own errors.
-        onReady: (path, {required downloaded}) async => unawaited(
-          touchVideo(
-            ref().read(videoCacheIndexProvider.future),
-            path,
-            cache: downloaded
-                ? () => ref().read(videoCacheProvider.future)
-                : null,
-          ),
-        ),
-      );
-      return notifier;
-    });
+    NotifierProvider<VideoDownloads, Map<String, double>>(VideoDownloads.new);
