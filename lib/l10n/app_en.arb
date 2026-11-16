@@ -376,6 +376,8 @@
   "cheatsheetWalletGroupLabel": "Wallet group",
   "cheatsheetNewRow": "New row",
   "cheatsheetAddRow": "Add row",
+  "cheatsheetTapToBind": "Tap to bind",
+  "cheatsheetStartEmpty": "Start empty",
   "cheatsheetRemoveRow": "Remove this row",
   "cheatsheetSourceLoadFailed": "Could not load notes: {error}",
   "@cheatsheetSourceLoadFailed": {

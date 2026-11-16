@@ -114,6 +114,20 @@ void main() {
       expect(find.text('Tap to bind'), findsWidgets);
     });
 
+    testWidgets('in Chinese, Start empty and Tap to bind are translated', (
+      tester,
+    ) async {
+      await mount(tester, locale: const Locale('zh'));
+      final zh = lookupAppLocalizations(const Locale('zh'));
+      expect(find.text(zh.cheatsheetStartEmpty), findsOneWidget);
+      expect(find.text('Start empty'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('template-accidentClaim')));
+      await tester.pumpAndSettle();
+      expect(find.text(zh.cheatsheetTapToBind), findsWidgets);
+      expect(find.text('Tap to bind'), findsNothing);
+    });
+
     testWidgets('binds a row through the picker and saves partially bound', (
       tester,
     ) async {

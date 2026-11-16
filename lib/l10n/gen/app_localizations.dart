@@ -1214,6 +1214,18 @@ abstract class AppLocalizations {
   /// **'Add row'**
   String get cheatsheetAddRow;
 
+  /// No description provided for @cheatsheetTapToBind.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to bind'**
+  String get cheatsheetTapToBind;
+
+  /// No description provided for @cheatsheetStartEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Start empty'**
+  String get cheatsheetStartEmpty;
+
   /// No description provided for @cheatsheetRemoveRow.
   ///
   /// In en, this message translates to:

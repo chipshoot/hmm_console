@@ -139,7 +139,7 @@ class _CheatsheetDesignerScreenState
               title: Text(t.title),
               subtitle: Text(
                 t.rowLabels.isEmpty
-                    ? 'Start empty'
+                    ? l.cheatsheetStartEmpty
                     : t.rowLabels.take(4).join(' · '),
               ),
               trailing: const Icon(Icons.chevron_right),
@@ -302,7 +302,9 @@ class _CheatsheetDesignerScreenState
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        source == null ? 'Tap to bind' : _summarize(source, l),
+                        source == null
+                            ? l.cheatsheetTapToBind
+                            : _summarize(source, l),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
