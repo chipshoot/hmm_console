@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/util/uuid.dart';
@@ -18,7 +19,13 @@ final calendarEventProvider = FutureProvider.autoDispose
     .family<CalendarEvent?, String>(
       (ref, id) async {
         final repo = ref.watch(calendarRepositoryProvider);
-        final sub = repo.changes().listen((_) => ref.invalidateSelf());
+        final sub = repo.changes().listen(
+          (_) => ref.invalidateSelf(),
+          // A failed change check keeps what is shown; the next change
+          // re-reads.
+          onError: (Object e) =>
+              debugPrint('calendarEvent: changes failed (${e.runtimeType})'),
+        );
         ref.onDispose(sub.cancel);
         return repo.getEvent(id);
       },

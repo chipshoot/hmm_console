@@ -121,7 +121,13 @@ class ReminderSync with WidgetsBindingObserver {
     unawaited(_changesSub?.cancel());
     _changesSub = null;
     try {
-      _changesSub = _repository().changes().listen((_) => trigger());
+      _changesSub = _repository().changes().listen(
+        (_) => trigger(),
+        // Logged, never thrown; the subscription stays and the next change
+        // (or resume) runs as usual.
+        onError: (Object e) =>
+            debugPrint('ReminderSync: changes failed (${e.runtimeType})'),
+      );
     } catch (e) {
       // Cloud API mode has no calendar; runs just cancel. Anything else is
       // logged once and the next trigger tries again.

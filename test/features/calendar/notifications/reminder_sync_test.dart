@@ -46,6 +46,7 @@ class _FakeRepo implements ICalendarRepository {
   int reads = 0;
 
   void emit() => _changes.add(null);
+  void emitError(Object e) => _changes.addError(e);
 
   @override
   Future<List<CalendarEvent>> eventsBetween(DateTime from, DateTime to) async {
@@ -161,6 +162,21 @@ void main() {
       fa.flushMicrotasks();
       expect(h.repo.reads, 2);
       fa.elapse(const Duration(seconds: 5));
+      expect(h.repo.reads, 2);
+      h.sync.stop();
+    });
+  });
+
+  test('a changes() error is logged, not thrown; later changes still run', () {
+    fakeAsync((fa) {
+      final h = _Harness();
+      h.sync.start();
+      fa.elapse(const Duration(seconds: 2));
+      h.repo.emitError(StateError('catalog'));
+      fa.flushMicrotasks();
+      h.repo.emit();
+      fa.elapse(const Duration(seconds: 1));
+      fa.flushMicrotasks();
       expect(h.repo.reads, 2);
       h.sync.stop();
     });

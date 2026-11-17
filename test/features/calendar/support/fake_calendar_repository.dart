@@ -21,6 +21,9 @@ class FakeCalendarRepository extends LocalCalendarRepository {
 
   void seed(CalendarEvent e) => events[e.id] = e;
 
+  /// Makes `changes()` deliver [error] (what a failing catalog read gives).
+  void emitChangeError(Object error) => _changes.addError(error);
+
   @override
   Future<List<CalendarEventReadResult>> readAll() async => [
     for (final e in events.values) CalendarEventReadable(e),

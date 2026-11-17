@@ -216,7 +216,15 @@ class LocalCalendarRepository implements ICalendarRepository {
     out = StreamController<void>(
       onListen: () {
         sub = _notes.watchNotes().listen((notes) async {
-          final catalogId = await _catalogId();
+          final int catalogId;
+          try {
+            catalogId = await _catalogId();
+          } catch (e, st) {
+            // Never let it escape to the zone; subscribers log it and the
+            // next notes change tries again.
+            if (!out.isClosed) out.addError(e, st);
+            return;
+          }
           // Content is part of the key: stamps are whole seconds, so two
           // edits in one second must still emit.
           final key = [

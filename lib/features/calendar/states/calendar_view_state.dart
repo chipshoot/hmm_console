@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -165,7 +166,12 @@ final calendarViewProvider = FutureProvider.autoDispose<CalendarViewData>((
       : (u) => tz.TZDateTime.from(u, zone);
   DateTime localMidnightUtc(DateTime d) =>
       resolve(d.year, d.month, d.day, 0, 0);
-  final sub = repo.changes().listen((_) => ref.invalidateSelf());
+  final sub = repo.changes().listen(
+    (_) => ref.invalidateSelf(),
+    // A failed change check keeps the agenda; the next change re-reads.
+    onError: (Object e) =>
+        debugPrint('calendarView: changes failed (${e.runtimeType})'),
+  );
   ref.onDispose(sub.cancel);
 
   final from = DateTime(month.year, month.month, 1);

@@ -6,6 +6,7 @@ import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
 import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/features/calendar/states/calendar_view_state.dart';
+import 'package:hmm_console/features/calendar/states/event_edit_state.dart';
 
 import '../support/fake_calendar_repository.dart';
 
@@ -127,5 +128,30 @@ void main() {
     await repo.saveEvent(_ev('new', const FloatingTime(2026, 11, 18, 7, 0)));
     await Future<void>.delayed(Duration.zero);
     expect((await c.read(calendarViewProvider.future)).agenda, hasLength(1));
+  });
+
+  test('a changes() error keeps the agenda (no unhandled error)', () async {
+    final repo = FakeCalendarRepository()
+      ..seed(_ev('ok', const FloatingTime(2026, 11, 18, 7, 0)));
+    final c = _c(repo);
+    c.read(selectedDayProvider.notifier).select(DateTime(2026, 11, 18));
+    final sub = c.listen(calendarViewProvider, (_, _) {});
+    addTearDown(sub.close);
+    await c.read(calendarViewProvider.future);
+    repo.emitChangeError(StateError('catalog'));
+    await Future<void>.delayed(Duration.zero);
+    expect(c.read(calendarViewProvider).value!.agenda, hasLength(1));
+  });
+
+  test('calendarEventProvider survives a changes() error', () async {
+    final repo = FakeCalendarRepository()
+      ..seed(_ev('ok', const FloatingTime(2026, 11, 18, 7, 0)));
+    final c = _c(repo);
+    final sub = c.listen(calendarEventProvider('ok'), (_, _) {});
+    addTearDown(sub.close);
+    await c.read(calendarEventProvider('ok').future);
+    repo.emitChangeError(StateError('catalog'));
+    await Future<void>.delayed(Duration.zero);
+    expect(c.read(calendarEventProvider('ok')).value!.id, 'ok');
   });
 }

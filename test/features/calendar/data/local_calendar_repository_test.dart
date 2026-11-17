@@ -30,6 +30,51 @@ Future<LocalCalendarRepository> _make() async {
   return LocalCalendarRepository(_notes, _catalogs);
 }
 
+/// Delegates to [inner]; `getOrCreateCatalog` throws while [failCreate] is
+/// positive (counting down), and every call throws when [failAll].
+class _FlakyCatalogs implements INoteCatalogRepository {
+  _FlakyCatalogs(this.inner);
+
+  final INoteCatalogRepository inner;
+  int failCreate = 0;
+  bool failAll = false;
+
+  void _check() {
+    if (failAll) throw StateError('catalog store down');
+  }
+
+  @override
+  Future<NoteCatalog> getOrCreateCatalog(String name, String schema) async {
+    _check();
+    if (failCreate > 0) {
+      failCreate--;
+      // What the losing side of a first-run race sees.
+      await inner.getOrCreateCatalog(name, schema);
+      throw StateError('UNIQUE constraint failed: note_catalogs.name');
+    }
+    return inner.getOrCreateCatalog(name, schema);
+  }
+
+  @override
+  Future<NoteCatalog?> getCatalogByName(String name) async {
+    _check();
+    return inner.getCatalogByName(name);
+  }
+
+  @override
+  Future<List<NoteCatalog>> getCatalogs() => inner.getCatalogs();
+  @override
+  Future<NoteCatalog?> getCatalogById(int id) => inner.getCatalogById(id);
+  @override
+  Future<NoteCatalog> createCatalog(NoteCatalogsCompanion c) =>
+      inner.createCatalog(c);
+  @override
+  Future<NoteCatalog> updateCatalog(int id, NoteCatalogsCompanion c) =>
+      inner.updateCatalog(id, c);
+  @override
+  Stream<List<NoteCatalog>> watchCatalogs() => inner.watchCatalogs();
+}
+
 CalendarEvent _ev(String id, {String title = 'T'}) => CalendarEvent(
   id: id,
   title: title,
@@ -189,5 +234,47 @@ void main() {
       await repo.saveEvent(_ev('bad'));
       expect((await repo.getEvent('bad'))!.title, 'T');
     });
+  });
+
+  group('catalog failures', () {
+    late _FlakyCatalogs flaky;
+    late LocalCalendarRepository repo;
+    setUp(() async {
+      await _make();
+      flaky = _FlakyCatalogs(_catalogs);
+      repo = LocalCalendarRepository(_notes, flaky);
+    });
+    tearDown(() => _db.close());
+
+    test('losing the first-run catalog race re-reads the winner', () async {
+      flaky.failCreate = 1;
+      await repo.saveEvent(_ev('r1'));
+      expect((await repo.getEvent('r1'))!.id, 'r1');
+    });
+
+    test(
+      'a catalog error in changes() reaches the stream, not the zone',
+      () async {
+        final errors = <Object>[];
+        final events = <void>[];
+        final sub = repo.changes().listen(events.add, onError: errors.add);
+        addTearDown(sub.cancel);
+        await pumpEventQueue();
+        flaky.failAll = true;
+        await _notes.createNote(
+          HmmNoteCreate(subject: 'x', catalogId: 1, content: '', uuid: 'z'),
+        );
+        await pumpEventQueue();
+        expect(errors, isNotEmpty);
+        expect(errors.first, isA<StateError>());
+
+        // The stream keeps working once the store recovers.
+        flaky.failAll = false;
+        events.clear();
+        await repo.saveEvent(_ev('after'));
+        await pumpEventQueue();
+        expect(events, isNotEmpty);
+      },
+    );
   });
 }
