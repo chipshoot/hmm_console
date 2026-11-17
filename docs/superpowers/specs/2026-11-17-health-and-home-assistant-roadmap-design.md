@@ -118,10 +118,13 @@ content that carries:
   never an implied unit;
 - `source`: `manual`, `appleHealth`, or `assistant`.
 
-**R2. Granularity.** Things the owner enters by hand (a meal, a reading, a walk)
-are one note each. Imported high-frequency data (sensor glucose every few
-minutes, step counts) is stored as **one note per source per day** holding an
-array of samples, so a year of sensor data is about 365 notes, not 100,000.
+**R2. Granularity.** Discrete events are one note each: a meal, a walk, and
+every blood sugar reading, whether typed or imported (the owner tests by finger
+prick, a few readings a day, so a reading can carry its own context such as a
+meal tag or a link to the meal). High-frequency imported data (step counts,
+heart rate, or sensor glucose if the owner ever moves to a sensor) is stored as
+**one note per source per day** holding an array of samples, so a year of it is
+about 365 notes, not 100,000.
 
 **R3. Described data.** Each subsystem ships a JSON Schema per entry type at
 `docs/schemas/<catalog-name>.<entry-type>.schema.json`, kept in step with
@@ -195,14 +198,23 @@ instead of creating a rival copy (my call).
   estimate, optional photo), activity (type, duration, intensity). Fast entry, a
   today view, the owner's target range, simple trends. "Check 2 hours after a
   meal" creates a stage 1 event.
-- **Open for this stage:** how the owner measures blood sugar (meter, sensor,
-  which device) and their preferred unit (mmol/L or mg/dL).
+- **Blood sugar import is part of this stage.** The owner uses a Contour meter
+  with test strips; readings sync to the Contour Diabetes app, which writes them
+  to Apple Health. Stage 2 reads blood glucose from HealthKit (on the iPhone,
+  R10) so readings arrive without typing, one note per reading (R2), skipping
+  readings already imported. Meal markers are kept if Contour writes them
+  (HealthKit meal-time metadata); otherwise the owner tags the reading in Hmm.
+  Manual entry stays for missed syncs or another meter.
+- **Units** follow the unit Apple Health uses for blood glucose; every stored
+  value still carries its unit (R1) (my call).
+- **To confirm before the stage 2 design:** that Contour readings appear in
+  Health → Browse → Blood Glucose.
 - **Size:** a project.
 
 ### Stage 3: Apple Health import
 
-- **What:** read-only HealthKit access on the iPhone for blood glucose, steps,
-  workouts, active energy and weight; daily bundle notes (R2, R10); no
+- **What:** extends stage 2's HealthKit access (blood glucose) to steps,
+  workouts, active energy and weight, read-only on the iPhone; daily bundle notes (R2, R10); no
   duplicates on re-import;
   workouts at a planned session's time tick that session done.
 - **Size:** medium.
@@ -231,8 +243,8 @@ instead of creating a rival copy (my call).
 
 1 → 2 → 3 → 4 → 5. Stage 2 should follow stage 1 closely: the AI is only as
 good as the history, and every month without logs is a month the assistant
-won't have. Stage 3 could run alongside stage 2 if the owner's readings come
-from a sensor that writes to Apple Health.
+won't have. Because the owner's meter readings already reach Apple Health,
+stage 2 takes the HealthKit glucose import, and stage 3 adds the activity data.
 
 The plugin refactor is **not** a prerequisite (my call): stages 1 and 2 are
 built as self-contained features so they slot in when it happens.
