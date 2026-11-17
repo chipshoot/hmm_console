@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://homemademessage.com/schemas/calendar.event.schema.json",
+  "title": "Hmm.CalendarMan.Event",
+  "description": "One calendar event (a series). Unknown keys are allowed and must be kept when written back.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "title", "start", "updatedAt"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "notes": { "type": ["string", "null"] },
+    "start": { "$ref": "#/$defs/eventTime" },
+    "end": { "oneOf": [{ "$ref": "#/$defs/eventTime" }, { "type": "null" }] },
+    "rrule": { "type": ["string", "null"], "description": "RFC 5545 RRULE subset" },
+    "reminders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["minutesBefore", "channel"],
+        "properties": {
+          "minutesBefore": { "type": "integer", "minimum": 0 },
+          "channel": { "enum": ["device", "email"] }
+        }
+      }
+    },
+    "owner": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["subsystem"],
+          "properties": {
+            "subsystem": { "type": "string" },
+            "noteUuid": { "type": ["string", "null"] }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "status": { "enum": ["active", "cancelled"] },
+    "source": { "enum": ["manual", "subsystem", "assistant"] },
+    "draft": { "type": "boolean" },
+    "occurrences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["originalStart", "status"],
+        "properties": {
+          "originalStart": { "$ref": "#/$defs/eventTime" },
+          "status": { "enum": ["done", "skipped", "cancelled", "moved"] },
+          "movedTo": { "$ref": "#/$defs/eventTime" }
+        }
+      }
+    },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "eventTime": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["fixed"],
+          "properties": { "fixed": { "type": "string", "format": "date-time" } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["floating"],
+          "properties": { "floating": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$" } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["allDay"],
+          "properties": { "allDay": { "type": "string", "format": "date" } },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}
