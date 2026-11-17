@@ -288,7 +288,7 @@ class EventForm {
       count: rule.count ?? 10,
       until: until == null
           ? null
-          : rule.untilIsDate
+          : rule.untilIsDate || rule.untilIsFloating
           ? DateTime(until.year, until.month, until.day)
           : dateOnly(localTimeOf(until)),
     );

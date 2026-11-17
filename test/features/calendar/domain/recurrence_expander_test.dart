@@ -142,6 +142,33 @@ void main() {
       ]);
     });
 
+    test('local-form UNTIL is wall-clock in the series zone', () {
+      // Floating 09:00 series, device at UTC+8: UNTIL 09:00 local on the 6th
+      // keeps the 6th; read as UTC it would wrongly keep the 7th too.
+      DateTime plus8(int y, int m, int d, int hh, int mm) =>
+          utc(y, m, d, hh, mm).subtract(const Duration(hours: 8));
+      final e = ev(f, rrule: 'FREQ=DAILY;UNTIL=20260106T090000');
+      expect(starts(run(e, utc(2026, 1, 1), utc(2026, 2, 1), resolve: plus8)), [
+        utc(2026, 1, 5, 1),
+        utc(2026, 1, 6, 1),
+      ]);
+      final before = ev(f, rrule: 'FREQ=DAILY;UNTIL=20260106T085959');
+      expect(
+        starts(run(before, utc(2026, 1, 1), utc(2026, 2, 1), resolve: plus8)),
+        [utc(2026, 1, 5, 1)],
+      );
+    });
+
+    test('local-form UNTIL on a fixed series uses the series offset', () {
+      // 09:00 at -05:00 (14:00Z) daily; UNTIL 09:00 wall on the 6th.
+      final fixed = FixedTime(utc(2026, 1, 5, 14), const Duration(hours: -5));
+      final e = ev(fixed, rrule: 'FREQ=DAILY;UNTIL=20260106T090000');
+      expect(starts(run(e, utc(2026, 1, 1), utc(2026, 2, 1))), [
+        utc(2026, 1, 5, 14),
+        utc(2026, 1, 6, 14),
+      ]);
+    });
+
     test('RSCALE=GREGORIAN expands as an ordinary daily rule', () {
       final e = ev(f, rrule: 'RSCALE=GREGORIAN;FREQ=DAILY');
       expect(run(e, utc(2026, 1, 5), utc(2026, 1, 8)).length, 3);

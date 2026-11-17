@@ -26,6 +26,18 @@ void main() {
     expect(z.format(), 'FREQ=DAILY;UNTIL=20271231T235959Z');
   });
 
+  test('local-form UNTIL (no Z) is floating wall-clock and round-trips', () {
+    final r = RecurrenceRule.parse('FREQ=DAILY;UNTIL=20271231T090000');
+    expect(r.untilIsDate, isFalse);
+    expect(r.untilIsFloating, isTrue);
+    // Wall-clock fields, not converted.
+    expect(r.until, DateTime.utc(2027, 12, 31, 9, 0, 0));
+    expect(r.isCustom, isFalse);
+    expect(r.format(), 'FREQ=DAILY;UNTIL=20271231T090000');
+    final z = RecurrenceRule.parse('FREQ=DAILY;UNTIL=20271231T090000Z');
+    expect(z.untilIsFloating, isFalse);
+  });
+
   test('unsupported parts are kept verbatim and make it custom', () {
     final r = RecurrenceRule.parse('FREQ=MONTHLY;BYSETPOS=-1;BYDAY=FR');
     expect(r.isCustom, isTrue);

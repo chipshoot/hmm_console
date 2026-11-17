@@ -65,6 +65,9 @@ List<Occurrence> expandOccurrences(
     if (u != null) {
       final afterUntil = rule!.untilIsDate
           ? ctx.wallDate(slot).isAfter(DateTime.utc(u.year, u.month, u.day))
+          : rule.untilIsFloating
+          // Local-form UNTIL: wall-clock in the series' own zone.
+          ? ctx.wallClock(slot).isAfter(u)
           : start.isAfter(u);
       if (afterUntil) break;
     }
@@ -134,6 +137,13 @@ class _Ctx {
       return DateTime.utc(w.year, w.month, w.day);
     }(),
     FloatingTime() => DateTime.utc(t.year, t.month, t.day),
+    AllDay() => DateTime.utc(t.year, t.month, t.day),
+  };
+
+  /// The wall-clock reading (as UTC fields) of a slot in its own zone.
+  DateTime wallClock(EventTime t) => switch (t) {
+    FixedTime() => t.instant.toUtc().add(t.offset),
+    FloatingTime() => DateTime.utc(t.year, t.month, t.day, t.hour, t.minute),
     AllDay() => DateTime.utc(t.year, t.month, t.day),
   };
 

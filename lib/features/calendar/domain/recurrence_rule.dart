@@ -37,6 +37,7 @@ class RecurrenceRule {
     this.count,
     this.until,
     this.untilIsDate = true,
+    this.untilIsFloating = false,
     this.unsupported = '',
     this.rscale,
     this.original,
@@ -50,8 +51,13 @@ class RecurrenceRule {
 
   /// UTC. For a date-only UNTIL ([untilIsDate]) this is midnight of that
   /// date and the whole date is included.
+  ///
+  /// For a local-form date-time UNTIL (`YYYYMMDDTHHMMSS`, no `Z`;
+  /// [untilIsFloating]) the fields are the wall-clock reading in the
+  /// series' own zone, not a UTC instant.
   final DateTime? until;
   final bool untilIsDate;
+  final bool untilIsFloating;
 
   /// Parts this class does not understand, `;`-joined, verbatim.
   final String unsupported;
@@ -91,6 +97,7 @@ class RecurrenceRule {
     int? count;
     DateTime? until;
     var untilIsDate = true;
+    var untilIsFloating = false;
     String? rscale;
     final unsupported = <String>[];
 
@@ -124,11 +131,12 @@ class RecurrenceRule {
           }
         case 'UNTIL':
           final m = RegExp(
-            r'^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z)?$',
-          ).firstMatch(value);
+            r'^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$',
+          ).firstMatch(value.toUpperCase());
           if (m == null) throw FormatException('bad UNTIL: $value');
           final v = [for (var i = 1; i <= 6; i++) int.parse(m.group(i) ?? '0')];
           untilIsDate = m.group(4) == null;
+          untilIsFloating = !untilIsDate && m.group(7) == null;
           until = DateTime.utc(v[0], v[1], v[2], v[3], v[4], v[5]);
         case 'RSCALE':
           rscale = value.toUpperCase();
@@ -145,6 +153,7 @@ class RecurrenceRule {
       count: count,
       until: until,
       untilIsDate: untilIsDate,
+      untilIsFloating: untilIsFloating,
       unsupported: unsupported.join(';'),
       rscale: rscale,
       original: text,
@@ -158,7 +167,8 @@ class RecurrenceRule {
     final date =
         '${u.year.toString().padLeft(4, '0')}${_two(u.month)}${_two(u.day)}';
     if (untilIsDate) return date;
-    return '${date}T${_two(u.hour)}${_two(u.minute)}${_two(u.second)}Z';
+    final time = '${_two(u.hour)}${_two(u.minute)}${_two(u.second)}';
+    return untilIsFloating ? '${date}T$time' : '${date}T${time}Z';
   }
 
   /// Canonical text. A lunar rule is returned exactly as parsed; unsupported
