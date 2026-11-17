@@ -63,6 +63,35 @@ void main() {
     });
 
     test(
+      'an id taken by a note of another catalog is refused, note untouched',
+      () async {
+        final other = await _catalogs.getOrCreateCatalog('Hmm.Other', '{}');
+        await _notes.createNote(
+          HmmNoteCreate(
+            subject: 'Mine',
+            catalogId: other.id,
+            content: 'keep me',
+            uuid: 'shared',
+          ),
+        );
+        final before = (await _notes.getNoteByUuid('shared'))!;
+        await _notes.deleteNote(before.id); // soft-deleted is still refused
+
+        await expectLater(
+          repo.saveEvent(_ev('shared')),
+          throwsA(isA<CalendarIdCollision>()),
+        );
+
+        final after = (await _notes.getNoteByUuid('shared'))!;
+        expect(after.subject, 'Mine');
+        expect(after.content, 'keep me');
+        expect(after.catalogId, other.id);
+        expect(after.deletedAt, isNotNull);
+        expect(await repo.getEvent('shared'), isNull);
+      },
+    );
+
+    test(
       'a deleted uuid saved again restores the same note (Review Focus 2)',
       () async {
         await repo.saveEvent(_ev('e1', title: 'Old'));

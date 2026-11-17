@@ -13,6 +13,7 @@ void main() {
   late HmmDatabase db;
   late LocalCalendarRepository repo;
   late DefaultCalendarService service;
+  late LocalHmmNoteRepository notes;
 
   setUp(() async {
     db = HmmDatabase(NativeDatabase.memory());
@@ -22,10 +23,8 @@ void main() {
     final author = await (db.select(
       db.authors,
     )..where((a) => a.id.equals(authorId))).getSingle();
-    repo = LocalCalendarRepository(
-      LocalHmmNoteRepository(db, () async => author),
-      LocalNoteCatalogRepository(db),
-    );
+    notes = LocalHmmNoteRepository(db, () async => author);
+    repo = LocalCalendarRepository(notes, LocalNoteCatalogRepository(db));
     service = DefaultCalendarService(repo);
   });
   tearDown(() => db.close());
@@ -135,5 +134,23 @@ void main() {
     await service.removeOwnedEvents(owner);
     expect(await service.ownedEvents(owner), isEmpty);
     expect(await service.ownedEvents(other), hasLength(1));
+  });
+
+  test('a draft id of a soft-deleted owned event restores that note', () async {
+    final first = await service.upsertOwnedEvent(owner, draft(id: 'ev1'));
+    await repo.deleteEvent(first.id);
+    final noteId = (await notes.getNoteByUuid('ev1'))!.id;
+
+    final again = await service.upsertOwnedEvent(
+      owner,
+      draft(id: 'ev1', title: 'Insulin again'),
+    );
+
+    expect(again.id, 'ev1');
+    final note = (await notes.getNoteByUuid('ev1'))!;
+    expect(note.id, noteId);
+    expect(note.deletedAt, isNull);
+    expect((await repo.getEvent('ev1'))!.title, 'Insulin again');
+    expect(await service.ownedEvents(owner), hasLength(1));
   });
 }

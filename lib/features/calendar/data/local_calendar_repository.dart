@@ -47,10 +47,21 @@ class LocalCalendarRepository implements ICalendarRepository {
 
   static const _pageSize = 100;
 
-  Future<int> _catalogId() async => (await _catalogs.getOrCreateCatalog(
-    calendarCatalogName,
-    _catalogSchema,
-  )).id;
+  /// The calendar catalog's id, created on first use. Two first-run callers
+  /// can race the select-then-insert (the name is UNIQUE); the loser
+  /// re-reads the winner's row instead of failing.
+  Future<int> _catalogId() async {
+    try {
+      return (await _catalogs.getOrCreateCatalog(
+        calendarCatalogName,
+        _catalogSchema,
+      )).id;
+    } catch (_) {
+      final existing = await _catalogs.getCatalogByName(calendarCatalogName);
+      if (existing == null) rethrow;
+      return existing.id;
+    }
+  }
 
   CalendarEvent _decode(HmmNote note) {
     try {
@@ -148,11 +159,16 @@ class LocalCalendarRepository implements ICalendarRepository {
     // getNoteByUuid also returns soft-deleted rows: restore and update that
     // note instead of creating a second one with a clashing uuid.
     final existing = await _notes.getNoteByUuid(saved.id);
+    final catalogId = await _catalogId();
+    if (existing != null && existing.catalogId != catalogId) {
+      // Some other note (a subsystem's own, say) owns this uuid.
+      throw CalendarIdCollision(saved.id);
+    }
     if (existing == null) {
       await _notes.createNote(
         HmmNoteCreate(
           subject: subject,
-          catalogId: await _catalogId(),
+          catalogId: catalogId,
           content: content,
           uuid: saved.id,
         ),
