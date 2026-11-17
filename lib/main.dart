@@ -10,6 +10,9 @@ import 'package:hmm_console/core/i18n/locale_provider.dart';
 import 'package:hmm_console/core/navigation/router.dart';
 import 'package:hmm_console/core/theme/theme.dart';
 import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
+import 'package:hmm_console/features/calendar/notifications/notification_gateway.dart';
+import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
+import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
 import 'package:hmm_console/features/settings/providers/appearance_provider.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'firebase_options.dart';
@@ -30,6 +33,8 @@ Future<void> main() async {
     overrides: [
       hmmDatabaseProvider.overrideWithValue(db),
       initialAppearanceProvider.overrideWithValue(appearance),
+      // Read once: "Remind on this device" defaults from the screen size.
+      deviceShortestSideProvider.overrideWithValue(platformShortestSide()),
     ],
     child: const MainApp(),
   ));
@@ -61,7 +66,29 @@ class _MainAppState extends ConsumerState<MainApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(ref.read(notePurgeSchedulerProvider).maybeRun());
     });
+    // Calendar reminders: time zone + plugin first, then the sync. Never asks
+    // for notification permission here (that happens on the first save with
+    // a reminder).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_startCalendarReminders());
+    });
   }
+
+  Future<void> _startCalendarReminders() async {
+    if (!calendarRemindersSupported) return;
+    try {
+      await initDeviceTimeZone();
+      if (!mounted) return;
+      await ref.read(notificationGatewayProvider).initialize(_onReminderTap);
+    } catch (e) {
+      debugPrint('Calendar reminders unavailable (${e.runtimeType})');
+      return;
+    }
+    if (mounted) ref.read(reminderSyncProvider).start();
+  }
+
+  /// Placeholder: opening the event from a tapped reminder lands in Task 9.
+  void _onReminderTap(String payload) {}
 
   @override
   void dispose() {
@@ -92,6 +119,10 @@ class _MainAppState extends ConsumerState<MainApp> {
     ref.listen<NotePurgeScheduler>(notePurgeSchedulerProvider, (previous, next) {});
     // Same for the video upload scheduler (resume, Wi-Fi, after-sync triggers).
     ref.listen<VideoUploadScheduler>(videoUploadSchedulerProvider, (previous, next) {});
+    // Keep the reminder sync alive; a rebuilt instance starts itself.
+    if (calendarRemindersSupported) {
+      ref.listen<ReminderSync>(reminderSyncProvider, (previous, next) => next.start());
+    }
 
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(
@@ -112,7 +143,7 @@ class _MainAppState extends ConsumerState<MainApp> {
       // instance instead of `context`.
       builder: (context, child) => Stack(
         children: [
-          if (child != null) child,
+          ?child,
           const HomeSyncOverlay(),
         ],
       ),
