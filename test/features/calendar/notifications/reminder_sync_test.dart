@@ -80,6 +80,13 @@ class _Harness {
       permissionGranted: gateway.permissionGranted,
       remindOnDevice: () => remindOnDevice,
       permissionAsked: () async => asked,
+      askPermissionOnce: () async {
+        if (asked) return null;
+        asks++;
+        asked = true;
+        gateway.granted = answer;
+        return answer;
+      },
       onPermissionChecked: (denied) => deniedReports.add(denied),
       resolve: _utc,
       clock: () => _now,
@@ -91,6 +98,10 @@ class _Harness {
   final FakeNotificationGateway gateway;
   bool remindOnDevice;
   bool asked;
+
+  /// What the owner answers when the sync asks.
+  bool answer = true;
+  int asks = 0;
   final deniedReports = <bool>[];
   late final ReminderSync sync;
 }
@@ -265,19 +276,110 @@ void main() {
     expect(c.read(calendarPermissionDeniedProvider), isTrue);
   });
 
-  group('banner only after the owner was asked (R-11)', () {
-    test('never asked + not granted → not denied', () {
+  group('the sync asks for permission once itself (R-18)', () {
+    test('never asked + a plan → asks once and schedules on a grant', () {
       fakeAsync((fa) {
         final h = _Harness(granted: false, asked: false);
         h.sync.start();
         fa.elapse(const Duration(seconds: 1));
         fa.flushMicrotasks();
-        expect(h.gateway.scheduled, isEmpty);
+        expect(h.asks, 1);
+        expect(h.gateway.scheduled, hasLength(1));
         expect(h.deniedReports, [false]);
+        // A second run does not ask again.
+        h.repo.emit();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.asks, 1);
         h.sync.stop();
       });
     });
 
+    test('never asked + declined → asks once, nothing scheduled, banner', () {
+      fakeAsync((fa) {
+        final h = _Harness(granted: false, asked: false)..answer = false;
+        h.sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.asks, 1);
+        expect(h.gateway.scheduled, isEmpty);
+        expect(h.deniedReports, [true]);
+        h.repo.emit();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.asks, 1);
+        h.sync.stop();
+      });
+    });
+
+    test('an empty plan does not ask', () {
+      fakeAsync((fa) {
+        final h = _Harness(granted: false, asked: false)..repo.events = [];
+        h.sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.asks, 0);
+        h.sync.stop();
+      });
+    });
+
+    test('setting off does not ask', () {
+      fakeAsync((fa) {
+        final h = _Harness(remind: false, granted: false, asked: false);
+        h.sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.asks, 0);
+        h.sync.stop();
+      });
+    });
+
+    test('already granted does not ask', () {
+      fakeAsync((fa) {
+        final h = _Harness(asked: false);
+        h.sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.asks, 0);
+        expect(h.gateway.scheduled, hasLength(1));
+        h.sync.stop();
+      });
+    });
+  });
+
+  test('askPermissionOnceIfNeverAsked: one prompt for concurrent callers, '
+      'none once asked', () async {
+    SharedPreferences.setMockInitialValues({});
+    var prompts = 0;
+    final marks = <bool>[];
+    final gate = Completer<bool>();
+    Future<bool> request() {
+      prompts++;
+      return gate.future;
+    }
+
+    Future<void> mark(bool g) async {
+      marks.add(g);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kCalendarPermissionAskedKey, true);
+    }
+
+    final a = askPermissionOnceIfNeverAsked(request: request, markAsked: mark);
+    final b = askPermissionOnceIfNeverAsked(request: request, markAsked: mark);
+    await pumpEventQueue();
+    gate.complete(true);
+    expect(await a, isTrue);
+    expect(await b, isTrue);
+    expect(prompts, 1);
+    expect(marks, [true]);
+    expect(
+      await askPermissionOnceIfNeverAsked(request: request, markAsked: mark),
+      isNull,
+    );
+    expect(prompts, 1);
+  });
+
+  group('banner only after the owner was asked (R-11)', () {
     test('asked + not granted → denied; then setting off → cleared', () {
       fakeAsync((fa) {
         final h = _Harness(granted: false);

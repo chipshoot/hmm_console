@@ -112,6 +112,34 @@ Future<bool> calendarPermissionAsked() async {
   return prefs.getBool(kCalendarPermissionAskedKey) ?? false;
 }
 
+Future<bool>? _pendingAsk;
+
+/// R-18: asks for notification permission when this device was never asked,
+/// records the answer with [markAsked], and returns it. Null when it was
+/// asked before. Callers that overlap (the editor's first save, the
+/// Settings switch, ReminderSync) share one prompt.
+Future<bool?> askPermissionOnceIfNeverAsked({
+  required Future<bool> Function() request,
+  required Future<void> Function(bool granted) markAsked,
+}) async {
+  final pending = _pendingAsk;
+  if (pending != null) return pending;
+  if (await calendarPermissionAsked()) return null;
+  final again = _pendingAsk;
+  if (again != null) return again;
+  final ask = () async {
+    final granted = await request();
+    await markAsked(granted);
+    return granted;
+  }();
+  _pendingAsk = ask;
+  try {
+    return await ask;
+  } finally {
+    _pendingAsk = null;
+  }
+}
+
 /// True when calendar reminders are due on this device, the owner has been
 /// asked for notification permission, and it is not granted (asked &&
 /// !granted). Drives the calendar screen's banner; never true on a device

@@ -9,6 +9,7 @@ import '../../contract/calendar_errors.dart';
 import '../../contract/i_calendar_repository.dart';
 import '../../domain/calendar_event.dart';
 import '../../notifications/local_reminder_scheduler.dart';
+import '../../notifications/reminder_sync.dart';
 import '../../states/calendar_providers.dart';
 import '../../states/event_edit_state.dart';
 import '../../states/remind_on_device_provider.dart';
@@ -135,6 +136,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     final remind = ref.read(remindOnDeviceProvider);
     final scheduler = ref.read(reminderSchedulerProvider);
     final denied = ref.read(calendarPermissionDeniedProvider.notifier);
+    final sync = ref.read(reminderSyncProvider);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final base = _event;
@@ -180,6 +182,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
         hasDeviceReminder: hasDeviceReminder,
         scheduler: scheduler,
         denied: denied,
+        afterAsk: sync.trigger,
       );
     } catch (e) {
       debugPrint('Notification permission request failed (${e.runtimeType})');

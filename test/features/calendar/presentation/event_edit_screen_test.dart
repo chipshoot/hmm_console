@@ -9,6 +9,7 @@ import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
 import 'package:hmm_console/features/calendar/notifications/local_reminder_scheduler.dart';
 import 'package:hmm_console/features/calendar/notifications/reminder_plan.dart';
+import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
 import 'package:hmm_console/features/calendar/presentation/screens/event_edit_screen.dart';
 import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/features/calendar/states/calendar_view_state.dart';
@@ -40,6 +41,28 @@ class _Scheduler implements IReminderScheduler {
     return granted;
   }
 }
+
+/// Counts the runs the editor asks for.
+class _SpySync extends ReminderSync {
+  _SpySync()
+    : super(
+        repository: () => throw StateError('unused'),
+        scheduler: _Scheduler(),
+        permissionGranted: () async => true,
+        remindOnDevice: () => false,
+        permissionAsked: () async => true,
+        askPermissionOnce: () async => null,
+        onPermissionChecked: (_) {},
+        observeLifecycle: false,
+      );
+
+  int triggers = 0;
+
+  @override
+  void trigger() => triggers++;
+}
+
+late _SpySync _spy;
 
 /// A fixed time at local wall-clock [y]-[m]-[d] [h]:[min].
 FixedTime _fixed(int y, int m, int d, int h, [int min = 0]) {
@@ -75,6 +98,7 @@ Future<ProviderContainer> _mount(
           reminderSchedulerProvider.overrideWithValue(
             scheduler ?? _Scheduler(),
           ),
+          reminderSyncProvider.overrideWithValue(_spy = _SpySync()),
         ],
       );
   if (container == null) addTearDown(c.dispose);
@@ -237,6 +261,8 @@ void main() {
     expect(c.read(calendarPermissionDeniedProvider), isTrue);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool(kCalendarPermissionAskedKey), isTrue);
+    // R-18: the answer is acted on at once (a grant schedules now).
+    expect(_spy.triggers, 1);
 
     await _mount(tester, repo, container: c);
     await _typeTitle(tester, 'Two');

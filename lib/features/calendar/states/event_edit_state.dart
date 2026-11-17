@@ -565,16 +565,21 @@ CalendarEvent? truncateBefore(CalendarEvent e, EventTime originalStart) {
 
 /// R-11: the first save that has a device reminder, on a device where
 /// reminders are on and permission was never asked, asks once and records
-/// the answer (which drives the banner). Later saves never ask again.
-/// Everything is passed in, so no WidgetRef is used after an await.
+/// the answer (which drives the banner). Later saves never ask again. After
+/// asking, [afterAsk] runs (R-18: a ReminderSync trigger, so a grant
+/// schedules at once). Everything is passed in, so no WidgetRef is used
+/// after an await.
 Future<void> askReminderPermissionIfFirst({
   required bool remindOnDevice,
   required bool hasDeviceReminder,
   required IReminderScheduler scheduler,
   required CalendarPermissionDeniedNotifier denied,
+  void Function()? afterAsk,
 }) async {
   if (!remindOnDevice || !hasDeviceReminder) return;
-  if (await calendarPermissionAsked()) return;
-  final granted = await scheduler.requestPermission();
-  await denied.markPermissionAsked(granted: granted);
+  final answer = await askPermissionOnceIfNeverAsked(
+    request: scheduler.requestPermission,
+    markAsked: (granted) => denied.markPermissionAsked(granted: granted),
+  );
+  if (answer != null) afterAsk?.call();
 }

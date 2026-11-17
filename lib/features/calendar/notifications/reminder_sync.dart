@@ -58,6 +58,7 @@ class ReminderSync with WidgetsBindingObserver {
     required Future<bool> Function() permissionGranted,
     required bool Function() remindOnDevice,
     required Future<bool> Function() permissionAsked,
+    required Future<bool?> Function() askPermissionOnce,
     required void Function(bool denied) onPermissionChecked,
     LocalResolver resolve = deviceLocalResolver,
     String Function(CalendarEvent, Occurrence) formatTitle =
@@ -70,6 +71,7 @@ class ReminderSync with WidgetsBindingObserver {
        _permissionGranted = permissionGranted,
        _remindOnDevice = remindOnDevice,
        _permissionAsked = permissionAsked,
+       _askPermissionOnce = askPermissionOnce,
        _onPermissionChecked = onPermissionChecked,
        _resolve = resolve,
        _formatTitle = formatTitle,
@@ -82,6 +84,9 @@ class ReminderSync with WidgetsBindingObserver {
   final Future<bool> Function() _permissionGranted;
   final bool Function() _remindOnDevice;
   final Future<bool> Function() _permissionAsked;
+
+  /// Asks when never asked (returns the answer), else returns null.
+  final Future<bool?> Function() _askPermissionOnce;
   final void Function(bool denied) _onPermissionChecked;
   final LocalResolver _resolve;
   final String Function(CalendarEvent, Occurrence) _formatTitle;
@@ -202,7 +207,12 @@ class ReminderSync with WidgetsBindingObserver {
         await _scheduler.reschedule(const []);
         return;
       }
-      final granted = await _permissionGranted();
+      var granted = await _permissionGranted();
+      if (!granted) {
+        // R-18: reminders are due and the owner was never asked (an iPhone
+        // whose events all came from the iPad): ask once, here.
+        granted = await _askPermissionOnce() ?? false;
+      }
       // The banner is for an owner who was asked and said no (R-11), not
       // for a device that has never been asked.
       _onPermissionChecked(!granted && await _permissionAsked());
@@ -232,12 +242,19 @@ class ReminderSync with WidgetsBindingObserver {
 /// after the time zone and the notification plugin are initialised.
 final reminderSyncProvider = Provider<ReminderSync>((ref) {
   final gateway = ref.watch(notificationGatewayProvider);
+  final scheduler = ref.watch(reminderSchedulerProvider);
   final sync = ReminderSync(
     repository: () => ref.read(calendarRepositoryProvider),
-    scheduler: ref.watch(reminderSchedulerProvider),
+    scheduler: scheduler,
     permissionGranted: gateway.permissionGranted,
     remindOnDevice: () => ref.read(remindOnDeviceProvider),
     permissionAsked: calendarPermissionAsked,
+    askPermissionOnce: () => askPermissionOnceIfNeverAsked(
+      request: scheduler.requestPermission,
+      markAsked: (granted) => ref
+          .read(calendarPermissionDeniedProvider.notifier)
+          .markPermissionAsked(granted: granted),
+    ),
     onPermissionChecked: (denied) =>
         ref.read(calendarPermissionDeniedProvider.notifier).set(denied),
   );

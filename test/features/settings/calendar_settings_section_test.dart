@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/features/calendar/notifications/local_reminder_scheduler.dart';
 import 'package:hmm_console/features/calendar/states/open_system_settings.dart';
 import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
 import 'package:hmm_console/features/settings/presentation/widgets/calendar_settings_section.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../calendar/support/fake_notification_gateway.dart';
 
 class _Mode extends DataModeNotifier {
   _Mode(this._m);
@@ -19,11 +22,15 @@ Future<ProviderContainer> _mount(
   WidgetTester tester, {
   DataMode mode = DataMode.local,
   Future<bool> Function()? open,
+  FakeNotificationGateway? gateway,
 }) async {
   final c = ProviderContainer(
     overrides: [
       dataModeProvider.overrideWith(() => _Mode(mode)),
       openSystemSettingsProvider.overrideWithValue(open),
+      reminderSchedulerProvider.overrideWithValue(
+        LocalReminderScheduler(gateway ?? FakeNotificationGateway()),
+      ),
     ],
   );
   addTearDown(c.dispose);
@@ -56,6 +63,26 @@ void main() {
     expect(prefs.getBool('calendar.remindOnDevice'), !before);
   });
 
+  testWidgets('turning the switch on asks for permission once if never asked '
+      '(R-18)', (tester) async {
+    final gw = _CountingGateway(granted: false);
+    final c = await _mount(tester, gateway: gw);
+    expect(c.read(remindOnDeviceProvider), isFalse);
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(gw.requests, 1);
+    expect(await calendarPermissionAsked(), isTrue);
+    expect(c.read(calendarPermissionDeniedProvider), isTrue);
+
+    // Off and on again: already asked, no second prompt.
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(c.read(remindOnDeviceProvider), isTrue);
+    expect(gw.requests, 1);
+  });
+
   testWidgets('Open Settings row appears only when denied', (tester) async {
     var opened = 0;
     final c = await _mount(
@@ -76,4 +103,14 @@ void main() {
     await _mount(tester, mode: DataMode.cloudApi);
     expect(find.byType(Switch), findsNothing);
   });
+}
+
+class _CountingGateway extends FakeNotificationGateway {
+  _CountingGateway({super.granted});
+  int requests = 0;
+  @override
+  Future<bool> requestPermission() async {
+    requests++;
+    return granted;
+  }
 }

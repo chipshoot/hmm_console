@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/data/data_mode.dart';
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../../calendar/notifications/local_reminder_scheduler.dart';
 import '../../../calendar/notifications/notification_gateway.dart';
+import '../../../calendar/notifications/reminder_sync.dart';
 import '../../../calendar/states/open_system_settings.dart';
 import '../../../calendar/states/remind_on_device_provider.dart';
 
@@ -30,7 +34,30 @@ class CalendarSettingsSection extends ConsumerWidget {
     final isApple =
         theme.platform == TargetPlatform.iOS ||
         theme.platform == TargetPlatform.macOS;
-    void onChanged(bool v) => ref.read(remindOnDeviceProvider.notifier).set(v);
+    void onChanged(bool v) {
+      // Everything used after an await is read now.
+      final remindNotifier = ref.read(remindOnDeviceProvider.notifier);
+      final scheduler = ref.read(reminderSchedulerProvider);
+      final denied = ref.read(calendarPermissionDeniedProvider.notifier);
+      final sync = ref.read(reminderSyncProvider);
+      unawaited(() async {
+        await remindNotifier.set(v);
+        if (!v) return;
+        // R-18: turning reminders on asks once if this device never was.
+        try {
+          final answer = await askPermissionOnceIfNeverAsked(
+            request: scheduler.requestPermission,
+            markAsked: (granted) =>
+                denied.markPermissionAsked(granted: granted),
+          );
+          if (answer != null) sync.trigger();
+        } catch (e) {
+          debugPrint(
+            'Notification permission request failed (${e.runtimeType})',
+          );
+        }
+      }());
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
