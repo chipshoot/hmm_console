@@ -11,6 +11,16 @@ PlannedReminder _r(int id, String payload) => PlannedReminder(
   payload: payload,
 );
 
+class _FailingGateway extends FakeNotificationGateway {
+  _FailingGateway({required this.failIds});
+  final Set<int> failIds;
+  @override
+  Future<void> schedule(PlannedReminder r) async {
+    if (failIds.contains(r.id)) throw StateError('zonedSchedule failed');
+    return super.schedule(r);
+  }
+}
+
 void main() {
   test(
     'reschedule replaces calendar entries and leaves others alone',
@@ -28,6 +38,17 @@ void main() {
       expect(gw.scheduled.map((r) => r.id), [3]);
     },
   );
+
+  test('one failing schedule does not stop the rest', () async {
+    final gw = _FailingGateway(failIds: {4});
+    final s = LocalReminderScheduler(gw);
+    await s.reschedule([
+      _r(3, 'calendar|a|x'),
+      _r(4, 'calendar|b|x'),
+      _r(5, 'calendar|c|x'),
+    ]);
+    expect(gw.scheduled.map((r) => r.id), [3, 5]);
+  });
 
   test('cancelAll removes only calendar entries', () async {
     final gw = FakeNotificationGateway()

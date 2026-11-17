@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../contract/i_reminder_scheduler.dart';
@@ -15,8 +16,21 @@ class LocalReminderScheduler implements IReminderScheduler {
   @override
   Future<void> reschedule(List<PlannedReminder> upcoming) async {
     await cancelAll();
+    var failed = 0;
     for (final r in upcoming) {
-      await _gateway.schedule(r);
+      // One bad entry (a plugin error for one date, say) must not leave
+      // the rest unscheduled.
+      try {
+        await _gateway.schedule(r);
+      } catch (e) {
+        failed++;
+        debugPrint(
+          'Calendar reminder ${r.id} not scheduled (${e.runtimeType})',
+        );
+      }
+    }
+    if (failed > 0) {
+      debugPrint('Calendar reminders: $failed of ${upcoming.length} failed');
     }
   }
 
