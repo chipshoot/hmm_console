@@ -3936,6 +3936,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarStatusSkipped => 'Skipped';
 
   @override
+  String get calendarStatusCancelled => 'Deleted';
+
+  @override
   String get calendarRepeats => 'Repeats';
 
   @override
@@ -3969,13 +3972,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarDeleteSeries => 'Delete series';
 
   @override
-  String get calendarDeleteOne => 'Event deleted';
+  String get calendarSeriesDeleted => 'Event deleted';
 
   @override
-  String get calendarDeleteOneFailed => 'Could not delete the event';
+  String get calendarSeriesDeleteFailed => 'Could not delete the event';
 
   @override
-  String get calendarDeleteOneUndone => 'Event restored';
+  String get calendarSeriesDeleteUndone => 'Event restored';
 
   @override
   String get calendarUnreadableEvent => 'An event could not be read';
@@ -3989,7 +3992,377 @@ class AppLocalizationsEn extends AppLocalizations {
       'Reminders are off because notification permission was declined. Turn it on in the system settings.';
 
   @override
-  String get calendarEventPlaceholderTitle => 'Event';
+  String get calendarNewEvent => 'New event';
+
+  @override
+  String get calendarEditEvent => 'Edit event';
+
+  @override
+  String get calendarSave => 'Save';
+
+  @override
+  String get calendarSaveFailed => 'Could not save the event';
+
+  @override
+  String get calendarTitleLabel => 'Title';
+
+  @override
+  String get calendarTitleRequired => 'Add a title.';
+
+  @override
+  String get calendarStartLabel => 'Starts';
+
+  @override
+  String get calendarEndLabel => 'Ends';
+
+  @override
+  String get calendarPickDate => 'Choose date';
+
+  @override
+  String get calendarPickTime => 'Choose time';
+
+  @override
+  String get calendarPickerDone => 'Done';
+
+  @override
+  String get calendarEndBeforeStart => 'The end is before the start.';
+
+  @override
+  String get calendarNotesLabel => 'Notes';
+
+  @override
+  String get calendarRepeatLabel => 'Repeat';
+
+  @override
+  String get calendarRepeatNone => 'None';
+
+  @override
+  String get calendarRepeatDaily => 'Daily';
+
+  @override
+  String get calendarRepeatWeekly => 'Weekly';
+
+  @override
+  String get calendarRepeatMonthly => 'Monthly';
+
+  @override
+  String get calendarRepeatYearly => 'Yearly';
+
+  @override
+  String get calendarRepeatEndLabel => 'End repeat';
+
+  @override
+  String get calendarRepeatEndNever => 'Never';
+
+  @override
+  String get calendarRepeatEndOnDate => 'On a date';
+
+  @override
+  String get calendarRepeatEndAfter => 'After a number of times';
+
+  @override
+  String get calendarRepeatCountLabel => 'Times';
+
+  @override
+  String get calendarRepeatFewer => 'Fewer times';
+
+  @override
+  String get calendarRepeatMore => 'More times';
+
+  @override
+  String get calendarRepeatClear => 'Clear';
+
+  @override
+  String get calendarRepeatReadOnlyHint =>
+      'This repeat can\'t be changed here. Clear it to choose a new one.';
+
+  @override
+  String get calendarDoesNotRepeat => 'Does not repeat';
+
+  @override
+  String get calendarRepeatCustom => 'Custom repeat';
+
+  @override
+  String get calendarRepeatLunar => 'Lunar repeat';
+
+  @override
+  String get calendarListSeparator => ', ';
+
+  @override
+  String calendarRepeatDailyText(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Every $n days',
+      one: 'Every day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatWeeklyText(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Every $n weeks',
+      one: 'Every week',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatWeeklyOnText(int n, String days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Every $n weeks on $days',
+      one: 'Every $days',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatMonthlyText(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Every $n months',
+      one: 'Every month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatMonthlyOnText(int n, String days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Every $n months on day $days',
+      one: 'Monthly on day $days',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatYearlyText(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Every $n years',
+      one: 'Every year',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatTimes(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n times',
+      one: 'once',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatUntil(String date) {
+    return 'until $date';
+  }
+
+  @override
+  String calendarRepeatWithLimit(String rule, String limit) {
+    return '$rule, $limit';
+  }
+
+  @override
+  String get calendarRemindersLabel => 'Reminders';
+
+  @override
+  String get calendarNoReminders => 'No reminders';
+
+  @override
+  String get calendarAddReminder => 'Add reminder';
+
+  @override
+  String get calendarRemoveReminder => 'Remove reminder';
+
+  @override
+  String get calendarReminderAtStart => 'At the start';
+
+  @override
+  String calendarReminderMinutes(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n minutes before',
+      one: '1 minute before',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarReminderHours(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n hours before',
+      one: '1 hour before',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarReminderDays(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n days before',
+      one: '1 day before',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarEditScopeTitle => 'Change which events?';
+
+  @override
+  String get calendarEditThisOccurrence => 'This occurrence';
+
+  @override
+  String get calendarEditAllOccurrences => 'All occurrences';
+
+  @override
+  String calendarFromSubsystem(String name) {
+    return 'From $name';
+  }
+
+  @override
+  String get calendarSubsystemDiabetes => 'Diabetes';
+
+  @override
+  String get calendarDraftBanner =>
+      'Suggested event. Approve it to keep it and get its reminders.';
+
+  @override
+  String get calendarApprove => 'Approve';
+
+  @override
+  String get calendarApproveFailed => 'Could not approve the event';
+
+  @override
+  String get calendarEventNotFound => 'This event no longer exists.';
+
+  @override
+  String get calendarEventNotFoundHint => 'It may have been deleted.';
+
+  @override
+  String get calendarEventLoadFailed => 'Could not load this event.';
+
+  @override
+  String get calendarMoreActions => 'More actions';
+
+  @override
+  String get calendarDelete => 'Delete';
+
+  @override
+  String get calendarDeleteFollowing => 'Delete this and following';
+
+  @override
+  String get calendarOccurrenceDeleted => 'Occurrence deleted';
+
+  @override
+  String get calendarOccurrenceDeleteFailed =>
+      'Could not delete this occurrence';
+
+  @override
+  String get calendarOccurrenceDeleteUndone => 'Occurrence restored';
+
+  @override
+  String get calendarFollowingDeleted => 'This and following deleted';
+
+  @override
+  String get calendarFollowingDeleteFailed =>
+      'Could not delete this and following';
+
+  @override
+  String get calendarFollowingDeleteUndone => 'Following occurrences restored';
+
+  @override
+  String get calendarOccurrenceLabel => 'This occurrence';
+
+  @override
+  String get helpCalendarEventTitle => 'Event';
+
+  @override
+  String get helpCalendarEventSummary =>
+      'One event: when it is, how it repeats, its reminders and notes.';
+
+  @override
+  String get helpCalendarEventEditTitle => 'Edit';
+
+  @override
+  String get helpCalendarEventEditBody =>
+      'Opens the editor. For a repeating event you choose to change this occurrence or all of them.';
+
+  @override
+  String get helpCalendarEventDoneTitle => 'Done and Skip';
+
+  @override
+  String get helpCalendarEventDoneBody =>
+      'Mark the occurrence you opened as done or skipped. Its reminder stops. Undo is offered for a few seconds.';
+
+  @override
+  String get helpCalendarEventApproveTitle => 'Approve';
+
+  @override
+  String get helpCalendarEventApproveBody =>
+      'A suggested event has no reminders until you approve it.';
+
+  @override
+  String get helpCalendarEventDeleteTitle => 'Delete';
+
+  @override
+  String get helpCalendarEventDeleteBody =>
+      'Delete just this occurrence, this one and all after it, or the whole series. Undo is offered for a few seconds.';
+
+  @override
+  String get helpCalendarEventEditScreenTitle => 'Edit event';
+
+  @override
+  String get helpCalendarEventEditScreenSummary =>
+      'Set the title, time, repeat and reminders, then tap Save.';
+
+  @override
+  String get helpCalendarEventEditAllDayTitle => 'All day';
+
+  @override
+  String get helpCalendarEventEditAllDayBody =>
+      'An all-day event has a date and no time. Its reminders count from 09:00 on the day.';
+
+  @override
+  String get helpCalendarEventEditTimeTitle => 'Starts and ends';
+
+  @override
+  String get helpCalendarEventEditTimeBody =>
+      'Tap the date or the time to change it. The end cannot be before the start. A one-off event stays at its real moment if you travel; a repeating one keeps its clock time.';
+
+  @override
+  String get helpCalendarEventEditRepeatTitle => 'Repeat';
+
+  @override
+  String get helpCalendarEventEditRepeatBody =>
+      'Choose how often it repeats and when the repeat ends. A repeat set elsewhere is shown as Custom or Lunar and can only be cleared.';
+
+  @override
+  String get helpCalendarEventEditRemindersTitle => 'Reminders';
+
+  @override
+  String get helpCalendarEventEditRemindersBody =>
+      'Add or remove reminders. They ring on devices where Remind on this device is on.';
+
+  @override
+  String get calendarEventTitle => 'Event';
 
   @override
   String get helpCalendarTitle => 'Calendar';

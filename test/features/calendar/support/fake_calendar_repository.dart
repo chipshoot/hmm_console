@@ -35,7 +35,10 @@ class FakeCalendarRepository extends LocalCalendarRepository {
       ];
 
   @override
-  Future<CalendarEvent?> getEvent(String id) async => events[id];
+  Future<CalendarEvent?> getEvent(String id) async {
+    if (unreadableIds.contains(id)) throw CalendarEventUnreadable(id);
+    return events[id];
+  }
 
   @override
   Future<CalendarEvent> saveEvent(CalendarEvent event) async {
@@ -60,17 +63,16 @@ class FakeCalendarRepository extends LocalCalendarRepository {
     final e = events[eventId];
     if (e == null) throw CalendarEventNotFound(eventId);
     log.add('occ:$eventId:${o.status.name}');
-    final list = [
-      for (final x in e.occurrences)
-        if (x.originalStart != o.originalStart) x,
-      o,
-    ];
-    final saved = CalendarEvent(
-      id: e.id,
-      title: e.title,
-      start: e.start,
-      end: e.end,
-      rrule: e.rrule,
+    final key = o.originalStart.wireKey;
+    final list = [...e.occurrences];
+    final i = list.indexWhere((x) => x.originalStart.wireKey == key);
+    if (i >= 0) {
+      list[i] = o;
+    } else {
+      list.add(o);
+    }
+    // copyWith keeps every other field, so a test cannot hide field loss.
+    final saved = e.copyWith(
       occurrences: list,
       updatedAt: DateTime.now().toUtc(),
     );

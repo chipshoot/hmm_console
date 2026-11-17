@@ -183,17 +183,17 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
               _overrideFor(i, OccurrenceStatus.cancelled),
             );
           },
-          done: l.calendarDeleteOne,
-          failed: l.calendarDeleteOneFailed,
-          undone: l.calendarDeleteOneUndone,
+          done: l.calendarOccurrenceDeleted,
+          failed: l.calendarOccurrenceDeleteFailed,
+          undone: l.calendarOccurrenceDeleteUndone,
         );
       case _RowAction.deleteSeries:
         await _undoable(
           i,
           change: () => repo.deleteEvent(i.event.id),
-          done: l.calendarDeleteOne,
-          failed: l.calendarDeleteOneFailed,
-          undone: l.calendarDeleteOneUndone,
+          done: l.calendarSeriesDeleted,
+          failed: l.calendarSeriesDeleteFailed,
+          undone: l.calendarSeriesDeleteUndone,
         );
     }
   }

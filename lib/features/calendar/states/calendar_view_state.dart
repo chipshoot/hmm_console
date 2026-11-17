@@ -3,6 +3,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../data/local_calendar_repository.dart';
 import '../domain/calendar_event.dart';
+import '../domain/event_time.dart';
 import '../domain/occurrence.dart';
 import '../domain/recurrence_expander.dart';
 import '../notifications/reminder_sync.dart' show deviceLocalResolver;
@@ -86,8 +87,21 @@ bool _deviceZoneReady() {
   }
 }
 
-LocalResolver _resolver() =>
+/// Resolves wall-clock times in the device zone (the `timezone` zone once
+/// initialised, else the platform zone).
+LocalResolver deviceResolver() =>
     _deviceZoneReady() ? deviceLocalResolver : defaultLocalResolver;
+
+/// Wall-clock [w] in the device zone as a [FixedTime] carrying the device's
+/// offset at that instant.
+FixedTime fixedTimeAtWall(DateTime w) {
+  if (_deviceZoneReady()) {
+    final t = tz.TZDateTime(tz.local, w.year, w.month, w.day, w.hour, w.minute);
+    return FixedTime(t.toUtc(), t.timeZoneOffset);
+  }
+  final d = DateTime(w.year, w.month, w.day, w.hour, w.minute);
+  return FixedTime(d.toUtc(), d.timeZoneOffset);
+}
 
 /// [utc] as wall-clock time in the device zone.
 DateTime localTimeOf(DateTime utc) =>
@@ -102,7 +116,7 @@ DateTime occurrenceDay(Occurrence o) {
 }
 
 DateTime _localMidnightUtc(DateTime d) =>
-    _resolver()(d.year, d.month, d.day, 0, 0);
+    deviceResolver()(d.year, d.month, d.day, 0, 0);
 
 /// Re-reads whenever the repository changes (local edits, sync pulls). In
 /// cloud API mode the repository provider throws, which surfaces as an error
@@ -146,7 +160,7 @@ final calendarViewProvider = FutureProvider.autoDispose<CalendarViewData>((
       e,
       fromUtc,
       toUtc,
-      resolve: _resolver(),
+      resolve: deviceResolver(),
     )) {
       final start = occurrenceDay(o);
       // Mark every day a multi-day occurrence spans (capped).

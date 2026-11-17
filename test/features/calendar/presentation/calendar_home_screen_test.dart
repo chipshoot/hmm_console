@@ -133,6 +133,7 @@ void main() {
     await tester.tap(find.text('Delete series'));
     await tester.pumpAndSettle();
     expect(repo.log, contains('delete:a'));
+    expect(find.text('Event deleted'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(repo.events.containsKey('a'), isTrue);
@@ -148,6 +149,7 @@ void main() {
     await tester.tap(find.text('Delete this one'));
     await tester.pumpAndSettle();
     expect(repo.log, contains('occ:a:cancelled'));
+    expect(find.text('Occurrence deleted'), findsOneWidget);
     expect(find.text('Title a'), findsNothing);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
