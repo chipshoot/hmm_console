@@ -3888,4 +3888,146 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpVideoStorageClearBody =>
       'Removes downloaded videos from this device. Kept-offline videos stay, and the others download again when you play them.';
+
+  @override
+  String get calendarTitle => 'Calendar';
+
+  @override
+  String get dashboardCalendarTitle => 'Calendar';
+
+  @override
+  String get dashboardCalendarDescription => 'Events and reminders';
+
+  @override
+  String get calendarToday => 'Today';
+
+  @override
+  String get calendarAddEvent => 'Add event';
+
+  @override
+  String get calendarPreviousMonth => 'Previous month';
+
+  @override
+  String get calendarNextMonth => 'Next month';
+
+  @override
+  String get calendarAllDay => 'All day';
+
+  @override
+  String get calendarEmptyDay => 'Nothing planned for this day.';
+
+  @override
+  String get calendarLoadFailed => 'Could not load the calendar.';
+
+  @override
+  String get calendarCloudApiUnavailable =>
+      'The calendar is available in Local and Cloud storage modes. Switch data mode in Settings to use it.';
+
+  @override
+  String get calendarMarkDone => 'Done';
+
+  @override
+  String get calendarSkip => 'Skip';
+
+  @override
+  String get calendarStatusDone => 'Done';
+
+  @override
+  String get calendarStatusSkipped => 'Skipped';
+
+  @override
+  String get calendarRepeats => 'Repeats';
+
+  @override
+  String get calendarOccurrenceDone => 'Marked done';
+
+  @override
+  String get calendarOccurrenceDoneFailed => 'Could not mark it done';
+
+  @override
+  String get calendarOccurrenceDoneUndone => 'Done mark removed';
+
+  @override
+  String get calendarOccurrenceSkipped => 'Skipped';
+
+  @override
+  String get calendarOccurrenceSkippedFailed => 'Could not skip it';
+
+  @override
+  String get calendarOccurrenceSkippedUndone => 'Skip removed';
+
+  @override
+  String get calendarUndoFailed => 'Could not undo';
+
+  @override
+  String get calendarEdit => 'Edit';
+
+  @override
+  String get calendarDeleteThis => 'Delete this one';
+
+  @override
+  String get calendarDeleteSeries => 'Delete series';
+
+  @override
+  String get calendarDeleteOne => 'Event deleted';
+
+  @override
+  String get calendarDeleteOneFailed => 'Could not delete the event';
+
+  @override
+  String get calendarDeleteOneUndone => 'Event restored';
+
+  @override
+  String get calendarUnreadableEvent => 'An event could not be read';
+
+  @override
+  String get calendarUnreadableEventHint =>
+      'It may have been written by a newer version of the app.';
+
+  @override
+  String get calendarPermissionBanner =>
+      'Reminders are off because notification permission was declined. Turn it on in the system settings.';
+
+  @override
+  String get calendarEventPlaceholderTitle => 'Event';
+
+  @override
+  String get helpCalendarTitle => 'Calendar';
+
+  @override
+  String get helpCalendarSummary =>
+      'Your events by month and by day. Pick a day to see what is planned.';
+
+  @override
+  String get helpCalendarAddTitle => 'Add event';
+
+  @override
+  String get helpCalendarAddBody => 'Creates a new event on the selected day.';
+
+  @override
+  String get helpCalendarMonthTitle => 'Month grid';
+
+  @override
+  String get helpCalendarMonthBody =>
+      'Tap a day to see its events. A dot marks a day with events. Use the arrows to change month.';
+
+  @override
+  String get helpCalendarTodayTitle => 'Today';
+
+  @override
+  String get helpCalendarTodayBody => 'Jumps back to today.';
+
+  @override
+  String get helpCalendarSwipeTitle => 'Swipe an event';
+
+  @override
+  String get helpCalendarSwipeBody =>
+      'Swipe right to mark it done, left to skip it. Undo is offered for a few seconds.';
+
+  @override
+  String get helpCalendarHoldTitle => 'Touch and hold an event';
+
+  @override
+  String get helpCalendarHoldBody =>
+      'Opens a menu to edit the event, delete just this one, or delete the whole series.';
 }

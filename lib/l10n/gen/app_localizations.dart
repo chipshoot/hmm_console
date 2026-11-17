@@ -6829,6 +6829,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Removes downloaded videos from this device. Kept-offline videos stay, and the others download again when you play them.'**
   String get helpVideoStorageClearBody;
+
+  /// No description provided for @calendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendarTitle;
+
+  /// No description provided for @dashboardCalendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get dashboardCalendarTitle;
+
+  /// No description provided for @dashboardCalendarDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Events and reminders'**
+  String get dashboardCalendarDescription;
+
+  /// No description provided for @calendarToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get calendarToday;
+
+  /// No description provided for @calendarAddEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Add event'**
+  String get calendarAddEvent;
+
+  /// No description provided for @calendarPreviousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get calendarPreviousMonth;
+
+  /// No description provided for @calendarNextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get calendarNextMonth;
+
+  /// No description provided for @calendarAllDay.
+  ///
+  /// In en, this message translates to:
+  /// **'All day'**
+  String get calendarAllDay;
+
+  /// No description provided for @calendarEmptyDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing planned for this day.'**
+  String get calendarEmptyDay;
+
+  /// No description provided for @calendarLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the calendar.'**
+  String get calendarLoadFailed;
+
+  /// No description provided for @calendarCloudApiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar is available in Local and Cloud storage modes. Switch data mode in Settings to use it.'**
+  String get calendarCloudApiUnavailable;
+
+  /// No description provided for @calendarMarkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get calendarMarkDone;
+
+  /// No description provided for @calendarSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get calendarSkip;
+
+  /// No description provided for @calendarStatusDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get calendarStatusDone;
+
+  /// No description provided for @calendarStatusSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get calendarStatusSkipped;
+
+  /// No description provided for @calendarRepeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats'**
+  String get calendarRepeats;
+
+  /// No description provided for @calendarOccurrenceDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked done'**
+  String get calendarOccurrenceDone;
+
+  /// No description provided for @calendarOccurrenceDoneFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not mark it done'**
+  String get calendarOccurrenceDoneFailed;
+
+  /// No description provided for @calendarOccurrenceDoneUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done mark removed'**
+  String get calendarOccurrenceDoneUndone;
+
+  /// No description provided for @calendarOccurrenceSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get calendarOccurrenceSkipped;
+
+  /// No description provided for @calendarOccurrenceSkippedFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not skip it'**
+  String get calendarOccurrenceSkippedFailed;
+
+  /// No description provided for @calendarOccurrenceSkippedUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip removed'**
+  String get calendarOccurrenceSkippedUndone;
+
+  /// No description provided for @calendarUndoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not undo'**
+  String get calendarUndoFailed;
+
+  /// No description provided for @calendarEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get calendarEdit;
+
+  /// No description provided for @calendarDeleteThis.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this one'**
+  String get calendarDeleteThis;
+
+  /// No description provided for @calendarDeleteSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete series'**
+  String get calendarDeleteSeries;
+
+  /// No description provided for @calendarDeleteOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Event deleted'**
+  String get calendarDeleteOne;
+
+  /// No description provided for @calendarDeleteOneFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete the event'**
+  String get calendarDeleteOneFailed;
+
+  /// No description provided for @calendarDeleteOneUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Event restored'**
+  String get calendarDeleteOneUndone;
+
+  /// No description provided for @calendarUnreadableEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'An event could not be read'**
+  String get calendarUnreadableEvent;
+
+  /// No description provided for @calendarUnreadableEventHint.
+  ///
+  /// In en, this message translates to:
+  /// **'It may have been written by a newer version of the app.'**
+  String get calendarUnreadableEventHint;
+
+  /// No description provided for @calendarPermissionBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders are off because notification permission was declined. Turn it on in the system settings.'**
+  String get calendarPermissionBanner;
+
+  /// No description provided for @calendarEventPlaceholderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get calendarEventPlaceholderTitle;
+
+  /// No description provided for @helpCalendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get helpCalendarTitle;
+
+  /// No description provided for @helpCalendarSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your events by month and by day. Pick a day to see what is planned.'**
+  String get helpCalendarSummary;
+
+  /// No description provided for @helpCalendarAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add event'**
+  String get helpCalendarAddTitle;
+
+  /// No description provided for @helpCalendarAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Creates a new event on the selected day.'**
+  String get helpCalendarAddBody;
+
+  /// No description provided for @helpCalendarMonthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Month grid'**
+  String get helpCalendarMonthTitle;
+
+  /// No description provided for @helpCalendarMonthBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a day to see its events. A dot marks a day with events. Use the arrows to change month.'**
+  String get helpCalendarMonthBody;
+
+  /// No description provided for @helpCalendarTodayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get helpCalendarTodayTitle;
+
+  /// No description provided for @helpCalendarTodayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Jumps back to today.'**
+  String get helpCalendarTodayBody;
+
+  /// No description provided for @helpCalendarSwipeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe an event'**
+  String get helpCalendarSwipeTitle;
+
+  /// No description provided for @helpCalendarSwipeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe right to mark it done, left to skip it. Undo is offered for a few seconds.'**
+  String get helpCalendarSwipeBody;
+
+  /// No description provided for @helpCalendarHoldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch and hold an event'**
+  String get helpCalendarHoldTitle;
+
+  /// No description provided for @helpCalendarHoldBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens a menu to edit the event, delete just this one, or delete the whole series.'**
+  String get helpCalendarHoldBody;
 }
 
 class _AppLocalizationsDelegate

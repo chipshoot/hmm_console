@@ -3712,4 +3712,139 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpVideoStorageClearBody =>
       '从本设备移除已下载的视频。离线保存的视频会保留，其他视频播放时会重新下载。';
+
+  @override
+  String get calendarTitle => '日历';
+
+  @override
+  String get dashboardCalendarTitle => '日历';
+
+  @override
+  String get dashboardCalendarDescription => '日程与提醒';
+
+  @override
+  String get calendarToday => '今天';
+
+  @override
+  String get calendarAddEvent => '添加日程';
+
+  @override
+  String get calendarPreviousMonth => '上个月';
+
+  @override
+  String get calendarNextMonth => '下个月';
+
+  @override
+  String get calendarAllDay => '全天';
+
+  @override
+  String get calendarEmptyDay => '这一天没有安排。';
+
+  @override
+  String get calendarLoadFailed => '无法加载日历。';
+
+  @override
+  String get calendarCloudApiUnavailable => '日历可在“本地”和“云存储”模式下使用。请在设置中切换数据模式。';
+
+  @override
+  String get calendarMarkDone => '完成';
+
+  @override
+  String get calendarSkip => '跳过';
+
+  @override
+  String get calendarStatusDone => '已完成';
+
+  @override
+  String get calendarStatusSkipped => '已跳过';
+
+  @override
+  String get calendarRepeats => '重复';
+
+  @override
+  String get calendarOccurrenceDone => '已标记完成';
+
+  @override
+  String get calendarOccurrenceDoneFailed => '无法标记完成';
+
+  @override
+  String get calendarOccurrenceDoneUndone => '已取消完成标记';
+
+  @override
+  String get calendarOccurrenceSkipped => '已跳过';
+
+  @override
+  String get calendarOccurrenceSkippedFailed => '无法跳过';
+
+  @override
+  String get calendarOccurrenceSkippedUndone => '已取消跳过';
+
+  @override
+  String get calendarUndoFailed => '无法撤销';
+
+  @override
+  String get calendarEdit => '编辑';
+
+  @override
+  String get calendarDeleteThis => '删除这一次';
+
+  @override
+  String get calendarDeleteSeries => '删除整个系列';
+
+  @override
+  String get calendarDeleteOne => '日程已删除';
+
+  @override
+  String get calendarDeleteOneFailed => '无法删除日程';
+
+  @override
+  String get calendarDeleteOneUndone => '日程已恢复';
+
+  @override
+  String get calendarUnreadableEvent => '有一个日程无法读取';
+
+  @override
+  String get calendarUnreadableEventHint => '它可能由更新版本的应用写入。';
+
+  @override
+  String get calendarPermissionBanner => '由于通知权限被拒绝，提醒已关闭。请在系统设置中开启。';
+
+  @override
+  String get calendarEventPlaceholderTitle => '日程';
+
+  @override
+  String get helpCalendarTitle => '日历';
+
+  @override
+  String get helpCalendarSummary => '按月和按天查看你的日程。选择一天即可看到当天的安排。';
+
+  @override
+  String get helpCalendarAddTitle => '添加日程';
+
+  @override
+  String get helpCalendarAddBody => '在所选日期新建一个日程。';
+
+  @override
+  String get helpCalendarMonthTitle => '月历';
+
+  @override
+  String get helpCalendarMonthBody => '点按某一天查看当天日程。有圆点的日期表示有日程。用箭头切换月份。';
+
+  @override
+  String get helpCalendarTodayTitle => '今天';
+
+  @override
+  String get helpCalendarTodayBody => '回到今天。';
+
+  @override
+  String get helpCalendarSwipeTitle => '滑动日程';
+
+  @override
+  String get helpCalendarSwipeBody => '向右滑动标记完成，向左滑动跳过。几秒内可以撤销。';
+
+  @override
+  String get helpCalendarHoldTitle => '长按日程';
+
+  @override
+  String get helpCalendarHoldBody => '打开菜单：编辑日程、只删除这一次，或删除整个系列。';
 }

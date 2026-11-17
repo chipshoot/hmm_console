@@ -163,6 +163,22 @@ List<LauncherDestination> _allLauncherDestinations(AppLocalizations l) => [
         routeName: 'cheatsheets',
       ),
       LauncherDestination(
+        id: 'calendar',
+        title: l.calendarTitle,
+        synonyms: const [
+          'Calendar',
+          'event',
+          'events',
+          'schedule',
+          'agenda',
+          'reminder',
+          'reminders',
+          '日历', '日程', '提醒', '安排',
+        ],
+        icon: Icons.calendar_month_outlined,
+        routeName: 'calendar',
+      ),
+      LauncherDestination(
         id: 'contacts',
         title: l.contactsTitle,
         synonyms: const [

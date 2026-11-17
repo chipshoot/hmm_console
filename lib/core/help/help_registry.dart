@@ -10,6 +10,7 @@ export 'help_models.dart';
 enum HelpId {
   automobileHub,
   vehicleNotes,
+  calendar,
   contacts,
   contactDetail,
   contactEdit,
@@ -78,6 +79,37 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.touch_app_outlined,
         title: l.helpVehicleNotesOpenTitle,
         body: l.helpVehicleNotesOpenBody,
+      ),
+    ],
+  ),
+  HelpId.calendar => ScreenHelp(
+    title: l.helpCalendarTitle,
+    summary: l.helpCalendarSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.add,
+        title: l.helpCalendarAddTitle,
+        body: l.helpCalendarAddBody,
+      ),
+      HelpEntry(
+        icon: Icons.calendar_month_outlined,
+        title: l.helpCalendarMonthTitle,
+        body: l.helpCalendarMonthBody,
+      ),
+      HelpEntry(
+        icon: Icons.today,
+        title: l.helpCalendarTodayTitle,
+        body: l.helpCalendarTodayBody,
+      ),
+      HelpEntry(
+        icon: Icons.swipe,
+        title: l.helpCalendarSwipeTitle,
+        body: l.helpCalendarSwipeBody,
+      ),
+      HelpEntry(
+        icon: Icons.touch_app_outlined,
+        title: l.helpCalendarHoldTitle,
+        body: l.helpCalendarHoldBody,
       ),
     ],
   ),
