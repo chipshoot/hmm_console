@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../core/data/data_mode.dart';
+import '../../../core/i18n/locale_provider.dart';
+import '../../../l10n/gen/app_localizations.dart';
 import '../contract/calendar_errors.dart';
 import '../contract/i_calendar_repository.dart';
 import '../contract/i_reminder_scheduler.dart';
@@ -61,8 +66,76 @@ DateTime deviceLocalResolver(int y, int m, int d, int hh, int mm) =>
     ? tz.TZDateTime(tz.local, y, m, d, hh, mm).toUtc()
     : defaultLocalResolver(y, m, d, hh, mm);
 
-String defaultReminderTitle(CalendarEvent e, Occurrence o) =>
-    o.titleOverride ?? e.title;
+/// [utc] as wall-clock time in the device zone ([deviceZoneKnown]), else
+/// in the platform zone.
+DateTime deviceLocalTimeOf(DateTime utc) =>
+    _deviceZoneKnown ? tz.TZDateTime.from(utc, tz.local) : utc.toLocal();
+
+/// Short time of day in [locale]: 24-hour (`19:00`) when [use24h] (default:
+/// the device setting), else the locale's 12-hour form (`7:00 PM`).
+String Function(DateTime wall) shortTimeFormatter(
+  String locale, {
+  bool? use24h,
+}) {
+  final h24 = use24h ?? PlatformDispatcher.instance.alwaysUse24HourFormat;
+  return (wall) {
+    try {
+      return (h24 ? DateFormat.Hm(locale) : DateFormat.jm(locale)).format(wall);
+    } catch (_) {
+      // Locale data not loaded: plain HH:mm or h:mm AM/PM.
+      final mm = wall.minute.toString().padLeft(2, '0');
+      if (h24) return '${wall.hour.toString().padLeft(2, '0')}:$mm';
+      final h = wall.hour % 12 == 0 ? 12 : wall.hour % 12;
+      return '$h:$mm ${wall.hour < 12 ? 'AM' : 'PM'}';
+    }
+  };
+}
+
+/// R-21: "19:00 · Evening walk" — the occurrence's start in the device zone,
+/// or "All day · Title" (localized) for an all-day occurrence.
+String reminderTitle(
+  CalendarEvent e,
+  Occurrence o, {
+  required String allDayLabel,
+  required String Function(DateTime wall) formatTime,
+  DateTime Function(DateTime utc) toLocal = deviceLocalTimeOf,
+}) {
+  final title = o.titleOverride ?? e.title;
+  final when = o.allDay ? allDayLabel : formatTime(toLocal(o.start));
+  return '$when · $title';
+}
+
+/// English, device 24-hour setting. The app passes the localized
+/// [reminderTitleFormatProvider] instead.
+String defaultReminderTitle(CalendarEvent e, Occurrence o) => reminderTitle(
+  e,
+  o,
+  allDayLabel: 'All day',
+  formatTime: shortTimeFormatter('en'),
+);
+
+/// The notification title in the app's language (the chosen locale, else
+/// the platform's), built without a BuildContext.
+final reminderTitleFormatProvider =
+    Provider<String Function(CalendarEvent, Occurrence)>((ref) {
+      final chosen = ref.watch(localeProvider);
+      final platform = PlatformDispatcher.instance.locale;
+      final locale = AppLocalizations.supportedLocales.firstWhere(
+        (s) => s.languageCode == (chosen ?? platform).languageCode,
+        orElse: () => const Locale('en'),
+      );
+      final l = lookupAppLocalizations(locale);
+      // Normally loaded by the Material localizations; make sure (the data
+      // is bundled, so this completes synchronously).
+      unawaited(initializeDateFormatting(l.localeName));
+      final formatTime = shortTimeFormatter(l.localeName);
+      return (e, o) => reminderTitle(
+        e,
+        o,
+        allDayLabel: l.calendarAllDay,
+        formatTime: formatTime,
+      );
+    });
 
 DateTime _utcNow() => DateTime.now().toUtc();
 
@@ -298,7 +371,10 @@ final reminderSyncProvider = Provider<ReminderSync>((ref) {
     onPermissionChecked: (denied) =>
         ref.read(calendarPermissionDeniedProvider.notifier).set(denied),
     refreshZone: initDeviceTimeZone,
+    // Read per run, so a language change applies at the next run.
+    formatTitle: (e, o) => ref.read(reminderTitleFormatProvider)(e, o),
   );
+  ref.listen(reminderTitleFormatProvider, (_, _) => sync.trigger());
   ref.listen<bool>(remindOnDeviceProvider, (_, _) => sync.trigger());
   ref.listen<DataMode>(dataModeProvider, (_, _) {
     sync.resubscribe();

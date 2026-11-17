@@ -8,7 +8,7 @@ import '../domain/event_time.dart';
 import '../domain/occurrence.dart';
 import '../domain/recurrence_expander.dart';
 import '../notifications/reminder_sync.dart'
-    show deviceLocalResolver, deviceZoneKnown;
+    show deviceLocalResolver, deviceLocalTimeOf, deviceZoneKnown;
 import 'calendar_providers.dart';
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -99,8 +99,7 @@ FixedTime fixedTimeAtWall(DateTime w) {
 }
 
 /// [utc] as wall-clock time in the device zone.
-DateTime localTimeOf(DateTime utc) =>
-    _deviceZoneReady() ? tz.TZDateTime.from(utc, tz.local) : utc.toLocal();
+DateTime localTimeOf(DateTime utc) => deviceLocalTimeOf(utc);
 
 /// First and last local dates [o] (an occurrence of [e]) covers.
 ///

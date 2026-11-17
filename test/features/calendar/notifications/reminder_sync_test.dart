@@ -134,7 +134,7 @@ void main() {
       fa.elapse(const Duration(milliseconds: 1));
       fa.flushMicrotasks();
       expect(h.gateway.scheduled, hasLength(1));
-      expect(h.gateway.scheduled.single.title, 'T a');
+      expect(h.gateway.scheduled.single.title, endsWith(' · T a'));
       expect(
         h.gateway.scheduled.single.fireAtUtc,
         DateTime.utc(2026, 11, 18, 9, 45),
