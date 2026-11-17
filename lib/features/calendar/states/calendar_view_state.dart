@@ -107,16 +107,47 @@ FixedTime fixedTimeAtWall(DateTime w) {
 DateTime localTimeOf(DateTime utc) =>
     _deviceZoneReady() ? tz.TZDateTime.from(utc, tz.local) : utc.toLocal();
 
-/// Local date of [o] in the device zone; all-day occurrences are stored at UTC
-/// midnight of their date.
-DateTime occurrenceDay(Occurrence o) {
-  if (o.allDay) return DateTime(o.start.year, o.start.month, o.start.day);
-  final l = localTimeOf(o.start);
-  return DateTime(l.year, l.month, l.day);
+/// First and last local dates [o] (an occurrence of [e]) covers.
+///
+/// An all-day occurrence takes its dates from the stored all-day times, so
+/// it lands on its own date in any zone; a timed one converts its start and
+/// end (less a minute, the end being exclusive) with [toLocal].
+({DateTime first, DateTime last}) occurrenceDays(
+  CalendarEvent e,
+  Occurrence o, {
+  DateTime Function(DateTime utc) toLocal = localTimeOf,
+}) {
+  if (o.allDay) {
+    final d = allDayDateOf(e, o);
+    if (d != null) {
+      final first = DateTime(d.year, d.month, d.day);
+      return (
+        first: first,
+        last: DateTime(d.year, d.month, d.day + allDaySpanDays(e)),
+      );
+    }
+  }
+  final s = toLocal(o.start);
+  final first = DateTime(s.year, s.month, s.day);
+  var last = first;
+  final end = o.end;
+  if (end != null && end.isAfter(o.start)) {
+    final probe = end.subtract(const Duration(minutes: 1));
+    final l = toLocal(probe.isBefore(o.start) ? o.start : probe);
+    final endDay = DateTime(l.year, l.month, l.day);
+    if (endDay.isAfter(first)) last = endDay;
+  }
+  return (first: first, last: last);
 }
 
-DateTime _localMidnightUtc(DateTime d) =>
-    deviceResolver()(d.year, d.month, d.day, 0, 0);
+/// The zone the calendar screens do day math in. Null (the default) means
+/// the device zone: `tz.local` once initialised, else the platform zone.
+/// Tests override it to pin a zone whatever the host's.
+final calendarDeviceZoneProvider = Provider<tz.Location?>((ref) => null);
+
+/// Wall-clock → UTC in [zone].
+LocalResolver resolverFor(tz.Location zone) =>
+    (y, m, d, hh, mm) => tz.TZDateTime(zone, y, m, d, hh, mm).toUtc();
 
 /// Re-reads whenever the repository changes (local edits, sync pulls). In
 /// cloud API mode the repository provider throws, which surfaces as an error
@@ -127,6 +158,13 @@ final calendarViewProvider = FutureProvider.autoDispose<CalendarViewData>((
   final day = ref.watch(selectedDayProvider);
   final month = ref.watch(visibleMonthProvider);
   final repo = ref.watch(calendarRepositoryProvider);
+  final zone = ref.watch(calendarDeviceZoneProvider);
+  final resolve = zone == null ? deviceResolver() : resolverFor(zone);
+  final DateTime Function(DateTime) toLocal = zone == null
+      ? localTimeOf
+      : (u) => tz.TZDateTime.from(u, zone);
+  DateTime localMidnightUtc(DateTime d) =>
+      resolve(d.year, d.month, d.day, 0, 0);
   final sub = repo.changes().listen((_) => ref.invalidateSelf());
   ref.onDispose(sub.cancel);
 
@@ -135,8 +173,8 @@ final calendarViewProvider = FutureProvider.autoDispose<CalendarViewData>((
   // The agenda day can lie outside the visible month (jump from a search).
   final rangeStart = day.isBefore(from) ? day : from;
   final rangeEnd = day.isBefore(to) ? to : day.add(const Duration(days: 1));
-  final fromUtc = _localMidnightUtc(rangeStart);
-  final toUtc = _localMidnightUtc(rangeEnd);
+  final fromUtc = localMidnightUtc(rangeStart);
+  final toUtc = localMidnightUtc(rangeEnd);
 
   final events = <CalendarEvent>[];
   final unreadable = <String>[];
@@ -156,30 +194,10 @@ final calendarViewProvider = FutureProvider.autoDispose<CalendarViewData>((
   final agenda = <AgendaItem>[];
   final days = <int>{};
   for (final e in events) {
-    for (final o in expandOccurrences(
-      e,
-      fromUtc,
-      toUtc,
-      resolve: deviceResolver(),
-    )) {
-      final start = occurrenceDay(o);
+    for (final o in expandOccurrences(e, fromUtc, toUtc, resolve: resolve)) {
       // Mark every day a multi-day occurrence spans (capped).
-      var last = start;
-      final end = o.end;
-      if (end != null && end.isAfter(o.start)) {
-        final probe = o.allDay
-            ? end.subtract(const Duration(days: 1))
-            : end.subtract(const Duration(minutes: 1));
-        final endDay = occurrenceDay(
-          Occurrence(
-            eventId: o.eventId,
-            originalStart: o.originalStart,
-            start: probe.isBefore(o.start) ? o.start : probe,
-            allDay: o.allDay,
-          ),
-        );
-        if (endDay.isAfter(start)) last = endDay;
-      }
+      final (:first, :last) = occurrenceDays(e, o, toLocal: toLocal);
+      final start = first;
       var d = start;
       for (var i = 0; i < 62 && !d.isAfter(last); i++) {
         if (d.year == month.year && d.month == month.month) days.add(d.day);

@@ -44,19 +44,11 @@ int reminderNotificationId(
   return h & 0x7fffffff;
 }
 
-/// Local calendar date of an all-day occurrence: the moved-to date when the
-/// occurrence was moved to an all-day slot, else its original all-day date,
-/// else (unexpected) the occurrence start in the device zone.
+/// Local calendar date of an all-day occurrence ([allDayDateOf]), else
+/// (unexpected) the occurrence start in the device zone.
 AllDay _allDayDate(CalendarEvent e, Occurrence o) {
-  for (final ov in e.occurrences) {
-    if (ov.originalStart.wireKey == o.originalStart.wireKey &&
-        ov.movedTo != null) {
-      final m = ov.movedTo;
-      if (m is AllDay) return m;
-    }
-  }
-  final orig = o.originalStart;
-  if (orig is AllDay) return orig;
+  final d = allDayDateOf(e, o);
+  if (d != null) return d;
   final l = o.start.toLocal();
   return AllDay(l.year, l.month, l.day);
 }

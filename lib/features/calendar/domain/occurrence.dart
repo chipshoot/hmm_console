@@ -49,3 +49,35 @@ class Occurrence {
   @override
   String toString() => 'Occurrence($eventId, $start, $status)';
 }
+
+/// The calendar date of an all-day occurrence of [e]: the moved-to date when
+/// it was moved to an all-day slot, else its original all-day date. Null
+/// when neither is all-day (the occurrence is then timed).
+///
+/// Dates come from the stored times, never from [Occurrence.start], which is
+/// the UTC instant of local midnight and can fall on the previous UTC date.
+AllDay? allDayDateOf(CalendarEvent e, Occurrence o) {
+  for (final ov in e.occurrences) {
+    if (ov.originalStart.wireKey == o.originalStart.wireKey) {
+      final m = ov.movedTo;
+      if (m is AllDay) return m;
+      if (m != null) return null;
+      break;
+    }
+  }
+  final orig = o.originalStart;
+  return orig is AllDay ? orig : null;
+}
+
+/// Extra days an all-day [e] spans after its first (0 for a single day).
+int allDaySpanDays(CalendarEvent e) {
+  final s = e.start;
+  final end = e.end;
+  if (s is! AllDay || end is! AllDay) return 0;
+  final span = DateTime.utc(
+    end.year,
+    end.month,
+    end.day,
+  ).difference(DateTime.utc(s.year, s.month, s.day)).inDays;
+  return span < 0 ? 0 : span;
+}

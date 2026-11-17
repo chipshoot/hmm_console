@@ -159,6 +159,30 @@ void main() {
     expect(_plan([e]).single.fireAtUtc, DateTime.utc(2026, 11, 20, 8, 0));
   });
 
+  for (final (name, hours, fire) in [
+    ('UTC-5', -5, DateTime.utc(2026, 11, 20, 14, 0)),
+    ('UTC+8', 8, DateTime.utc(2026, 11, 20, 1, 0)),
+    ('UTC+13', 13, DateTime.utc(2026, 11, 19, 20, 0)),
+  ]) {
+    test('all-day fires at 09:00 local on its own date in $name', () {
+      // Wall clock in a fixed-offset zone → UTC.
+      DateTime resolve(int y, int m, int d, int hh, int mm) =>
+          DateTime.utc(y, m, d, hh, mm).subtract(Duration(hours: hours));
+      final e = _ev(
+        'ad',
+        const AllDay(2026, 11, 20),
+        reminders: const [Reminder(minutesBefore: 0)],
+      );
+      final out = planReminders(
+        events: [e],
+        nowUtc: _now,
+        resolve: resolve,
+        formatTitle: _title,
+      );
+      expect(out.single.fireAtUtc, fire);
+    });
+  }
+
   test('moved all-day occurrence uses the moved date', () {
     const orig = AllDay(2026, 11, 20);
     final e = _ev(
