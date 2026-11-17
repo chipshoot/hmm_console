@@ -202,9 +202,11 @@ name (package choice and versions left to the builder).
   `watchNotes()` stream filtered to the calendar catalog, so it fires for local
   edits **and** for sync pulls (a pull writes the same table). No new sync
   signal and no `core/` change is needed.
-- **Time zone:** everything uses the device's current zone. Floating times and
-  all-day reminders are recomputed on every run, so a zone change is picked up
-  at the next foreground. A `FixedTime`'s instant is the truth; its offset is
+- **Time zone:** everything uses the device's current zone, re-read on every
+  return to the foreground before the run (R-19); if it cannot be read the
+  platform zone is used, never UTC. Floating times and all-day reminders are
+  recomputed on every run, so a zone change is picked up at the next
+  foreground. A `FixedTime`'s instant is the truth; its offset is
   kept only to round-trip the stored string.
 - **Notification identity:** id = a stable 31-bit hash of event id + occurrence
   start; payload = `calendar|<eventId>|<occurrenceStart>`. "Cancel what Hmm
@@ -216,9 +218,15 @@ name (package choice and versions left to the builder).
   schedules nothing.
 - **Skipped:** cancelled series, draft events, and occurrences marked done,
   skipped or cancelled.
-- **Permission:** asked the first time the owner saves an event with a reminder
-  on a device where reminders are on, never at launch. If denied, the calendar
-  screen shows a banner that opens the system settings.
+- **Permission:** asked once per device, never at launch for its own sake. It
+  is asked the first time the owner saves an event with a reminder on a device
+  where reminders are on, when the "Remind on this device" switch is turned on,
+  and (R-18) by the reminder run itself when reminders are on, at least one
+  reminder is due and the device was never asked — so an iPhone reminds for
+  events made on the iPad without a local save. Whoever asks records the answer
+  (`calendar.permissionAsked`) and a grant schedules at once; overlapping askers
+  share one prompt. If denied, the calendar screen shows a banner that opens the
+  system settings.
 - **Content:** the title and the time ("19:00 · Evening walk"), plus an optional
   body line a subsystem supplies through `CalendarService` (stage 2 uses it for
   the blood sugar prompt, R6). Tapping opens the event's screen at that
@@ -241,7 +249,7 @@ abstract interface class ICalendarRepository {
 }
 
 abstract interface class IReminderScheduler {
-  Future<void> reschedule(List<Occurrence> upcoming);    // device only, never the server
+  Future<void> reschedule(List<PlannedReminder> upcoming); // device only, never the server (R-5)
   Future<void> cancelAll();
   Future<bool> requestPermission();
 }
@@ -254,7 +262,14 @@ abstract interface class CalendarService {
 }
 ```
 
+`PlannedReminder` (`notifications/reminder_plan.dart`) is one planned
+notification: id, fire time (UTC), title, optional body, payload. The planner
+expands occurrences and applies the window, cap and skips; the scheduler only
+cancels and schedules, and one failed schedule does not stop the rest.
+
 Errors: `CalendarEventNotFound(id)` for writes to a missing event,
+`CalendarIdCollision(id)` when a save's id is the uuid of a note in another
+catalog (nothing is written),
 `CalendarEventUnreadable(id)` for a note that cannot be decoded, and
 `CalendarCloudApiUnavailable` in Cloud API mode (the Contacts pattern, including
 an `isCalendarCloudApiUnavailable(error)` helper that unwraps Riverpod's
@@ -262,7 +277,9 @@ an `isCalendarCloudApiUnavailable(error)` helper that unwraps Riverpod's
 
 **Shared contract tests**:
 `test/features/calendar/contract/calendar_repository_contract.dart` exports
-`runCalendarRepositoryContract(ICalendarRepository Function() create)`. It runs
+`runCalendarRepositoryContract(Future<ICalendarRepository> Function() create)`
+(async, R-4: both the Drift store and a future API repository need async
+setup). It runs
 against the local repository now and must run against the API repository later.
 It covers at least: save then get round-trips every field including
 `extraFields`; saving the same id twice updates rather than duplicates;
