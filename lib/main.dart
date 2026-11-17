@@ -33,8 +33,6 @@ Future<void> main() async {
     overrides: [
       hmmDatabaseProvider.overrideWithValue(db),
       initialAppearanceProvider.overrideWithValue(appearance),
-      // Read once: "Remind on this device" defaults from the screen size.
-      deviceShortestSideProvider.overrideWithValue(platformShortestSide()),
     ],
     child: const MainApp(),
   ));
@@ -76,15 +74,19 @@ class _MainAppState extends ConsumerState<MainApp> {
 
   Future<void> _startCalendarReminders() async {
     if (!calendarRemindersSupported) return;
+    // After the first frame the view exists even under the UIScene
+    // lifecycle, so "Remind on this device" can default from a real size.
+    ref
+        .read(deviceShortestSideProvider.notifier)
+        .set(shortestSideOfView(View.of(context)));
     try {
       await initDeviceTimeZone();
       if (!mounted) return;
       await ref.read(notificationGatewayProvider).initialize(_onReminderTap);
+      if (mounted) ref.read(reminderSyncProvider).start();
     } catch (e) {
       debugPrint('Calendar reminders unavailable (${e.runtimeType})');
-      return;
     }
-    if (mounted) ref.read(reminderSyncProvider).start();
   }
 
   /// Placeholder: opening the event from a tapped reminder lands in Task 9.

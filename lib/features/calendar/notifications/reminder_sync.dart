@@ -57,6 +57,7 @@ class ReminderSync with WidgetsBindingObserver {
     required IReminderScheduler scheduler,
     required Future<bool> Function() permissionGranted,
     required bool Function() remindOnDevice,
+    required Future<bool> Function() permissionAsked,
     required void Function(bool denied) onPermissionChecked,
     LocalResolver resolve = deviceLocalResolver,
     String Function(CalendarEvent, Occurrence) formatTitle =
@@ -68,6 +69,7 @@ class ReminderSync with WidgetsBindingObserver {
        _scheduler = scheduler,
        _permissionGranted = permissionGranted,
        _remindOnDevice = remindOnDevice,
+       _permissionAsked = permissionAsked,
        _onPermissionChecked = onPermissionChecked,
        _resolve = resolve,
        _formatTitle = formatTitle,
@@ -79,6 +81,7 @@ class ReminderSync with WidgetsBindingObserver {
   final IReminderScheduler _scheduler;
   final Future<bool> Function() _permissionGranted;
   final bool Function() _remindOnDevice;
+  final Future<bool> Function() _permissionAsked;
   final void Function(bool denied) _onPermissionChecked;
   final LocalResolver _resolve;
   final String Function(CalendarEvent, Occurrence) _formatTitle;
@@ -119,8 +122,12 @@ class ReminderSync with WidgetsBindingObserver {
     _changesSub = null;
     try {
       _changesSub = _repository().changes().listen((_) => trigger());
-    } on CalendarCloudApiUnavailable {
-      // No calendar in cloud API mode; runs just cancel.
+    } catch (e) {
+      // Cloud API mode has no calendar; runs just cancel. Anything else is
+      // logged once and the next trigger tries again.
+      if (!isCalendarCloudApiUnavailable(e)) {
+        debugPrint('ReminderSync: subscribe failed (${e.runtimeType})');
+      }
     }
   }
 
@@ -161,13 +168,17 @@ class ReminderSync with WidgetsBindingObserver {
   Future<void> _run() async {
     try {
       if (!_remindOnDevice()) {
+        _onPermissionChecked(false);
         await _scheduler.cancelAll();
         return;
       }
       final ICalendarRepository repo;
       try {
         repo = _repository();
-      } on CalendarCloudApiUnavailable {
+      } catch (e) {
+        // R-12: the helper also sees through Riverpod's ProviderException.
+        if (!isCalendarCloudApiUnavailable(e)) rethrow;
+        _onPermissionChecked(false);
         await _scheduler.cancelAll();
         return;
       }
@@ -181,11 +192,14 @@ class ReminderSync with WidgetsBindingObserver {
       if (plan.isEmpty) {
         // Nothing due: clear stale entries without consulting permission, so
         // the banner never shows for a device with no reminders.
+        _onPermissionChecked(false);
         await _scheduler.reschedule(const []);
         return;
       }
       final granted = await _permissionGranted();
-      _onPermissionChecked(!granted);
+      // The banner is for an owner who was asked and said no (R-11), not
+      // for a device that has never been asked.
+      _onPermissionChecked(!granted && await _permissionAsked());
       if (!granted) return;
       await _scheduler.reschedule(plan);
     } catch (e) {
@@ -217,6 +231,7 @@ final reminderSyncProvider = Provider<ReminderSync>((ref) {
     scheduler: ref.watch(reminderSchedulerProvider),
     permissionGranted: gateway.permissionGranted,
     remindOnDevice: () => ref.read(remindOnDeviceProvider),
+    permissionAsked: calendarPermissionAsked,
     onPermissionChecked: (denied) =>
         ref.read(calendarPermissionDeniedProvider.notifier).set(denied),
   );

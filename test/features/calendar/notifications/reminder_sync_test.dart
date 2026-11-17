@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
+import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,14 @@ CalendarEvent _ev(String id) => CalendarEvent(
   reminders: const [Reminder(minutesBefore: 15)],
 );
 
+class _Mode extends DataModeNotifier {
+  _Mode(this._initial);
+  final DataMode _initial;
+  @override
+  DataMode build() => _initial;
+  void set(DataMode m) => state = m;
+}
+
 class _FakeRepo implements ICalendarRepository {
   _FakeRepo(this.events);
   List<CalendarEvent> events;
@@ -52,9 +61,13 @@ class _FakeRepo implements ICalendarRepository {
 }
 
 class _Harness {
-  _Harness({bool remind = true, bool granted = true, bool cloudApi = false})
-    : remindOnDevice = remind,
-      gateway = FakeNotificationGateway(granted: granted) {
+  _Harness({
+    bool remind = true,
+    bool granted = true,
+    bool cloudApi = false,
+    this.asked = true,
+  }) : remindOnDevice = remind,
+       gateway = FakeNotificationGateway(granted: granted) {
     gateway.addPending(1, 'other|x');
     gateway.addPending(2, 'calendar|old|2026-11-18T09:00');
     sync = ReminderSync(
@@ -65,6 +78,7 @@ class _Harness {
       scheduler: LocalReminderScheduler(gateway),
       permissionGranted: gateway.permissionGranted,
       remindOnDevice: () => remindOnDevice,
+      permissionAsked: () async => asked,
       onPermissionChecked: (denied) => deniedReports.add(denied),
       resolve: _utc,
       clock: () => _now,
@@ -75,6 +89,7 @@ class _Harness {
   final repo = _FakeRepo([_ev('a')]);
   final FakeNotificationGateway gateway;
   bool remindOnDevice;
+  bool asked;
   final deniedReports = <bool>[];
   late final ReminderSync sync;
 }
@@ -206,7 +221,7 @@ void main() {
   });
 
   test('provider wiring: denied permission sets the banner provider', () async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({'calendar.permissionAsked': true});
     final soon = DateTime.now().toUtc().add(const Duration(days: 1));
     final repo = _FakeRepo([
       CalendarEvent(
@@ -222,7 +237,9 @@ void main() {
       overrides: [
         notificationGatewayProvider.overrideWithValue(gw),
         calendarRepositoryProvider.overrideWithValue(repo),
-        deviceShortestSideProvider.overrideWithValue(390),
+        deviceShortestSideProvider.overrideWith(
+          () => DeviceShortestSideNotifier(390),
+        ),
       ],
     );
     addTearDown(c.dispose);
@@ -230,5 +247,121 @@ void main() {
     await c.read(reminderSyncProvider).runNow();
     expect(gw.scheduled, isEmpty);
     expect(c.read(calendarPermissionDeniedProvider), isTrue);
+  });
+
+  group('banner only after the owner was asked (R-11)', () {
+    test('never asked + not granted → not denied', () {
+      fakeAsync((fa) {
+        final h = _Harness(granted: false, asked: false);
+        h.sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.gateway.scheduled, isEmpty);
+        expect(h.deniedReports, [false]);
+        h.sync.stop();
+      });
+    });
+
+    test('asked + not granted → denied; then setting off → cleared', () {
+      fakeAsync((fa) {
+        final h = _Harness(granted: false);
+        h.sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.deniedReports.last, isTrue);
+        h.remindOnDevice = false;
+        h.sync.trigger();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.deniedReports.last, isFalse);
+        h.sync.stop();
+      });
+    });
+
+    test('empty plan and cloud API clear the flag', () {
+      fakeAsync((fa) {
+        final h = _Harness(granted: false)..repo.events = [];
+        h.sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(h.deniedReports, [false]);
+        h.sync.stop();
+        final k = _Harness(granted: false, cloudApi: true);
+        k.sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(k.deniedReports, [false]);
+        k.sync.stop();
+      });
+    });
+
+    test('markPermissionAsked stores the key and sets the banner', () async {
+      SharedPreferences.setMockInitialValues({});
+      final c = ProviderContainer();
+      addTearDown(c.dispose);
+      expect(await calendarPermissionAsked(), isFalse);
+      await c
+          .read(calendarPermissionDeniedProvider.notifier)
+          .markPermissionAsked(granted: false);
+      expect(await calendarPermissionAsked(), isTrue);
+      expect(c.read(calendarPermissionDeniedProvider), isTrue);
+    });
+  });
+
+  group('real calendarRepositoryProvider in cloud API mode', () {
+    ProviderContainer container(_Mode mode, FakeNotificationGateway gw) {
+      final c = ProviderContainer(
+        overrides: [
+          dataModeProvider.overrideWith(() => mode),
+          localCalendarRepositoryProvider.overrideWithValue(_FakeRepo([])),
+          notificationGatewayProvider.overrideWithValue(gw),
+          deviceShortestSideProvider.overrideWith(
+            () => DeviceShortestSideNotifier(390),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      return c;
+    }
+
+    test('start() does not throw and calendar reminders are cancelled', () {
+      SharedPreferences.setMockInitialValues({});
+      TestWidgetsFlutterBinding.ensureInitialized();
+      fakeAsync((fa) {
+        final gw = FakeNotificationGateway()
+          ..addPending(1, 'other|x')
+          ..addPending(2, 'calendar|a|x');
+        final c = container(_Mode(DataMode.cloudApi), gw);
+        final sync = c.read(reminderSyncProvider);
+        expect(sync.start, returnsNormally);
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(gw.pendingById.keys, [1]);
+        expect(gw.scheduled, isEmpty);
+        sync.stop();
+      });
+    });
+
+    test('switching to cloud API at runtime cancels calendar reminders', () {
+      SharedPreferences.setMockInitialValues({});
+      TestWidgetsFlutterBinding.ensureInitialized();
+      fakeAsync((fa) {
+        final gw = FakeNotificationGateway()..addPending(1, 'other|x');
+        final mode = _Mode(DataMode.local);
+        final c = container(mode, gw);
+        final sync = c.read(reminderSyncProvider);
+        sync.start();
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        gw.addPending(2, 'calendar|a|x');
+        mode.set(DataMode.cloudApi);
+        fa.flushMicrotasks();
+        expect(gw.pendingById.keys, unorderedEquals([1, 2]));
+        fa.elapse(const Duration(seconds: 1));
+        fa.flushMicrotasks();
+        expect(gw.pendingById.keys, [1]);
+        sync.stop();
+      });
+    });
   });
 }
