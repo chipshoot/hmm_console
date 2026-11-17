@@ -11,6 +11,7 @@ import 'package:hmm_console/core/navigation/router.dart';
 import 'package:hmm_console/core/theme/theme.dart';
 import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
 import 'package:hmm_console/features/calendar/notifications/notification_gateway.dart';
+import 'package:hmm_console/features/calendar/notifications/notification_tap.dart';
 import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
 import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
 import 'package:hmm_console/features/settings/providers/appearance_provider.dart';
@@ -82,15 +83,29 @@ class _MainAppState extends ConsumerState<MainApp> {
     try {
       await initDeviceTimeZone();
       if (!mounted) return;
-      await ref.read(notificationGatewayProvider).initialize(_onReminderTap);
+      final gateway = ref.read(notificationGatewayProvider);
+      await gateway.initialize(_onReminderTap);
+      await _routeLaunchNotification(gateway);
       if (mounted) ref.read(reminderSyncProvider).start();
     } catch (e) {
       debugPrint('Calendar reminders unavailable (${e.runtimeType})');
     }
   }
 
-  /// Placeholder: opening the event from a tapped reminder lands in Task 9.
-  void _onReminderTap(String payload) {}
+  /// Opens the event of a tapped reminder; non-calendar payloads are ignored.
+  void _onReminderTap(String payload) {
+    final route = calendarRouteForPayload(payload);
+    if (route == null || !mounted) return;
+    unawaited(ref.read(AppRouter.config).push(route));
+  }
+
+  /// Cold start from a reminder: the plugin remembers the launching
+  /// notification; route it once the router is up (we run post-first-frame).
+  Future<void> _routeLaunchNotification(NotificationGateway gateway) async {
+    if (gateway is! FlutterNotificationGateway) return;
+    final payload = await gateway.launchPayload();
+    if (payload != null) _onReminderTap(payload);
+  }
 
   @override
   void dispose() {

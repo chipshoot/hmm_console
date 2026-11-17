@@ -22,7 +22,9 @@ import '../../../../core/i18n/enum_labels.dart';
 import '../../../../core/i18n/locale_provider.dart';
 import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/widgets/quick_panel/quick_panel_settings.dart';
+import '../../../calendar/notifications/notification_gateway.dart';
 import '../../../receipt_scan/presentation/receipt_extraction_settings_section.dart';
+import '../widgets/calendar_settings_section.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../widgets/secure_vault_section.dart';
 import '../widgets/sync_status_card.dart';
@@ -365,6 +367,13 @@ class SettingsScreen extends ConsumerWidget {
             GapWidgets.h24,
             const Divider(),
             GapWidgets.h24,
+            if (dataMode != DataMode.cloudApi &&
+                calendarRemindersSupported) ...[
+              const CalendarSettingsSection(),
+              GapWidgets.h24,
+              const Divider(),
+              GapWidgets.h24,
+            ],
             Text(
               l.settingsDataStorage,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(

@@ -4403,4 +4403,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpCalendarHoldBody =>
       'Opens a menu to edit the event, delete just this one, or delete the whole series.';
+
+  @override
+  String get calendarOpenSettings => 'Open Settings';
+
+  @override
+  String get settingsCalendarTitle => 'Calendar';
+
+  @override
+  String get settingsCalendarRemindOnDevice => 'Remind on this device';
+
+  @override
+  String get settingsCalendarRemindOnDeviceSubtitle =>
+      'Show calendar reminders as notifications on this device. Set per device; not synced.';
 }

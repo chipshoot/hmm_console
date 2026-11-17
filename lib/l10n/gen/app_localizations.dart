@@ -7645,6 +7645,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Opens a menu to edit the event, delete just this one, or delete the whole series.'**
   String get helpCalendarHoldBody;
+
+  /// No description provided for @calendarOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get calendarOpenSettings;
+
+  /// No description provided for @settingsCalendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get settingsCalendarTitle;
+
+  /// No description provided for @settingsCalendarRemindOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind on this device'**
+  String get settingsCalendarRemindOnDevice;
+
+  /// No description provided for @settingsCalendarRemindOnDeviceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show calendar reminders as notifications on this device. Set per device; not synced.'**
+  String get settingsCalendarRemindOnDeviceSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -212,6 +212,9 @@ void main() {
     c.read(calendarPermissionDeniedProvider.notifier).set(true);
     await tester.pumpAndSettle();
     expect(find.textContaining('notification permission'), findsOneWidget);
+    c.read(calendarPermissionDeniedProvider.notifier).set(false);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('notification permission'), findsNothing);
   });
 
   test('the launcher registry contains calendar', () {

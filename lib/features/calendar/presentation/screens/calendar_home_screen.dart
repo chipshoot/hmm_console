@@ -17,6 +17,7 @@ import '../../states/remind_on_device_provider.dart';
 import '../widgets/agenda_list.dart';
 import '../widgets/calendar_cloud_api_message.dart';
 import '../widgets/month_grid.dart';
+import '../widgets/permission_banner.dart';
 
 /// Same breakpoint as the Notes sidebar's docked layout.
 const double kCalendarWideBreakpoint = 1000;
@@ -254,12 +255,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
             ),
       body: Column(
         children: [
-          if (denied)
-            MaterialBanner(
-              content: Text(l.calendarPermissionBanner),
-              leading: const Icon(Icons.notifications_off_outlined),
-              actions: const [SizedBox.shrink()],
-            ),
+          if (denied) const PermissionBanner(),
           Expanded(child: body),
         ],
       ),

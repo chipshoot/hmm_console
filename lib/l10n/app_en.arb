@@ -1921,5 +1921,9 @@
   "helpCalendarSwipeTitle": "Swipe an event",
   "helpCalendarSwipeBody": "Swipe right to mark it done, left to skip it. Undo is offered for a few seconds.",
   "helpCalendarHoldTitle": "Touch and hold an event",
-  "helpCalendarHoldBody": "Opens a menu to edit the event, delete just this one, or delete the whole series."
+  "helpCalendarHoldBody": "Opens a menu to edit the event, delete just this one, or delete the whole series.",
+  "calendarOpenSettings": "Open Settings",
+  "settingsCalendarTitle": "Calendar",
+  "settingsCalendarRemindOnDevice": "Remind on this device",
+  "settingsCalendarRemindOnDeviceSubtitle": "Show calendar reminders as notifications on this device. Set per device; not synced."
 }

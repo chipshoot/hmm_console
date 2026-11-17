@@ -1293,5 +1293,9 @@
   "helpCalendarSwipeTitle": "滑动日程",
   "helpCalendarSwipeBody": "向右滑动标记完成，向左滑动跳过。几秒内可以撤销。",
   "helpCalendarHoldTitle": "长按日程",
-  "helpCalendarHoldBody": "打开菜单：编辑日程、只删除这一次，或删除整个系列。"
+  "helpCalendarHoldBody": "打开菜单：编辑日程、只删除这一次，或删除整个系列。",
+  "calendarOpenSettings": "打开设置",
+  "settingsCalendarTitle": "日历",
+  "settingsCalendarRemindOnDevice": "在此设备上提醒",
+  "settingsCalendarRemindOnDeviceSubtitle": "在此设备上以通知形式显示日历提醒。按设备设置，不会同步。"
 }

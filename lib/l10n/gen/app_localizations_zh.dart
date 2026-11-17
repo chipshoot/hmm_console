@@ -4191,4 +4191,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpCalendarHoldBody => '打开菜单：编辑日程、只删除这一次，或删除整个系列。';
+
+  @override
+  String get calendarOpenSettings => '打开设置';
+
+  @override
+  String get settingsCalendarTitle => '日历';
+
+  @override
+  String get settingsCalendarRemindOnDevice => '在此设备上提醒';
+
+  @override
+  String get settingsCalendarRemindOnDeviceSubtitle =>
+      '在此设备上以通知形式显示日历提醒。按设备设置，不会同步。';
 }
