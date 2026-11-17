@@ -230,6 +230,55 @@ void main() {
       expect(o[1].status, OccurrenceStatus.moved);
     });
 
+    test('R-15: movedTo applies whatever the status (done keeps the move)', () {
+      final e = base.copyWith(
+        occurrences: [
+          ov(
+            6,
+            OccurrenceStatus.done,
+            movedTo: const FloatingTime(2026, 1, 6, 15, 30),
+          ),
+        ],
+      );
+      final o = run(e, utc(2026, 1, 5), utc(2026, 1, 8));
+      expect(starts(o), [
+        utc(2026, 1, 5, 9),
+        utc(2026, 1, 6, 15, 30),
+        utc(2026, 1, 7, 9),
+      ]);
+      expect(o[1].status, OccurrenceStatus.done);
+      expect(o[1].originalStart, const FloatingTime(2026, 1, 6, 9, 0));
+    });
+
+    test('R-15: a skipped occurrence moved into the range is found', () {
+      final e = base.copyWith(
+        occurrences: [
+          ov(
+            9,
+            OccurrenceStatus.skipped,
+            movedTo: const FloatingTime(2026, 1, 6, 12, 0),
+          ),
+        ],
+      );
+      final o = run(e, utc(2026, 1, 6), utc(2026, 1, 7));
+      expect(starts(o), [utc(2026, 1, 6, 9), utc(2026, 1, 6, 12)]);
+      expect(o[1].status, OccurrenceStatus.skipped);
+    });
+
+    test('R-15: cancelled still removes a moved occurrence', () {
+      final e = base.copyWith(
+        occurrences: [
+          ov(
+            6,
+            OccurrenceStatus.cancelled,
+            movedTo: const FloatingTime(2026, 1, 6, 15, 30),
+          ),
+        ],
+      );
+      final o = run(e, utc(2026, 1, 5), utc(2026, 1, 8));
+      expect(starts(o), [utc(2026, 1, 5, 9), utc(2026, 1, 7, 9)]);
+    });
+
     test('moved into the range from outside it is still found', () {
       final e = base.copyWith(
         occurrences: [

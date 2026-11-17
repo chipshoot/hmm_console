@@ -46,7 +46,7 @@ List<Occurrence> expandOccurrences(
   var bound = to;
   for (final o in overrides.values) {
     final m = o.movedTo;
-    if (o.status == OccurrenceStatus.moved && m != null) {
+    if (o.status != OccurrenceStatus.cancelled && m != null) {
       final moved = ctx.startOf(m);
       if (moved.isBefore(to)) {
         final orig = ctx.startOf(o.originalStart);
@@ -73,8 +73,9 @@ List<Occurrence> expandOccurrences(
 
     final ov = overrides[slot.wireKey];
     if (ov?.status == OccurrenceStatus.cancelled) continue;
-    final moved = ov?.status == OccurrenceStatus.moved ? ov!.movedTo : null;
-    final t = moved ?? slot;
+    // R-15: a moved time applies whatever the status, so marking a moved
+    // occurrence done or skipped keeps it where it was moved to.
+    final t = ov?.movedTo ?? slot;
     final built = ctx.build(t);
     final title = ov?.extraFields['title'];
     final occ = Occurrence(

@@ -347,6 +347,25 @@ void main() {
       expect(e.rrule, 'FREQ=WEEKLY;BYDAY=TU');
     });
 
+    testWidgets('changing only the end of an occurrence changes the series '
+        'length (no scope dialog, nothing lost)', (tester) async {
+      final repo = seeded();
+      await _mount(tester, repo, eventId: 'r', at: at);
+      await tester.tap(find.byKey(const Key('calendar-edit-end-date')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('16'));
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await _save(tester);
+      expect(find.text('This occurrence'), findsNothing);
+      final e = repo.events['r']!;
+      expect(repo.log, ['save:r']);
+      expect(e.occurrences, isEmpty);
+      expect(e.start, const FloatingTime(2030, 1, 13, 19, 0));
+      // One day plus one hour long now.
+      expect(e.end, const FloatingTime(2030, 1, 14, 20, 0));
+    });
+
     testWidgets('All occurrences updates the series', (tester) async {
       final repo = seeded();
       await _mount(tester, repo, eventId: 'r', at: at);

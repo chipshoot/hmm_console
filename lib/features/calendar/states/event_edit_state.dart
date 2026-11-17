@@ -112,7 +112,8 @@ class OccurrenceRef {
     return t is String ? t : null;
   }
 
-  /// [s] applied to this occurrence, keeping the rest of its override.
+  /// [s] applied to this occurrence, keeping the rest of its override
+  /// (including `movedTo`, which applies whatever the status: R-15).
   OccurrenceOverride withStatus(OccurrenceStatus s) =>
       override?.copyWith(status: s) ??
       OccurrenceOverride(originalStart: originalStart, status: s);
@@ -130,8 +131,8 @@ OccurrenceRef? resolveOccurrence(CalendarEvent e, String? at) {
   }
   final original = ov?.originalStart ?? eventTimeFromWireKey(at, e);
   if (original == null) return null;
-  final moved = ov?.status == OccurrenceStatus.moved ? ov?.movedTo : null;
-  final effective = moved ?? original;
+  // R-15: movedTo applies whatever the status.
+  final effective = ov?.movedTo ?? original;
   final resolve = deviceResolver();
   final start = switch (effective) {
     FixedTime(:final instant) => instant.toUtc(),

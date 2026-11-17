@@ -50,13 +50,13 @@ int reminderNotificationId(
 AllDay _allDayDate(CalendarEvent e, Occurrence o) {
   for (final ov in e.occurrences) {
     if (ov.originalStart.wireKey == o.originalStart.wireKey &&
-        ov.status == OccurrenceStatus.moved) {
+        ov.movedTo != null) {
       final m = ov.movedTo;
       if (m is AllDay) return m;
     }
   }
   final orig = o.originalStart;
-  if (orig is AllDay && o.status != OccurrenceStatus.moved) return orig;
+  if (orig is AllDay) return orig;
   final l = o.start.toLocal();
   return AllDay(l.year, l.month, l.day);
 }

@@ -106,10 +106,14 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
 
   void _update(EventForm f) => setState(() => _form = f);
 
-  /// True when a field only the series has (repeat, reminders, notes) was
-  /// changed: such an edit can only apply to all occurrences.
+  /// True when a field only the series has (repeat, reminders, notes, the
+  /// length: an override has no end of its own) was changed: such an edit can
+  /// only apply to all occurrences.
   bool _seriesFieldsChanged(EventForm f, EventForm initial) {
     if (f.rrule != initial.rrule || f.notes.trim() != initial.notes.trim()) {
+      return true;
+    }
+    if (wallDiff(f.end, f.start) != wallDiff(initial.end, initial.start)) {
       return true;
     }
     if (f.reminders.length != initial.reminders.length) return true;

@@ -132,6 +132,32 @@ void main() {
     expect(repo.log, contains('occ:r:cancelled'));
   });
 
+  testWidgets('R-15: Done on a moved occurrence keeps its moved start', (
+    tester,
+  ) async {
+    const moved = FloatingTime(2030, 1, 15, 21, 30);
+    final repo = FakeCalendarRepository()
+      ..seed(
+        _ev('r').copyWith(
+          occurrences: const [
+            OccurrenceOverride(
+              originalStart: FloatingTime(2030, 1, 15, 19, 0),
+              status: OccurrenceStatus.moved,
+              movedTo: moved,
+            ),
+          ],
+        ),
+      );
+    await _mount(tester, repo);
+    expect(find.textContaining('9:30 PM'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    final o = repo.events['r']!.occurrences.single;
+    expect(o.status, OccurrenceStatus.done);
+    expect(o.movedTo, moved);
+    expect(find.textContaining('9:30 PM'), findsOneWidget);
+  });
+
   testWidgets('a one-off has no Done/Skip', (tester) async {
     await _mount(
       tester,

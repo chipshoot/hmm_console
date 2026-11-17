@@ -13,6 +13,7 @@ import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../contract/calendar_errors.dart';
+import '../../contract/i_calendar_repository.dart';
 import '../../domain/calendar_event.dart';
 import '../../domain/event_time.dart';
 import '../../states/calendar_providers.dart';
@@ -51,11 +52,12 @@ class EventDetailScreen extends ConsumerWidget {
   final String eventId;
   final String? at;
 
-  /// Runs [change] with Undo = saving [snapshot] (R-6). Everything the
-  /// snackbar needs is captured before the first await.
+  /// Runs [change] with Undo = saving [snapshot] (R-6). [repo] and [l] are
+  /// read by the caller before any await; the snackbar outlives the screen.
   Future<void> _undoable(
     BuildContext context,
-    WidgetRef ref,
+    ICalendarRepository repo,
+    AppLocalizations l,
     CalendarEvent snapshot, {
     required Object busyKey,
     required Future<void> Function() change,
@@ -63,8 +65,6 @@ class EventDetailScreen extends ConsumerWidget {
     required String failed,
     required String undone,
   }) {
-    final l = AppLocalizations.of(context);
-    final repo = ref.read(calendarRepositoryProvider);
     return showUndoableAction(
       context,
       busyKey: busyKey,
@@ -91,7 +91,8 @@ class EventDetailScreen extends ConsumerWidget {
     final isDone = s == OccurrenceStatus.done;
     return _undoable(
       context,
-      ref,
+      repo,
+      l,
       e,
       busyKey: ('calendar', e.id, o.originalStart.wireKey),
       change: () async {
@@ -163,17 +164,20 @@ class EventDetailScreen extends ConsumerWidget {
     CalendarEvent e,
     OccurrenceRef? o,
   ) async {
-    final choice = await _pickDelete(context, o != null);
-    if (choice == null || !context.mounted) return;
+    // Everything needed after the picker is read before awaiting it.
     final l = AppLocalizations.of(context);
     final repo = ref.read(calendarRepositoryProvider);
     final navigator = Navigator.of(context);
+    final choice = await _pickDelete(context, o != null);
+    // showUndoableAction needs a live context for its snackbar.
+    if (choice == null || !context.mounted) return;
 
     Future<void> deleteSeries() async {
       var removed = false;
       await _undoable(
         context,
-        ref,
+        repo,
+        l,
         e,
         busyKey: ('calendar-delete', e.id),
         change: () async {
@@ -193,7 +197,8 @@ class EventDetailScreen extends ConsumerWidget {
       case _Delete.one:
         await _undoable(
           context,
-          ref,
+          repo,
+          l,
           e,
           busyKey: ('calendar', e.id, o!.originalStart.wireKey),
           change: () async {
@@ -215,7 +220,8 @@ class EventDetailScreen extends ConsumerWidget {
         }
         await _undoable(
           context,
-          ref,
+          repo,
+          l,
           e,
           busyKey: ('calendar-following', e.id),
           change: () async {
