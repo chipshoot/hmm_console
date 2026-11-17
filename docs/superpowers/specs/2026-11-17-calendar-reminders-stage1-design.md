@@ -108,6 +108,14 @@ class Occurrence { String eventId; DateTime start; DateTime? end; OccurrenceStat
 the subset is kept as written, shown as "Custom repeat", expanded on the parts
 that are understood, and not editable in the repeat picker until cleared.
 Monthly on the 31st skips months without one (RFC 5545 behaviour).
+**Lunar repeats are reserved, not built.** A rule carrying `RSCALE` other than
+`GREGORIAN` (RFC 7529, e.g. `RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15`)
+is kept exactly as written, shown as "Lunar repeat", and in stage 1 yields only
+its first occurrence (the event's own start), so it never fires on a wrong
+Gregorian date. A follow-up after stage 1 adds 农历 dates on the month grid
+(display only) and real lunar expansion: a leap-month date falls in the normal
+month in other years, and day 30 falls on day 29 in a short month (owner
+approved the follow-up, 2026-11-17).
 
 **Occurrences** are computed, never stored, by
 `expandOccurrences(CalendarEvent e, DateTime from, DateTime to) → List<Occurrence>`,

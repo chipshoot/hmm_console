@@ -91,13 +91,14 @@ Expected: All tests passed.
 **Interfaces:**
 - Consumes: Task 1 `CalendarEvent`, `EventTime`, `OccurrenceOverride`.
 - Produces:
-  - `class RecurrenceRule { Frequency freq; int interval; List<Weekday> byDay; List<int> byMonthDay; int? count; DateTime? until; String unsupported; bool get isCustom; static RecurrenceRule parse(String rrule); String format(); }`. `format(parse(x))` keeps unsupported parts verbatim.
+  - `class RecurrenceRule { Frequency freq; int interval; List<Weekday> byDay; List<int> byMonthDay; int? count; DateTime? until; String unsupported; String? rscale; bool get isCustom; bool get isLunar; /* rscale != null && rscale != 'GREGORIAN' */ static RecurrenceRule parse(String rrule); String format(); }`. `format(parse(x))` keeps unsupported parts verbatim.
   - `typedef LocalResolver = DateTime Function(int y, int m, int d, int hh, int mm);` This resolves wall-clock time to a UTC instant in the device zone. The default is `(y,m,d,hh,mm) => DateTime(y,m,d,hh,mm).toUtc()`.
   - `class Occurrence { String eventId; EventTime originalStart; DateTime start; DateTime? end; bool allDay; OccurrenceStatus? status; String? titleOverride; }`. `start` and `end` are UTC.
   - `List<Occurrence> expandOccurrences(CalendarEvent e, DateTime fromUtc, DateTime toUtc, {LocalResolver resolve})`. It returns occurrences whose start falls in [from, to), plus any that started before `from` and are still running at `from`, sorted by start. `cancelled` overrides are omitted; `moved` overrides use `movedTo`; `done` and `skipped` set `status`. A cancelled series returns []. A one-off event (no rrule) yields at most one occurrence.
 
 - [ ] **Step 1: Write the failing tests**
   - Parse/format: `FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;COUNT=6` round-trips. `FREQ=MONTHLY;BYSETPOS=-1;BYDAY=FR` has `isCustom == true`, and `format()` still contains `BYSETPOS=-1`.
+  - Lunar reserve (spec §4.1): `RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15` parses without error, `isLunar == true`, `isCustom == true`, and `format()` returns it unchanged. Expanding an event with that rule over a 3-year range yields exactly one occurrence, at the event's start. `RSCALE=GREGORIAN;FREQ=DAILY` expands as an ordinary daily rule.
   - Daily, weekly `BYDAY=MO,WE,FR`, monthly `BYMONTHDAY=31` (Jan 31, Mar 31, May 31 in a Jan–Jun range; no Feb or Apr), yearly, `INTERVAL=2`, `COUNT=3` (exactly 3), and `UNTIL` inclusive of the last day.
   - Overrides: a done override sets status, a cancelled one removes that occurrence, a moved one changes its start, and an override matching no occurrence is ignored.
   - A one-off `FixedTime` event inside the range gives 1 occurrence; outside it gives 0.
@@ -378,7 +379,7 @@ Same command, plus `flutter test test/core/help/`. Expected: All tests passed.
   - Switching an existing event between one-off and repeating converts the start in wall-clock terms.
 
 - [ ] **Step 1: Write the failing tests**
-  - `describeRepeat`: `FREQ=WEEKLY;BYDAY=MO,WE,FR` reads "Every Mon, Wed, Fri" in en; a custom rule reads "Custom repeat".
+  - `describeRepeat`: `FREQ=WEEKLY;BYDAY=MO,WE,FR` reads "Every Mon, Wed, Fri" in en; a custom rule reads "Custom repeat"; a lunar rule reads "Lunar repeat".
   - Editor:
     - a new event defaults to one 15-min reminder;
     - **Review Focus 5:** an end before the start blocks saving and shows the message;
