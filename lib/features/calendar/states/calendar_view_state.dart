@@ -7,7 +7,8 @@ import '../domain/calendar_event.dart';
 import '../domain/event_time.dart';
 import '../domain/occurrence.dart';
 import '../domain/recurrence_expander.dart';
-import '../notifications/reminder_sync.dart' show deviceLocalResolver;
+import '../notifications/reminder_sync.dart'
+    show deviceLocalResolver, deviceZoneKnown;
 import 'calendar_providers.dart';
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -77,16 +78,9 @@ class CalendarViewData {
   final List<String> unreadableIds;
 }
 
-/// The time-zone database is initialised at app start; before that (and in
-/// widget tests) `tz.local` is unusable and the platform zone applies.
-bool _deviceZoneReady() {
-  try {
-    tz.local;
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
+/// The device zone is read at app start and on resume; until then (in
+/// widget tests, or when it cannot be read) the platform zone applies.
+bool _deviceZoneReady() => deviceZoneKnown;
 
 /// Resolves wall-clock times in the device zone (the `timezone` zone once
 /// initialised, else the platform zone).

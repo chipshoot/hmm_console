@@ -20,24 +20,46 @@ import 'local_reminder_scheduler.dart';
 import 'notification_gateway.dart';
 import 'reminder_plan.dart';
 
-/// Loads the time-zone database and sets `tz.local` to the device's zone,
-/// falling back to UTC when the zone cannot be read.
-Future<void> initDeviceTimeZone() async {
-  tzdata.initializeTimeZones();
+bool _tzDataLoaded = false;
+bool _deviceZoneKnown = false;
+
+/// True once the device zone has been read into `tz.local`. While false
+/// (before the first read, in widget tests, or when the read failed) the
+/// platform zone (`DateTime` local time) applies, never UTC.
+bool get deviceZoneKnown => _deviceZoneKnown;
+
+Future<String> _readPlatformZone() async =>
+    (await FlutterTimezone.getLocalTimezone()).identifier;
+
+/// Loads the time-zone database once and sets `tz.local` to the device's
+/// zone as [readZone] reports it. Called at start and on every resume (R-19),
+/// so travel or a zone change in Settings is picked up. When the zone cannot
+/// be read, [deviceZoneKnown] turns false and the platform zone is used.
+Future<void> initDeviceTimeZone({
+  Future<String> Function() readZone = _readPlatformZone,
+}) async {
+  if (!_tzDataLoaded) {
+    tzdata.initializeTimeZones();
+    _tzDataLoaded = true;
+  }
   try {
-    final info = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(info.identifier));
+    tz.setLocalLocation(tz.getLocation(await readZone()));
+    _deviceZoneKnown = true;
   } catch (e) {
     debugPrint(
-      'ReminderSync: device time zone unavailable (${e.runtimeType}); using UTC',
+      'ReminderSync: device time zone unavailable (${e.runtimeType}); '
+      'using the platform zone',
     );
-    tz.setLocalLocation(tz.UTC);
+    _deviceZoneKnown = false;
   }
 }
 
-/// Wall-clock time in the device zone (`tz.local`) → UTC instant.
+/// Wall-clock time in the device zone → UTC instant: `tz.local` once the
+/// device zone is known, else the platform zone.
 DateTime deviceLocalResolver(int y, int m, int d, int hh, int mm) =>
-    tz.TZDateTime(tz.local, y, m, d, hh, mm).toUtc();
+    _deviceZoneKnown
+    ? tz.TZDateTime(tz.local, y, m, d, hh, mm).toUtc()
+    : defaultLocalResolver(y, m, d, hh, mm);
 
 String defaultReminderTitle(CalendarEvent e, Occurrence o) =>
     o.titleOverride ?? e.title;
@@ -64,6 +86,7 @@ class ReminderSync with WidgetsBindingObserver {
     String Function(CalendarEvent, Occurrence) formatTitle =
         defaultReminderTitle,
     DateTime Function() clock = _utcNow,
+    Future<void> Function()? refreshZone,
     Duration debounce = const Duration(seconds: 1),
     bool observeLifecycle = true,
   }) : _repository = repository,
@@ -76,6 +99,7 @@ class ReminderSync with WidgetsBindingObserver {
        _resolve = resolve,
        _formatTitle = formatTitle,
        _clock = clock,
+       _refreshZone = refreshZone,
        _debounce = debounce,
        _observeLifecycle = observeLifecycle;
 
@@ -91,6 +115,9 @@ class ReminderSync with WidgetsBindingObserver {
   final LocalResolver _resolve;
   final String Function(CalendarEvent, Occurrence) _formatTitle;
   final DateTime Function() _clock;
+
+  /// Re-reads the device zone; run on every resume before planning (R-19).
+  final Future<void> Function()? _refreshZone;
   final Duration _debounce;
   final bool _observeLifecycle;
 
@@ -144,7 +171,20 @@ class ReminderSync with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) trigger();
+    if (state != AppLifecycleState.resumed) return;
+    final refresh = _refreshZone;
+    if (refresh == null) {
+      trigger();
+      return;
+    }
+    unawaited(() async {
+      try {
+        await refresh();
+      } catch (e) {
+        debugPrint('ReminderSync: zone refresh failed (${e.runtimeType})');
+      }
+      trigger();
+    }());
   }
 
   /// Schedules a run after the debounce; a later trigger restarts the wait.
@@ -257,6 +297,7 @@ final reminderSyncProvider = Provider<ReminderSync>((ref) {
     ),
     onPermissionChecked: (denied) =>
         ref.read(calendarPermissionDeniedProvider.notifier).set(denied),
+    refreshZone: initDeviceTimeZone,
   );
   ref.listen<bool>(remindOnDeviceProvider, (_, _) => sync.trigger());
   ref.listen<DataMode>(dataModeProvider, (_, _) {

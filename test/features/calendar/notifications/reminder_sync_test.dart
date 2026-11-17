@@ -44,6 +44,7 @@ class _FakeRepo implements ICalendarRepository {
   List<CalendarEvent> events;
   final _changes = StreamController<void>.broadcast();
   int reads = 0;
+  void Function()? onRead;
 
   void emit() => _changes.add(null);
   void emitError(Object e) => _changes.addError(e);
@@ -51,6 +52,7 @@ class _FakeRepo implements ICalendarRepository {
   @override
   Future<List<CalendarEvent>> eventsBetween(DateTime from, DateTime to) async {
     reads++;
+    onRead?.call();
     return events;
   }
 
@@ -67,6 +69,8 @@ class _Harness {
     bool granted = true,
     bool cloudApi = false,
     this.asked = true,
+    Future<void> Function()? refreshZone,
+    void Function()? onRead,
   }) : remindOnDevice = remind,
        gateway = FakeNotificationGateway(granted: granted) {
     gateway.addPending(1, 'other|x');
@@ -90,8 +94,10 @@ class _Harness {
       onPermissionChecked: (denied) => deniedReports.add(denied),
       resolve: _utc,
       clock: () => _now,
+      refreshZone: refreshZone,
       observeLifecycle: false,
     );
+    repo.onRead = onRead;
   }
 
   final repo = _FakeRepo([_ev('a')]);
@@ -186,6 +192,37 @@ void main() {
       h.repo.emitError(StateError('catalog'));
       fa.flushMicrotasks();
       h.repo.emit();
+      fa.elapse(const Duration(seconds: 1));
+      fa.flushMicrotasks();
+      expect(h.repo.reads, 2);
+      h.sync.stop();
+    });
+  });
+
+  test('resume re-reads the zone before the run (R-19)', () {
+    fakeAsync((fa) {
+      final order = <String>[];
+      final h = _Harness(
+        refreshZone: () async => order.add('zone'),
+        onRead: () => order.add('run'),
+      );
+      h.sync.start();
+      fa.elapse(const Duration(seconds: 2));
+      order.clear();
+      h.sync.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      fa.elapse(const Duration(seconds: 1));
+      fa.flushMicrotasks();
+      expect(order, ['zone', 'run']);
+      h.sync.stop();
+    });
+  });
+
+  test('a failing zone refresh still runs', () {
+    fakeAsync((fa) {
+      final h = _Harness(refreshZone: () async => throw StateError('tz'));
+      h.sync.start();
+      fa.elapse(const Duration(seconds: 2));
+      h.sync.didChangeAppLifecycleState(AppLifecycleState.resumed);
       fa.elapse(const Duration(seconds: 1));
       fa.flushMicrotasks();
       expect(h.repo.reads, 2);
