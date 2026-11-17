@@ -101,32 +101,6 @@ class OccurrenceOverride {
   int get hashCode => Object.hash(originalStart, status, movedTo);
 }
 
-/// One occurrence of an event, computed by expansion and never stored.
-class Occurrence {
-  const Occurrence({
-    required this.eventId,
-    required this.start,
-    this.end,
-    this.status,
-  });
-
-  final String eventId;
-  final DateTime start;
-  final DateTime? end;
-  final OccurrenceStatus? status;
-
-  @override
-  bool operator ==(Object other) =>
-      other is Occurrence &&
-      other.eventId == eventId &&
-      other.start == start &&
-      other.end == end &&
-      other.status == status;
-
-  @override
-  int get hashCode => Object.hash(eventId, start, end, status);
-}
-
 class CalendarEvent {
   const CalendarEvent({
     required this.id,
