@@ -5006,6 +5006,12 @@ abstract class AppLocalizations {
   /// **'Contact'**
   String get notesContactTitleFallback;
 
+  /// No description provided for @notesCalendarEventTitleFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get notesCalendarEventTitleFallback;
+
   /// No description provided for @notesCheatsheetTitleFallback.
   ///
   /// In en, this message translates to:

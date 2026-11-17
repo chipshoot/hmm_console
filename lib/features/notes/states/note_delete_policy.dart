@@ -3,10 +3,12 @@ import '../../../core/data/local/local_cheatsheet_repository.dart'
 import '../../../core/data/local/local_contact_repository.dart'
     show contactCatalogName;
 import '../../../core/notes/catalog_palette.dart';
+import '../../calendar/data/local_calendar_repository.dart'
+    show calendarCatalogName;
 import '../data/models/hmm_note.dart';
 
 /// Where an entity note is managed instead of the Notes delete (G7).
-enum NoteManagePlace { contacts, cheatsheets, automobile, ownScreen }
+enum NoteManagePlace { contacts, cheatsheets, calendar, automobile, ownScreen }
 
 /// True only for ordinary notes: the General catalog, or a legacy row with
 /// no catalog. Contacts, cheatsheet cards, gas logs, cars, service records,
@@ -22,6 +24,7 @@ NoteManagePlace? managePlaceFor(String? catalogName) {
   if (catalogName == null || catalogName == kGeneralCatalogName) return null;
   if (catalogName == contactCatalogName) return NoteManagePlace.contacts;
   if (catalogName == cheatsheetCatalogName) return NoteManagePlace.cheatsheets;
+  if (catalogName == calendarCatalogName) return NoteManagePlace.calendar;
   if (CatalogPalette.domainKeyFor(catalogName) == 'AutomobileMan') {
     return NoteManagePlace.automobile;
   }

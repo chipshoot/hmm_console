@@ -2671,6 +2671,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesContactTitleFallback => '联系人';
 
   @override
+  String get notesCalendarEventTitleFallback => '日程';
+
+  @override
   String get notesCheatsheetTitleFallback => '速查卡';
 
   @override

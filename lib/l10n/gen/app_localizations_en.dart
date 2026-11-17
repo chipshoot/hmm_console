@@ -2750,6 +2750,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesContactTitleFallback => 'Contact';
 
   @override
+  String get notesCalendarEventTitleFallback => 'Event';
+
+  @override
   String get notesCheatsheetTitleFallback => 'Cheatsheet card';
 
   @override
