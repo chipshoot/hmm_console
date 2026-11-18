@@ -97,7 +97,11 @@ class FlutterNotificationGateway implements NotificationGateway {
         importance: Importance.high,
         priority: Priority.high,
       ),
-      iOS: DarwinNotificationDetails(),
+      // Time Sensitive: reminders get through Focus and Scheduled Summary
+      // (the owner can still turn this off per app in iOS Settings).
+      iOS: DarwinNotificationDetails(
+        interruptionLevel: InterruptionLevel.timeSensitive,
+      ),
     ),
     androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
     title: r.title,
