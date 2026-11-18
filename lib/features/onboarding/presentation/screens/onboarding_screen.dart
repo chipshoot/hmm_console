@@ -219,7 +219,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 class _ChoiceTile extends StatelessWidget {
-  _ChoiceTile({
+  const _ChoiceTile({
     required this.value,
     required this.title,
     required this.subtitle,

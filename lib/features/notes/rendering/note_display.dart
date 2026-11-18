@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/data/repository_providers.dart';
 import '../../../core/navigation/route_names.dart';
 import '../../../l10n/gen/app_localizations.dart';
+import '../../calendar/presentation/calendar_note_display.dart';
 import '../../cheatsheet/presentation/cheatsheet_note_display.dart';
 import '../../contacts/presentation/contact_note_display.dart';
 import '../data/models/hmm_note.dart';
@@ -75,6 +76,7 @@ final noteDisplayRegistryProvider = Provider<NoteDisplayRegistry>((ref) {
   return const NoteDisplayRegistry({
     ContactNoteDisplay.catalogName: ContactNoteDisplay(),
     CheatsheetNoteDisplay.catalogName: CheatsheetNoteDisplay(),
+    CalendarNoteDisplay.catalogName: CalendarNoteDisplay(),
   });
 });
 

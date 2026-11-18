@@ -10,6 +10,9 @@ export 'help_models.dart';
 enum HelpId {
   automobileHub,
   vehicleNotes,
+  calendar,
+  calendarEvent,
+  calendarEventEdit,
   contacts,
   contactDetail,
   contactEdit,
@@ -78,6 +81,89 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.touch_app_outlined,
         title: l.helpVehicleNotesOpenTitle,
         body: l.helpVehicleNotesOpenBody,
+      ),
+    ],
+  ),
+  HelpId.calendar => ScreenHelp(
+    title: l.helpCalendarTitle,
+    summary: l.helpCalendarSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.add,
+        title: l.helpCalendarAddTitle,
+        body: l.helpCalendarAddBody,
+      ),
+      HelpEntry(
+        icon: Icons.calendar_month_outlined,
+        title: l.helpCalendarMonthTitle,
+        body: l.helpCalendarMonthBody,
+      ),
+      HelpEntry(
+        icon: Icons.today,
+        title: l.helpCalendarTodayTitle,
+        body: l.helpCalendarTodayBody,
+      ),
+      HelpEntry(
+        icon: Icons.swipe,
+        title: l.helpCalendarSwipeTitle,
+        body: l.helpCalendarSwipeBody,
+      ),
+      HelpEntry(
+        icon: Icons.touch_app_outlined,
+        title: l.helpCalendarHoldTitle,
+        body: l.helpCalendarHoldBody,
+      ),
+    ],
+  ),
+  HelpId.calendarEvent => ScreenHelp(
+    title: l.helpCalendarEventTitle,
+    summary: l.helpCalendarEventSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.edit_outlined,
+        title: l.helpCalendarEventEditTitle,
+        body: l.helpCalendarEventEditBody,
+      ),
+      HelpEntry(
+        icon: Icons.check,
+        title: l.helpCalendarEventDoneTitle,
+        body: l.helpCalendarEventDoneBody,
+      ),
+      HelpEntry(
+        icon: Icons.check_circle_outline,
+        title: l.helpCalendarEventApproveTitle,
+        body: l.helpCalendarEventApproveBody,
+      ),
+      HelpEntry(
+        icon: Icons.more_vert,
+        title: l.helpCalendarEventDeleteTitle,
+        body: l.helpCalendarEventDeleteBody,
+      ),
+    ],
+  ),
+  HelpId.calendarEventEdit => ScreenHelp(
+    title: l.helpCalendarEventEditScreenTitle,
+    summary: l.helpCalendarEventEditScreenSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.wb_sunny_outlined,
+        title: l.helpCalendarEventEditAllDayTitle,
+        body: l.helpCalendarEventEditAllDayBody,
+      ),
+      HelpEntry(
+        icon: Icons.schedule,
+        title: l.helpCalendarEventEditTimeTitle,
+        body: l.helpCalendarEventEditTimeBody,
+      ),
+      HelpEntry(
+        icon: Icons.repeat,
+        title: l.helpCalendarEventEditRepeatTitle,
+        body: l.helpCalendarEventEditRepeatBody,
+      ),
+      HelpEntry(
+        icon: Icons.add_alert_outlined,
+        title: l.helpCalendarEventEditRemindersTitle,
+        body: l.helpCalendarEventEditRemindersBody,
       ),
     ],
   ),

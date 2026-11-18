@@ -297,9 +297,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              function.route == 'contacts'
-                  ? AppLocalizations.of(context).contactsTitle
-                  : function.title,
+              switch (function.route) {
+                'contacts' => AppLocalizations.of(context).contactsTitle,
+                'calendar' =>
+                  AppLocalizations.of(context).dashboardCalendarTitle,
+                _ => function.title,
+              },
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.onSurface,
@@ -484,6 +487,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         context.pushNamed(RouterNames.cheatsheets.name);
       case 'contacts':
         context.pushNamed(RouterNames.contacts.name);
+      case 'calendar':
+        context.pushNamed(RouterNames.calendar.name);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

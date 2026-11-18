@@ -2,6 +2,12 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Calendar reminders (flutter_local_notifications). POST_NOTIFICATIONS
+         is asked at runtime on Android 13+; RECEIVE_BOOT_COMPLETED lets the
+         plugin restore scheduled reminders after a reboot. No exact-alarm
+         permission: reminders use inexactAllowWhileIdle. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
         android:label="hmm_console"
         android:name="${applicationName}"
@@ -34,6 +40,18 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- flutter_local_notifications: shows scheduled reminders and
+             reschedules them after a reboot or an app update. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
 
         <!-- flutter_web_auth_2 callback activity. Captures the redirect from
              Microsoft / Dropbox / Google after OAuth sign-in and routes it

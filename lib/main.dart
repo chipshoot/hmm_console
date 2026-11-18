@@ -10,6 +10,10 @@ import 'package:hmm_console/core/i18n/locale_provider.dart';
 import 'package:hmm_console/core/navigation/router.dart';
 import 'package:hmm_console/core/theme/theme.dart';
 import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
+import 'package:hmm_console/features/calendar/notifications/notification_gateway.dart';
+import 'package:hmm_console/features/calendar/notifications/notification_tap.dart';
+import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
+import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
 import 'package:hmm_console/features/settings/providers/appearance_provider.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'firebase_options.dart';
@@ -61,6 +65,46 @@ class _MainAppState extends ConsumerState<MainApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(ref.read(notePurgeSchedulerProvider).maybeRun());
     });
+    // Calendar reminders: time zone + plugin first, then the sync. Never asks
+    // for notification permission here (that happens on the first save with
+    // a reminder).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_startCalendarReminders());
+    });
+  }
+
+  Future<void> _startCalendarReminders() async {
+    if (!calendarRemindersSupported) return;
+    // After the first frame the view exists even under the UIScene
+    // lifecycle, so "Remind on this device" can default from a real size.
+    ref
+        .read(deviceShortestSideProvider.notifier)
+        .set(shortestSideOfView(View.of(context)));
+    try {
+      await initDeviceTimeZone();
+      if (!mounted) return;
+      final gateway = ref.read(notificationGatewayProvider);
+      await gateway.initialize(_onReminderTap);
+      await _routeLaunchNotification(gateway);
+      if (mounted) ref.read(reminderSyncProvider).start();
+    } catch (e) {
+      debugPrint('Calendar reminders unavailable (${e.runtimeType})');
+    }
+  }
+
+  /// Opens the event of a tapped reminder; non-calendar payloads are ignored.
+  void _onReminderTap(String payload) {
+    final route = calendarRouteForPayload(payload);
+    if (route == null || !mounted) return;
+    unawaited(ref.read(AppRouter.config).push(route));
+  }
+
+  /// Cold start from a reminder: the plugin remembers the launching
+  /// notification; route it once the router is up (we run post-first-frame).
+  Future<void> _routeLaunchNotification(NotificationGateway gateway) async {
+    if (gateway is! FlutterNotificationGateway) return;
+    final payload = await gateway.launchPayload();
+    if (payload != null) _onReminderTap(payload);
   }
 
   @override
@@ -92,6 +136,10 @@ class _MainAppState extends ConsumerState<MainApp> {
     ref.listen<NotePurgeScheduler>(notePurgeSchedulerProvider, (previous, next) {});
     // Same for the video upload scheduler (resume, Wi-Fi, after-sync triggers).
     ref.listen<VideoUploadScheduler>(videoUploadSchedulerProvider, (previous, next) {});
+    // Keep the reminder sync alive; a rebuilt instance starts itself.
+    if (calendarRemindersSupported) {
+      ref.listen<ReminderSync>(reminderSyncProvider, (previous, next) => next.start());
+    }
 
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(
@@ -112,7 +160,7 @@ class _MainAppState extends ConsumerState<MainApp> {
       // instance instead of `context`.
       builder: (context, child) => Stack(
         children: [
-          if (child != null) child,
+          ?child,
           const HomeSyncOverlay(),
         ],
       ),

@@ -5006,6 +5006,12 @@ abstract class AppLocalizations {
   /// **'Contact'**
   String get notesContactTitleFallback;
 
+  /// No description provided for @notesCalendarEventTitleFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get notesCalendarEventTitleFallback;
+
   /// No description provided for @notesCheatsheetTitleFallback.
   ///
   /// In en, this message translates to:
@@ -6829,6 +6835,846 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Removes downloaded videos from this device. Kept-offline videos stay, and the others download again when you play them.'**
   String get helpVideoStorageClearBody;
+
+  /// No description provided for @calendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendarTitle;
+
+  /// No description provided for @dashboardCalendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get dashboardCalendarTitle;
+
+  /// No description provided for @dashboardCalendarDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Events and reminders'**
+  String get dashboardCalendarDescription;
+
+  /// No description provided for @calendarToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get calendarToday;
+
+  /// No description provided for @calendarAddEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Add event'**
+  String get calendarAddEvent;
+
+  /// No description provided for @calendarPreviousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get calendarPreviousMonth;
+
+  /// No description provided for @calendarNextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get calendarNextMonth;
+
+  /// No description provided for @calendarAllDay.
+  ///
+  /// In en, this message translates to:
+  /// **'All day'**
+  String get calendarAllDay;
+
+  /// No description provided for @calendarEmptyDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing planned for this day.'**
+  String get calendarEmptyDay;
+
+  /// No description provided for @calendarLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the calendar.'**
+  String get calendarLoadFailed;
+
+  /// No description provided for @calendarCloudApiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar is available in Local and Cloud storage modes. Switch data mode in Settings to use it.'**
+  String get calendarCloudApiUnavailable;
+
+  /// No description provided for @calendarMarkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get calendarMarkDone;
+
+  /// No description provided for @calendarSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get calendarSkip;
+
+  /// No description provided for @calendarStatusDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get calendarStatusDone;
+
+  /// No description provided for @calendarStatusSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get calendarStatusSkipped;
+
+  /// No description provided for @calendarStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted'**
+  String get calendarStatusCancelled;
+
+  /// No description provided for @calendarRepeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats'**
+  String get calendarRepeats;
+
+  /// No description provided for @calendarOccurrenceDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked done'**
+  String get calendarOccurrenceDone;
+
+  /// No description provided for @calendarOccurrenceDoneFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not mark it done'**
+  String get calendarOccurrenceDoneFailed;
+
+  /// No description provided for @calendarOccurrenceDoneUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done mark removed'**
+  String get calendarOccurrenceDoneUndone;
+
+  /// No description provided for @calendarOccurrenceSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get calendarOccurrenceSkipped;
+
+  /// No description provided for @calendarOccurrenceSkippedFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not skip it'**
+  String get calendarOccurrenceSkippedFailed;
+
+  /// No description provided for @calendarOccurrenceSkippedUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip removed'**
+  String get calendarOccurrenceSkippedUndone;
+
+  /// No description provided for @calendarUndoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not undo'**
+  String get calendarUndoFailed;
+
+  /// No description provided for @calendarEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get calendarEdit;
+
+  /// No description provided for @calendarDeleteThis.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this one'**
+  String get calendarDeleteThis;
+
+  /// No description provided for @calendarDeleteSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete series'**
+  String get calendarDeleteSeries;
+
+  /// No description provided for @calendarSeriesDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Event deleted'**
+  String get calendarSeriesDeleted;
+
+  /// No description provided for @calendarSeriesDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete the event'**
+  String get calendarSeriesDeleteFailed;
+
+  /// No description provided for @calendarSeriesDeleteUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Event restored'**
+  String get calendarSeriesDeleteUndone;
+
+  /// No description provided for @calendarUnreadableEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'An event could not be read'**
+  String get calendarUnreadableEvent;
+
+  /// No description provided for @calendarUnreadableEventHint.
+  ///
+  /// In en, this message translates to:
+  /// **'It may have been written by a newer version of the app.'**
+  String get calendarUnreadableEventHint;
+
+  /// No description provided for @calendarPermissionBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders are off because notification permission was declined. Turn it on in the system settings.'**
+  String get calendarPermissionBanner;
+
+  /// No description provided for @calendarNewEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'New event'**
+  String get calendarNewEvent;
+
+  /// No description provided for @calendarEditEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit event'**
+  String get calendarEditEvent;
+
+  /// No description provided for @calendarSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get calendarSave;
+
+  /// No description provided for @calendarSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the event'**
+  String get calendarSaveFailed;
+
+  /// No description provided for @calendarTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get calendarTitleLabel;
+
+  /// No description provided for @calendarTitleRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a title.'**
+  String get calendarTitleRequired;
+
+  /// No description provided for @calendarStartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts'**
+  String get calendarStartLabel;
+
+  /// No description provided for @calendarEndLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends'**
+  String get calendarEndLabel;
+
+  /// No description provided for @calendarPickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose date'**
+  String get calendarPickDate;
+
+  /// No description provided for @calendarPickTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose time'**
+  String get calendarPickTime;
+
+  /// No description provided for @calendarPickerDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get calendarPickerDone;
+
+  /// No description provided for @calendarEndBeforeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'The end is before the start.'**
+  String get calendarEndBeforeStart;
+
+  /// No description provided for @calendarNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get calendarNotesLabel;
+
+  /// No description provided for @calendarRepeatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get calendarRepeatLabel;
+
+  /// No description provided for @calendarRepeatNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get calendarRepeatNone;
+
+  /// No description provided for @calendarRepeatDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get calendarRepeatDaily;
+
+  /// No description provided for @calendarRepeatWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get calendarRepeatWeekly;
+
+  /// No description provided for @calendarRepeatMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get calendarRepeatMonthly;
+
+  /// No description provided for @calendarRepeatYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly'**
+  String get calendarRepeatYearly;
+
+  /// No description provided for @calendarRepeatEndLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'End repeat'**
+  String get calendarRepeatEndLabel;
+
+  /// No description provided for @calendarRepeatEndNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get calendarRepeatEndNever;
+
+  /// No description provided for @calendarRepeatEndOnDate.
+  ///
+  /// In en, this message translates to:
+  /// **'On a date'**
+  String get calendarRepeatEndOnDate;
+
+  /// No description provided for @calendarRepeatEndAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'After a number of times'**
+  String get calendarRepeatEndAfter;
+
+  /// No description provided for @calendarRepeatCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Times'**
+  String get calendarRepeatCountLabel;
+
+  /// No description provided for @calendarRepeatFewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer times'**
+  String get calendarRepeatFewer;
+
+  /// No description provided for @calendarRepeatMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More times'**
+  String get calendarRepeatMore;
+
+  /// No description provided for @calendarRepeatClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get calendarRepeatClear;
+
+  /// No description provided for @calendarRepeatReadOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This repeat can\'t be changed here. Clear it to choose a new one.'**
+  String get calendarRepeatReadOnlyHint;
+
+  /// No description provided for @calendarDoesNotRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Does not repeat'**
+  String get calendarDoesNotRepeat;
+
+  /// No description provided for @calendarRepeatCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom repeat'**
+  String get calendarRepeatCustom;
+
+  /// No description provided for @calendarRepeatLunar.
+  ///
+  /// In en, this message translates to:
+  /// **'Lunar repeat'**
+  String get calendarRepeatLunar;
+
+  /// No description provided for @calendarListSeparator.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get calendarListSeparator;
+
+  /// No description provided for @calendarRepeatDailyText.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Every day} other{Every {n} days}}'**
+  String calendarRepeatDailyText(int n);
+
+  /// No description provided for @calendarRepeatWeeklyText.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Every week} other{Every {n} weeks}}'**
+  String calendarRepeatWeeklyText(int n);
+
+  /// No description provided for @calendarRepeatWeeklyOnText.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Every {days}} other{Every {n} weeks on {days}}}'**
+  String calendarRepeatWeeklyOnText(int n, String days);
+
+  /// No description provided for @calendarRepeatMonthlyText.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Every month} other{Every {n} months}}'**
+  String calendarRepeatMonthlyText(int n);
+
+  /// No description provided for @calendarRepeatMonthlyOnText.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Monthly on day {days}} other{Every {n} months on day {days}}}'**
+  String calendarRepeatMonthlyOnText(int n, String days);
+
+  /// No description provided for @calendarRepeatYearlyText.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Every year} other{Every {n} years}}'**
+  String calendarRepeatYearlyText(int n);
+
+  /// No description provided for @calendarRepeatTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{once} other{{n} times}}'**
+  String calendarRepeatTimes(int n);
+
+  /// No description provided for @calendarRepeatUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'until {date}'**
+  String calendarRepeatUntil(String date);
+
+  /// No description provided for @calendarRepeatWithLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'{rule}, {limit}'**
+  String calendarRepeatWithLimit(String rule, String limit);
+
+  /// No description provided for @calendarRemindersLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get calendarRemindersLabel;
+
+  /// No description provided for @calendarNoReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'No reminders'**
+  String get calendarNoReminders;
+
+  /// No description provided for @calendarAddReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add reminder'**
+  String get calendarAddReminder;
+
+  /// No description provided for @calendarRemoveReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove reminder'**
+  String get calendarRemoveReminder;
+
+  /// No description provided for @calendarReminderAtStart.
+  ///
+  /// In en, this message translates to:
+  /// **'At the start'**
+  String get calendarReminderAtStart;
+
+  /// No description provided for @calendarReminderMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 minute before} other{{n} minutes before}}'**
+  String calendarReminderMinutes(int n);
+
+  /// No description provided for @calendarReminderHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 hour before} other{{n} hours before}}'**
+  String calendarReminderHours(int n);
+
+  /// No description provided for @calendarReminderDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 day before} other{{n} days before}}'**
+  String calendarReminderDays(int n);
+
+  /// No description provided for @calendarEditScopeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change which events?'**
+  String get calendarEditScopeTitle;
+
+  /// No description provided for @calendarEditThisOccurrence.
+  ///
+  /// In en, this message translates to:
+  /// **'This occurrence'**
+  String get calendarEditThisOccurrence;
+
+  /// No description provided for @calendarEditAllOccurrences.
+  ///
+  /// In en, this message translates to:
+  /// **'All occurrences'**
+  String get calendarEditAllOccurrences;
+
+  /// No description provided for @calendarFromSubsystem.
+  ///
+  /// In en, this message translates to:
+  /// **'From {name}'**
+  String calendarFromSubsystem(String name);
+
+  /// No description provided for @calendarSubsystemDiabetes.
+  ///
+  /// In en, this message translates to:
+  /// **'Diabetes'**
+  String get calendarSubsystemDiabetes;
+
+  /// No description provided for @calendarDraftBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested event. Approve it to keep it and get its reminders.'**
+  String get calendarDraftBanner;
+
+  /// No description provided for @calendarApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get calendarApprove;
+
+  /// No description provided for @calendarApproveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not approve the event'**
+  String get calendarApproveFailed;
+
+  /// No description provided for @calendarEventNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This event no longer exists.'**
+  String get calendarEventNotFound;
+
+  /// No description provided for @calendarEventNotFoundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'It may have been deleted.'**
+  String get calendarEventNotFoundHint;
+
+  /// No description provided for @calendarEventLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load this event.'**
+  String get calendarEventLoadFailed;
+
+  /// No description provided for @calendarMoreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get calendarMoreActions;
+
+  /// No description provided for @calendarDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get calendarDelete;
+
+  /// No description provided for @calendarDeleteFollowing.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this and following'**
+  String get calendarDeleteFollowing;
+
+  /// No description provided for @calendarOccurrenceDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Occurrence deleted'**
+  String get calendarOccurrenceDeleted;
+
+  /// No description provided for @calendarOccurrenceDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete this occurrence'**
+  String get calendarOccurrenceDeleteFailed;
+
+  /// No description provided for @calendarOccurrenceDeleteUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Occurrence restored'**
+  String get calendarOccurrenceDeleteUndone;
+
+  /// No description provided for @calendarFollowingDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This and following deleted'**
+  String get calendarFollowingDeleted;
+
+  /// No description provided for @calendarFollowingDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete this and following'**
+  String get calendarFollowingDeleteFailed;
+
+  /// No description provided for @calendarFollowingDeleteUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Following occurrences restored'**
+  String get calendarFollowingDeleteUndone;
+
+  /// No description provided for @calendarOccurrenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'This occurrence'**
+  String get calendarOccurrenceLabel;
+
+  /// No description provided for @helpCalendarEventTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get helpCalendarEventTitle;
+
+  /// No description provided for @helpCalendarEventSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'One event: when it is, how it repeats, its reminders and notes.'**
+  String get helpCalendarEventSummary;
+
+  /// No description provided for @helpCalendarEventEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get helpCalendarEventEditTitle;
+
+  /// No description provided for @helpCalendarEventEditBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the editor. For a repeating event you choose to change this occurrence or all of them.'**
+  String get helpCalendarEventEditBody;
+
+  /// No description provided for @helpCalendarEventDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Done and Skip'**
+  String get helpCalendarEventDoneTitle;
+
+  /// No description provided for @helpCalendarEventDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark the occurrence you opened as done or skipped. Its reminder stops. Undo is offered for a few seconds.'**
+  String get helpCalendarEventDoneBody;
+
+  /// No description provided for @helpCalendarEventApproveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get helpCalendarEventApproveTitle;
+
+  /// No description provided for @helpCalendarEventApproveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A suggested event has no reminders until you approve it.'**
+  String get helpCalendarEventApproveBody;
+
+  /// No description provided for @helpCalendarEventDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get helpCalendarEventDeleteTitle;
+
+  /// No description provided for @helpCalendarEventDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete just this occurrence, this one and all after it, or the whole series. Undo is offered for a few seconds.'**
+  String get helpCalendarEventDeleteBody;
+
+  /// No description provided for @helpCalendarEventEditScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit event'**
+  String get helpCalendarEventEditScreenTitle;
+
+  /// No description provided for @helpCalendarEventEditScreenSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the title, time, repeat and reminders, then tap Save.'**
+  String get helpCalendarEventEditScreenSummary;
+
+  /// No description provided for @helpCalendarEventEditAllDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All day'**
+  String get helpCalendarEventEditAllDayTitle;
+
+  /// No description provided for @helpCalendarEventEditAllDayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'An all-day event has a date and no time. Its reminders count from 09:00 on the day.'**
+  String get helpCalendarEventEditAllDayBody;
+
+  /// No description provided for @helpCalendarEventEditTimeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts and ends'**
+  String get helpCalendarEventEditTimeTitle;
+
+  /// No description provided for @helpCalendarEventEditTimeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the date or the time to change it. The end cannot be before the start. A one-off event stays at its real moment if you travel; a repeating one keeps its clock time.'**
+  String get helpCalendarEventEditTimeBody;
+
+  /// No description provided for @helpCalendarEventEditRepeatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get helpCalendarEventEditRepeatTitle;
+
+  /// No description provided for @helpCalendarEventEditRepeatBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how often it repeats and when the repeat ends. A repeat set elsewhere is shown as Custom or Lunar and can only be cleared.'**
+  String get helpCalendarEventEditRepeatBody;
+
+  /// No description provided for @helpCalendarEventEditRemindersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get helpCalendarEventEditRemindersTitle;
+
+  /// No description provided for @helpCalendarEventEditRemindersBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add or remove reminders. They ring on devices where Remind on this device is on.'**
+  String get helpCalendarEventEditRemindersBody;
+
+  /// No description provided for @calendarEventTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get calendarEventTitle;
+
+  /// No description provided for @helpCalendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get helpCalendarTitle;
+
+  /// No description provided for @helpCalendarSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your events by month and by day. Pick a day to see what is planned.'**
+  String get helpCalendarSummary;
+
+  /// No description provided for @helpCalendarAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add event'**
+  String get helpCalendarAddTitle;
+
+  /// No description provided for @helpCalendarAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Creates a new event on the selected day.'**
+  String get helpCalendarAddBody;
+
+  /// No description provided for @helpCalendarMonthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Month grid'**
+  String get helpCalendarMonthTitle;
+
+  /// No description provided for @helpCalendarMonthBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a day to see its events. A dot marks a day with events. Use the arrows to change month.'**
+  String get helpCalendarMonthBody;
+
+  /// No description provided for @helpCalendarTodayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get helpCalendarTodayTitle;
+
+  /// No description provided for @helpCalendarTodayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Jumps back to today.'**
+  String get helpCalendarTodayBody;
+
+  /// No description provided for @helpCalendarSwipeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe an event'**
+  String get helpCalendarSwipeTitle;
+
+  /// No description provided for @helpCalendarSwipeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe right to mark it done, left to skip it. Undo is offered for a few seconds.'**
+  String get helpCalendarSwipeBody;
+
+  /// No description provided for @helpCalendarHoldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch and hold an event'**
+  String get helpCalendarHoldTitle;
+
+  /// No description provided for @helpCalendarHoldBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens a menu to edit the event, delete just this one, or delete the whole series.'**
+  String get helpCalendarHoldBody;
+
+  /// No description provided for @calendarOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get calendarOpenSettings;
+
+  /// No description provided for @settingsCalendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get settingsCalendarTitle;
+
+  /// No description provided for @settingsCalendarRemindOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind on this device'**
+  String get settingsCalendarRemindOnDevice;
+
+  /// No description provided for @settingsCalendarRemindOnDeviceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show calendar reminders as notifications on this device. Set per device; not synced.'**
+  String get settingsCalendarRemindOnDeviceSubtitle;
 }
 
 class _AppLocalizationsDelegate

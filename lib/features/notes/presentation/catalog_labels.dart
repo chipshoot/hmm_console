@@ -30,11 +30,11 @@ String catalogLabel(String? catalogName, AppLocalizations l) =>
 
 /// Localized label for a domain key (see `CatalogPalette.domainKeyFor`).
 String domainLabel(String domainKey, AppLocalizations l) => switch (domainKey) {
-      'AutomobileMan' => l.domainAutomobile,
-      kGeneralCatalogName => l.domainGeneral,
-      'Other' => l.domainOther,
-      _ => CatalogPalette.domainStyle(domainKey).displayName,
-    };
+  'AutomobileMan' => l.domainAutomobile,
+  kGeneralCatalogName => l.domainGeneral,
+  'Other' => l.domainOther,
+  _ => CatalogPalette.domainStyle(domainKey).displayName,
+};
 
 /// Display label for a subsystem anchor note.
 ///
@@ -47,15 +47,16 @@ String domainLabel(String domainKey, AppLocalizations l) => switch (domainKey) {
 /// Unknown anchors fall back to their stored subject, so a subsystem added
 /// later still shows up.
 String subsystemLabel(String subject, AppLocalizations l) => switch (subject) {
-      'Automobile' => l.notesSubsystemAutomobile,
-      _ => subject,
-    };
+  'Automobile' => l.notesSubsystemAutomobile,
+  _ => subject,
+};
 
 /// Localized name of the screen that manages an entity note (G7).
 String managePlaceLabel(NoteManagePlace place, AppLocalizations l) =>
     switch (place) {
       NoteManagePlace.contacts => l.contactsTitle,
       NoteManagePlace.cheatsheets => l.cheatsheetWalletTitle,
+      NoteManagePlace.calendar => l.calendarTitle,
       NoteManagePlace.automobile => l.domainAutomobile,
       NoteManagePlace.ownScreen => l.notesManagePlaceOwnScreen,
     };

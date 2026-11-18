@@ -42,6 +42,10 @@ enum RouterNames {
   contactCreate,
   contactDetail,
   contactEdit,
+  calendar,
+  calendarEventCreate,
+  calendarEvent,
+  calendarEventEdit,
   driverLicence,
   driverLicenceShow,
 }

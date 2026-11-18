@@ -2671,6 +2671,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notesContactTitleFallback => '联系人';
 
   @override
+  String get notesCalendarEventTitleFallback => '日程';
+
+  @override
   String get notesCheatsheetTitleFallback => '速查卡';
 
   @override
@@ -3712,4 +3715,496 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpVideoStorageClearBody =>
       '从本设备移除已下载的视频。离线保存的视频会保留，其他视频播放时会重新下载。';
+
+  @override
+  String get calendarTitle => '日历';
+
+  @override
+  String get dashboardCalendarTitle => '日历';
+
+  @override
+  String get dashboardCalendarDescription => '日程与提醒';
+
+  @override
+  String get calendarToday => '今天';
+
+  @override
+  String get calendarAddEvent => '添加日程';
+
+  @override
+  String get calendarPreviousMonth => '上个月';
+
+  @override
+  String get calendarNextMonth => '下个月';
+
+  @override
+  String get calendarAllDay => '全天';
+
+  @override
+  String get calendarEmptyDay => '这一天没有安排。';
+
+  @override
+  String get calendarLoadFailed => '无法加载日历。';
+
+  @override
+  String get calendarCloudApiUnavailable => '日历可在“本地”和“云存储”模式下使用。请在设置中切换数据模式。';
+
+  @override
+  String get calendarMarkDone => '完成';
+
+  @override
+  String get calendarSkip => '跳过';
+
+  @override
+  String get calendarStatusDone => '已完成';
+
+  @override
+  String get calendarStatusSkipped => '已跳过';
+
+  @override
+  String get calendarStatusCancelled => '已删除';
+
+  @override
+  String get calendarRepeats => '重复';
+
+  @override
+  String get calendarOccurrenceDone => '已标记完成';
+
+  @override
+  String get calendarOccurrenceDoneFailed => '无法标记完成';
+
+  @override
+  String get calendarOccurrenceDoneUndone => '已取消完成标记';
+
+  @override
+  String get calendarOccurrenceSkipped => '已跳过';
+
+  @override
+  String get calendarOccurrenceSkippedFailed => '无法跳过';
+
+  @override
+  String get calendarOccurrenceSkippedUndone => '已取消跳过';
+
+  @override
+  String get calendarUndoFailed => '无法撤销';
+
+  @override
+  String get calendarEdit => '编辑';
+
+  @override
+  String get calendarDeleteThis => '删除这一次';
+
+  @override
+  String get calendarDeleteSeries => '删除整个系列';
+
+  @override
+  String get calendarSeriesDeleted => '日程已删除';
+
+  @override
+  String get calendarSeriesDeleteFailed => '无法删除日程';
+
+  @override
+  String get calendarSeriesDeleteUndone => '日程已恢复';
+
+  @override
+  String get calendarUnreadableEvent => '有一个日程无法读取';
+
+  @override
+  String get calendarUnreadableEventHint => '它可能由更新版本的应用写入。';
+
+  @override
+  String get calendarPermissionBanner => '由于通知权限被拒绝，提醒已关闭。请在系统设置中开启。';
+
+  @override
+  String get calendarNewEvent => '新建日程';
+
+  @override
+  String get calendarEditEvent => '编辑日程';
+
+  @override
+  String get calendarSave => '保存';
+
+  @override
+  String get calendarSaveFailed => '无法保存日程';
+
+  @override
+  String get calendarTitleLabel => '标题';
+
+  @override
+  String get calendarTitleRequired => '请填写标题。';
+
+  @override
+  String get calendarStartLabel => '开始';
+
+  @override
+  String get calendarEndLabel => '结束';
+
+  @override
+  String get calendarPickDate => '选择日期';
+
+  @override
+  String get calendarPickTime => '选择时间';
+
+  @override
+  String get calendarPickerDone => '完成';
+
+  @override
+  String get calendarEndBeforeStart => '结束时间早于开始时间。';
+
+  @override
+  String get calendarNotesLabel => '备注';
+
+  @override
+  String get calendarRepeatLabel => '重复';
+
+  @override
+  String get calendarRepeatNone => '不重复';
+
+  @override
+  String get calendarRepeatDaily => '每天';
+
+  @override
+  String get calendarRepeatWeekly => '每周';
+
+  @override
+  String get calendarRepeatMonthly => '每月';
+
+  @override
+  String get calendarRepeatYearly => '每年';
+
+  @override
+  String get calendarRepeatEndLabel => '结束重复';
+
+  @override
+  String get calendarRepeatEndNever => '永不';
+
+  @override
+  String get calendarRepeatEndOnDate => '在某日';
+
+  @override
+  String get calendarRepeatEndAfter => '重复一定次数后';
+
+  @override
+  String get calendarRepeatCountLabel => '次数';
+
+  @override
+  String get calendarRepeatFewer => '减少次数';
+
+  @override
+  String get calendarRepeatMore => '增加次数';
+
+  @override
+  String get calendarRepeatClear => '清除';
+
+  @override
+  String get calendarRepeatReadOnlyHint => '此重复方式无法在这里修改。清除后可重新选择。';
+
+  @override
+  String get calendarDoesNotRepeat => '不重复';
+
+  @override
+  String get calendarRepeatCustom => '自定义重复';
+
+  @override
+  String get calendarRepeatLunar => '农历重复';
+
+  @override
+  String get calendarListSeparator => '、';
+
+  @override
+  String calendarRepeatDailyText(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '每$n天',
+      one: '每天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatWeeklyText(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '每$n周',
+      one: '每周',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatWeeklyOnText(int n, String days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '每$n周的$days',
+      one: '每$days',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatMonthlyText(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '每$n个月',
+      one: '每月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatMonthlyOnText(int n, String days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '每$n个月的$days日',
+      one: '每月$days日',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatYearlyText(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '每$n年',
+      one: '每年',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatTimes(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '共$n次',
+      one: '共1次',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarRepeatUntil(String date) {
+    return '直到$date';
+  }
+
+  @override
+  String calendarRepeatWithLimit(String rule, String limit) {
+    return '$rule，$limit';
+  }
+
+  @override
+  String get calendarRemindersLabel => '提醒';
+
+  @override
+  String get calendarNoReminders => '无提醒';
+
+  @override
+  String get calendarAddReminder => '添加提醒';
+
+  @override
+  String get calendarRemoveReminder => '删除提醒';
+
+  @override
+  String get calendarReminderAtStart => '开始时';
+
+  @override
+  String calendarReminderMinutes(int n) {
+    return '提前$n分钟';
+  }
+
+  @override
+  String calendarReminderHours(int n) {
+    return '提前$n小时';
+  }
+
+  @override
+  String calendarReminderDays(int n) {
+    return '提前$n天';
+  }
+
+  @override
+  String get calendarEditScopeTitle => '要修改哪些日程？';
+
+  @override
+  String get calendarEditThisOccurrence => '仅此一次';
+
+  @override
+  String get calendarEditAllOccurrences => '所有重复';
+
+  @override
+  String calendarFromSubsystem(String name) {
+    return '来自$name';
+  }
+
+  @override
+  String get calendarSubsystemDiabetes => '糖尿病';
+
+  @override
+  String get calendarDraftBanner => '建议的日程。批准后保留，并开始提醒。';
+
+  @override
+  String get calendarApprove => '批准';
+
+  @override
+  String get calendarApproveFailed => '无法批准日程';
+
+  @override
+  String get calendarEventNotFound => '此日程已不存在。';
+
+  @override
+  String get calendarEventNotFoundHint => '它可能已被删除。';
+
+  @override
+  String get calendarEventLoadFailed => '无法加载此日程。';
+
+  @override
+  String get calendarMoreActions => '更多操作';
+
+  @override
+  String get calendarDelete => '删除';
+
+  @override
+  String get calendarDeleteFollowing => '删除此次及以后';
+
+  @override
+  String get calendarOccurrenceDeleted => '已删除这一次';
+
+  @override
+  String get calendarOccurrenceDeleteFailed => '无法删除这一次';
+
+  @override
+  String get calendarOccurrenceDeleteUndone => '已恢复这一次';
+
+  @override
+  String get calendarFollowingDeleted => '已删除此次及以后';
+
+  @override
+  String get calendarFollowingDeleteFailed => '无法删除此次及以后';
+
+  @override
+  String get calendarFollowingDeleteUndone => '已恢复此次及以后';
+
+  @override
+  String get calendarOccurrenceLabel => '这一次';
+
+  @override
+  String get helpCalendarEventTitle => '日程';
+
+  @override
+  String get helpCalendarEventSummary => '一个日程：时间、重复方式、提醒和备注。';
+
+  @override
+  String get helpCalendarEventEditTitle => '编辑';
+
+  @override
+  String get helpCalendarEventEditBody => '打开编辑器。重复日程可以选择只改这一次或全部修改。';
+
+  @override
+  String get helpCalendarEventDoneTitle => '完成和跳过';
+
+  @override
+  String get helpCalendarEventDoneBody => '把打开的这一次标记为完成或跳过，它的提醒随之取消。几秒内可以撤销。';
+
+  @override
+  String get helpCalendarEventApproveTitle => '批准';
+
+  @override
+  String get helpCalendarEventApproveBody => '建议的日程在批准前不会提醒。';
+
+  @override
+  String get helpCalendarEventDeleteTitle => '删除';
+
+  @override
+  String get helpCalendarEventDeleteBody => '只删除这一次、删除这一次及以后，或删除整个系列。几秒内可以撤销。';
+
+  @override
+  String get helpCalendarEventEditScreenTitle => '编辑日程';
+
+  @override
+  String get helpCalendarEventEditScreenSummary => '设置标题、时间、重复和提醒，然后点保存。';
+
+  @override
+  String get helpCalendarEventEditAllDayTitle => '全天';
+
+  @override
+  String get helpCalendarEventEditAllDayBody => '全天日程只有日期没有时间，提醒从当天 09:00 起算。';
+
+  @override
+  String get helpCalendarEventEditTimeTitle => '开始和结束';
+
+  @override
+  String get helpCalendarEventEditTimeBody =>
+      '点日期或时间进行修改。结束不能早于开始。一次性日程在出行时保持原来的时刻；重复日程保持钟面时间。';
+
+  @override
+  String get helpCalendarEventEditRepeatTitle => '重复';
+
+  @override
+  String get helpCalendarEventEditRepeatBody =>
+      '选择重复频率和结束方式。在别处设置的重复显示为自定义或农历，只能清除。';
+
+  @override
+  String get helpCalendarEventEditRemindersTitle => '提醒';
+
+  @override
+  String get helpCalendarEventEditRemindersBody =>
+      '添加或删除提醒。提醒只在开启了“在此设备上提醒”的设备上响起。';
+
+  @override
+  String get calendarEventTitle => '日程';
+
+  @override
+  String get helpCalendarTitle => '日历';
+
+  @override
+  String get helpCalendarSummary => '按月和按天查看你的日程。选择一天即可看到当天的安排。';
+
+  @override
+  String get helpCalendarAddTitle => '添加日程';
+
+  @override
+  String get helpCalendarAddBody => '在所选日期新建一个日程。';
+
+  @override
+  String get helpCalendarMonthTitle => '月历';
+
+  @override
+  String get helpCalendarMonthBody => '点按某一天查看当天日程。有圆点的日期表示有日程。用箭头切换月份。';
+
+  @override
+  String get helpCalendarTodayTitle => '今天';
+
+  @override
+  String get helpCalendarTodayBody => '回到今天。';
+
+  @override
+  String get helpCalendarSwipeTitle => '滑动日程';
+
+  @override
+  String get helpCalendarSwipeBody => '向右滑动标记完成，向左滑动跳过。几秒内可以撤销。';
+
+  @override
+  String get helpCalendarHoldTitle => '长按日程';
+
+  @override
+  String get helpCalendarHoldBody => '打开菜单：编辑日程、只删除这一次，或删除整个系列。';
+
+  @override
+  String get calendarOpenSettings => '打开设置';
+
+  @override
+  String get settingsCalendarTitle => '日历';
+
+  @override
+  String get settingsCalendarRemindOnDevice => '在此设备上提醒';
+
+  @override
+  String get settingsCalendarRemindOnDeviceSubtitle =>
+      '在此设备上以通知形式显示日历提醒。按设备设置，不会同步。';
 }
