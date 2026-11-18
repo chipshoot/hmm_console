@@ -39,11 +39,16 @@ class LocalCalendarRepository implements ICalendarRepository {
     this._notes,
     this._catalogs, {
     DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+    Duration changesRetryDelay = const Duration(seconds: 1),
+  }) : _now = now ?? DateTime.now,
+       _changesRetryDelay = changesRetryDelay;
 
   final IHmmNoteRepository _notes;
   final INoteCatalogRepository _catalogs;
   final DateTime Function() _now;
+
+  /// Wait before re-subscribing when the notes watch fails or ends.
+  final Duration _changesRetryDelay;
 
   static const _pageSize = 100;
 
@@ -212,10 +217,23 @@ class LocalCalendarRepository implements ICalendarRepository {
   Stream<void> changes() {
     late final StreamController<void> out;
     StreamSubscription<List<HmmNote>>? sub;
+    Timer? retry;
     String? last;
-    out = StreamController<void>(
-      onListen: () {
-        sub = _notes.watchNotes().listen((notes) async {
+
+    // The notes watch can fail or end, e.g. at start-up when the current
+    // author is still in an error state: the error is passed on and the
+    // watch is re-attached after [_changesRetryDelay], so the calendar never
+    // goes silent for the rest of the session.
+    void attach() {
+      if (out.isClosed || !out.hasListener) return;
+      void again() {
+        sub = null;
+        retry?.cancel();
+        retry = Timer(_changesRetryDelay, attach);
+      }
+
+      sub = _notes.watchNotes().listen(
+        (notes) async {
           final int catalogId;
           try {
             catalogId = await _catalogId();
@@ -236,9 +254,24 @@ class LocalCalendarRepository implements ICalendarRepository {
           if (key == last || out.isClosed) return;
           last = key;
           out.add(null);
-        }, onError: out.addError);
+        },
+        onError: (Object e, StackTrace st) {
+          if (!out.isClosed) out.addError(e, st);
+          unawaited(sub?.cancel());
+          again();
+        },
+        onDone: again,
+        cancelOnError: true,
+      );
+    }
+
+    out = StreamController<void>(
+      onListen: attach,
+      onCancel: () {
+        retry?.cancel();
+        retry = null;
+        return sub?.cancel();
       },
-      onCancel: () => sub?.cancel(),
     );
     return out.stream;
   }

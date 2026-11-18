@@ -277,4 +277,47 @@ void main() {
       },
     );
   });
+
+  group('changes() survives an early notes-watch failure', () {
+    // On device the first watchNotes() can fail at start-up (the current
+    // author provider is still in an error state); the watch then ends, and
+    // the calendar must subscribe again rather than go silent for good.
+    test(
+      're-subscribes after the notes watch errors, then emits on saves',
+      () async {
+        final db = HmmDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final authorId = await db
+            .into(db.authors)
+            .insert(AuthorsCompanion.insert(accountName: 'tester'));
+        final author = await (db.select(
+          db.authors,
+        )..where((a) => a.id.equals(authorId))).getSingle();
+        var failFirst = true;
+        final notes = LocalHmmNoteRepository(db, () async {
+          if (failFirst) {
+            failFirst = false;
+            throw StateError('Tried to use a provider that is in error state');
+          }
+          return author;
+        });
+        final repo = LocalCalendarRepository(
+          notes,
+          LocalNoteCatalogRepository(db),
+          changesRetryDelay: const Duration(milliseconds: 20),
+        );
+        final errors = <Object>[];
+        var n = 0;
+        final sub = repo.changes().listen((_) => n++, onError: errors.add);
+        addTearDown(sub.cancel);
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        final before = n;
+        await repo.saveEvent(_ev('after-failure'));
+        for (var i = 0; i < 40 && n <= before; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 25));
+        }
+        expect(n, greaterThan(before));
+      },
+    );
+  });
 }
