@@ -251,9 +251,14 @@ class LocalCalendarRepository implements ICalendarRepository {
                 '${n.uuid}|${n.lastModifiedDate?.toIso8601String()}|'
                     '${n.content.hashCode}',
           ].join('\n');
+          // The first snapshot is the baseline, not a change: a listener
+          // that reloads on every emission (the calendar screen) would
+          // otherwise loop. After a re-attach, a snapshot that differs from
+          // the last one seen reports what changed during the gap.
+          final first = last == null;
           if (key == last || out.isClosed) return;
           last = key;
-          out.add(null);
+          if (!first) out.add(null);
         },
         onError: (Object e, StackTrace st) {
           if (!out.isClosed) out.addError(e, st);

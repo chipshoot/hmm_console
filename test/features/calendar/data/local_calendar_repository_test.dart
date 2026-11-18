@@ -278,6 +278,25 @@ void main() {
     );
   });
 
+  group('changes() reports changes, not the initial snapshot', () {
+    // A listener that reloads on every emission (the calendar screen) must
+    // not loop: subscribing alone emits nothing.
+    test('subscribing without any write emits nothing', () async {
+      final repo = await _make();
+      await repo.saveEvent(_ev('existing'));
+      var n = 0;
+      final sub = repo.changes().listen((_) => n++);
+      addTearDown(sub.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(n, 0);
+      await repo.saveEvent(_ev('new'));
+      for (var i = 0; i < 40 && n == 0; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+      }
+      expect(n, greaterThan(0));
+    });
+  });
+
   group('changes() survives an early notes-watch failure', () {
     // On device the first watchNotes() can fail at start-up (the current
     // author provider is still in an error state); the watch then ends, and
