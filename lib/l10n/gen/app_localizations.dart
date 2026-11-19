@@ -7574,6 +7574,30 @@ abstract class AppLocalizations {
   /// **'Add or remove reminders. They ring on devices where Remind on this device is on.'**
   String get helpCalendarEventEditRemindersBody;
 
+  /// No description provided for @calendarTimeSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'Time Sensitive'**
+  String get calendarTimeSensitive;
+
+  /// No description provided for @calendarTimeSensitiveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Breaks through Focus'**
+  String get calendarTimeSensitiveSubtitle;
+
+  /// No description provided for @helpCalendarEventEditTimeSensitiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time Sensitive'**
+  String get helpCalendarEventEditTimeSensitiveTitle;
+
+  /// No description provided for @helpCalendarEventEditTimeSensitiveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets this event\'s reminders break through Focus on iPhone. Off by default. It needs a reminder on this device, and applies to every occurrence.'**
+  String get helpCalendarEventEditTimeSensitiveBody;
+
   /// No description provided for @calendarEventTitle.
   ///
   /// In en, this message translates to:

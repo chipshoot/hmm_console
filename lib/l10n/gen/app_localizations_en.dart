@@ -4365,6 +4365,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add or remove reminders. They ring on devices where Remind on this device is on.';
 
   @override
+  String get calendarTimeSensitive => 'Time Sensitive';
+
+  @override
+  String get calendarTimeSensitiveSubtitle => 'Breaks through Focus';
+
+  @override
+  String get helpCalendarEventEditTimeSensitiveTitle => 'Time Sensitive';
+
+  @override
+  String get helpCalendarEventEditTimeSensitiveBody =>
+      'Lets this event\'s reminders break through Focus on iPhone. Off by default. It needs a reminder on this device, and applies to every occurrence.';
+
+  @override
   String get calendarEventTitle => 'Event';
 
   @override

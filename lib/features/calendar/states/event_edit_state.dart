@@ -203,6 +203,7 @@ class EventForm {
     this.count = 10,
     this.customRule,
     this.reminders = const [Reminder(minutesBefore: 15)],
+    this.timeSensitive = false,
   });
 
   final String title;
@@ -226,6 +227,9 @@ class EventForm {
 
   /// Every reminder, device and other channels, with their unknown keys.
   final List<Reminder> reminders;
+
+  /// Device reminders break through Focus (series-only).
+  final bool timeSensitive;
 
   /// A new event on [day]: today starts at the next full hour, any other day
   /// at 09:00; one hour long; one reminder 15 minutes before.
@@ -264,6 +268,7 @@ class EventForm {
       start: start,
       end: end,
       reminders: e.reminders,
+      timeSensitive: e.timeSensitive,
     );
     final text = e.rrule;
     if (text == null || text.trim().isEmpty) return form;
@@ -311,6 +316,7 @@ class EventForm {
     String? customRule,
     bool clearCustomRule = false,
     List<Reminder>? reminders,
+    bool? timeSensitive,
   }) => EventForm(
     title: title ?? this.title,
     notes: notes ?? this.notes,
@@ -326,6 +332,7 @@ class EventForm {
     count: count ?? this.count,
     customRule: clearCustomRule ? null : (customRule ?? this.customRule),
     reminders: reminders ?? this.reminders,
+    timeSensitive: timeSensitive ?? this.timeSensitive,
   );
 
   bool get repeats => customRule != null || freq != RepeatFreq.none;
@@ -423,6 +430,7 @@ CalendarEvent buildEvent(
       end: end,
       rrule: rrule,
       reminders: form.reminders,
+      timeSensitive: form.timeSensitive,
       updatedAt: now.toUtc(),
     );
   }
@@ -436,6 +444,7 @@ CalendarEvent buildEvent(
     rrule: rrule,
     clearRrule: rrule == null,
     reminders: form.reminders,
+    timeSensitive: form.timeSensitive,
     updatedAt: now.toUtc(),
   );
 }

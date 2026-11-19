@@ -166,6 +166,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpCalendarEventEditRemindersTitle,
         body: l.helpCalendarEventEditRemindersBody,
       ),
+      HelpEntry(
+        icon: Icons.notification_important_outlined,
+        title: l.helpCalendarEventEditTimeSensitiveTitle,
+        body: l.helpCalendarEventEditTimeSensitiveBody,
+      ),
     ],
   ),
   HelpId.calendarReminders => ScreenHelp(

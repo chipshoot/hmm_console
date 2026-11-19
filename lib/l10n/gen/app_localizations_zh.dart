@@ -4157,6 +4157,19 @@ class AppLocalizationsZh extends AppLocalizations {
       '添加或删除提醒。提醒只在开启了“在此设备上提醒”的设备上响起。';
 
   @override
+  String get calendarTimeSensitive => '时间敏感';
+
+  @override
+  String get calendarTimeSensitiveSubtitle => '可突破专注模式';
+
+  @override
+  String get helpCalendarEventEditTimeSensitiveTitle => '时间敏感';
+
+  @override
+  String get helpCalendarEventEditTimeSensitiveBody =>
+      '让此日程的提醒在 iPhone 上突破专注模式。默认关闭。需要有一个在此设备上的提醒，并适用于所有重复。';
+
+  @override
   String get calendarEventTitle => '日程';
 
   @override
