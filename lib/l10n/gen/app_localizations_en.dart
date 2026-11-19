@@ -3993,6 +3993,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String calendarHolidayShowFailed(String name) {
+    return 'Couldn\'t show $name again';
+  }
+
+  @override
   String get calendarHolidayUndoFailed => 'Couldn\'t undo';
 
   @override

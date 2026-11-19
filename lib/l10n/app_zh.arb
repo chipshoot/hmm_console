@@ -1190,6 +1190,7 @@
   "calendarHolidayHidden": "已隐藏{name}",
   "calendarHolidayShown": "已恢复{name}",
   "calendarHolidayHideFailed": "无法隐藏{name}",
+  "calendarHolidayShowFailed": "无法恢复{name}",
   "calendarHolidayUndoFailed": "无法撤销",
   "calendarEdit": "编辑",
   "calendarDeleteThis": "删除这一次",

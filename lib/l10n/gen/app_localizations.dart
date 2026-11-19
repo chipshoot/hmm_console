@@ -7022,6 +7022,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t hide {name}'**
   String calendarHolidayHideFailed(String name);
 
+  /// No description provided for @calendarHolidayShowFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t show {name} again'**
+  String calendarHolidayShowFailed(String name);
+
   /// No description provided for @calendarHolidayUndoFailed.
   ///
   /// In en, this message translates to:

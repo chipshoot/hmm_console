@@ -83,6 +83,21 @@ class _FailingNotifier extends MyHolidaysNotifier {
   Future<void> upsert(MyHoliday holiday) => Future.error(StateError('x'));
 }
 
+class _FailingUnhide extends MyHolidaysNotifier {
+  @override
+  MyHolidaysData build() {
+    super.build();
+    return const MyHolidaysData(
+      entries: [],
+      hidden: [HiddenHoliday(source: 'CA-ON', name: 'Family Day')],
+    );
+  }
+
+  @override
+  Future<void> unhide(String source, String name) =>
+      Future.error(StateError('x'));
+}
+
 void main() {
   testWidgets('a failed save shows a message and keeps the page open', (
     tester,
@@ -245,6 +260,41 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(c.read(myHolidaysProvider).hidden, hasLength(1));
+  });
+
+  testWidgets('a failed Show again says it could not show it', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final container = ProviderContainer(
+      overrides: [myHolidaysProvider.overrideWith(_FailingUnhide.new)],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const MyHolidaysScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Show again'));
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't show Family Day again"), findsOneWidget);
+  });
+
+  testWidgets('the editor has a help button', (tester) async {
+    await _mount(tester);
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.help_outline), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.help_outline));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
   });
 
   testWidgets('hidden section is absent when nothing is hidden', (

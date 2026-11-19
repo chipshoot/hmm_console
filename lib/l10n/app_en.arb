@@ -1808,6 +1808,8 @@
   "@calendarHolidayShown": {"placeholders": {"name": {"type": "String"}}},
   "calendarHolidayHideFailed": "Couldn't hide {name}",
   "@calendarHolidayHideFailed": {"placeholders": {"name": {"type": "String"}}},
+  "calendarHolidayShowFailed": "Couldn't show {name} again",
+  "@calendarHolidayShowFailed": {"placeholders": {"name": {"type": "String"}}},
   "calendarHolidayUndoFailed": "Couldn't undo",
   "calendarEdit": "Edit",
   "calendarDeleteThis": "Delete this one",

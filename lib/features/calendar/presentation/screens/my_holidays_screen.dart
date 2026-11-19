@@ -64,7 +64,7 @@ class MyHolidaysScreen extends ConsumerWidget {
         run: () => notifier.unhide(h.source, h.name),
         undo: () => notifier.hide(h.source, h.name),
         done: l.calendarHolidayShown(name),
-        failed: l.calendarHolidayHideFailed(name),
+        failed: l.calendarHolidayShowFailed(name),
         undone: l.calendarHolidayHidden(name),
         undoFailed: l.calendarHolidayUndoFailed,
         busyKey: ('my-holiday-unhide', h.source, h.name),

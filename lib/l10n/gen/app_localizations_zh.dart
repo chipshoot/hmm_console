@@ -3816,6 +3816,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String calendarHolidayShowFailed(String name) {
+    return '无法恢复$name';
+  }
+
+  @override
   String get calendarHolidayUndoFailed => '无法撤销';
 
   @override

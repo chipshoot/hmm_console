@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/help/help_button.dart';
+import '../../../../core/help/help_registry.dart';
 import '../../../../core/util/uuid.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
@@ -66,6 +68,7 @@ class _MyHolidayEditorState extends ConsumerState<MyHolidayEditor> {
       end: _kind == MyHolidayKind.once ? _end : null,
       offDay: _offDay,
     );
+    final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final failed = AppLocalizations.of(context).calendarMyHolidaysSaveFailed;
     setState(() => _saving = true);
@@ -78,7 +81,7 @@ class _MyHolidayEditorState extends ConsumerState<MyHolidayEditor> {
       if (mounted) setState(() => _saving = false);
       return;
     }
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) navigator.pop();
   }
 
   Widget _kindChoice(AppLocalizations l) {
@@ -160,6 +163,7 @@ class _MyHolidayEditorState extends ConsumerState<MyHolidayEditor> {
             onPressed: _canSave ? _save : null,
             child: Text(MaterialLocalizations.of(context).saveButtonLabel),
           ),
+          const HelpButton(helpId: HelpId.calendarMyHolidays),
         ],
       ),
       body: SafeArea(
