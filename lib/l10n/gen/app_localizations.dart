@@ -7843,6 +7843,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The bell shows how many reminders fired since you last opened this list, as does the app icon. Opening the list clears both. The bell is hidden when Remind on this device is off.'**
   String get helpCalendarRemindersBellBody;
+
+  /// No description provided for @calendarHolidaysAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add country'**
+  String get calendarHolidaysAdd;
+
+  /// No description provided for @calendarHolidaysWholeCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole country'**
+  String get calendarHolidaysWholeCountry;
+
+  /// No description provided for @calendarHolidaysUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {date}'**
+  String calendarHolidaysUpdated(String date);
+
+  /// No description provided for @calendarHolidaysNotPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'{year} not published yet'**
+  String calendarHolidaysNotPublished(int year);
+
+  /// No description provided for @calendarHolidaysOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t load countries. Check your connection.'**
+  String get calendarHolidaysOffline;
+
+  /// No description provided for @calendarHolidaysRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} removed'**
+  String calendarHolidaysRemoved(String name);
+
+  /// No description provided for @calendarHolidaysRemoveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove {name}'**
+  String calendarHolidaysRemoveFailed(String name);
+
+  /// No description provided for @calendarHolidaysRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} restored'**
+  String calendarHolidaysRestored(String name);
+
+  /// No description provided for @calendarHolidaysMine.
+  ///
+  /// In en, this message translates to:
+  /// **'My holidays'**
+  String get calendarHolidaysMine;
+
+  /// No description provided for @calendarHolidaysSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get calendarHolidaysSearch;
+
+  /// No description provided for @helpCalendarHolidaysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Holidays'**
+  String get helpCalendarHolidaysTitle;
+
+  /// No description provided for @helpCalendarHolidaysSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which countries\' public holidays appear on the calendar. The list is shared across your devices.'**
+  String get helpCalendarHolidaysSummary;
+
+  /// No description provided for @helpCalendarHolidaysAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a country'**
+  String get helpCalendarHolidaysAddTitle;
+
+  /// No description provided for @helpCalendarHolidaysAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a country, then a state or province if it has its own holidays, or Whole country. Each one gets its own colour on the calendar.'**
+  String get helpCalendarHolidaysAddBody;
+
+  /// No description provided for @helpCalendarHolidaysRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove a country'**
+  String get helpCalendarHolidaysRemoveTitle;
+
+  /// No description provided for @helpCalendarHolidaysRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe a row sideways to remove it. Tap Undo straight away to bring it back with its colour and place in the list.'**
+  String get helpCalendarHolidaysRemoveBody;
+
+  /// No description provided for @helpCalendarHolidaysMineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My holidays'**
+  String get helpCalendarHolidaysMineTitle;
+
+  /// No description provided for @helpCalendarHolidaysMineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your own days, such as birthdays or a company day off, and bring back holidays you hid.'**
+  String get helpCalendarHolidaysMineBody;
 }
 
 class _AppLocalizationsDelegate

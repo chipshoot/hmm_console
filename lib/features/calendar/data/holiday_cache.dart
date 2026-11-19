@@ -83,6 +83,34 @@ class HolidayCache {
     await f.writeAsString(jsonEncode(y.toJson()));
   }
 
+  /// The last fetched available-countries list (`countries.json`); not a
+  /// year file, so [pruneExcept] leaves it alone. Empty when never saved.
+  Future<List<({String code, String name})>> readCountries() async {
+    try {
+      final f = File('${(await _holidays()).path}/countries.json');
+      if (!await f.exists()) return const [];
+      final raw = jsonDecode(await f.readAsString());
+      if (raw is! List) return const [];
+      return [
+        for (final r in raw)
+          if (r is Map && r['code'] is String && r['name'] is String)
+            (code: r['code'] as String, name: r['name'] as String),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> writeCountries(List<({String code, String name})> list) async {
+    final f = File('${(await _holidays()).path}/countries.json');
+    await f.parent.create(recursive: true);
+    await f.writeAsString(
+      jsonEncode([
+        for (final c in list) {'code': c.code, 'name': c.name},
+      ]),
+    );
+  }
+
   /// Source id of a `<sourceId>_<year>.json` file name; null for others.
   static String? _sourceOf(String name) {
     final m = RegExp(r'^(.+)_(\d{4})\.json$').firstMatch(name);

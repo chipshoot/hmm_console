@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/calendar/presentation/screens/calendar_home_screen.dart';
 import '../../features/calendar/presentation/screens/event_detail_screen.dart';
 import '../../features/calendar/presentation/screens/event_edit_screen.dart';
+import '../../features/calendar/presentation/screens/holidays_screen.dart';
 import '../../features/calendar/presentation/screens/reminders_inbox_screen.dart';
 import 'route_names.dart';
 
@@ -35,6 +36,11 @@ final calendarRoutes = <RouteBase>[
         path: 'reminders',
         name: RouterNames.calendarReminders.name,
         builder: (context, state) => const RemindersInboxScreen(),
+      ),
+      GoRoute(
+        path: 'holidays',
+        name: RouterNames.calendarHolidays.name,
+        builder: (context, state) => const HolidaysScreen(),
       ),
       GoRoute(
         path: 'event/new',

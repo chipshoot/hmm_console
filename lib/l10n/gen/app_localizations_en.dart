@@ -4528,4 +4528,73 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpCalendarRemindersBellBody =>
       'The bell shows how many reminders fired since you last opened this list, as does the app icon. Opening the list clears both. The bell is hidden when Remind on this device is off.';
+
+  @override
+  String get calendarHolidaysAdd => 'Add country';
+
+  @override
+  String get calendarHolidaysWholeCountry => 'Whole country';
+
+  @override
+  String calendarHolidaysUpdated(String date) {
+    return 'Updated $date';
+  }
+
+  @override
+  String calendarHolidaysNotPublished(int year) {
+    return '$year not published yet';
+  }
+
+  @override
+  String get calendarHolidaysOffline =>
+      'Can\'t load countries. Check your connection.';
+
+  @override
+  String calendarHolidaysRemoved(String name) {
+    return '$name removed';
+  }
+
+  @override
+  String calendarHolidaysRemoveFailed(String name) {
+    return 'Couldn\'t remove $name';
+  }
+
+  @override
+  String calendarHolidaysRestored(String name) {
+    return '$name restored';
+  }
+
+  @override
+  String get calendarHolidaysMine => 'My holidays';
+
+  @override
+  String get calendarHolidaysSearch => 'Search';
+
+  @override
+  String get helpCalendarHolidaysTitle => 'Holidays';
+
+  @override
+  String get helpCalendarHolidaysSummary =>
+      'Choose which countries\' public holidays appear on the calendar. The list is shared across your devices.';
+
+  @override
+  String get helpCalendarHolidaysAddTitle => 'Add a country';
+
+  @override
+  String get helpCalendarHolidaysAddBody =>
+      'Pick a country, then a state or province if it has its own holidays, or Whole country. Each one gets its own colour on the calendar.';
+
+  @override
+  String get helpCalendarHolidaysRemoveTitle => 'Remove a country';
+
+  @override
+  String get helpCalendarHolidaysRemoveBody =>
+      'Swipe a row sideways to remove it. Tap Undo straight away to bring it back with its colour and place in the list.';
+
+  @override
+  String get helpCalendarHolidaysMineTitle => 'My holidays';
+
+  @override
+  String get helpCalendarHolidaysMineBody =>
+      'Add your own days, such as birthdays or a company day off, and bring back holidays you hid.';
 }

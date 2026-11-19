@@ -4315,4 +4315,71 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpCalendarRemindersBellBody =>
       '铃铛和应用图标会显示自你上次打开此列表以来响起的提醒数量。打开列表后两者都会清零。关闭“在此设备上提醒”时不显示铃铛。';
+
+  @override
+  String get calendarHolidaysAdd => '添加国家或地区';
+
+  @override
+  String get calendarHolidaysWholeCountry => '全国';
+
+  @override
+  String calendarHolidaysUpdated(String date) {
+    return '更新于 $date';
+  }
+
+  @override
+  String calendarHolidaysNotPublished(int year) {
+    return '$year 年尚未公布';
+  }
+
+  @override
+  String get calendarHolidaysOffline => '无法加载国家列表，请检查网络连接。';
+
+  @override
+  String calendarHolidaysRemoved(String name) {
+    return '已移除$name';
+  }
+
+  @override
+  String calendarHolidaysRemoveFailed(String name) {
+    return '无法移除$name';
+  }
+
+  @override
+  String calendarHolidaysRestored(String name) {
+    return '已恢复$name';
+  }
+
+  @override
+  String get calendarHolidaysMine => '我的假日';
+
+  @override
+  String get calendarHolidaysSearch => '搜索';
+
+  @override
+  String get helpCalendarHolidaysTitle => '节假日';
+
+  @override
+  String get helpCalendarHolidaysSummary => '选择日历上显示哪些国家的公共假日。此列表会在你的设备间同步。';
+
+  @override
+  String get helpCalendarHolidaysAddTitle => '添加国家或地区';
+
+  @override
+  String get helpCalendarHolidaysAddBody =>
+      '先选国家，如果它有各州或省的假日，再选州或省，或选“全国”。每个条目在日历上有各自的颜色。';
+
+  @override
+  String get helpCalendarHolidaysRemoveTitle => '移除国家或地区';
+
+  @override
+  String get helpCalendarHolidaysRemoveBody =>
+      '向一侧滑动某一行即可移除。立即点按“撤销”可恢复，颜色和位置不变。';
+
+  @override
+  String get helpCalendarHolidaysMineTitle => '我的假日';
+
+  @override
+  String get helpCalendarHolidaysMineBody =>
+      '添加你自己的日子，例如生日或公司休息日，也可以恢复你隐藏过的假日。';
 }
