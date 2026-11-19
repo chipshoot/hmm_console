@@ -49,6 +49,48 @@ void main() {
     expect(fromLunarBackward(2024, 12, 30), DateTime.utc(2025, 1, 28));
     expect(fromLunar(2023, 12, 30), DateTime.utc(2024, 2, 9));
   });
+  test('memoised conversions: repeated calls return identical results', () {
+    // Interleave years so the memo, not the package's last-year cache, is
+    // what answers the second round.
+    List<Object?> round() => [
+      for (final y in [1950, 2026, 1901, 2099, 1950, 2025])
+        for (final m in [1, 6, 12])
+          (
+            fromLunar(y, m, 30),
+            fromLunarBackward(y, m, 30),
+            fromLunar(y, m, 1, leap: true),
+            fromLunarBackward(y, m, 15, leap: true),
+            toLunar(DateTime(y, m, 15)),
+          ),
+    ];
+    final first = round();
+    expect(round(), first);
+    expect(round(), first);
+    expect(fromLunarBackward(2024, 12, 30), DateTime.utc(2025, 1, 28));
+    expect(toLunar(d(2026, 2, 17)), const LunarDate(2026, 1, 1));
+  });
+  test('every lunar month round-trips through toLunar (1901–2099)', () {
+    for (var y = kLunarMinYear; y <= kLunarMaxYear; y++) {
+      for (var m = 1; m <= 12; m++) {
+        for (final leap in [false, true]) {
+          final first = fromLunar(y, m, 1, leap: leap);
+          // 2099's last months fall in 2100, outside toLunar's range.
+          if (first == null || first.year > kLunarMaxYear) continue;
+          expect(toLunar(first), LunarDate(y, m, 1, isLeap: leap));
+          final last = fromLunarBackward(y, m, 30, leap: leap)!;
+          if (last.year > kLunarMaxYear) continue;
+          final l = toLunar(last)!;
+          expect((l.year, l.month, l.isLeap), (y, m, leap));
+          expect(l.day, anyOf(29, 30));
+          // The day after a month's last day is the next month's first.
+          expect(
+            toLunar(last.add(const Duration(days: 1)))?.day,
+            anyOf(1, null),
+          );
+        }
+      }
+    }
+  });
   test('text', () {
     expect(lunarMonthDayText(10, 28), '十月廿八');
     expect(lunarMonthDayText(4, 8, leap: true), '闰四月初八');

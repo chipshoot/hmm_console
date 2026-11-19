@@ -579,4 +579,38 @@ void main() {
       expect(starts(o), [utc(2027, 11, 7, 5, 30)]);
     });
   });
+
+  test('old lunar series: repeated expansion is identical (timing printed, '
+      'not asserted)', () {
+    // 20 lunar yearly events starting in the 1950s, a six-week 2026 window:
+    // what the month view re-expands on every day tap.
+    final events = [
+      for (var i = 0; i < 20; i++)
+        ev(
+          AllDay(1950 + i, 3, 1 + i),
+          rrule:
+              'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=${1 + i % 12};'
+              'BYMONTHDAY=${1 + i};SKIP=BACKWARD',
+        ),
+    ];
+    List<List<DateTime>> expandAll() => [
+      for (final e in events) starts(run(e, utc(2026, 1, 26), utc(2026, 3, 9))),
+    ];
+    final sw = Stopwatch()..start();
+    final first = expandAll();
+    final firstMs = sw.elapsedMicroseconds / 1000;
+    sw
+      ..reset()
+      ..start();
+    final second = expandAll();
+    final secondMs = sw.elapsedMicroseconds / 1000;
+    // ignore: avoid_print
+    print(
+      'lunar expansion, 20 events from the 1950s: '
+      'first ${firstMs.toStringAsFixed(1)} ms, '
+      'repeat ${secondMs.toStringAsFixed(1)} ms',
+    );
+    expect(second, first);
+    expect(first.expand((x) => x), isNotEmpty);
+  });
 }

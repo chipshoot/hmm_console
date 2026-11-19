@@ -69,17 +69,68 @@ bool _inRange(int year) => year >= kLunarMinYear && year <= kLunarMaxYear;
 
 LunarDate? toLunar(DateTime date) {
   if (!_inRange(date.year)) return null;
-  final l = pkg.Solar.fromYmd(date.year, date.month, date.day).getLunar();
-  final m = l.getMonth();
-  return LunarDate(l.getYear(), m.abs(), l.getDay(), isLeap: m < 0);
+  final day = DateTime.utc(date.year, date.month, date.day);
+  // A lunar year starts in late January or February and its 腊月 can start
+  // in the next January, so a date lies in lunar year Y or Y - 1.
+  for (final year in [date.year, date.year - 1]) {
+    for (final m in _monthsOf(year)) {
+      final offset = day.difference(m.first).inDays;
+      if (offset >= 0 && offset < m.count) {
+        return LunarDate(year, m.month, offset + 1, isLeap: m.leap);
+      }
+    }
+  }
+  return null;
+}
+
+/// A lunar month: its number, whether it is the leap month, its first day
+/// (Gregorian, UTC date) and its length.
+typedef _MonthInfo = ({int month, bool leap, DateTime first, int count});
+
+/// Memo of each lunar year's months, in order. Building the package's year
+/// object costs ~0.25 ms (and the package caches only the last one), while
+/// expanding a lunar yearly series converts once per lunar year since its
+/// start, on every redraw. Pure: a year's months never change. Bounded by
+/// the years asked for (the 1901–2099 range, plus 1900 for January 1901).
+final Map<int, List<_MonthInfo>> _years = {};
+
+List<_MonthInfo> _monthsOf(int year) => _years.putIfAbsent(
+  year,
+  () => [
+    for (final m in pkg.LunarYear.fromYear(year).getMonths())
+      // The list also holds neighbouring years' months; keep this year's,
+      // exactly what `LunarMonth.fromYm(year, …)` would return.
+      if (m.getYear() == year) _infoOf(m),
+  ],
+);
+
+_MonthInfo _infoOf(pkg.LunarMonth m) {
+  // The same noon-of-day conversion `Lunar.fromYmd` uses.
+  final s = pkg.Solar.fromJulianDay(m.getFirstJulianDay());
+  return (
+    month: m.getMonth().abs(),
+    leap: m.getMonth() < 0,
+    first: DateTime.utc(s.getYear(), s.getMonth(), s.getDay()),
+    count: m.getDayCount(),
+  );
+}
+
+_MonthInfo? _month(int year, int month, bool leap) {
+  for (final m in _monthsOf(year)) {
+    if (m.month == month && m.leap == leap) return m;
+  }
+  return null;
 }
 
 int? _dayCount(int year, int month, {required bool leap}) =>
-    pkg.LunarMonth.fromYm(year, leap ? -month : month)?.getDayCount();
+    _month(year, month, leap)?.count;
 
+/// Lunar days are consecutive Gregorian days, so day N of a month is its
+/// first day plus N - 1 (calendar arithmetic on a UTC date, no DST).
 DateTime? _solarOf(int year, int month, int day, bool leap) {
-  final s = pkg.Lunar.fromYmd(year, leap ? -month : month, day).getSolar();
-  return DateTime.utc(s.getYear(), s.getMonth(), s.getDay());
+  final first = _month(year, month, leap)?.first;
+  if (first == null) return null;
+  return DateTime.utc(first.year, first.month, first.day + day - 1);
 }
 
 DateTime? fromLunar(int year, int month, int day, {bool leap = false}) {
