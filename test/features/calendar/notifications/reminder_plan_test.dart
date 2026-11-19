@@ -198,6 +198,33 @@ void main() {
     });
   }
 
+  test('a lunar yearly event plans its reminder on the Gregorian day of the '
+      'lunar date only', () {
+    // 正月初一: 2025-01-29, then 2026-02-17 (Feb 16 is 除夕, Feb 18 初二).
+    final e = _ev(
+      'lunar',
+      const AllDay(2025, 1, 29),
+      rrule: 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1;SKIP=BACKWARD',
+      reminders: const [
+        Reminder(minutesBefore: 0),
+        Reminder(minutesBefore: 60),
+      ],
+    );
+    final out = planReminders(
+      events: [e],
+      nowUtc: DateTime.utc(2026, 2, 5, 12, 0),
+      resolve: _utc,
+      formatTitle: _title,
+    );
+    expect(out.map((r) => r.fireAtUtc).toSet(), {
+      DateTime.utc(2026, 2, 17, 9, 0),
+      DateTime.utc(2026, 2, 17, 8, 0),
+    });
+    expect(out.map((r) => r.payload).toSet(), {
+      'calendar|lunar|${const AllDay(2026, 2, 17).wireKey}',
+    });
+  });
+
   test('moved all-day occurrence uses the moved date', () {
     const orig = AllDay(2026, 11, 20);
     final e = _ev(
