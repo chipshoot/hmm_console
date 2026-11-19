@@ -7637,7 +7637,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpCalendarMonthBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap a day to see its events. A dot marks a day with events. Use the arrows to change month.'**
+  /// **'Tap a day to see its events. A dot marks a day with events. Use the arrows to change month. With Show lunar calendar on (Settings), each day also shows its 农历 date, 节气 or festival.'**
   String get helpCalendarMonthBody;
 
   /// No description provided for @helpCalendarTodayTitle.

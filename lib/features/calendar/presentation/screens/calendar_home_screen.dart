@@ -11,9 +11,11 @@ import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../contract/calendar_errors.dart';
 import '../../domain/calendar_event.dart';
+import '../../domain/lunar.dart';
 import '../../states/calendar_providers.dart';
 import '../../states/calendar_view_state.dart';
 import '../../states/remind_on_device_provider.dart';
+import '../../states/show_lunar_provider.dart';
 import '../widgets/agenda_list.dart';
 import '../widgets/calendar_cloud_api_message.dart';
 import '../widgets/month_grid.dart';
@@ -205,6 +207,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
     final isApple = Theme.of(context).platform == TargetPlatform.iOS;
     final async = ref.watch(calendarViewProvider);
     final denied = ref.watch(calendarPermissionDeniedProvider);
+    final showLunar = ref.watch(showLunarProvider);
     final wide = MediaQuery.sizeOf(context).width >= kCalendarWideBreakpoint;
 
     Widget body;
@@ -223,7 +226,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
         );
       }
     } else if (async.hasValue) {
-      body = _content(async.requireValue, wide);
+      body = _content(async.requireValue, wide, showLunar);
     } else {
       body = const Center(child: CircularProgressIndicator.adaptive());
     }
@@ -262,7 +265,18 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
     );
   }
 
-  Widget _content(CalendarViewData data, bool wide) {
+  Widget _content(CalendarViewData data, bool wide, bool showLunar) {
+    Map<int, LunarCellLabel>? lunarLabels;
+    if (showLunar) {
+      lunarLabels = {};
+      final days = DateTime(data.month.year, data.month.month + 1, 0).day;
+      for (var d = 1; d <= days; d++) {
+        final label = lunarCellLabel(
+          DateTime(data.month.year, data.month.month, d),
+        );
+        if (label != null) lunarLabels[d] = label;
+      }
+    }
     final grid = MonthGrid(
       month: data.month,
       selected: data.day,
@@ -272,6 +286,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
         DateTime.now().day,
       ),
       eventDays: data.eventDays,
+      lunarLabels: lunarLabels,
       onSelect: (d) => ref.read(selectedDayProvider.notifier).select(d),
       onPrevious: () => ref.read(visibleMonthProvider.notifier).shift(-1),
       onNext: () => ref.read(visibleMonthProvider.notifier).shift(1),
@@ -280,6 +295,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
       day: data.day,
       items: data.agenda,
       unreadableIds: data.unreadableIds,
+      lunarText: showLunar ? lunarFullText(data.day) : null,
       onTap: _open,
       onDone: (i) => _mark(i, OccurrenceStatus.done),
       onSkip: (i) => _mark(i, OccurrenceStatus.skipped),

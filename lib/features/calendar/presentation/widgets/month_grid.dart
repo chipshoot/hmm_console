@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../domain/lunar.dart';
 
 /// A compact month: header with previous/next, weekday initials, day cells
 /// with a dot under days that have events. The first weekday follows the
@@ -16,6 +17,7 @@ class MonthGrid extends StatelessWidget {
     required this.onSelect,
     required this.onPrevious,
     required this.onNext,
+    this.lunarLabels,
   });
 
   /// Any date in the month shown.
@@ -29,6 +31,9 @@ class MonthGrid extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
 
+  /// Lunar label per day of month; null = lunar display off.
+  final Map<int, LunarCellLabel>? lunarLabels;
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -40,8 +45,11 @@ class MonthGrid extends StatelessWidget {
     final lead = (first.weekday % 7 - firstIdx + 7) % 7;
     final rows = ((lead + daysInMonth) / 7).ceil();
 
+    final lunar = lunarLabels;
+    final cellHeight = lunar == null ? 44.0 : 56.0;
+
     Widget cell(int? day) {
-      if (day == null) return const SizedBox(height: 44);
+      if (day == null) return SizedBox(height: cellHeight);
       final date = DateTime(month.year, month.month, day);
       final isSel = date == selected;
       final isToday = date == today;
@@ -50,7 +58,7 @@ class MonthGrid extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: () => onSelect(date),
         child: SizedBox(
-          height: 44,
+          height: cellHeight,
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -73,6 +81,28 @@ class MonthGrid extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (lunar != null)
+                  SizedBox(
+                    height: 12,
+                    child: lunar[day] == null
+                        ? null
+                        : Text(
+                            lunar[day]!.text,
+                            key: Key('calendar-lunar-$day'),
+                            maxLines: 1,
+                            overflow: TextOverflow.clip,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 9,
+                              height: 1.2,
+                              color:
+                                  lunar[day]!.kind == LunarLabelKind.festival ||
+                                      lunar[day]!.kind ==
+                                          LunarLabelKind.solarTerm
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                  ),
                 SizedBox(
                   height: 6,
                   child: eventDays.contains(day)

@@ -4188,7 +4188,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpCalendarMonthTitle => '月历';
 
   @override
-  String get helpCalendarMonthBody => '点按某一天查看当天日程。有圆点的日期表示有日程。用箭头切换月份。';
+  String get helpCalendarMonthBody =>
+      '点按某一天查看当天日程。有圆点的日期表示有日程。用箭头切换月份。在设置中打开“显示农历”后，每天还会显示农历日期、节气或节日。';
 
   @override
   String get helpCalendarTodayTitle => '今天';

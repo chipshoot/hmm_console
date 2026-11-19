@@ -45,6 +45,7 @@ Future<ProviderContainer> _mount(
   TargetPlatform platform = TargetPlatform.android,
   DataMode mode = DataMode.local,
   Locale locale = const Locale('en'),
+  DateTime? day,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -56,7 +57,7 @@ Future<ProviderContainer> _mount(
     ],
   );
   addTearDown(container.dispose);
-  container.read(selectedDayProvider.notifier).select(_day);
+  container.read(selectedDayProvider.notifier).select(day ?? _day);
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
@@ -79,6 +80,51 @@ void main() {
   FakeCalendarRepository seeded() => FakeCalendarRepository()
     ..seed(_ev('a', const FloatingTime(2026, 11, 18, 7, 0)))
     ..seed(_ev('b', const FloatingTime(2026, 11, 18, 19, 0)));
+
+  group('lunar labels', () {
+    String lunar(WidgetTester t, int d) =>
+        (t.widget(find.byKey(Key('calendar-lunar-$d'))) as Text).data!;
+
+    testWidgets('off: no lunar labels', (tester) async {
+      await _mount(tester, seeded());
+      expect(find.byKey(const Key('calendar-lunar-17')), findsNothing);
+    });
+
+    testWidgets('on: Feb 2026 festivals and plain days', (tester) async {
+      SharedPreferences.setMockInitialValues({'calendar.show_lunar': true});
+      await _mount(tester, seeded(), day: DateTime(2026, 2, 17));
+      expect(lunar(tester, 17), '春节');
+      expect(lunar(tester, 16), '除夕');
+      // 2/18 is 雨水: a solar term outranks the plain day name.
+      expect(lunar(tester, 18), '雨水');
+      expect(lunar(tester, 19), '初三');
+    });
+
+    testWidgets('on: Apr 2026 solar term', (tester) async {
+      SharedPreferences.setMockInitialValues({'calendar.show_lunar': true});
+      await _mount(tester, seeded(), day: DateTime(2026, 4, 5));
+      expect(lunar(tester, 5), '清明');
+    });
+
+    testWidgets('on: agenda header carries the full lunar text', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({'calendar.show_lunar': true});
+      await _mount(tester, seeded(), day: DateTime(2024, 2, 10));
+      expect(find.textContaining('甲辰年正月初一 · 春节'), findsOneWidget);
+    });
+
+    testWidgets('on: 6-row month does not overflow on a phone', (tester) async {
+      SharedPreferences.setMockInitialValues({'calendar.show_lunar': true});
+      await _mount(
+        tester,
+        seeded(),
+        size: const Size(360, 640),
+        day: DateTime(2026, 8, 15),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
 
   testWidgets('phone: month grid sits above the agenda', (tester) async {
     await _mount(tester, seeded());

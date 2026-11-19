@@ -1292,7 +1292,7 @@
   "helpCalendarAddTitle": "添加日程",
   "helpCalendarAddBody": "在所选日期新建一个日程。",
   "helpCalendarMonthTitle": "月历",
-  "helpCalendarMonthBody": "点按某一天查看当天日程。有圆点的日期表示有日程。用箭头切换月份。",
+  "helpCalendarMonthBody": "点按某一天查看当天日程。有圆点的日期表示有日程。用箭头切换月份。在设置中打开“显示农历”后，每天还会显示农历日期、节气或节日。",
   "helpCalendarTodayTitle": "今天",
   "helpCalendarTodayBody": "回到今天。",
   "helpCalendarSwipeTitle": "滑动日程",

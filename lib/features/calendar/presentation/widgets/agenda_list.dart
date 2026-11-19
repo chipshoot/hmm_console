@@ -16,6 +16,7 @@ class AgendaList extends StatelessWidget {
     required this.onDone,
     required this.onSkip,
     required this.onMenu,
+    this.lunarText,
   });
 
   final DateTime day;
@@ -25,6 +26,9 @@ class AgendaList extends StatelessWidget {
   final void Function(AgendaItem) onDone;
   final void Function(AgendaItem) onSkip;
   final void Function(AgendaItem) onMenu;
+
+  /// Lunar date text for the header; null = off.
+  final String? lunarText;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +40,10 @@ class AgendaList extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Text(
-            MaterialLocalizations.of(context).formatFullDate(day),
+            lunarText == null
+                ? MaterialLocalizations.of(context).formatFullDate(day)
+                : '${MaterialLocalizations.of(context).formatFullDate(day)}'
+                      ' · $lunarText',
             style: theme.textTheme.titleSmall,
           ),
         ),
