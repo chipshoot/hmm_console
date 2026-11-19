@@ -108,10 +108,12 @@ void main() {
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('my-holiday-name')), 'Trip');
+    await tester.pump();
     await tester.tap(find.byKey(const Key('my-holiday-save')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text("Couldn't save the holiday"), findsOneWidget);
+    expect(find.byType(SnackBar), findsOneWidget);
     expect(find.byKey(const Key('my-holiday-name')), findsOneWidget);
     expect(
       tester
