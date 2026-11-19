@@ -140,13 +140,16 @@ final reminderTitleFormatProvider =
 
 DateTime _utcNow() => DateTime.now().toUtc();
 
+Future<void> _noBadge(int count) async {}
+
 /// Keeps this device's pending calendar reminders in step with the events.
 ///
 /// Runs on [start], on return to the foreground and on each repository
 /// change, all debounced by [debounce]. Each run reads every readable event,
 /// plans with the device resolver and reschedules. With "Remind on this
 /// device" off, or in cloud API mode (no calendar repository), it cancels the
-/// calendar reminders instead.
+/// calendar reminders instead. Every run sets the app icon badge: the unseen
+/// count, or 0 when no reminder shows on this device.
 class ReminderSync with WidgetsBindingObserver {
   ReminderSync({
     required ICalendarRepository Function() repository,
@@ -163,6 +166,7 @@ class ReminderSync with WidgetsBindingObserver {
     Future<void> Function()? refreshZone,
     Future<DateTime?> Function() readSeenAt = readRemindersSeenAt,
     Future<void> Function(DateTime utc) writeSeenAt = writeRemindersSeenAt,
+    Future<void> Function(int count) setBadge = _noBadge,
     Duration debounce = const Duration(seconds: 1),
     bool observeLifecycle = true,
   }) : _repository = repository,
@@ -178,6 +182,7 @@ class ReminderSync with WidgetsBindingObserver {
        _refreshZone = refreshZone,
        _readSeenAt = readSeenAt,
        _writeSeenAt = writeSeenAt,
+       _setBadge = setBadge,
        _debounce = debounce,
        _observeLifecycle = observeLifecycle;
 
@@ -200,6 +205,9 @@ class ReminderSync with WidgetsBindingObserver {
   /// The reminders inbox's seen instant ([kRemindersSeenAtKey]).
   final Future<DateTime?> Function() _readSeenAt;
   final Future<void> Function(DateTime utc) _writeSeenAt;
+
+  /// Sets the app icon badge (iOS; a no-op elsewhere).
+  final Future<void> Function(int count) _setBadge;
   final Duration _debounce;
   final bool _observeLifecycle;
 
@@ -209,7 +217,7 @@ class ReminderSync with WidgetsBindingObserver {
   Future<void>? _inFlight;
   bool _rerun = false;
 
-  /// The previous run found "Remind on this device" off.
+  /// The previous run found "Remind on this device" off, or Cloud API mode.
   bool _lastRunOff = false;
 
   /// Idempotent. Subscribes to changes and the app lifecycle, then triggers.
@@ -306,10 +314,7 @@ class ReminderSync with WidgetsBindingObserver {
       if (!_remindOnDevice()) {
         _onPermissionChecked(false);
         await _scheduler.cancelAll();
-        // Nothing shows on this device while off, so whatever fires now must
-        // never count as unseen once the setting is turned back on.
-        _lastRunOff = true;
-        await _markSeen(_clock().toUtc());
+        await _nothingShows();
         return;
       }
       final ICalendarRepository repo;
@@ -320,20 +325,32 @@ class ReminderSync with WidgetsBindingObserver {
         if (!isCalendarCloudApiUnavailable(e)) rethrow;
         _onPermissionChecked(false);
         await _scheduler.cancelAll();
+        // Cloud API mode has no calendar, so no reminder shows either.
+        await _nothingShows();
         return;
       }
       final now = _clock().toUtc();
+      final backOn = _lastRunOff;
+      if (backOn) {
+        // Back on after an off (or Cloud API) run: reminders that fired since
+        // that run never showed either, so the unseen count restarts from
+        // now. Stored before the events load, so a failing load cannot leave
+        // a stale count.
+        await _markSeen(now);
+      }
       final events = await loadReminderEvents(repo, now);
       final int unseenNow;
-      if (_lastRunOff) {
-        // Back on after an off run: reminders that fired since that run never
-        // showed either, so the unseen count restarts from now.
-        await _markSeen(now);
+      if (backOn) {
+        // Cleared only on a run that reaches planning: a failed load keeps
+        // it, and the next run restarts the count from its own now.
         _lastRunOff = false;
         unseenNow = 0;
       } else {
         unseenNow = await _unseenNow(events, now);
       }
+      // Every run, so the icon follows the count after edits, done marks and
+      // inbox visits, not only when a reminder fires.
+      await _updateBadge(unseenNow);
       final plan = planReminders(
         events: events,
         nowUtc: now,
@@ -361,6 +378,25 @@ class ReminderSync with WidgetsBindingObserver {
       await _scheduler.reschedule(plan);
     } catch (e) {
       debugPrint('ReminderSync: run failed (${e.runtimeType})');
+    }
+  }
+
+  /// Nothing shows on this device ("Remind on this device" off, or Cloud API
+  /// mode), so whatever fires now must never count as unseen once reminders
+  /// show again, and the icon badge reads 0.
+  Future<void> _nothingShows() async {
+    _lastRunOff = true;
+    await _markSeen(_clock().toUtc());
+    await _updateBadge(0);
+  }
+
+  /// Sets the icon badge to [count]. A failure is logged, never thrown: a
+  /// stale badge is cosmetic, delivery goes on.
+  Future<void> _updateBadge(int count) async {
+    try {
+      await _setBadge(count);
+    } catch (e) {
+      debugPrint('ReminderSync: badge not set (${e.runtimeType})');
     }
   }
 
@@ -449,6 +485,7 @@ final reminderSyncProvider = Provider<ReminderSync>((ref) {
     // Through the app state, so the inbox and the bell see every write.
     readSeenAt: () => ref.read(remindersSeenAtProvider.future),
     writeSeenAt: (utc) => ref.read(remindersSeenAtProvider.notifier).write(utc),
+    setBadge: gateway.setBadge,
   );
   ref.listen(reminderTitleFormatProvider, (_, _) => sync.trigger());
   ref.listen<bool>(remindOnDeviceProvider, (_, _) => sync.trigger());

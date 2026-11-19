@@ -36,15 +36,18 @@ void main() {
     });
   });
 
-  group('clearBadge', () {
+  group('setBadge / clearBadge', () {
     const channel = MethodChannel('hmm/badge');
     late List<String> calls;
+    late List<Object?> args;
 
     setUp(() {
       calls = [];
+      args = [];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
             calls.add(call.method);
+            args.add(call.arguments);
             return null;
           });
     });
@@ -55,14 +58,27 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     });
 
-    test('on iOS it calls hmm/badge clear', () async {
+    test('on iOS setBadge calls hmm/badge set with the count', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      await FlutterNotificationGateway().setBadge(2);
+      expect(calls, ['set']);
+      expect(args, [
+        {'count': 2},
+      ]);
+    });
+
+    test('on iOS clearBadge sets the badge to 0', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       await FlutterNotificationGateway().clearBadge();
-      expect(calls, ['clear']);
+      expect(calls, ['set']);
+      expect(args, [
+        {'count': 0},
+      ]);
     });
 
     test('elsewhere it does nothing', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      await FlutterNotificationGateway().setBadge(3);
       await FlutterNotificationGateway().clearBadge();
       expect(calls, isEmpty);
     });
@@ -74,6 +90,7 @@ void main() {
             channel,
             (call) async => throw PlatformException(code: 'x'),
           );
+      await expectLater(FlutterNotificationGateway().setBadge(1), completes);
       await expectLater(FlutterNotificationGateway().clearBadge(), completes);
     });
   });

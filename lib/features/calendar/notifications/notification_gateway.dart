@@ -25,7 +25,11 @@ abstract interface class NotificationGateway {
   Future<bool> requestPermission();
   Future<bool> permissionGranted();
 
-  /// Sets the app icon badge to 0 (iOS); a no-op elsewhere.
+  /// Sets the app icon badge to [count] (iOS; 0 hides it); a no-op
+  /// elsewhere. Never throws.
+  Future<void> setBadge(int count);
+
+  /// [setBadge] with 0.
   Future<void> clearBadge();
 }
 
@@ -159,15 +163,20 @@ class FlutterNotificationGateway implements NotificationGateway {
   }
 
   @override
-  Future<void> clearBadge() async {
+  Future<void> setBadge(int count) async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
     try {
-      await _badgeChannel.invokeMethod<void>('clear');
+      await _badgeChannel.invokeMethod<void>('set', {
+        'count': count < 0 ? 0 : count,
+      });
     } catch (e) {
       // A stale badge is cosmetic; never fail the caller over it.
-      debugPrint('Calendar: badge not cleared (${e.runtimeType})');
+      debugPrint('Calendar: badge not set (${e.runtimeType})');
     }
   }
+
+  @override
+  Future<void> clearBadge() => setBadge(0);
 }
 
 final notificationGatewayProvider = Provider<NotificationGateway>(

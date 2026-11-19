@@ -68,12 +68,13 @@ class _Harness {
   _Harness({
     bool remind = true,
     bool granted = true,
-    bool cloudApi = false,
+    this.cloudApi = false,
     this.asked = true,
     Future<void> Function()? refreshZone,
     void Function()? onRead,
     this.seenAt,
     bool seenAtFails = false,
+    this.badgeFails = false,
     DateTime Function()? clock,
   }) : remindOnDevice = remind,
        gateway = FakeNotificationGateway(granted: granted) {
@@ -108,6 +109,10 @@ class _Harness {
         seenAtWrites.add(utc);
         seenAt = utc;
       },
+      setBadge: (count) async {
+        if (badgeFails) throw StateError('badge');
+        badgeSets.add(count);
+      },
       observeLifecycle: false,
     );
     repo.onRead = onRead;
@@ -128,6 +133,13 @@ class _Harness {
   DateTime? seenAt;
   int seenAtReads = 0;
   final seenAtWrites = <DateTime>[];
+
+  /// Cloud API mode: the repository throws [CalendarCloudApiUnavailable].
+  bool cloudApi;
+
+  /// Every count the app icon badge was set to.
+  final badgeSets = <int>[];
+  bool badgeFails;
 }
 
 /// An event at [start] (resolved as UTC) with one reminder [before] minutes
@@ -243,6 +255,135 @@ void main() {
         _settle(fa);
         expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1]);
         expect(h.seenAtWrites, [now.subtract(const Duration(hours: 1)), now]);
+        h.sync.stop();
+      });
+    });
+
+    test('off run sets the icon badge to 0', () {
+      fakeAsync((fa) {
+        final h = _Harness(remind: false);
+        h.sync.start();
+        _settle(fa);
+        expect(h.badgeSets, [0]);
+        h.sync.stop();
+      });
+    });
+
+    test('a run with one unseen reminder sets the icon badge to 1', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now.subtract(const Duration(hours: 1)));
+        h.repo.events = [
+          _ev('a'),
+          // Fired 11:50, after seenAt (11:00).
+          _at('f1', const FloatingTime(2026, 11, 17, 12, 5), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.badgeSets, [1]);
+        expect(h.gateway.scheduled.single.badgeNumber, 2);
+        h.sync.stop();
+      });
+    });
+
+    test('a run with nothing unseen sets the icon badge to 0, even with no '
+        'plan', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now);
+        h.repo.events = [];
+        h.sync.start();
+        _settle(fa);
+        expect(h.badgeSets, [0]);
+        h.sync.stop();
+      });
+    });
+
+    test('a failing badge set is logged; reminders are still scheduled', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now, badgeFails: true);
+        h.sync.start();
+        _settle(fa);
+        expect(h.gateway.scheduled, hasLength(1));
+        h.sync.stop();
+      });
+    });
+
+    test('cloud API run marks seen and sets the icon badge to 0', () {
+      fakeAsync((fa) {
+        final h = _Harness(
+          cloudApi: true,
+          seenAt: _now.subtract(const Duration(days: 2)),
+        );
+        h.sync.start();
+        _settle(fa);
+        expect(h.seenAtWrites, [_now]);
+        expect(h.badgeSets, [0]);
+        expect(h.seenAtReads, 0);
+        h.sync.stop();
+      });
+    });
+
+    test(
+      'reminders that fired during Cloud API mode never count once back',
+      () {
+        fakeAsync((fa) {
+          var now = _now.subtract(const Duration(hours: 1));
+          final h = _Harness(
+            cloudApi: true,
+            seenAt: _now.subtract(const Duration(days: 2)),
+            clock: () => now,
+          );
+          h.repo.events = [
+            _ev('a'),
+            // Fires 11:50, while in Cloud API mode.
+            _at('f', const FloatingTime(2026, 11, 17, 12, 5), 15),
+          ];
+          h.sync.start();
+          _settle(fa);
+          now = _now;
+          h.cloudApi = false;
+          h.sync.trigger();
+          _settle(fa);
+          expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1]);
+          expect(h.seenAtWrites, [now.subtract(const Duration(hours: 1)), now]);
+          expect(h.badgeSets, [0, 0]);
+          h.sync.stop();
+        });
+      },
+    );
+
+    test('back on after off: seen is stored before the events load, so a '
+        'failing load leaves no stale count', () {
+      fakeAsync((fa) {
+        var now = _now.subtract(const Duration(hours: 1));
+        var failLoad = false;
+        final h = _Harness(
+          remind: false,
+          seenAt: _now.subtract(const Duration(days: 2)),
+          clock: () => now,
+          onRead: () {
+            if (failLoad) throw StateError('db');
+          },
+        );
+        h.sync.start();
+        _settle(fa);
+        now = _now;
+        h.remindOnDevice = true;
+        failLoad = true;
+        h.sync.trigger();
+        _settle(fa);
+        expect(h.seenAtWrites, [now.subtract(const Duration(hours: 1)), now]);
+        expect(h.gateway.scheduled, isEmpty);
+        // The next run that reaches planning still starts from 0.
+        now = _now.add(const Duration(minutes: 10));
+        failLoad = false;
+        h.repo.events = [
+          _ev('a'),
+          // Fired 12:05, after the failed run's seen write (12:00).
+          _at('f', const FloatingTime(2026, 11, 17, 12, 5), 0),
+        ];
+        h.sync.trigger();
+        _settle(fa);
+        expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1]);
         h.sync.stop();
       });
     });
