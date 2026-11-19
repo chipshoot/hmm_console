@@ -19,7 +19,7 @@ const _fx = 'test/features/calendar/data/fixtures';
 String _fixture(String n) => File('$_fx/$n').readAsStringSync();
 
 class _Adapter implements HttpClientAdapter {
-  _Adapter({this.offline = false});
+  _Adapter();
   bool offline;
   final requests = <String>[];
 
