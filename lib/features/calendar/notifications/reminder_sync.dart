@@ -323,7 +323,7 @@ class ReminderSync with WidgetsBindingObserver {
         return;
       }
       final now = _clock().toUtc();
-      final events = await _loadEvents(repo, now);
+      final events = await loadReminderEvents(repo, now);
       final int unseenNow;
       if (_lastRunOff) {
         // Back on after an off run: reminders that fired since that run never
@@ -399,26 +399,29 @@ class ReminderSync with WidgetsBindingObserver {
       return 0;
     }
   }
+}
 
-  static Future<List<CalendarEvent>> _loadEvents(
-    ICalendarRepository repo,
-    DateTime now,
-  ) async {
-    if (repo is LocalCalendarRepository) {
-      // Every event, unreadable ones skipped.
-      return [
-        for (final r in await repo.readAll())
-          if (r is CalendarEventReadable) r.event,
-      ];
-    }
-    // From the inbox window's start. This relies on minutesBefore >= 0 (the
-    // editor enforces it): an occurrence then never starts before its
-    // reminder fires, so this covers every reminder fired in the window.
-    return repo.eventsBetween(
-      now.subtract(kRemindersInboxWindow),
-      now.add(const Duration(days: 3660)),
-    );
+/// Every event a reminder could have fired from within the inbox window or
+/// may fire from later: all readable local events (unreadable ones skipped),
+/// else events from the window's start on. Shared by [ReminderSync] and the
+/// reminders inbox, so both see the same events.
+Future<List<CalendarEvent>> loadReminderEvents(
+  ICalendarRepository repo,
+  DateTime now,
+) async {
+  if (repo is LocalCalendarRepository) {
+    return [
+      for (final r in await repo.readAll())
+        if (r is CalendarEventReadable) r.event,
+    ];
   }
+  // From the inbox window's start. This relies on minutesBefore >= 0 (the
+  // editor enforces it): an occurrence then never starts before its
+  // reminder fires, so this covers every reminder fired in the window.
+  return repo.eventsBetween(
+    now.subtract(kRemindersInboxWindow),
+    now.add(const Duration(days: 3660)),
+  );
 }
 
 /// Built once and kept alive by the app root, which calls [ReminderSync.start]

@@ -4207,4 +4207,40 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get settingsCalendarRemindOnDeviceSubtitle =>
       '在此设备上以通知形式显示日历提醒。按设备设置，不会同步。';
+
+  @override
+  String get calendarRemindersTitle => '提醒';
+
+  @override
+  String get calendarRemindersEmpty => '过去 7 天没有提醒';
+
+  @override
+  String get calendarRemindersLoadFailed => '无法加载提醒。';
+
+  @override
+  String calendarRemindersFiredAt(String time) {
+    return '$time 已提醒';
+  }
+
+  @override
+  String get dashboardRemindersTooltip => '提醒';
+
+  @override
+  String get helpCalendarRemindersTitle => '提醒';
+
+  @override
+  String get helpCalendarRemindersSummary => '过去 7 天内在此设备上响起的提醒，最新的在前。';
+
+  @override
+  String get helpCalendarRemindersOpenTitle => '打开提醒';
+
+  @override
+  String get helpCalendarRemindersOpenBody => '点按一行即可打开该日程的这一次，可在那里标记完成或跳过。';
+
+  @override
+  String get helpCalendarRemindersBellTitle => '主屏幕上的铃铛';
+
+  @override
+  String get helpCalendarRemindersBellBody =>
+      '铃铛和应用图标会显示自你上次打开此列表以来响起的提醒数量。打开列表后两者都会清零。关闭“在此设备上提醒”时不显示铃铛。';
 }

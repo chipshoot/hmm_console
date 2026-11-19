@@ -21,7 +21,8 @@ class HmmIconButton extends StatelessWidget {
   final String tooltip;
   final VoidCallback? onPressed;
 
-  /// Shown as a badge when 1 or more; null and 0 draw no decoration.
+  /// Shown as a badge when 1 or more (`99+` above 99); null and 0 draw no
+  /// decoration.
   final int? badgeCount;
   final HmmIconButtonStyle style;
 
@@ -34,7 +35,7 @@ class HmmIconButton extends StatelessWidget {
     );
     final n = badgeCount;
     final Widget glyph = n != null && n > 0
-        ? Badge(label: Text('$n'), child: Icon(icon))
+        ? Badge(label: Text(n > 99 ? '99+' : '$n'), child: Icon(icon))
         : Icon(icon);
     final platform = Theme.of(context).platform;
     if (style == HmmIconButtonStyle.standard &&

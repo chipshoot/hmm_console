@@ -18,6 +18,10 @@ import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/data/sync/sync_indicator_state.dart';
 import '../../../../core/data/sync/widgets/sync_status_dot.dart';
 import '../../../settings/presentation/widgets/sync_status_card.dart';
+import '../../../../core/widgets/adaptive_icon.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
+import '../../../calendar/states/remind_on_device_provider.dart';
+import '../../../calendar/states/reminders_inbox_state.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -159,6 +163,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const Spacer(),
+          const _RemindersBell(),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: _showUserMenu,
             child: ListenableBuilder(
@@ -500,5 +506,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         );
     }
+  }
+}
+
+/// Fired calendar reminders not yet seen; opens the reminders list. Hidden
+/// where no reminders show: Cloud API mode, or "Remind on this device" off.
+class _RemindersBell extends ConsumerWidget {
+  const _RemindersBell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remindOn = ref.watch(remindOnDeviceProvider);
+    final mode = ref.watch(dataModeProvider);
+    if (!remindOn || mode == DataMode.cloudApi) return const SizedBox.shrink();
+    final unseen = ref.watch(remindersInboxProvider).value?.unseen ?? 0;
+    return HmmIconButton(
+      icon: adaptiveIcon(
+        context,
+        material: Icons.notifications_outlined,
+        apple: CupertinoIcons.bell,
+      ),
+      tooltip: AppLocalizations.of(context).dashboardRemindersTooltip,
+      badgeCount: unseen,
+      onPressed: () => context.pushNamed(RouterNames.calendarReminders.name),
+    );
   }
 }
