@@ -45,7 +45,7 @@ void main() {
   });
 
   test('lunar rule parses, is custom and is returned unchanged', () {
-    const text = 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15';
+    const text = 'RSCALE=CHINESE;FREQ=MONTHLY;BYMONTHDAY=1';
     final r = RecurrenceRule.parse(text);
     expect(r.isLunar, isTrue);
     expect(r.isCustom, isTrue);
@@ -66,5 +66,76 @@ void main() {
       () => RecurrenceRule.parse('FREQ=DAILY;COUNT=x'),
       throwsFormatException,
     );
+  });
+
+  test('supported lunar rule parses BYMONTH/SKIP', () {
+    final r = RecurrenceRule.parse(
+      'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4L;BYMONTHDAY=30;SKIP=BACKWARD',
+    );
+    expect(
+      [r.byMonth, r.byMonthLeap, r.skip, r.byMonthDay],
+      [
+        4,
+        true,
+        'BACKWARD',
+        [30],
+      ],
+    );
+    expect(r.isSupportedLunar, isTrue);
+    expect(r.isCustom, isFalse);
+    expect(r.unsupported, '');
+  });
+
+  test('SKIP absent is still supported (read as BACKWARD)', () {
+    final r = RecurrenceRule.parse(
+      'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15',
+    );
+    expect(r.isSupportedLunar, isTrue);
+    expect(r.format(), 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15');
+  });
+
+  test('unsupported lunar shapes stay custom and verbatim', () {
+    for (final t in [
+      'RSCALE=CHINESE;FREQ=MONTHLY;BYMONTHDAY=1',
+      'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15;SKIP=FORWARD',
+      'RSCALE=HEBREW;FREQ=YEARLY;BYMONTH=5;BYMONTHDAY=1',
+      'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4,5;BYMONTHDAY=15',
+    ]) {
+      final r = RecurrenceRule.parse(t);
+      expect(r.isSupportedLunar, isFalse, reason: t);
+      expect(r.isCustom, isTrue, reason: t);
+      expect(r.format(), t, reason: t);
+    }
+  });
+
+  test('lunarYearly formats canonically', () {
+    expect(
+      RecurrenceRule.lunarYearly(month: 10, day: 28).format(),
+      'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=10;BYMONTHDAY=28;SKIP=BACKWARD',
+    );
+    expect(
+      RecurrenceRule.lunarYearly(
+        month: 4,
+        day: 30,
+        leap: true,
+        interval: 2,
+        count: 5,
+      ).format(),
+      'RSCALE=CHINESE;FREQ=YEARLY;INTERVAL=2;BYMONTH=4L;BYMONTHDAY=30;SKIP=BACKWARD;COUNT=5',
+    );
+    expect(
+      RecurrenceRule.parse(
+        RecurrenceRule.lunarYearly(month: 4, day: 8, leap: true).format(),
+      ).isSupportedLunar,
+      isTrue,
+    );
+  });
+
+  test('Gregorian rules with BYMONTH/SKIP are unchanged', () {
+    const t = 'FREQ=YEARLY;BYMONTH=3;SKIP=OMIT;BYDAY=1MO';
+    final r = RecurrenceRule.parse(t);
+    expect(r.byMonth, isNull);
+    expect(r.isCustom, isTrue);
+    expect(r.format(), t);
   });
 }

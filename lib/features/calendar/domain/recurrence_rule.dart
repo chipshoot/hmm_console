@@ -26,7 +26,8 @@ enum Weekday {
 /// The RRULE subset the calendar understands, plus whatever it does not.
 ///
 /// Understood: FREQ, INTERVAL, BYDAY (plain weekday codes), BYMONTHDAY,
-/// COUNT, UNTIL, RSCALE. Everything else is kept verbatim in [unsupported]
+/// COUNT, UNTIL, RSCALE, and for a Chinese-lunar rule BYMONTH (`4` or `4L`
+/// for a leap month) and SKIP. Everything else is kept verbatim in [unsupported]
 /// and written back by [format]; such a rule is [isCustom].
 class RecurrenceRule {
   const RecurrenceRule({
@@ -40,8 +41,33 @@ class RecurrenceRule {
     this.untilIsFloating = false,
     this.unsupported = '',
     this.rscale,
+    this.byMonth,
+    this.byMonthLeap = false,
+    this.skip,
     this.original,
   });
+
+  /// A Chinese-lunar yearly rule on [month]/[day] (leap month when [leap]).
+  /// A day missing in a given year falls back (SKIP=BACKWARD).
+  factory RecurrenceRule.lunarYearly({
+    required int month,
+    required int day,
+    bool leap = false,
+    int interval = 1,
+    int? count,
+    DateTime? until,
+  }) => RecurrenceRule(
+    freq: Frequency.yearly,
+    interval: interval,
+    byMonthDay: [day],
+    byMonth: month,
+    byMonthLeap: leap,
+    skip: 'BACKWARD',
+    rscale: 'CHINESE',
+    count: count,
+    until: until,
+    untilIsDate: true,
+  );
 
   final Frequency freq;
   final int interval;
@@ -63,16 +89,38 @@ class RecurrenceRule {
   final String unsupported;
   final String? rscale;
 
+  /// Lunar month (1..12) of a lunar rule; null for Gregorian rules, whose
+  /// BYMONTH stays in [unsupported].
+  final int? byMonth;
+  final bool byMonthLeap;
+
+  /// SKIP of a lunar rule, upper-case; null reads as BACKWARD.
+  final String? skip;
+
   /// The text this rule was parsed from; returned by [format] for lunar rules.
   final String? original;
 
   bool get isLunar => rscale != null && rscale != 'GREGORIAN';
 
+  /// A lunar yearly rule the calendar can expand and edit.
+  bool get isSupportedLunar =>
+      rscale == 'CHINESE' &&
+      freq == Frequency.yearly &&
+      byMonth != null &&
+      byMonth! >= 1 &&
+      byMonth! <= 12 &&
+      byMonthDay.length == 1 &&
+      byMonthDay.single >= 1 &&
+      byMonthDay.single <= 30 &&
+      (skip == null || skip == 'BACKWARD') &&
+      byDay.isEmpty &&
+      unsupported.isEmpty;
+
   bool get isCustom =>
-      isLunar ||
+      (isLunar && !isSupportedLunar) ||
       unsupported.isNotEmpty ||
       (byDay.isNotEmpty && freq != Frequency.weekly) ||
-      (byMonthDay.isNotEmpty && freq != Frequency.monthly);
+      (byMonthDay.isNotEmpty && freq != Frequency.monthly && !isSupportedLunar);
 
   static const _freqs = {
     'DAILY': Frequency.daily,
@@ -145,6 +193,31 @@ class RecurrenceRule {
       }
     }
     if (freq == null) throw FormatException('missing FREQ: $rrule');
+    int? byMonth;
+    var byMonthLeap = false;
+    String? skip;
+    if (rscale != null && rscale != 'GREGORIAN') {
+      final idx = unsupported.indexWhere(
+        (p) => p.toUpperCase().startsWith('BYMONTH='),
+      );
+      final m = idx < 0
+          ? null
+          : RegExp(
+              r'^(\d{1,2})(L)?$',
+            ).firstMatch(unsupported[idx].substring(8).trim().toUpperCase());
+      if (m != null) {
+        byMonth = int.parse(m.group(1)!);
+        byMonthLeap = m.group(2) != null;
+        unsupported.removeAt(idx);
+      }
+      final sIdx = unsupported.indexWhere(
+        (p) => p.toUpperCase().startsWith('SKIP='),
+      );
+      if (sIdx >= 0 && byMonth != null) {
+        skip = unsupported[sIdx].substring(5).trim().toUpperCase();
+        unsupported.removeAt(sIdx);
+      }
+    }
     return RecurrenceRule(
       freq: freq,
       interval: interval,
@@ -156,6 +229,9 @@ class RecurrenceRule {
       untilIsFloating: untilIsFloating,
       unsupported: unsupported.join(';'),
       rscale: rscale,
+      byMonth: byMonth,
+      byMonthLeap: byMonthLeap,
+      skip: skip,
       original: text,
     );
   }
@@ -180,7 +256,9 @@ class RecurrenceRule {
       'FREQ=${freq.name.toUpperCase()}',
       if (interval != 1) 'INTERVAL=$interval',
       if (byDay.isNotEmpty) 'BYDAY=${byDay.map((d) => d.code).join(',')}',
+      if (byMonth != null) 'BYMONTH=$byMonth${byMonthLeap ? 'L' : ''}',
       if (byMonthDay.isNotEmpty) 'BYMONTHDAY=${byMonthDay.join(',')}',
+      if (skip != null) 'SKIP=$skip',
       if (count != null) 'COUNT=$count',
       if (until != null) 'UNTIL=${_untilText()}',
       if (unsupported.isNotEmpty) unsupported,

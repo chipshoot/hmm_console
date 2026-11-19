@@ -553,4 +553,18 @@ void main() {
       expect(h.entries, isNotEmpty);
     }
   });
+
+  test('a supported lunar rule still opens as a custom rule', () {
+    const text = 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15';
+    final form = EventForm.fromEvent(
+      CalendarEvent(
+        id: 'l',
+        title: 'Lunar',
+        start: const AllDay(2026, 5, 21),
+        rrule: text,
+        updatedAt: DateTime.utc(2020),
+      ),
+    );
+    expect(form.customRule, text);
+  });
 }

@@ -278,7 +278,8 @@ class EventForm {
     } on FormatException {
       return form.copyWith(customRule: text);
     }
-    if (rule.isCustom) return form.copyWith(customRule: text);
+    // Lunar rules stay clear-only until the editor learns them.
+    if (rule.isCustom || rule.isLunar) return form.copyWith(customRule: text);
     final until = rule.until;
     form = form.copyWith(
       freq: RepeatFreq.values[rule.freq.index + 1],
