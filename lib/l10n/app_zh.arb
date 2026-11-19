@@ -1303,6 +1303,8 @@
   "settingsCalendarTitle": "日历",
   "settingsCalendarRemindOnDevice": "在此设备上提醒",
   "settingsCalendarRemindOnDeviceSubtitle": "在此设备上以通知形式显示日历提醒。按设备设置，不会同步。",
+  "settingsCalendarShowLunar": "显示农历",
+  "settingsCalendarShowLunarSubtitle": "在月历上显示农历日期、节气和传统节日。在你的设备间同步。",
   "calendarRemindersTitle": "提醒",
   "calendarRemindersEmpty": "过去 7 天没有提醒",
   "calendarRemindersLoadFailed": "无法加载提醒。",

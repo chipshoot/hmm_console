@@ -5,6 +5,7 @@ import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/features/calendar/notifications/local_reminder_scheduler.dart';
 import 'package:hmm_console/features/calendar/states/open_system_settings.dart';
 import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
+import 'package:hmm_console/features/calendar/states/show_lunar_provider.dart';
 import 'package:hmm_console/features/settings/presentation/widgets/calendar_settings_section.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -48,6 +49,15 @@ Future<ProviderContainer> _mount(
   return c;
 }
 
+final _remindSwitch = find.descendant(
+  of: find.widgetWithText(ListTile, 'Remind on this device'),
+  matching: find.byType(Switch),
+);
+final _lunarSwitch = find.descendant(
+  of: find.widgetWithText(ListTile, 'Show lunar calendar'),
+  matching: find.byType(Switch),
+);
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -56,7 +66,7 @@ void main() {
   ) async {
     final c = await _mount(tester);
     final before = c.read(remindOnDeviceProvider);
-    await tester.tap(find.byType(Switch));
+    await tester.tap(_remindSwitch);
     await tester.pumpAndSettle();
     expect(c.read(remindOnDeviceProvider), !before);
     final prefs = await SharedPreferences.getInstance();
@@ -68,16 +78,16 @@ void main() {
     final gw = _CountingGateway(granted: false);
     final c = await _mount(tester, gateway: gw);
     expect(c.read(remindOnDeviceProvider), isFalse);
-    await tester.tap(find.byType(Switch));
+    await tester.tap(_remindSwitch);
     await tester.pumpAndSettle();
     expect(gw.requests, 1);
     expect(await calendarPermissionAsked(), isTrue);
     expect(c.read(calendarPermissionDeniedProvider), isTrue);
 
     // Off and on again: already asked, no second prompt.
-    await tester.tap(find.byType(Switch));
+    await tester.tap(_remindSwitch);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Switch));
+    await tester.tap(_remindSwitch);
     await tester.pumpAndSettle();
     expect(c.read(remindOnDeviceProvider), isTrue);
     expect(gw.requests, 1);
@@ -102,6 +112,18 @@ void main() {
   testWidgets('hidden in Cloud API mode', (tester) async {
     await _mount(tester, mode: DataMode.cloudApi);
     expect(find.byType(Switch), findsNothing);
+    expect(find.text('Show lunar calendar'), findsNothing);
+  });
+
+  testWidgets('the lunar row toggles showLunarProvider', (tester) async {
+    final c = await _mount(tester);
+    expect(find.text('Show lunar calendar'), findsOneWidget);
+    expect(c.read(showLunarProvider), isFalse);
+    await tester.tap(_lunarSwitch);
+    await tester.pumpAndSettle();
+    expect(c.read(showLunarProvider), isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('calendar.show_lunar'), isTrue);
   });
 }
 

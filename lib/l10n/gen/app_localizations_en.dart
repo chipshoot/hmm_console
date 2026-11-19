@@ -4434,6 +4434,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show calendar reminders as notifications on this device. Set per device; not synced.';
 
   @override
+  String get settingsCalendarShowLunar => 'Show lunar calendar';
+
+  @override
+  String get settingsCalendarShowLunarSubtitle =>
+      '农历 dates, 节气 and festivals on the month grid. Synced across your devices.';
+
+  @override
   String get calendarRemindersTitle => 'Reminders';
 
   @override

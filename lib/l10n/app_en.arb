@@ -1931,6 +1931,8 @@
   "settingsCalendarTitle": "Calendar",
   "settingsCalendarRemindOnDevice": "Remind on this device",
   "settingsCalendarRemindOnDeviceSubtitle": "Show calendar reminders as notifications on this device. Set per device; not synced.",
+  "settingsCalendarShowLunar": "Show lunar calendar",
+  "settingsCalendarShowLunarSubtitle": "农历 dates, 节气 and festivals on the month grid. Synced across your devices.",
   "calendarRemindersTitle": "Reminders",
   "calendarRemindersEmpty": "No reminders in the last 7 days",
   "calendarRemindersLoadFailed": "Could not load reminders.",

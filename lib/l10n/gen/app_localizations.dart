@@ -7700,6 +7700,18 @@ abstract class AppLocalizations {
   /// **'Show calendar reminders as notifications on this device. Set per device; not synced.'**
   String get settingsCalendarRemindOnDeviceSubtitle;
 
+  /// No description provided for @settingsCalendarShowLunar.
+  ///
+  /// In en, this message translates to:
+  /// **'Show lunar calendar'**
+  String get settingsCalendarShowLunar;
+
+  /// No description provided for @settingsCalendarShowLunarSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'农历 dates, 节气 and festivals on the month grid. Synced across your devices.'**
+  String get settingsCalendarShowLunarSubtitle;
+
   /// No description provided for @calendarRemindersTitle.
   ///
   /// In en, this message translates to:

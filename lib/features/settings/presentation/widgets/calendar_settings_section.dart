@@ -11,29 +11,37 @@ import '../../../calendar/notifications/notification_gateway.dart';
 import '../../../calendar/notifications/reminder_sync.dart';
 import '../../../calendar/states/open_system_settings.dart';
 import '../../../calendar/states/remind_on_device_provider.dart';
+import '../../../calendar/states/show_lunar_provider.dart';
 
-/// Settings for calendar reminders: the per-device "Remind on this device"
-/// switch and, when permission was declined, an "Open Settings" row.
+/// Calendar settings: the synced "Show lunar calendar" switch, and, where
+/// reminders are supported, the per-device "Remind on this device" switch
+/// and, when permission was declined, an "Open Settings" row.
 ///
-/// Hidden in Cloud API mode (the calendar is unavailable there, so there is
-/// nothing to remind about) and on platforms that cannot show reminders.
+/// Hidden in Cloud API mode (the calendar is unavailable there). The lunar
+/// row shows on every platform; only the reminder rows need
+/// [calendarRemindersSupported].
 class CalendarSettingsSection extends ConsumerWidget {
   const CalendarSettingsSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!calendarRemindersSupported ||
-        ref.watch(dataModeProvider) == DataMode.cloudApi) {
+    if (ref.watch(dataModeProvider) == DataMode.cloudApi) {
       return const SizedBox.shrink();
     }
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final remind = ref.watch(remindOnDeviceProvider);
-    final denied = ref.watch(calendarPermissionDeniedProvider);
-    final open = ref.watch(openSystemSettingsProvider);
+    final showLunar = ref.watch(showLunarProvider);
+    final reminders = calendarRemindersSupported;
+    final remind = reminders ? ref.watch(remindOnDeviceProvider) : false;
+    final denied = reminders && ref.watch(calendarPermissionDeniedProvider);
+    final open = reminders ? ref.watch(openSystemSettingsProvider) : null;
     final isApple =
         theme.platform == TargetPlatform.iOS ||
         theme.platform == TargetPlatform.macOS;
+    void onLunarChanged(bool v) {
+      unawaited(ref.read(showLunarProvider.notifier).set(v));
+    }
+
     void onChanged(bool v) {
       // Everything used after an await is read now.
       final remindNotifier = ref.read(remindOnDeviceProvider.notifier);
@@ -71,14 +79,24 @@ class CalendarSettingsSection extends ConsumerWidget {
         const SizedBox(height: 4),
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: Text(l.settingsCalendarRemindOnDevice),
-          subtitle: Text(l.settingsCalendarRemindOnDeviceSubtitle),
+          title: Text(l.settingsCalendarShowLunar),
+          subtitle: Text(l.settingsCalendarShowLunarSubtitle),
           trailing: isApple
-              ? CupertinoSwitch(value: remind, onChanged: onChanged)
-              : Switch(value: remind, onChanged: onChanged),
-          onTap: () => onChanged(!remind),
+              ? CupertinoSwitch(value: showLunar, onChanged: onLunarChanged)
+              : Switch(value: showLunar, onChanged: onLunarChanged),
+          onTap: () => onLunarChanged(!showLunar),
         ),
-        if (denied && open != null)
+        if (reminders)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.settingsCalendarRemindOnDevice),
+            subtitle: Text(l.settingsCalendarRemindOnDeviceSubtitle),
+            trailing: isApple
+                ? CupertinoSwitch(value: remind, onChanged: onChanged)
+                : Switch(value: remind, onChanged: onChanged),
+            onTap: () => onChanged(!remind),
+          ),
+        if (reminders && denied && open != null)
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.notifications_off_outlined),

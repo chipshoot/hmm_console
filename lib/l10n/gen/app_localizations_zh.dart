@@ -4222,6 +4222,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '在此设备上以通知形式显示日历提醒。按设备设置，不会同步。';
 
   @override
+  String get settingsCalendarShowLunar => '显示农历';
+
+  @override
+  String get settingsCalendarShowLunarSubtitle =>
+      '在月历上显示农历日期、节气和传统节日。在你的设备间同步。';
+
+  @override
   String get calendarRemindersTitle => '提醒';
 
   @override

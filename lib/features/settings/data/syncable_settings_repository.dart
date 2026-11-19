@@ -20,6 +20,7 @@ import '../domain/syncable_settings.dart';
 ///   - `sync.network_policy`  → `SyncNetworkPolicy` enum name
 ///   - `app_locale`           → language code string ('en', 'zh', …)
 ///   - `contacts.sort_by`     → `ContactSortBy` enum name
+///   - `calendar.show_lunar`  → bool
 ///   - `settings.last_modified` → ISO8601 UTC, bumped by every setter
 ///
 /// The cloud sync layer goes through THIS repo to get a coherent
@@ -43,6 +44,9 @@ class SyncableSettingsRepository {
 
   /// Public: `SavedSearchesNotifier` owns the same key (a JSON string).
   static const notesSavedSearchesKey = 'notes.saved_searches';
+
+  /// Public: `ShowLunarNotifier` owns the same key (a bool).
+  static const calendarShowLunarKey = 'calendar.show_lunar';
 
   /// Reads the current local snapshot. Missing keys fall back to
   /// defaults — same behaviour as the per-feature notifiers' first-
@@ -109,6 +113,7 @@ class SyncableSettingsRepository {
       launcher: launcher,
       contactSortBy: ContactSortBy.fromName(prefs.getString(contactSortKey)),
       notesSavedSearches: savedSearches,
+      calendarShowLunar: prefs.getBool(calendarShowLunarKey),
     );
   }
 
@@ -141,6 +146,9 @@ class SyncableSettingsRepository {
         jsonEncode([for (final s in saved) s.toJson()]),
       );
     }
+    // Null = the bundle predates this field: keep this device's value.
+    final lunar = settings.calendarShowLunar;
+    if (lunar != null) await prefs.setBool(calendarShowLunarKey, lunar);
     await prefs.setString(
       _lastModifiedKey,
       settings.lastModified.toUtc().toIso8601String(),

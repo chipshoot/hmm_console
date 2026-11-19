@@ -39,6 +39,7 @@ class SyncableSettings {
     this.launcher = LauncherPrefs.empty,
     this.contactSortBy = ContactSortBy.family,
     this.notesSavedSearches,
+    this.calendarShowLunar,
   });
 
   final GasLogSettings gasLog;
@@ -55,6 +56,10 @@ class SyncableSettings {
   /// client), so applying it must leave local saved searches alone; an
   /// explicit empty list clears them.
   final List<SavedSearch>? notesSavedSearches;
+
+  /// Calendar "Show lunar calendar". Null = the bundle did not carry the key
+  /// (an older client), so applying it must leave this device's value alone.
+  final bool? calendarShowLunar;
 
   /// User-selected UI locale code (e.g. 'en', 'zh'). Null = follow
   /// system. Stored as the raw language code rather than a `Locale`
@@ -84,6 +89,7 @@ class SyncableSettings {
           for (final s in notesSavedSearches ?? const <SavedSearch>[])
             s.toJson(),
         ],
+        if (calendarShowLunar != null) 'calendarShowLunar': calendarShowLunar,
         'lastModified': lastModified.toUtc().toIso8601String(),
         '_v': 1,
       };
@@ -112,6 +118,9 @@ class SyncableSettings {
       contactSortBy: ContactSortBy.fromName(json['contactSortBy']),
       notesSavedSearches: json.containsKey('notesSavedSearches')
           ? parseSavedSearches(json['notesSavedSearches'])
+          : null,
+      calendarShowLunar: json['calendarShowLunar'] is bool
+          ? json['calendarShowLunar'] as bool
           : null,
       lastModified: () {
         final raw = json['lastModified'] as String?;
@@ -142,6 +151,7 @@ class SyncableSettings {
     LauncherPrefs? launcher,
     ContactSortBy? contactSortBy,
     List<SavedSearch>? notesSavedSearches,
+    bool? calendarShowLunar,
   }) {
     return SyncableSettings(
       gasLog: gasLog ?? this.gasLog,
@@ -152,6 +162,7 @@ class SyncableSettings {
       launcher: launcher ?? this.launcher,
       contactSortBy: contactSortBy ?? this.contactSortBy,
       notesSavedSearches: notesSavedSearches ?? this.notesSavedSearches,
+      calendarShowLunar: calendarShowLunar ?? this.calendarShowLunar,
     );
   }
 }
