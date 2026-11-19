@@ -1282,6 +1282,10 @@
   "helpCalendarEventEditRepeatBody": "选择重复频率和结束方式。在别处设置的重复显示为自定义或农历，只能清除。",
   "helpCalendarEventEditRemindersTitle": "提醒",
   "helpCalendarEventEditRemindersBody": "添加或删除提醒。提醒只在开启了“在此设备上提醒”的设备上响起。",
+  "calendarTimeSensitive": "时间敏感",
+  "calendarTimeSensitiveSubtitle": "可突破专注模式",
+  "helpCalendarEventEditTimeSensitiveTitle": "时间敏感",
+  "helpCalendarEventEditTimeSensitiveBody": "让此日程的提醒在 iPhone 上突破专注模式。默认关闭。需要有一个在此设备上的提醒，并适用于所有重复。",
   "calendarEventTitle": "日程",
   "helpCalendarTitle": "日历",
   "helpCalendarSummary": "按月和按天查看你的日程。选择一天即可看到当天的安排。",
@@ -1298,5 +1302,16 @@
   "calendarOpenSettings": "打开设置",
   "settingsCalendarTitle": "日历",
   "settingsCalendarRemindOnDevice": "在此设备上提醒",
-  "settingsCalendarRemindOnDeviceSubtitle": "在此设备上以通知形式显示日历提醒。按设备设置，不会同步。"
+  "settingsCalendarRemindOnDeviceSubtitle": "在此设备上以通知形式显示日历提醒。按设备设置，不会同步。",
+  "calendarRemindersTitle": "提醒",
+  "calendarRemindersEmpty": "过去 7 天没有提醒",
+  "calendarRemindersLoadFailed": "无法加载提醒。",
+  "calendarRemindersFiredAt": "{time} 已提醒",
+  "dashboardRemindersTooltip": "提醒",
+  "helpCalendarRemindersTitle": "提醒",
+  "helpCalendarRemindersSummary": "过去 7 天内在此设备上响起的提醒，最新的在前。",
+  "helpCalendarRemindersOpenTitle": "打开提醒",
+  "helpCalendarRemindersOpenBody": "点按一行即可打开该日程的这一次，可在那里标记完成或跳过。",
+  "helpCalendarRemindersBellTitle": "主屏幕上的铃铛",
+  "helpCalendarRemindersBellBody": "铃铛和应用图标会显示自你上次打开此列表以来响起的提醒数量。打开列表后两者都会清零。关闭“在此设备上提醒”时不显示铃铛。"
 }

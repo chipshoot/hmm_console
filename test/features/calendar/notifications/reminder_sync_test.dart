@@ -14,6 +14,7 @@ import 'package:hmm_console/features/calendar/notifications/notification_gateway
 import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
 import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
+import 'package:hmm_console/features/calendar/states/reminders_seen_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/fake_notification_gateway.dart';
@@ -67,10 +68,14 @@ class _Harness {
   _Harness({
     bool remind = true,
     bool granted = true,
-    bool cloudApi = false,
+    this.cloudApi = false,
     this.asked = true,
     Future<void> Function()? refreshZone,
     void Function()? onRead,
+    this.seenAt,
+    bool seenAtFails = false,
+    this.badgeFails = false,
+    DateTime Function()? clock,
   }) : remindOnDevice = remind,
        gateway = FakeNotificationGateway(granted: granted) {
     gateway.addPending(1, 'other|x');
@@ -93,8 +98,21 @@ class _Harness {
       },
       onPermissionChecked: (denied) => deniedReports.add(denied),
       resolve: _utc,
-      clock: () => _now,
+      clock: clock ?? () => _now,
       refreshZone: refreshZone,
+      readSeenAt: () async {
+        seenAtReads++;
+        if (seenAtFails) throw StateError('prefs');
+        return seenAt;
+      },
+      writeSeenAt: (utc) async {
+        seenAtWrites.add(utc);
+        seenAt = utc;
+      },
+      setBadge: (count) async {
+        if (badgeFails) throw StateError('badge');
+        badgeSets.add(count);
+      },
       observeLifecycle: false,
     );
     repo.onRead = onRead;
@@ -110,9 +128,313 @@ class _Harness {
   int asks = 0;
   final deniedReports = <bool>[];
   late final ReminderSync sync;
+
+  /// Fake `calendar.remindersSeenAt` store.
+  DateTime? seenAt;
+  int seenAtReads = 0;
+  final seenAtWrites = <DateTime>[];
+
+  /// Cloud API mode: the repository throws [CalendarCloudApiUnavailable].
+  bool cloudApi;
+
+  /// Every count the app icon badge was set to.
+  final badgeSets = <int>[];
+  bool badgeFails;
+}
+
+/// An event at [start] (resolved as UTC) with one reminder [before] minutes
+/// earlier.
+CalendarEvent _at(
+  String id,
+  FloatingTime start,
+  int before, {
+  bool timeSensitive = false,
+}) => CalendarEvent(
+  id: id,
+  title: 'T $id',
+  start: start,
+  updatedAt: _now,
+  timeSensitive: timeSensitive,
+  reminders: [Reminder(minutesBefore: before)],
+);
+
+void _settle(FakeAsync fa) {
+  fa.elapse(const Duration(seconds: 1));
+  fa.flushMicrotasks();
 }
 
 void main() {
+  group('badge numbers and seen state', () {
+    test('first run with seenAt unset stores now and numbers from 1', () {
+      fakeAsync((fa) {
+        final h = _Harness();
+        h.repo.events = [
+          _ev('a'),
+          _at('b', const FloatingTime(2026, 11, 18, 11, 0), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.seenAtWrites, [_now]);
+        expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1, 2]);
+        h.sync.stop();
+      });
+    });
+
+    test('seenAt 1 h ago with two fired since → numbers start at 3', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now.subtract(const Duration(hours: 1)));
+        h.repo.events = [
+          _ev('a'),
+          // Fired 11:50 and 11:40, after seenAt (11:00).
+          _at('f1', const FloatingTime(2026, 11, 17, 12, 5), 15),
+          _at('f2', const FloatingTime(2026, 11, 17, 12, 10), 30),
+          // Fired 10:00, before seenAt: already seen.
+          _at('old', const FloatingTime(2026, 11, 17, 10, 15), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.seenAtWrites, isEmpty);
+        expect(h.gateway.scheduled.map((r) => r.payload), [
+          startsWith('calendar|a|'),
+        ]);
+        expect(h.gateway.scheduled.single.badgeNumber, 3);
+        h.sync.stop();
+      });
+    });
+
+    test('unseen counts at most the last 7 days', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now.subtract(const Duration(days: 30)));
+        h.repo.events = [
+          _ev('a'),
+          // Fired 2 days ago: counts.
+          _at('in', const FloatingTime(2026, 11, 15, 12, 0), 0),
+          // Fired 8 days ago: outside the window.
+          _at('out', const FloatingTime(2026, 11, 9, 12, 0), 0),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.gateway.scheduled.single.badgeNumber, 2);
+        h.sync.stop();
+      });
+    });
+
+    test('remind on device off: seen set to now, no unseen read, nothing '
+        'scheduled', () {
+      fakeAsync((fa) {
+        final h = _Harness(remind: false);
+        h.sync.start();
+        _settle(fa);
+        expect(h.seenAtReads, 0);
+        expect(h.seenAtWrites, [_now]);
+        expect(h.gateway.scheduled, isEmpty);
+        expect(h.gateway.pendingById.keys, [1]);
+        h.sync.stop();
+      });
+    });
+
+    test('reminders that fired while off never count once back on', () {
+      fakeAsync((fa) {
+        var now = _now.subtract(const Duration(hours: 1));
+        final h = _Harness(
+          remind: false,
+          seenAt: _now.subtract(const Duration(days: 2)),
+          clock: () => now,
+        );
+        h.repo.events = [
+          _ev('a'),
+          // Fires 11:50, while reminders are off on this device.
+          _at('f', const FloatingTime(2026, 11, 17, 12, 5), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.gateway.scheduled, isEmpty);
+        now = _now;
+        h.remindOnDevice = true;
+        h.sync.trigger();
+        _settle(fa);
+        expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1]);
+        expect(h.seenAtWrites, [now.subtract(const Duration(hours: 1)), now]);
+        h.sync.stop();
+      });
+    });
+
+    test('off run sets the icon badge to 0', () {
+      fakeAsync((fa) {
+        final h = _Harness(remind: false);
+        h.sync.start();
+        _settle(fa);
+        expect(h.badgeSets, [0]);
+        h.sync.stop();
+      });
+    });
+
+    test('a run with one unseen reminder sets the icon badge to 1', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now.subtract(const Duration(hours: 1)));
+        h.repo.events = [
+          _ev('a'),
+          // Fired 11:50, after seenAt (11:00).
+          _at('f1', const FloatingTime(2026, 11, 17, 12, 5), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.badgeSets, [1]);
+        expect(h.gateway.scheduled.single.badgeNumber, 2);
+        h.sync.stop();
+      });
+    });
+
+    test('a run with nothing unseen sets the icon badge to 0, even with no '
+        'plan', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now);
+        h.repo.events = [];
+        h.sync.start();
+        _settle(fa);
+        expect(h.badgeSets, [0]);
+        h.sync.stop();
+      });
+    });
+
+    test('a failing badge set is logged; reminders are still scheduled', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now, badgeFails: true);
+        h.sync.start();
+        _settle(fa);
+        expect(h.gateway.scheduled, hasLength(1));
+        h.sync.stop();
+      });
+    });
+
+    test('cloud API run marks seen and sets the icon badge to 0', () {
+      fakeAsync((fa) {
+        final h = _Harness(
+          cloudApi: true,
+          seenAt: _now.subtract(const Duration(days: 2)),
+        );
+        h.sync.start();
+        _settle(fa);
+        expect(h.seenAtWrites, [_now]);
+        expect(h.badgeSets, [0]);
+        expect(h.seenAtReads, 0);
+        h.sync.stop();
+      });
+    });
+
+    test(
+      'reminders that fired during Cloud API mode never count once back',
+      () {
+        fakeAsync((fa) {
+          var now = _now.subtract(const Duration(hours: 1));
+          final h = _Harness(
+            cloudApi: true,
+            seenAt: _now.subtract(const Duration(days: 2)),
+            clock: () => now,
+          );
+          h.repo.events = [
+            _ev('a'),
+            // Fires 11:50, while in Cloud API mode.
+            _at('f', const FloatingTime(2026, 11, 17, 12, 5), 15),
+          ];
+          h.sync.start();
+          _settle(fa);
+          now = _now;
+          h.cloudApi = false;
+          h.sync.trigger();
+          _settle(fa);
+          expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1]);
+          expect(h.seenAtWrites, [now.subtract(const Duration(hours: 1)), now]);
+          expect(h.badgeSets, [0, 0]);
+          h.sync.stop();
+        });
+      },
+    );
+
+    test('back on after off: seen is stored before the events load, so a '
+        'failing load leaves no stale count', () {
+      fakeAsync((fa) {
+        var now = _now.subtract(const Duration(hours: 1));
+        var failLoad = false;
+        final h = _Harness(
+          remind: false,
+          seenAt: _now.subtract(const Duration(days: 2)),
+          clock: () => now,
+          onRead: () {
+            if (failLoad) throw StateError('db');
+          },
+        );
+        h.sync.start();
+        _settle(fa);
+        now = _now;
+        h.remindOnDevice = true;
+        failLoad = true;
+        h.sync.trigger();
+        _settle(fa);
+        expect(h.seenAtWrites, [now.subtract(const Duration(hours: 1)), now]);
+        expect(h.gateway.scheduled, isEmpty);
+        // The next run that reaches planning still starts from 0.
+        now = _now.add(const Duration(minutes: 10));
+        failLoad = false;
+        h.repo.events = [
+          _ev('a'),
+          // Fired 12:05, after the failed run's seen write (12:00).
+          _at('f', const FloatingTime(2026, 11, 17, 12, 5), 0),
+        ];
+        h.sync.trigger();
+        _settle(fa);
+        expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1]);
+        h.sync.stop();
+      });
+    });
+
+    test('a failing seenAt read still schedules, numbered from 1', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAtFails: true);
+        h.sync.start();
+        _settle(fa);
+        expect(h.gateway.scheduled.single.badgeNumber, 1);
+        h.sync.stop();
+      });
+    });
+
+    test('the gateway receives timeSensitive per reminder', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now);
+        h.repo.events = [
+          _at(
+            'ts',
+            const FloatingTime(2026, 11, 18, 10, 0),
+            15,
+            timeSensitive: true,
+          ),
+          _at('plain', const FloatingTime(2026, 11, 18, 11, 0), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(
+          {
+            for (final r in h.gateway.scheduled)
+              r.payload.split('|')[1]: r.timeSensitive,
+          },
+          {'ts': true, 'plain': false},
+        );
+        h.sync.stop();
+      });
+    });
+  });
+
+  test('reminders seenAt round-trips through prefs as ISO UTC', () async {
+    SharedPreferences.setMockInitialValues({});
+    expect(await readRemindersSeenAt(), isNull);
+    await writeRemindersSeenAt(DateTime.utc(2026, 11, 18, 9, 30));
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString(kRemindersSeenAtKey), '2026-11-18T09:30:00.000Z');
+    expect(await readRemindersSeenAt(), DateTime.utc(2026, 11, 18, 9, 30));
+    await prefs.setString(kRemindersSeenAtKey, 'garbage');
+    expect(await readRemindersSeenAt(), isNull);
+  });
+
   test('setting off cancels calendar reminders and schedules none', () {
     fakeAsync((fa) {
       final h = _Harness(remind: false);
@@ -312,6 +634,34 @@ void main() {
     expect(gw.scheduled, isEmpty);
     expect(c.read(calendarPermissionDeniedProvider), isTrue);
   });
+
+  test(
+    'reminderSyncProvider stores seenAt through remindersSeenAtProvider',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final gw = FakeNotificationGateway();
+      final c = ProviderContainer(
+        overrides: [
+          notificationGatewayProvider.overrideWithValue(gw),
+          calendarRepositoryProvider.overrideWithValue(_FakeRepo([])),
+          // A tablet: remind on this device is off by default.
+          deviceShortestSideProvider.overrideWith(
+            () => DeviceShortestSideNotifier(800),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      await c.read(remindOnDeviceProvider.notifier).loaded;
+      expect(await c.read(remindersSeenAtProvider.future), isNull);
+      final before = DateTime.now().toUtc();
+      // An off run marks everything seen; the app state must see it.
+      await c.read(reminderSyncProvider).runNow();
+      final seen = c.read(remindersSeenAtProvider).value;
+      expect(seen, isNotNull);
+      expect(seen!.isBefore(before), isFalse);
+      expect(await readRemindersSeenAt(), seen);
+    },
+  );
 
   group('the sync asks for permission once itself (R-18)', () {
     test('never asked + a plan → asks once and schedules on a grant', () {

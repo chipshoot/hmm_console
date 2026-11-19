@@ -51,6 +51,7 @@ class DefaultCalendarService implements CalendarService {
       status: base.status,
       source: source,
       draft: draft.draft,
+      timeSensitive: draft.timeSensitive,
       occurrences: base.occurrences,
       updatedAt: base.updatedAt,
       extraFields: extra,

@@ -37,7 +37,9 @@ void main() {
     String title = 'Insulin',
     String? reminderBody,
     EventSource source = EventSource.subsystem,
+    bool timeSensitive = true,
   }) => CalendarEventDraft(
+    timeSensitive: timeSensitive,
     id: id,
     title: title,
     start: const FloatingTime(2027, 5, 10, 9, 0),
@@ -60,6 +62,29 @@ void main() {
       final list = await service.ownedEvents(owner);
       expect(list, hasLength(1));
       expect(list.single.title, 'Renamed');
+    },
+  );
+
+  test(
+    'timeSensitive defaults on, is stored, and updates follow the draft',
+    () async {
+      expect(
+        const CalendarEventDraft(
+          title: 't',
+          start: AllDay(2027, 1, 1),
+        ).timeSensitive,
+        isTrue,
+      );
+      final a = await service.upsertOwnedEvent(owner, draft());
+      expect(a.timeSensitive, isTrue);
+      final b = await service.upsertOwnedEvent(
+        owner,
+        draft(id: a.id, timeSensitive: false),
+      );
+      expect(b.timeSensitive, isFalse);
+      expect((await repo.getEvent(a.id))!.timeSensitive, isFalse);
+      final c = await service.upsertOwnedEvent(owner, draft(id: a.id));
+      expect(c.timeSensitive, isTrue);
     },
   );
 

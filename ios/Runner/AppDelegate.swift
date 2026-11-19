@@ -34,5 +34,9 @@ import flutter_local_notifications
       forPlugin: "VideoPlugin") {
       VideoPlugin.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "BadgePlugin") {
+      BadgePlugin.register(with: registrar)
+    }
   }
 }

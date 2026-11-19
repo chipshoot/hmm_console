@@ -40,6 +40,7 @@
     "status": { "enum": ["active", "cancelled"] },
     "source": { "enum": ["manual", "subsystem", "assistant"] },
     "draft": { "type": "boolean" },
+    "timeSensitive": { "type": "boolean" },
     "occurrences": {
       "type": "array",
       "items": {

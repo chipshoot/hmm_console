@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -23,6 +24,13 @@ abstract interface class NotificationGateway {
   Future<void> schedule(PlannedReminder r);
   Future<bool> requestPermission();
   Future<bool> permissionGranted();
+
+  /// Sets the app icon badge to [count] (iOS; 0 hides it); a no-op
+  /// elsewhere. Never throws.
+  Future<void> setBadge(int count);
+
+  /// [setBadge] with 0.
+  Future<void> clearBadge();
 }
 
 /// Device reminders are delivered on iOS (primary) and Android only.
@@ -36,6 +44,30 @@ const _androidChannelId = 'calendar_reminders';
 // is no BuildContext here, so they are not localized yet.
 const _androidChannelName = 'Calendar reminders';
 const _androidChannelDescription = 'Reminders for calendar events';
+
+/// How [r] is delivered. iOS: Time Sensitive (gets through Focus and
+/// Scheduled Summary; the owner can still turn this off per app in iOS
+/// Settings) only for events marked so, else the default active level; the
+/// icon badge becomes [PlannedReminder.badgeNumber] when it fires.
+NotificationDetails reminderNotificationDetails(PlannedReminder r) =>
+    NotificationDetails(
+      android: const AndroidNotificationDetails(
+        _androidChannelId,
+        _androidChannelName,
+        channelDescription: _androidChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(
+        interruptionLevel: r.timeSensitive
+            ? InterruptionLevel.timeSensitive
+            : InterruptionLevel.active,
+        badgeNumber: r.badgeNumber,
+      ),
+    );
+
+/// The app's own badge channel (`ios/Runner/BadgePlugin.swift`).
+const _badgeChannel = MethodChannel('hmm/badge');
 
 /// [NotificationGateway] over `flutter_local_notifications`.
 ///
@@ -89,20 +121,7 @@ class FlutterNotificationGateway implements NotificationGateway {
   Future<void> schedule(PlannedReminder r) => _plugin.zonedSchedule(
     id: r.id,
     scheduledDate: tz.TZDateTime.from(r.fireAtUtc, tz.local),
-    notificationDetails: const NotificationDetails(
-      android: AndroidNotificationDetails(
-        _androidChannelId,
-        _androidChannelName,
-        channelDescription: _androidChannelDescription,
-        importance: Importance.high,
-        priority: Priority.high,
-      ),
-      // Time Sensitive: reminders get through Focus and Scheduled Summary
-      // (the owner can still turn this off per app in iOS Settings).
-      iOS: DarwinNotificationDetails(
-        interruptionLevel: InterruptionLevel.timeSensitive,
-      ),
-    ),
+    notificationDetails: reminderNotificationDetails(r),
     androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
     title: r.title,
     body: r.body,
@@ -142,6 +161,22 @@ class FlutterNotificationGateway implements NotificationGateway {
     }
     return await _android?.areNotificationsEnabled() ?? false;
   }
+
+  @override
+  Future<void> setBadge(int count) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
+    try {
+      await _badgeChannel.invokeMethod<void>('set', {
+        'count': count < 0 ? 0 : count,
+      });
+    } catch (e) {
+      // A stale badge is cosmetic; never fail the caller over it.
+      debugPrint('Calendar: badge not set (${e.runtimeType})');
+    }
+  }
+
+  @override
+  Future<void> clearBadge() => setBadge(0);
 }
 
 final notificationGatewayProvider = Provider<NotificationGateway>(

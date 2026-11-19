@@ -10,6 +10,10 @@ class FakeNotificationGateway implements NotificationGateway {
   final List<PlannedReminder> scheduled = [];
   final List<int> cancelled = [];
   void Function(String payload)? onTap;
+  int badgeClears = 0;
+
+  /// Every [setBadge] count, in order.
+  final List<int> badgeSets = [];
 
   void addPending(int id, String? payload) =>
       pendingById[id] = PendingReminder(id: id, payload: payload);
@@ -38,4 +42,10 @@ class FakeNotificationGateway implements NotificationGateway {
 
   @override
   Future<bool> permissionGranted() async => granted;
+
+  @override
+  Future<void> setBadge(int count) async => badgeSets.add(count);
+
+  @override
+  Future<void> clearBadge() async => badgeClears++;
 }

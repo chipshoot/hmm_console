@@ -13,6 +13,7 @@ class CalendarEventDraft {
     this.reminders = const [Reminder(minutesBefore: 15)],
     this.reminderBody,
     this.draft = false,
+    this.timeSensitive = true,
     this.source = EventSource.subsystem,
   });
 
@@ -29,6 +30,9 @@ class CalendarEventDraft {
   /// `extraFields['reminderBody']`.
   final String? reminderBody;
   final bool draft;
+
+  /// Subsystem reminders default to Time Sensitive on iOS.
+  final bool timeSensitive;
   final EventSource source;
 }
 

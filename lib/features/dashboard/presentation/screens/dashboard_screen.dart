@@ -18,6 +18,12 @@ import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/data/sync/sync_indicator_state.dart';
 import '../../../../core/data/sync/widgets/sync_status_dot.dart';
 import '../../../settings/presentation/widgets/sync_status_card.dart';
+import '../../../../core/widgets/adaptive_icon.dart';
+import '../../../../core/widgets/hmm_icon_button.dart';
+import '../../../calendar/contract/calendar_errors.dart';
+import '../../../calendar/notifications/notification_gateway.dart';
+import '../../../calendar/states/remind_on_device_provider.dart';
+import '../../../calendar/states/reminders_inbox_state.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -159,6 +165,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const Spacer(),
+          const _RemindersBell(),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: _showUserMenu,
             child: ListenableBuilder(
@@ -500,5 +508,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         );
     }
+  }
+}
+
+/// Fired calendar reminders not yet seen; opens the reminders list. Hidden
+/// where no reminders show: "Remind on this device" off, or Cloud API mode
+/// (recognised from the inbox's error).
+class _RemindersBell extends ConsumerWidget {
+  const _RemindersBell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Web and desktop never run ReminderSync, so nothing would ever show.
+    if (!calendarRemindersSupported) return const SizedBox.shrink();
+    if (!ref.watch(remindOnDeviceProvider)) return const SizedBox.shrink();
+    final inbox = ref.watch(remindersInboxProvider);
+    // Shown once the first load settles, so Cloud API mode never flashes it.
+    if (!inbox.hasValue && !inbox.hasError) return const SizedBox.shrink();
+    if (inbox.hasError && isCalendarCloudApiUnavailable(inbox.error!)) {
+      return const SizedBox.shrink();
+    }
+    final unseen = inbox.value?.unseen ?? 0;
+    return HmmIconButton(
+      icon: adaptiveIcon(
+        context,
+        material: Icons.notifications_outlined,
+        apple: CupertinoIcons.bell,
+      ),
+      tooltip: AppLocalizations.of(context).dashboardRemindersTooltip,
+      badgeCount: unseen,
+      onPressed: () => context.pushNamed(RouterNames.calendarReminders.name),
+    );
   }
 }

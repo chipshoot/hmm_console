@@ -20,6 +20,7 @@ Map<String, Object?> _example() => {
   'status': 'active',
   'source': 'assistant',
   'draft': false,
+  'timeSensitive': false,
   'occurrences': [
     {
       'originalStart': {'floating': '2026-11-18T19:00'},
@@ -107,6 +108,38 @@ void main() {
     expect(CalendarEventCodec.encode(e)['draft'], 'yes');
     // Once the owner changes the field, the typed value wins.
     expect(CalendarEventCodec.encode(e.copyWith(draft: true))['draft'], true);
+  });
+
+  test('timeSensitive round-trips', () {
+    final e = CalendarEventCodec.decode('x', {
+      ..._example(),
+      'timeSensitive': true,
+    });
+    expect(e.timeSensitive, isTrue);
+    expect(CalendarEventCodec.encode(e)['timeSensitive'], true);
+    expect(CalendarEventCodec.decode('x', CalendarEventCodec.encode(e)), e);
+  });
+
+  test('missing timeSensitive reads false', () {
+    final json = _example()..remove('timeSensitive');
+    final e = CalendarEventCodec.decode('x', json);
+    expect(e.timeSensitive, isFalse);
+    expect(CalendarEventCodec.encode(e)['timeSensitive'], false);
+  });
+
+  test('wrong-typed timeSensitive is written back unchanged', () {
+    final e = CalendarEventCodec.decode('x', {
+      ..._example(),
+      'timeSensitive': 'yes',
+    });
+    expect(e.timeSensitive, isFalse);
+    expect(CalendarEventCodec.encode(e)['timeSensitive'], 'yes');
+    expect(
+      CalendarEventCodec.encode(
+        e.copyWith(timeSensitive: true),
+      )['timeSensitive'],
+      true,
+    );
   });
 
   test('undecodable list entries are kept verbatim', () {

@@ -416,6 +416,11 @@ class EventDetailScreen extends ConsumerWidget {
             leading: const Icon(Icons.notifications_outlined),
             title: Text(reminderLabel(r.minutesBefore, l)),
           ),
+        if (e.timeSensitive)
+          ListTile(
+            leading: const Icon(Icons.notification_important_outlined),
+            title: Text(l.calendarTimeSensitive),
+          ),
         if (notes != null && notes.trim().isNotEmpty)
           ListTile(leading: const Icon(Icons.notes), title: Text(notes)),
         if (o != null && status != OccurrenceStatus.cancelled)

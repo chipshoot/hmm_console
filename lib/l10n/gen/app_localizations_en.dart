@@ -4365,6 +4365,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add or remove reminders. They ring on devices where Remind on this device is on.';
 
   @override
+  String get calendarTimeSensitive => 'Time Sensitive';
+
+  @override
+  String get calendarTimeSensitiveSubtitle => 'Breaks through Focus';
+
+  @override
+  String get helpCalendarEventEditTimeSensitiveTitle => 'Time Sensitive';
+
+  @override
+  String get helpCalendarEventEditTimeSensitiveBody =>
+      'Lets this event\'s reminders break through Focus on iPhone. Off by default. It needs a reminder on this device, and applies to every occurrence.';
+
+  @override
   String get calendarEventTitle => 'Event';
 
   @override
@@ -4419,4 +4432,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsCalendarRemindOnDeviceSubtitle =>
       'Show calendar reminders as notifications on this device. Set per device; not synced.';
+
+  @override
+  String get calendarRemindersTitle => 'Reminders';
+
+  @override
+  String get calendarRemindersEmpty => 'No reminders in the last 7 days';
+
+  @override
+  String get calendarRemindersLoadFailed => 'Could not load reminders.';
+
+  @override
+  String calendarRemindersFiredAt(String time) {
+    return 'Fired $time';
+  }
+
+  @override
+  String get dashboardRemindersTooltip => 'Reminders';
+
+  @override
+  String get helpCalendarRemindersTitle => 'Reminders';
+
+  @override
+  String get helpCalendarRemindersSummary =>
+      'Reminders that fired on this device in the last 7 days, newest first.';
+
+  @override
+  String get helpCalendarRemindersOpenTitle => 'Open a reminder';
+
+  @override
+  String get helpCalendarRemindersOpenBody =>
+      'Tap a row to open that occurrence of the event, where you can mark it done or skip it.';
+
+  @override
+  String get helpCalendarRemindersBellTitle => 'Bell on the home screen';
+
+  @override
+  String get helpCalendarRemindersBellBody =>
+      'The bell shows how many reminders fired since you last opened this list, as does the app icon. Opening the list clears both. The bell is hidden when Remind on this device is off.';
 }

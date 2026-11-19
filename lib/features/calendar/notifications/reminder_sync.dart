@@ -21,6 +21,7 @@ import '../domain/occurrence.dart';
 import '../domain/recurrence_expander.dart';
 import '../states/calendar_providers.dart';
 import '../states/remind_on_device_provider.dart';
+import '../states/reminders_seen_provider.dart';
 import 'local_reminder_scheduler.dart';
 import 'notification_gateway.dart';
 import 'reminder_plan.dart';
@@ -139,13 +140,16 @@ final reminderTitleFormatProvider =
 
 DateTime _utcNow() => DateTime.now().toUtc();
 
+Future<void> _noBadge(int count) async {}
+
 /// Keeps this device's pending calendar reminders in step with the events.
 ///
 /// Runs on [start], on return to the foreground and on each repository
 /// change, all debounced by [debounce]. Each run reads every readable event,
 /// plans with the device resolver and reschedules. With "Remind on this
 /// device" off, or in cloud API mode (no calendar repository), it cancels the
-/// calendar reminders instead.
+/// calendar reminders instead. Every run sets the app icon badge: the unseen
+/// count, or 0 when no reminder shows on this device.
 class ReminderSync with WidgetsBindingObserver {
   ReminderSync({
     required ICalendarRepository Function() repository,
@@ -160,6 +164,9 @@ class ReminderSync with WidgetsBindingObserver {
         defaultReminderTitle,
     DateTime Function() clock = _utcNow,
     Future<void> Function()? refreshZone,
+    Future<DateTime?> Function() readSeenAt = readRemindersSeenAt,
+    Future<void> Function(DateTime utc) writeSeenAt = writeRemindersSeenAt,
+    Future<void> Function(int count) setBadge = _noBadge,
     Duration debounce = const Duration(seconds: 1),
     bool observeLifecycle = true,
   }) : _repository = repository,
@@ -173,6 +180,9 @@ class ReminderSync with WidgetsBindingObserver {
        _formatTitle = formatTitle,
        _clock = clock,
        _refreshZone = refreshZone,
+       _readSeenAt = readSeenAt,
+       _writeSeenAt = writeSeenAt,
+       _setBadge = setBadge,
        _debounce = debounce,
        _observeLifecycle = observeLifecycle;
 
@@ -191,6 +201,13 @@ class ReminderSync with WidgetsBindingObserver {
 
   /// Re-reads the device zone; run on every resume before planning (R-19).
   final Future<void> Function()? _refreshZone;
+
+  /// The reminders inbox's seen instant ([kRemindersSeenAtKey]).
+  final Future<DateTime?> Function() _readSeenAt;
+  final Future<void> Function(DateTime utc) _writeSeenAt;
+
+  /// Sets the app icon badge (iOS; a no-op elsewhere).
+  final Future<void> Function(int count) _setBadge;
   final Duration _debounce;
   final bool _observeLifecycle;
 
@@ -199,6 +216,9 @@ class ReminderSync with WidgetsBindingObserver {
   Timer? _timer;
   Future<void>? _inFlight;
   bool _rerun = false;
+
+  /// The previous run found "Remind on this device" off, or Cloud API mode.
+  bool _lastRunOff = false;
 
   /// Idempotent. Subscribes to changes and the app lifecycle, then triggers.
   void start() {
@@ -294,6 +314,7 @@ class ReminderSync with WidgetsBindingObserver {
       if (!_remindOnDevice()) {
         _onPermissionChecked(false);
         await _scheduler.cancelAll();
+        await _nothingShows();
         return;
       }
       final ICalendarRepository repo;
@@ -304,14 +325,38 @@ class ReminderSync with WidgetsBindingObserver {
         if (!isCalendarCloudApiUnavailable(e)) rethrow;
         _onPermissionChecked(false);
         await _scheduler.cancelAll();
+        // Cloud API mode has no calendar, so no reminder shows either.
+        await _nothingShows();
         return;
       }
       final now = _clock().toUtc();
+      final backOn = _lastRunOff;
+      if (backOn) {
+        // Back on after an off (or Cloud API) run: reminders that fired since
+        // that run never showed either, so the unseen count restarts from
+        // now. Stored before the events load, so a failing load cannot leave
+        // a stale count.
+        await _markSeen(now);
+      }
+      final events = await loadReminderEvents(repo, now);
+      final int unseenNow;
+      if (backOn) {
+        // Cleared only on a run that reaches planning: a failed load keeps
+        // it, and the next run restarts the count from its own now.
+        _lastRunOff = false;
+        unseenNow = 0;
+      } else {
+        unseenNow = await _unseenNow(events, now);
+      }
+      // Every run, so the icon follows the count after edits, done marks and
+      // inbox visits, not only when a reminder fires.
+      await _updateBadge(unseenNow);
       final plan = planReminders(
-        events: await _loadEvents(repo, now),
+        events: events,
         nowUtc: now,
         resolve: _resolve,
         formatTitle: _formatTitle,
+        unseenNow: unseenNow,
       );
       if (plan.isEmpty) {
         // Nothing due: clear stale entries without consulting permission, so
@@ -336,19 +381,83 @@ class ReminderSync with WidgetsBindingObserver {
     }
   }
 
-  static Future<List<CalendarEvent>> _loadEvents(
-    ICalendarRepository repo,
-    DateTime now,
-  ) async {
-    if (repo is LocalCalendarRepository) {
-      // Every event, unreadable ones skipped.
-      return [
-        for (final r in await repo.readAll())
-          if (r is CalendarEventReadable) r.event,
-      ];
-    }
-    return repo.eventsBetween(now, now.add(const Duration(days: 3660)));
+  /// Nothing shows on this device ("Remind on this device" off, or Cloud API
+  /// mode), so whatever fires now must never count as unseen once reminders
+  /// show again, and the icon badge reads 0.
+  Future<void> _nothingShows() async {
+    _lastRunOff = true;
+    await _markSeen(_clock().toUtc());
+    await _updateBadge(0);
   }
+
+  /// Sets the icon badge to [count]. A failure is logged, never thrown: a
+  /// stale badge is cosmetic, delivery goes on.
+  Future<void> _updateBadge(int count) async {
+    try {
+      await _setBadge(count);
+    } catch (e) {
+      debugPrint('ReminderSync: badge not set (${e.runtimeType})');
+    }
+  }
+
+  /// Stores [now] as seen. A failure is logged, never thrown: the badge may
+  /// then count a few extra reminders, but delivery goes on.
+  Future<void> _markSeen(DateTime now) async {
+    try {
+      await _writeSeenAt(now);
+    } catch (e) {
+      debugPrint('ReminderSync: seen state not stored (${e.runtimeType})');
+    }
+  }
+
+  /// Reminders fired since the inbox was last seen, within the inbox's
+  /// 7-day window. A first run stores now as seen, so earlier history never
+  /// counts. When the seen state cannot be read or written the count is 0:
+  /// badge numbers start low, but the reminders are still scheduled.
+  Future<int> _unseenNow(List<CalendarEvent> events, DateTime now) async {
+    try {
+      final seenAt = await _readSeenAt();
+      if (seenAt == null) {
+        await _writeSeenAt(now);
+        return 0;
+      }
+      final windowStart = now.subtract(kRemindersInboxWindow);
+      final from = seenAt.isAfter(windowStart) ? seenAt : windowStart;
+      return firedReminders(
+        events: events,
+        fromUtc: from,
+        toUtc: now,
+        resolve: _resolve,
+        formatTitle: _formatTitle,
+      ).length;
+    } catch (e) {
+      debugPrint('ReminderSync: seen state unavailable (${e.runtimeType})');
+      return 0;
+    }
+  }
+}
+
+/// Every event a reminder could have fired from within the inbox window or
+/// may fire from later: all readable local events (unreadable ones skipped),
+/// else events from the window's start on. Shared by [ReminderSync] and the
+/// reminders inbox, so both see the same events.
+Future<List<CalendarEvent>> loadReminderEvents(
+  ICalendarRepository repo,
+  DateTime now,
+) async {
+  if (repo is LocalCalendarRepository) {
+    return [
+      for (final r in await repo.readAll())
+        if (r is CalendarEventReadable) r.event,
+    ];
+  }
+  // From the inbox window's start. This relies on minutesBefore >= 0 (the
+  // editor enforces it): an occurrence then never starts before its
+  // reminder fires, so this covers every reminder fired in the window.
+  return repo.eventsBetween(
+    now.subtract(kRemindersInboxWindow),
+    now.add(const Duration(days: 3660)),
+  );
 }
 
 /// Built once and kept alive by the app root, which calls [ReminderSync.start]
@@ -373,6 +482,10 @@ final reminderSyncProvider = Provider<ReminderSync>((ref) {
     refreshZone: initDeviceTimeZone,
     // Read per run, so a language change applies at the next run.
     formatTitle: (e, o) => ref.read(reminderTitleFormatProvider)(e, o),
+    // Through the app state, so the inbox and the bell see every write.
+    readSeenAt: () => ref.read(remindersSeenAtProvider.future),
+    writeSeenAt: (utc) => ref.read(remindersSeenAtProvider.notifier).write(utc),
+    setBadge: gateway.setBadge,
   );
   ref.listen(reminderTitleFormatProvider, (_, _) => sync.trigger());
   ref.listen<bool>(remindOnDeviceProvider, (_, _) => sync.trigger());

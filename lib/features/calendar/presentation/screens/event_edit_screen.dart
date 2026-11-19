@@ -107,7 +107,8 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
 
   void _update(EventForm f) => setState(() => _form = f);
 
-  /// True when a field only the series has (repeat, reminders, notes, the
+  /// True when a field only the series has (repeat, reminders, Time Sensitive,
+  /// notes, the
   /// length: an override has no end of its own) was changed: such an edit can
   /// only apply to all occurrences.
   bool _seriesFieldsChanged(EventForm f, EventForm initial) {
@@ -117,6 +118,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     if (wallDiff(f.end, f.start) != wallDiff(initial.end, initial.start)) {
       return true;
     }
+    if (f.timeSensitive != initial.timeSensitive) return true;
     if (f.reminders.length != initial.reminders.length) return true;
     for (var i = 0; i < f.reminders.length; i++) {
       if (f.reminders[i] != initial.reminders[i]) return true;
@@ -343,6 +345,17 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
         ReminderListEditor(
           reminders: f.reminders,
           onChanged: (r) => _update(_form.copyWith(reminders: r)),
+        ),
+        // SwitchListTile.adaptive draws the Cupertino switch on iOS/macOS.
+        SwitchListTile.adaptive(
+          key: const Key('calendar-edit-time-sensitive'),
+          secondary: const Icon(Icons.notification_important_outlined),
+          title: Text(l.calendarTimeSensitive),
+          subtitle: Text(l.calendarTimeSensitiveSubtitle),
+          value: f.timeSensitive,
+          onChanged: f.hasDeviceReminder
+              ? (v) => _update(_form.copyWith(timeSensitive: v))
+              : null,
         ),
         const Divider(),
         Padding(

@@ -139,8 +139,10 @@ CalendarEvent _ev(
   String? rrule,
   String title = 'Walk',
   List<Reminder> reminders = const [Reminder(minutesBefore: 15)],
+  bool timeSensitive = false,
 }) => CalendarEvent(
   id: id,
+  timeSensitive: timeSensitive,
   title: title,
   start: start,
   end: end,
@@ -406,6 +408,90 @@ void main() {
       expect(e.start, const FloatingTime(2030, 1, 13, 19, 0));
       expect(e.end, const FloatingTime(2030, 1, 13, 20, 0));
       expect(e.rrule, 'FREQ=DAILY');
+    });
+  });
+
+  group('Time Sensitive switch', () {
+    const sw = Key('calendar-edit-time-sensitive');
+
+    testWidgets('a new event saves timeSensitive false', (tester) async {
+      final repo = FakeCalendarRepository();
+      await _mount(tester, repo);
+      expect(find.text('Time Sensitive'), findsOneWidget);
+      expect(find.text('Breaks through Focus'), findsOneWidget);
+      await _typeTitle(tester, 'Plain');
+      await _save(tester);
+      expect(repo.events.values.single.timeSensitive, isFalse);
+    });
+
+    testWidgets('toggling it on saves true', (tester) async {
+      final repo = FakeCalendarRepository();
+      await _mount(tester, repo);
+      await _typeTitle(tester, 'Urgent');
+      await tester.tap(find.byKey(sw));
+      await tester.pump();
+      await _save(tester);
+      expect(repo.events.values.single.timeSensitive, isTrue);
+    });
+
+    testWidgets('editing a Time Sensitive event shows the switch on', (
+      tester,
+    ) async {
+      final repo = FakeCalendarRepository()
+        ..seed(_ev('t', _fixed(2030, 1, 15, 9), timeSensitive: true));
+      await _mount(tester, repo, eventId: 't');
+      expect(tester.widget<SwitchListTile>(find.byKey(sw)).value, isTrue);
+    });
+
+    testWidgets('disabled when there is no device reminder', (tester) async {
+      final repo = FakeCalendarRepository();
+      await _mount(tester, repo);
+      expect(
+        tester.widget<SwitchListTile>(find.byKey(sw)).onChanged,
+        isNotNull,
+      );
+      await tester.tap(find.byTooltip('Remove reminder'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(sw), findsOneWidget);
+      expect(tester.widget<SwitchListTile>(find.byKey(sw)).onChanged, isNull);
+    });
+
+    testWidgets('on, then the last device reminder removed: saves false', (
+      tester,
+    ) async {
+      final repo = FakeCalendarRepository();
+      await _mount(tester, repo);
+      await _typeTitle(tester, 'No reminder');
+      await tester.tap(find.byKey(sw));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Remove reminder'));
+      await tester.pumpAndSettle();
+      await _save(tester);
+      final e = repo.events.values.single;
+      expect(e.reminders, isEmpty);
+      expect(e.timeSensitive, isFalse);
+    });
+
+    testWidgets('changing only the switch on a repeating event saves to the '
+        'series without the scope dialog', (tester) async {
+      final repo = FakeCalendarRepository()
+        ..seed(
+          _ev(
+            'r',
+            const FloatingTime(2030, 1, 13, 19, 0),
+            end: const FloatingTime(2030, 1, 13, 20, 0),
+            rrule: 'FREQ=DAILY',
+          ),
+        );
+      await _mount(tester, repo, eventId: 'r', at: 'floating:2030-01-15T19:00');
+      await tester.tap(find.byKey(sw));
+      await tester.pump();
+      await _save(tester);
+      expect(find.text('This occurrence'), findsNothing);
+      expect(repo.log, ['save:r']);
+      final e = repo.events['r']!;
+      expect(e.timeSensitive, isTrue);
+      expect(e.occurrences, isEmpty);
     });
   });
 

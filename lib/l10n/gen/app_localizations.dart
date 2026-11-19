@@ -7574,6 +7574,30 @@ abstract class AppLocalizations {
   /// **'Add or remove reminders. They ring on devices where Remind on this device is on.'**
   String get helpCalendarEventEditRemindersBody;
 
+  /// No description provided for @calendarTimeSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'Time Sensitive'**
+  String get calendarTimeSensitive;
+
+  /// No description provided for @calendarTimeSensitiveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Breaks through Focus'**
+  String get calendarTimeSensitiveSubtitle;
+
+  /// No description provided for @helpCalendarEventEditTimeSensitiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time Sensitive'**
+  String get helpCalendarEventEditTimeSensitiveTitle;
+
+  /// No description provided for @helpCalendarEventEditTimeSensitiveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets this event\'s reminders break through Focus on iPhone. Off by default. It needs a reminder on this device, and applies to every occurrence.'**
+  String get helpCalendarEventEditTimeSensitiveBody;
+
   /// No description provided for @calendarEventTitle.
   ///
   /// In en, this message translates to:
@@ -7675,6 +7699,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show calendar reminders as notifications on this device. Set per device; not synced.'**
   String get settingsCalendarRemindOnDeviceSubtitle;
+
+  /// No description provided for @calendarRemindersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get calendarRemindersTitle;
+
+  /// No description provided for @calendarRemindersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No reminders in the last 7 days'**
+  String get calendarRemindersEmpty;
+
+  /// No description provided for @calendarRemindersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load reminders.'**
+  String get calendarRemindersLoadFailed;
+
+  /// When a reminder fired; time is a short time, or a date and time when not today.
+  ///
+  /// In en, this message translates to:
+  /// **'Fired {time}'**
+  String calendarRemindersFiredAt(String time);
+
+  /// No description provided for @dashboardRemindersTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get dashboardRemindersTooltip;
+
+  /// No description provided for @helpCalendarRemindersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get helpCalendarRemindersTitle;
+
+  /// No description provided for @helpCalendarRemindersSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders that fired on this device in the last 7 days, newest first.'**
+  String get helpCalendarRemindersSummary;
+
+  /// No description provided for @helpCalendarRemindersOpenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a reminder'**
+  String get helpCalendarRemindersOpenTitle;
+
+  /// No description provided for @helpCalendarRemindersOpenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a row to open that occurrence of the event, where you can mark it done or skip it.'**
+  String get helpCalendarRemindersOpenBody;
+
+  /// No description provided for @helpCalendarRemindersBellTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bell on the home screen'**
+  String get helpCalendarRemindersBellTitle;
+
+  /// No description provided for @helpCalendarRemindersBellBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The bell shows how many reminders fired since you last opened this list, as does the app icon. Opening the list clears both. The bell is hidden when Remind on this device is off.'**
+  String get helpCalendarRemindersBellBody;
 }
 
 class _AppLocalizationsDelegate

@@ -27,6 +27,7 @@ CalendarEvent _ev(
   String? rrule = 'FREQ=DAILY',
   EventOwner? owner,
   bool draft = false,
+  bool timeSensitive = false,
   EventTime start = const FloatingTime(2030, 1, 13, 19, 0),
 }) => CalendarEvent(
   id: id,
@@ -38,6 +39,7 @@ CalendarEvent _ev(
   rrule: rrule,
   owner: owner,
   draft: draft,
+  timeSensitive: timeSensitive,
   notes: 'Bring water',
   reminders: const [Reminder(minutesBefore: 15)],
   updatedAt: DateTime.utc(2020),
@@ -94,6 +96,19 @@ void main() {
     expect(find.text('15 minutes before'), findsOneWidget);
     expect(find.text('Bring water'), findsOneWidget);
     expect(find.textContaining('Jan 15, 2030'), findsOneWidget);
+  });
+
+  testWidgets('shows no Time Sensitive label when off', (tester) async {
+    await _mount(tester, FakeCalendarRepository()..seed(_ev('r')));
+    expect(find.text('Time Sensitive'), findsNothing);
+  });
+
+  testWidgets('shows the Time Sensitive label when on', (tester) async {
+    await _mount(
+      tester,
+      FakeCalendarRepository()..seed(_ev('r', timeSensitive: true)),
+    );
+    expect(find.text('Time Sensitive'), findsOneWidget);
   });
 
   testWidgets('a repeating event opened at an occurrence offers Done and '

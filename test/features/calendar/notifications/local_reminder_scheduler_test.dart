@@ -50,6 +50,25 @@ void main() {
     expect(gw.scheduled.map((r) => r.id), [3, 5]);
   });
 
+  test('the gateway gets each reminder\'s priority and badge number', () async {
+    final gw = FakeNotificationGateway();
+    await LocalReminderScheduler(gw).reschedule([
+      PlannedReminder(
+        id: 3,
+        fireAtUtc: DateTime.utc(2026, 11, 18, 10),
+        title: 'T',
+        payload: 'calendar|a|x',
+        timeSensitive: true,
+        badgeNumber: 4,
+      ),
+      _r(5, 'calendar|b|x'),
+    ]);
+    expect(gw.scheduled.map((r) => (r.timeSensitive, r.badgeNumber)), [
+      (true, 4),
+      (false, null),
+    ]);
+  });
+
   test('cancelAll removes only calendar entries', () async {
     final gw = FakeNotificationGateway()
       ..addPending(1, 'other|x')
