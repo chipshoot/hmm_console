@@ -12,6 +12,7 @@ import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../contract/calendar_errors.dart';
+import '../../data/holiday_cache.dart';
 import '../../domain/calendar_event.dart';
 import '../../domain/holidays.dart';
 import '../../domain/lunar.dart';
@@ -304,14 +305,21 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
       // Read only here: in the Cloud API unavailable state no holiday
       // provider is touched.
       final regions = ref.watch(holidayRegionsProvider);
-      final holidays = ref
-          .watch(
-            holidaysForMonthProvider(
-              DateTime(data.month.year, data.month.month),
-            ),
-          )
-          .value;
-      body = _content(data, wide, showLunar, holidays, regions);
+      final shown = DateTime(data.month.year, data.month.month);
+      final holidays = ref.watch(holidaysForMonthProvider(shown)).value;
+      // The agenda day can lie outside the shown month; when its year is not
+      // among the shown month's years, look it up in its own month.
+      final dayHolidays =
+          yearsToFetch(shown, DateTime.now()).contains(data.day.year)
+          ? holidays
+          : ref
+                .watch(
+                  holidaysForMonthProvider(
+                    DateTime(data.day.year, data.day.month),
+                  ),
+                )
+                .value;
+      body = _content(data, wide, showLunar, holidays, dayHolidays, regions);
     } else {
       body = const Center(child: CircularProgressIndicator.adaptive());
     }
@@ -365,6 +373,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
     bool wide,
     bool showLunar,
     HolidayIndex? holidays,
+    HolidayIndex? dayHolidays,
     List<HolidayRegion> regions,
   ) {
     final l = AppLocalizations.of(context);
@@ -374,8 +383,8 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
         ? null
         : holidayMarksFor(holidays, data.month, colors);
     final holidayLines = <HolidayLine>[
-      if (holidays != null)
-        for (final h in holidays.on(data.day))
+      if (dayHolidays != null)
+        for (final h in dayHolidays.on(data.day))
           HolidayLine(
             flag: h.sourceId == kMyHolidaysSourceId
                 ? null
@@ -385,7 +394,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
             name: h.name,
             offDay: h.offDay,
             color: colors[h.sourceId] ?? kHolidayPalette.first,
-            range: switch (holidays.blockOf(h)) {
+            range: switch (dayHolidays.blockOf(h)) {
               null => null,
               (:final from, :final to) =>
                 '${DateFormat.MMMd(l.localeName).format(from)} – '

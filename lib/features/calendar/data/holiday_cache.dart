@@ -152,8 +152,12 @@ class HolidayCache {
   }
 }
 
+/// The shown year; next year for a December grid (its trailing January days,
+/// and China's 元旦 days off that can fall in late December, live in next
+/// year's file); and next year from 1 November (H-9).
 Set<int> yearsToFetch(DateTime shownMonth, DateTime now) => {
   shownMonth.year,
+  if (shownMonth.month == 12) shownMonth.year + 1,
   if (now.month >= 11) now.year + 1,
 };
 
@@ -183,12 +187,18 @@ class HolidayRefresher {
     return run;
   }
 
+  /// Fetches what is due. Never deletes: removed countries' files are
+  /// pruned when the owner leaves the Holidays screen, so a refresh started
+  /// with a stale or not-yet-loaded region list cannot lose saved days.
   Future<bool> _run(List<HolidayRegion> regions, Set<int> years) async {
-    var changed = await _cache.pruneExcept({
-      for (final r in regions) r.sourceId,
-    });
+    var changed = false;
     for (final r in regions) {
-      final source = _sourceFor(r);
+      final HolidaySource source;
+      try {
+        source = _sourceFor(r);
+      } catch (_) {
+        continue;
+      }
       for (final y in years) {
         try {
           final cached = await _cache.read(r.sourceId, y);

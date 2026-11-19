@@ -54,7 +54,14 @@ class _Adapter implements HttpClientAdapter {
 class _FakeCache extends HolidayCache {
   _FakeCache() : super(() => throw UnimplementedError());
   final years = <String, CachedYear>{};
+  final prunes = <Set<String>>[];
   List<({String code, String name})> countries = const [];
+
+  @override
+  Future<bool> pruneExcept(Set<String> keepSourceIds) async {
+    prunes.add(keepSourceIds);
+    return false;
+  }
 
   @override
   Future<CachedYear?> read(String sourceId, int year) async =>
@@ -319,6 +326,31 @@ void main() {
     await tester.pumpAndSettle();
     expect(c.read(holidayRegionsProvider), kDefaultHolidayRegions);
     expect(find.byKey(const Key('holiday-region-CN')), findsOneWidget);
+  });
+
+  testWidgets('leaving the screen prunes removed countries, not before', (
+    tester,
+  ) async {
+    await _mount(tester);
+    await tester.drag(
+      find.byKey(const Key('holiday-region-CN')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(_cache.prunes, isEmpty, reason: 'undo must still find the files');
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    expect(_cache.prunes, [
+      {'CA-ON'},
+    ]);
+  });
+
+  testWidgets('macOS uses the Material layout, like the rest of calendar', (
+    tester,
+  ) async {
+    await _mount(tester, platform: TargetPlatform.macOS);
+    expect(find.byType(FloatingActionButton), findsOneWidget);
   });
 
   testWidgets('iOS has a top-bar add button and no FAB', (tester) async {

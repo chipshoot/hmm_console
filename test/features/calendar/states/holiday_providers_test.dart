@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/calendar/data/holiday_cache.dart';
 import 'package:hmm_console/features/calendar/domain/holidays.dart';
 import 'package:hmm_console/features/calendar/states/holiday_providers.dart';
+import 'package:hmm_console/features/calendar/states/holiday_settings_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 HolidayDay _d(String src, DateTime date, String name, {bool off = true}) =>
@@ -17,12 +18,14 @@ class _StubRefresher extends HolidayRefresher {
     : super(cache, (_) => throw UnimplementedError(), DateTime.now);
 
   final List<Completer<bool>> runs = [];
+  final List<List<String>> regionsSeen = [];
   Future<void> Function()? onRefresh;
 
   @override
   Future<bool> refresh(List<HolidayRegion> regions, Set<int> years) {
     final c = Completer<bool>();
     runs.add(c);
+    regionsSeen.add([for (final r in regions) r.sourceId]);
     return c.future.then((v) async {
       if (v) await onRefresh?.call();
       return v;
@@ -168,6 +171,62 @@ void main() {
       await pumpEventQueue();
       final idx = await c.read(holidaysForMonthProvider(month).future);
       expect(idx.forMonth(month), isEmpty);
+    });
+
+    test('cold start: refresh waits for the stored regions', () async {
+      final month = DateTime(2025, 7);
+      SharedPreferences.setMockInitialValues({
+        'calendar.holiday_regions':
+            '[{"country":"CN","color":0},{"country":"US","color":2}]',
+      });
+      await cache.write(
+        'US',
+        2025,
+        ok([_d('US', DateTime(2025, 7, 4), 'Independence Day')]),
+      );
+      final refresher = _StubRefresher(cache);
+      final c = ProviderContainer(
+        overrides: [
+          holidayCacheProvider.overrideWithValue(cache),
+          holidayRefresherProvider.overrideWithValue(refresher),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(holidaysForMonthProvider(month), (_, _) {});
+      await pumpEventQueue();
+      final idx = await c.read(holidaysForMonthProvider(month).future);
+      await pumpEventQueue();
+
+      expect(idx.forMonth(month)[4]?.single.name, 'Independence Day');
+      expect(await cache.read('US', 2025), isNotNull);
+      expect(refresher.regionsSeen, isNotEmpty);
+      for (final r in refresher.regionsSeen) {
+        expect(r, ['CN', 'US'], reason: 'no refresh with the defaults');
+      }
+    });
+
+    test('no refresh starts before the settings are hydrated', () async {
+      final month = DateTime(2025, 7);
+      SharedPreferences.setMockInitialValues({});
+      final refresher = _StubRefresher(cache);
+      final c = ProviderContainer(
+        overrides: [
+          holidayCacheProvider.overrideWithValue(cache),
+          holidayRefresherProvider.overrideWithValue(refresher),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(holidaysForMonthProvider(month), (_, _) {});
+      final regions = c.read(holidayRegionsProvider.notifier);
+      final mine = c.read(myHolidaysProvider.notifier);
+      await c.read(holidaysForMonthProvider(month).future);
+      if (refresher.runs.isNotEmpty) {
+        expect(regions.isHydrated && mine.isHydrated, isTrue);
+      }
+      await pumpEventQueue();
+      expect(refresher.regionsSeen, [
+        ['CN', 'CA-ON'],
+      ]);
     });
   });
 }

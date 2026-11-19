@@ -49,6 +49,13 @@ void main() {
       2025,
       2027,
     });
+    // A December grid also needs next year's file: China's 元旦 days off for
+    // the new year can fall in late December (H-9).
+    expect(yearsToFetch(DateTime(2025, 12), DateTime(2026, 3)), {2025, 2026});
+    expect(yearsToFetch(DateTime(2026, 12), DateTime(2026, 12, 5)), {
+      2026,
+      2027,
+    });
   });
 
   test('needsFetch policy', () {
@@ -101,19 +108,43 @@ void main() {
     expect((await cache.read('CN', 2026))!.fetchedAt, at);
   });
 
-  test('prune drops removed sources only', () async {
+  test('refresh never deletes saved years of other sources', () async {
+    final at = DateTime(2026, 11, 18);
+    await cache.write('CN', 2026, ok(at));
+    await cache.write('US', 2026, ok(at));
+    final src = FakeSource('CN', const HolidayFetchFailed('x'));
+    final r = HolidayRefresher(cache, (_) => src, () => DateTime(2026, 11, 19));
+    expect(await r.refresh([cn], {2026}), isFalse);
+    expect(await cache.read('US', 2026), isNotNull);
+    expect(await cache.read('CN', 2026), isNotNull);
+  });
+
+  test('pruneExcept drops removed sources only', () async {
     final at = DateTime(2026, 11, 18);
     await cache.write('CN', 2026, ok(at));
     await cache.write('CA-ON', 2026, ok(at));
     File(
       '${tmp.path}/holidays/countries.json',
     ).writeAsStringSync(jsonEncode([]));
-    final src = FakeSource('CN', const HolidayFetchFailed('x'));
-    final r = HolidayRefresher(cache, (_) => src, () => DateTime(2026, 11, 19));
-    expect(await r.refresh([cn], {2026}), isTrue);
+    expect(await cache.pruneExcept({'CN'}), isTrue);
     expect(await cache.read('CA-ON', 2026), isNull);
     expect(await cache.read('CN', 2026), isNotNull);
     expect(File('${tmp.path}/holidays/countries.json').existsSync(), isTrue);
+  });
+
+  test('a source factory that throws does not stop the others', () async {
+    const us = HolidayRegion(country: 'US', color: 2);
+    final src = FakeSource(
+      'US',
+      HolidayYear([day('US', DateTime(2026), 'NY')]),
+    );
+    final r = HolidayRefresher(
+      cache,
+      (reg) => reg.country == 'CN' ? throw StateError('bad') : src,
+      () => DateTime(2026, 11, 19),
+    );
+    expect(await r.refresh([cn, us], {2026}), isTrue);
+    expect((await cache.daysFor({'US'}, {2026})).single.name, 'NY');
   });
 
   test('overlapping refresh fetches once', () async {

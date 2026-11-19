@@ -518,6 +518,24 @@ void main() {
       expect(find.text(flagEmoji('CN')), findsOneWidget);
     });
 
+    testWidgets('day detail: a day outside the shown year still lists', (
+      tester,
+    ) async {
+      final c = await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: DateTime(2024, 12, 31),
+        holidays: _FakeHolidayCache([
+          _hol('CA-ON', DateTime(2024, 12, 31), 'Old Year'),
+        ]),
+      );
+      expect(find.text('Old Year · Day off'), findsOneWidget);
+      // Show January 2025: the agenda keeps Dec 31, 2024.
+      c.read(visibleMonthProvider.notifier).shift(1);
+      await tester.pumpAndSettle();
+      expect(find.text('Old Year · Day off'), findsOneWidget);
+    });
+
     testWidgets('day detail: single-day workday, no range', (tester) async {
       await _mount(
         tester,
@@ -561,6 +579,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(line), findsNothing);
       expect(find.byKey(const Key('calendar-holiday-1')), findsNothing);
+      // The 班 day of the same holiday goes too.
+      expect(find.byKey(const Key('calendar-holiday-11')), findsNothing);
       expect(find.text('国庆节、中秋节 hidden'), findsOneWidget);
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();

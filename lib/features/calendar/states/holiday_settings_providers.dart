@@ -1,4 +1,5 @@
 // lib/features/calendar/states/holiday_settings_providers.dart
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -15,35 +16,56 @@ class HolidayRegionsNotifier extends Notifier<List<HolidayRegion>> {
   // A write that lands before hydration finishes must not be overwritten by
   // the stale prefs read.
   int _writes = 0;
+  final _hydrated = Completer<void>();
+  List<HolidayRegion>? _shown;
+
+  void _set(List<HolidayRegion> value) => state = _shown = value;
+
+  /// Completes once the stored list was first read (or an edit superseded
+  /// it). Until then the state is only the default list.
+  Future<void> get hydrated => _hydrated.future;
+  bool get isHydrated => _hydrated.isCompleted;
 
   @override
   List<HolidayRegion> build() {
     ref.watch(settingsBusProvider);
     _writes = 0;
     _load();
-    return kDefaultHolidayRegions;
+    // A settings pull re-runs build: keep what is shown while prefs are
+    // re-read, so nothing flashes back to the defaults. (`stateOrNull` is
+    // null during a rebuild, so the notifier keeps its own copy.)
+    return _shown ?? kDefaultHolidayRegions;
   }
 
   Future<void> _load() async {
     final writesAtStart = _writes;
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (!ref.mounted || _writes != writesAtStart) return;
+      // A newer build's load takes over (and completes hydration).
+      if (!ref.mounted) return;
+      if (_writes != writesAtStart) return _markHydrated();
       final raw = prefs.getString(
         SyncableSettingsRepository.calendarHolidayRegionsKey,
       );
-      if (raw == null) return;
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) return;
-      state = [for (final r in decoded) ?HolidayRegion.fromJson(r)];
+      if (raw != null) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          _set([for (final r in decoded) ?HolidayRegion.fromJson(r)]);
+        }
+      }
     } catch (e) {
       debugPrint('HolidayRegions: setting unreadable (${e.runtimeType})');
     }
+    _markHydrated();
+  }
+
+  void _markHydrated() {
+    if (!_hydrated.isCompleted) _hydrated.complete();
   }
 
   Future<void> _write(List<HolidayRegion> value) async {
     _writes++;
-    state = value;
+    _set(value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       SyncableSettingsRepository.calendarHolidayRegionsKey,
@@ -89,33 +111,48 @@ final holidayRegionsProvider =
 /// The user's own holidays plus hidden downloaded ones. Synced.
 class MyHolidaysNotifier extends Notifier<MyHolidaysData> {
   int _writes = 0;
+  final _hydrated = Completer<void>();
+  MyHolidaysData? _shown;
+
+  void _set(MyHolidaysData value) => state = _shown = value;
+
+  /// Completes once the stored data was first read (or an edit superseded
+  /// it). Until then the state is only the empty default.
+  Future<void> get hydrated => _hydrated.future;
+  bool get isHydrated => _hydrated.isCompleted;
 
   @override
   MyHolidaysData build() {
     ref.watch(settingsBusProvider);
     _writes = 0;
     _load();
-    return MyHolidaysData.empty;
+    return _shown ?? MyHolidaysData.empty;
   }
 
   Future<void> _load() async {
     final writesAtStart = _writes;
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (!ref.mounted || _writes != writesAtStart) return;
+      // A newer build's load takes over (and completes hydration).
+      if (!ref.mounted) return;
+      if (_writes != writesAtStart) return _markHydrated();
       final raw = prefs.getString(
         SyncableSettingsRepository.calendarMyHolidaysKey,
       );
-      if (raw == null) return;
-      state = MyHolidaysData.fromJson(jsonDecode(raw));
+      if (raw != null) _set(MyHolidaysData.fromJson(jsonDecode(raw)));
     } catch (e) {
       debugPrint('MyHolidays: setting unreadable (${e.runtimeType})');
     }
+    _markHydrated();
+  }
+
+  void _markHydrated() {
+    if (!_hydrated.isCompleted) _hydrated.complete();
   }
 
   Future<void> _write(MyHolidaysData value) async {
     _writes++;
-    state = value;
+    _set(value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       SyncableSettingsRepository.calendarMyHolidaysKey,

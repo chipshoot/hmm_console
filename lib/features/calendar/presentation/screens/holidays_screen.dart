@@ -50,10 +50,8 @@ String _countryName(String code, Map<String, String> names, bool zh) {
   return names[code] ?? _fallbackNames[code] ?? code;
 }
 
-bool _isApple(BuildContext context) {
-  final p = Theme.of(context).platform;
-  return p == TargetPlatform.iOS || p == TargetPlatform.macOS;
-}
+bool _isApple(BuildContext context) =>
+    Theme.of(context).platform == TargetPlatform.iOS;
 
 /// Subscribed holiday regions: add, remove (with undo), and the way into
 /// My holidays.
@@ -65,10 +63,33 @@ class HolidaysScreen extends ConsumerStatefulWidget {
 }
 
 class _HolidaysScreenState extends ConsumerState<HolidaysScreen> {
+  late final HolidayCache _cache;
+  late final HolidayRegionsNotifier _regionsNotifier;
+  List<HolidayRegion> _regions = const [];
+
   @override
   void initState() {
     super.initState();
+    _cache = ref.read(holidayCacheProvider);
+    _regionsNotifier = ref.read(holidayRegionsProvider.notifier);
+    ref.listenManual<List<HolidayRegion>>(
+      holidayRegionsProvider,
+      (_, next) => _regions = next,
+      fireImmediately: true,
+    );
     unawaited(_loadCountriesIfMissing());
+  }
+
+  /// Removed countries' saved years are deleted only when the owner leaves
+  /// this screen, so an undo here never loses data and a refresh elsewhere
+  /// can never delete with a stale list. Skipped while the stored list has
+  /// not loaded yet (the defaults would delete added countries).
+  @override
+  void dispose() {
+    if (_regionsNotifier.isHydrated) {
+      unawaited(_cache.pruneExcept({for (final r in _regions) r.sourceId}));
+    }
+    super.dispose();
   }
 
   /// First run: fetch the country names quietly; failure keeps the fallbacks.
@@ -84,32 +105,38 @@ class _HolidaysScreenState extends ConsumerState<HolidaysScreen> {
     } catch (_) {}
   }
 
-  void _offline(AppLocalizations l) {
-    ScaffoldMessenger.of(context)
+  static void _offline(ScaffoldMessengerState messenger, AppLocalizations l) {
+    messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(l.calendarHolidaysOffline)));
   }
 
   Future<void> _add() async {
+    // Everything that needs context or ref is captured before the first
+    // await; only the picker sheets still need context (behind `mounted`).
     final l = AppLocalizations.of(context);
     final zh = l.localeName.startsWith('zh');
+    final messenger = ScaffoldMessenger.of(context);
+    final container = ProviderScope.containerOf(context, listen: false);
     final dio = ref.read(holidayDioProvider);
     final cache = ref.read(holidayCacheProvider);
+    final refresher = ref.read(holidayRefresherProvider);
+    final notifier = ref.read(holidayRegionsProvider.notifier);
+    final existing = ref.read(holidayRegionsProvider);
     final now = DateTime.now();
 
     final countries = await fetchAvailableCountries(dio);
     if (!mounted) return;
-    if (countries == null) return _offline(l);
+    if (countries == null) return _offline(messenger, l);
     unawaited(
       cache
           .writeCountries(countries)
           .then((_) {
-            if (mounted) ref.invalidate(holidayCountryNamesProvider);
+            if (mounted) container.invalidate(holidayCountryNamesProvider);
           })
           .catchError((Object _) {}),
     );
 
-    final existing = ref.read(holidayRegionsProvider);
     final wholeTaken = {
       for (final r in existing)
         if (r.region == null) r.country,
@@ -144,10 +171,10 @@ class _HolidaysScreenState extends ConsumerState<HolidaysScreen> {
     if (country != 'CN') {
       final codes = await regionCodesIn(dio, country, now.year);
       if (!mounted) return;
-      if (codes == null) return _offline(l);
+      if (codes == null) return _offline(messenger, l);
       if (codes.isNotEmpty) {
         final taken = {
-          for (final r in ref.read(holidayRegionsProvider))
+          for (final r in existing)
             if (r.country == country && r.region != null) r.region,
         };
         final names = [
@@ -170,16 +197,13 @@ class _HolidaysScreenState extends ConsumerState<HolidaysScreen> {
       }
     }
     if (!mounted) return;
-    final added = await ref
-        .read(holidayRegionsProvider.notifier)
-        .add(country, region);
+    final added = await notifier.add(country, region);
     if (!added || !mounted) return;
-    final refresher = ref.read(holidayRefresherProvider);
     unawaited(
       refresher
-          .refresh(ref.read(holidayRegionsProvider), {now.year})
+          .refresh(_regions, {now.year})
           .then((_) {
-            if (mounted) ref.invalidate(_holidayStatusProvider);
+            if (mounted) container.invalidate(_holidayStatusProvider);
           })
           .catchError((Object _) {}),
     );

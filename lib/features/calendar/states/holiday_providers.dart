@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -31,7 +32,10 @@ final holidayRefresherProvider = Provider<HolidayRefresher>((ref) {
 /// Holidays for the month starting at the given date (first of month).
 ///
 /// Returns what is cached without waiting for the network, then refreshes in
-/// the background and rebuilds when the refresh changed anything. An
+/// the background and rebuilds when the refresh changed anything. The refresh
+/// waits until both holiday settings have been read from prefs, so a cold
+/// start never refreshes with the default list; once they load, a changed
+/// list rebuilds this provider and the stale build starts nothing. An
 /// overlapping refresh shares the run already in flight, so the rebuild asks
 /// again for its own regions and years; once nothing is due the refresher
 /// returns false and the cycle stops.
@@ -39,6 +43,10 @@ final holidaysForMonthProvider = FutureProvider.autoDispose
     .family<HolidayIndex, DateTime>((ref, month) async {
       final regions = ref.watch(holidayRegionsProvider);
       final mine = ref.watch(myHolidaysProvider);
+      final hydrated = Future.wait([
+        ref.read(holidayRegionsProvider.notifier).hydrated,
+        ref.read(myHolidaysProvider.notifier).hydrated,
+      ]);
       final cache = ref.watch(holidayCacheProvider);
       final refresher = ref.watch(holidayRefresherProvider);
       final years = yearsToFetch(month, DateTime.now());
@@ -49,13 +57,24 @@ final holidaysForMonthProvider = FutureProvider.autoDispose
         mine: mine,
         sourceOrder: sourceOrder,
       );
+      if (!ref.mounted) return index;
       unawaited(
-        refresher
-            .refresh(regions, years)
-            .then((changed) {
+        hydrated
+            .then<bool>((_) {
+              // Hydration changed the list: the rebuild (which is only
+              // scheduled, so this build may still be mounted) refreshes.
+              if (!ref.mounted) return false;
+              if (!identical(ref.read(holidayRegionsProvider), regions)) {
+                return false;
+              }
+              return refresher.refresh(regions, years);
+            })
+            .then<void>((changed) {
               if (changed && ref.mounted) ref.invalidateSelf();
             })
-            .catchError((Object _) {}),
+            .catchError((Object e) {
+              debugPrint('Holiday refresh failed (${e.runtimeType})');
+            }),
       );
       return index;
     });
