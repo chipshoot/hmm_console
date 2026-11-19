@@ -20,6 +20,7 @@ CalendarEvent _ev(
   EventStatus status = EventStatus.active,
   List<OccurrenceOverride> occurrences = const [],
   Map<String, Object?> extra = const {},
+  bool timeSensitive = false,
 }) => CalendarEvent(
   id: id,
   title: 'T $id',
@@ -31,15 +32,29 @@ CalendarEvent _ev(
   status: status,
   occurrences: occurrences,
   extraFields: extra,
+  timeSensitive: timeSensitive,
 );
 
-List<PlannedReminder> _plan(List<CalendarEvent> evs, {int cap = 60}) =>
-    planReminders(
+List<PlannedReminder> _plan(
+  List<CalendarEvent> evs, {
+  int cap = 60,
+  int unseenNow = 0,
+}) => planReminders(
+  events: evs,
+  nowUtc: _now,
+  resolve: _utc,
+  formatTitle: _title,
+  cap: cap,
+  unseenNow: unseenNow,
+);
+
+List<FiredReminder> _fired(List<CalendarEvent> evs, {int days = 7}) =>
+    firedReminders(
       events: evs,
-      nowUtc: _now,
+      fromUtc: _now.subtract(Duration(days: days)),
+      toUtc: _now,
       resolve: _utc,
       formatTitle: _title,
-      cap: cap,
     );
 
 void main() {
@@ -238,5 +253,112 @@ void main() {
       _plan([_ev('nb', const FloatingTime(2026, 11, 18, 19, 0))]).single.body,
       isNull,
     );
+  });
+
+  group('badge numbers and priority', () {
+    List<CalendarEvent> three() => [
+      for (var i = 0; i < 3; i++)
+        _ev('b$i', FloatingTime(2026, 11, 18, 10 + i, 0)),
+    ];
+
+    test('default unseenNow numbers 1..n in fire order', () {
+      expect(_plan(three()).map((r) => r.badgeNumber), [1, 2, 3]);
+    });
+
+    test('unseenNow offsets the numbers', () {
+      expect(_plan(three(), unseenNow: 2).map((r) => r.badgeNumber), [3, 4, 5]);
+    });
+
+    test('cap keeps numbering contiguous', () {
+      expect(_plan(three(), cap: 2, unseenNow: 1).map((r) => r.badgeNumber), [
+        2,
+        3,
+      ]);
+    });
+
+    test('timeSensitive is copied from the event', () {
+      final out = _plan([
+        _ev('ts', const FloatingTime(2026, 11, 18, 10, 0), timeSensitive: true),
+        _ev('no', const FloatingTime(2026, 11, 18, 11, 0)),
+      ]);
+      expect(out.map((r) => r.timeSensitive), [true, false]);
+    });
+  });
+
+  group('firedReminders', () {
+    test('past fire times only, newest first, window is (from, to]', () {
+      final out = _fired([
+        _ev('old', const FloatingTime(2026, 11, 12, 10, 0)),
+        _ev('new', const FloatingTime(2026, 11, 16, 10, 0)),
+        _ev('future', const FloatingTime(2026, 11, 18, 10, 0)),
+        _ev('toolong', const FloatingTime(2026, 11, 1, 10, 0)),
+      ]);
+      expect(out.map((r) => r.eventId), ['new', 'old']);
+      expect(out.first.fireAtUtc, DateTime.utc(2026, 11, 16, 9, 45));
+      expect(out.first.occurrenceStartUtc, DateTime.utc(2026, 11, 16, 10, 0));
+      expect(out.first.payload, 'calendar|new|floating:2026-11-16T10:00');
+      expect(out.first.title, 'T new');
+    });
+
+    test('fire exactly at toUtc is included, at fromUtc excluded', () {
+      final out = _fired([
+        _ev(
+          'at_to',
+          const FloatingTime(2026, 11, 17, 12, 0),
+          reminders: const [Reminder(minutesBefore: 0)],
+        ),
+        _ev(
+          'at_from',
+          const FloatingTime(2026, 11, 10, 12, 0),
+          reminders: const [Reminder(minutesBefore: 0)],
+        ),
+      ]);
+      expect(out.map((r) => r.eventId), ['at_to']);
+    });
+
+    test('excludes done occurrence, draft and absent (deleted) events', () {
+      const st = FloatingTime(2026, 11, 16, 10, 0);
+      final out = _fired([
+        _ev(
+          'done',
+          st,
+          occurrences: const [
+            OccurrenceOverride(
+              originalStart: st,
+              status: OccurrenceStatus.done,
+            ),
+          ],
+        ),
+        _ev('draft', st, draft: true),
+        _ev('kept', st),
+      ]);
+      expect(out.map((r) => r.eventId), ['kept']);
+      expect(_fired(const []), isEmpty);
+    });
+
+    test('moved occurrence appears at its moved fire time', () {
+      const orig = FloatingTime(2026, 11, 16, 10, 0);
+      final out = _fired([
+        _ev(
+          'mv',
+          orig,
+          occurrences: const [
+            OccurrenceOverride(
+              originalStart: orig,
+              status: OccurrenceStatus.moved,
+              movedTo: FloatingTime(2026, 11, 15, 8, 0),
+            ),
+          ],
+        ),
+      ]);
+      expect(out.single.fireAtUtc, DateTime.utc(2026, 11, 15, 7, 45));
+      expect(out.single.originalStart, orig);
+      expect(out.single.payload, 'calendar|mv|floating:2026-11-16T10:00');
+    });
+
+    test('all-day uses the 09:00 rule', () {
+      final out = _fired([_ev('ad', const AllDay(2026, 11, 16))]);
+      expect(out.single.fireAtUtc, DateTime.utc(2026, 11, 16, 8, 45));
+    });
   });
 }
