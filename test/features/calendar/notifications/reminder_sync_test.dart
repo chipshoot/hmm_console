@@ -14,6 +14,7 @@ import 'package:hmm_console/features/calendar/notifications/notification_gateway
 import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
 import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
+import 'package:hmm_console/features/calendar/states/reminders_seen_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/fake_notification_gateway.dart';
@@ -71,6 +72,8 @@ class _Harness {
     this.asked = true,
     Future<void> Function()? refreshZone,
     void Function()? onRead,
+    this.seenAt,
+    bool seenAtFails = false,
   }) : remindOnDevice = remind,
        gateway = FakeNotificationGateway(granted: granted) {
     gateway.addPending(1, 'other|x');
@@ -95,6 +98,15 @@ class _Harness {
       resolve: _utc,
       clock: () => _now,
       refreshZone: refreshZone,
+      readSeenAt: () async {
+        seenAtReads++;
+        if (seenAtFails) throw StateError('prefs');
+        return seenAt;
+      },
+      writeSeenAt: (utc) async {
+        seenAtWrites.add(utc);
+        seenAt = utc;
+      },
       observeLifecycle: false,
     );
     repo.onRead = onRead;
@@ -110,9 +122,153 @@ class _Harness {
   int asks = 0;
   final deniedReports = <bool>[];
   late final ReminderSync sync;
+
+  /// Fake `calendar.remindersSeenAt` store.
+  DateTime? seenAt;
+  int seenAtReads = 0;
+  final seenAtWrites = <DateTime>[];
+}
+
+/// An event at [start] (resolved as UTC) with one reminder [before] minutes
+/// earlier.
+CalendarEvent _at(
+  String id,
+  FloatingTime start,
+  int before, {
+  bool timeSensitive = false,
+}) => CalendarEvent(
+  id: id,
+  title: 'T $id',
+  start: start,
+  updatedAt: _now,
+  timeSensitive: timeSensitive,
+  reminders: [Reminder(minutesBefore: before)],
+);
+
+void _settle(FakeAsync fa) {
+  fa.elapse(const Duration(seconds: 1));
+  fa.flushMicrotasks();
 }
 
 void main() {
+  group('badge numbers and seen state', () {
+    test('first run with seenAt unset stores now and numbers from 1', () {
+      fakeAsync((fa) {
+        final h = _Harness();
+        h.repo.events = [
+          _ev('a'),
+          _at('b', const FloatingTime(2026, 11, 18, 11, 0), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.seenAtWrites, [_now]);
+        expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1, 2]);
+        h.sync.stop();
+      });
+    });
+
+    test('seenAt 1 h ago with two fired since → numbers start at 3', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now.subtract(const Duration(hours: 1)));
+        h.repo.events = [
+          _ev('a'),
+          // Fired 11:50 and 11:40, after seenAt (11:00).
+          _at('f1', const FloatingTime(2026, 11, 17, 12, 5), 15),
+          _at('f2', const FloatingTime(2026, 11, 17, 12, 10), 30),
+          // Fired 10:00, before seenAt: already seen.
+          _at('old', const FloatingTime(2026, 11, 17, 10, 15), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.seenAtWrites, isEmpty);
+        expect(h.gateway.scheduled.map((r) => r.payload), [
+          startsWith('calendar|a|'),
+        ]);
+        expect(h.gateway.scheduled.single.badgeNumber, 3);
+        h.sync.stop();
+      });
+    });
+
+    test('unseen counts at most the last 7 days', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now.subtract(const Duration(days: 30)));
+        h.repo.events = [
+          _ev('a'),
+          // Fired 2 days ago: counts.
+          _at('in', const FloatingTime(2026, 11, 15, 12, 0), 0),
+          // Fired 8 days ago: outside the window.
+          _at('out', const FloatingTime(2026, 11, 9, 12, 0), 0),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.gateway.scheduled.single.badgeNumber, 2);
+        h.sync.stop();
+      });
+    });
+
+    test(
+      'remind on device off: no unseen read, no write, nothing scheduled',
+      () {
+        fakeAsync((fa) {
+          final h = _Harness(remind: false);
+          h.sync.start();
+          _settle(fa);
+          expect(h.seenAtReads, 0);
+          expect(h.seenAtWrites, isEmpty);
+          expect(h.gateway.scheduled, isEmpty);
+          expect(h.gateway.pendingById.keys, [1]);
+          h.sync.stop();
+        });
+      },
+    );
+
+    test('a failing seenAt read still schedules, numbered from 1', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAtFails: true);
+        h.sync.start();
+        _settle(fa);
+        expect(h.gateway.scheduled.single.badgeNumber, 1);
+        h.sync.stop();
+      });
+    });
+
+    test('the gateway receives timeSensitive per reminder', () {
+      fakeAsync((fa) {
+        final h = _Harness(seenAt: _now);
+        h.repo.events = [
+          _at(
+            'ts',
+            const FloatingTime(2026, 11, 18, 10, 0),
+            15,
+            timeSensitive: true,
+          ),
+          _at('plain', const FloatingTime(2026, 11, 18, 11, 0), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(
+          {
+            for (final r in h.gateway.scheduled)
+              r.payload.split('|')[1]: r.timeSensitive,
+          },
+          {'ts': true, 'plain': false},
+        );
+        h.sync.stop();
+      });
+    });
+  });
+
+  test('reminders seenAt round-trips through prefs as ISO UTC', () async {
+    SharedPreferences.setMockInitialValues({});
+    expect(await readRemindersSeenAt(), isNull);
+    await writeRemindersSeenAt(DateTime.utc(2026, 11, 18, 9, 30));
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString(kRemindersSeenAtKey), '2026-11-18T09:30:00.000Z');
+    expect(await readRemindersSeenAt(), DateTime.utc(2026, 11, 18, 9, 30));
+    await prefs.setString(kRemindersSeenAtKey, 'garbage');
+    expect(await readRemindersSeenAt(), isNull);
+  });
+
   test('setting off cancels calendar reminders and schedules none', () {
     fakeAsync((fa) {
       final h = _Harness(remind: false);

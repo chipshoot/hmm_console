@@ -21,6 +21,7 @@ import '../domain/occurrence.dart';
 import '../domain/recurrence_expander.dart';
 import '../states/calendar_providers.dart';
 import '../states/remind_on_device_provider.dart';
+import '../states/reminders_seen_provider.dart';
 import 'local_reminder_scheduler.dart';
 import 'notification_gateway.dart';
 import 'reminder_plan.dart';
@@ -160,6 +161,8 @@ class ReminderSync with WidgetsBindingObserver {
         defaultReminderTitle,
     DateTime Function() clock = _utcNow,
     Future<void> Function()? refreshZone,
+    Future<DateTime?> Function() readSeenAt = readRemindersSeenAt,
+    Future<void> Function(DateTime utc) writeSeenAt = writeRemindersSeenAt,
     Duration debounce = const Duration(seconds: 1),
     bool observeLifecycle = true,
   }) : _repository = repository,
@@ -173,6 +176,8 @@ class ReminderSync with WidgetsBindingObserver {
        _formatTitle = formatTitle,
        _clock = clock,
        _refreshZone = refreshZone,
+       _readSeenAt = readSeenAt,
+       _writeSeenAt = writeSeenAt,
        _debounce = debounce,
        _observeLifecycle = observeLifecycle;
 
@@ -191,6 +196,10 @@ class ReminderSync with WidgetsBindingObserver {
 
   /// Re-reads the device zone; run on every resume before planning (R-19).
   final Future<void> Function()? _refreshZone;
+
+  /// The reminders inbox's seen instant ([kRemindersSeenAtKey]).
+  final Future<DateTime?> Function() _readSeenAt;
+  final Future<void> Function(DateTime utc) _writeSeenAt;
   final Duration _debounce;
   final bool _observeLifecycle;
 
@@ -307,11 +316,13 @@ class ReminderSync with WidgetsBindingObserver {
         return;
       }
       final now = _clock().toUtc();
+      final events = await _loadEvents(repo, now);
       final plan = planReminders(
-        events: await _loadEvents(repo, now),
+        events: events,
         nowUtc: now,
         resolve: _resolve,
         formatTitle: _formatTitle,
+        unseenNow: await _unseenNow(events, now),
       );
       if (plan.isEmpty) {
         // Nothing due: clear stale entries without consulting permission, so
@@ -336,6 +347,32 @@ class ReminderSync with WidgetsBindingObserver {
     }
   }
 
+  /// Reminders fired since the inbox was last seen, within the inbox's
+  /// 7-day window. A first run stores now as seen, so earlier history never
+  /// counts. When the seen state cannot be read or written the count is 0:
+  /// badge numbers start low, but the reminders are still scheduled.
+  Future<int> _unseenNow(List<CalendarEvent> events, DateTime now) async {
+    try {
+      final seenAt = await _readSeenAt();
+      if (seenAt == null) {
+        await _writeSeenAt(now);
+        return 0;
+      }
+      final windowStart = now.subtract(kRemindersInboxWindow);
+      final from = seenAt.isAfter(windowStart) ? seenAt : windowStart;
+      return firedReminders(
+        events: events,
+        fromUtc: from,
+        toUtc: now,
+        resolve: _resolve,
+        formatTitle: _formatTitle,
+      ).length;
+    } catch (e) {
+      debugPrint('ReminderSync: seen state unavailable (${e.runtimeType})');
+      return 0;
+    }
+  }
+
   static Future<List<CalendarEvent>> _loadEvents(
     ICalendarRepository repo,
     DateTime now,
@@ -347,7 +384,12 @@ class ReminderSync with WidgetsBindingObserver {
           if (r is CalendarEventReadable) r.event,
       ];
     }
-    return repo.eventsBetween(now, now.add(const Duration(days: 3660)));
+    // From the inbox window's start: an occurrence never starts before its
+    // reminder fires, so this covers every reminder fired in the window.
+    return repo.eventsBetween(
+      now.subtract(kRemindersInboxWindow),
+      now.add(const Duration(days: 3660)),
+    );
   }
 }
 
