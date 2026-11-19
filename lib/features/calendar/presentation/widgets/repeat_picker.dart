@@ -142,8 +142,10 @@ class RepeatPicker extends StatelessWidget {
           keyPrefix: 'calendar-repeat-calendar',
           value: form.lunar,
           options: {
+            // The series start's month/day (moved as the shown date moved):
+            // what a Gregorian yearly rule saved from here expands on.
             false: l.calendarRepeatOnDate(
-              DateFormat.MMMd(l.localeName).format(form.start),
+              DateFormat.MMMd(l.localeName).format(form.seriesDate),
             ),
             true: l.calendarRepeatOnLunarDate(
               lunarMonthDayText(

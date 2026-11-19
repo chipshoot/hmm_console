@@ -800,6 +800,33 @@ void main() {
       expect(moved.copyWith(interval: 2).repeatChangedFrom(initial), isTrue);
     });
 
+    testWidgets('a lunar series opened at a later occurrence: the Gregorian '
+        'choice names the series start month/day, which is what is saved', (
+      tester,
+    ) async {
+      const rule =
+          'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1;SKIP=BACKWARD';
+      // 2024-02-10 is 正月初一 2024; the 2026 occurrence is Feb 17.
+      final base = lunarEv(const AllDay(2024, 2, 10), rule);
+      final at = resolveOccurrence(base, const AllDay(2026, 2, 17).wireKey)!;
+      final initial = EventForm.fromEvent(base, at: at);
+      expect(initial.start, DateTime(2026, 2, 17));
+      final form = await pumpPicker(tester, initial);
+      expect(find.text('On Feb 10'), findsOneWidget);
+      expect(find.text('On Feb 17'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('calendar-repeat-calendar-false')));
+      await tester.pumpAndSettle();
+      final saved = buildEvent(
+        form.value,
+        base: base,
+        initial: initial,
+        now: DateTime.utc(2026),
+      );
+      expect(saved.rrule, 'FREQ=YEARLY');
+      expect(saved.start, const AllDay(2024, 2, 10));
+    });
+
     testWidgets('a lunar series: a new date at an occurrence offers the scope '
         'dialog and This occurrence keeps the rule', (tester) async {
       const rule =
