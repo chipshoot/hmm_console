@@ -42,9 +42,12 @@ final _holidayStatusProvider = FutureProvider.autoDispose
       );
     });
 
+/// Names for the default regions, so they never show a bare code offline.
+const _fallbackNames = {'CN': 'China', 'CA': 'Canada'};
+
 String _countryName(String code, Map<String, String> names, bool zh) {
   if (code == 'CN' && zh) return '中国';
-  return names[code] ?? code;
+  return names[code] ?? _fallbackNames[code] ?? code;
 }
 
 bool _isApple(BuildContext context) {
@@ -62,6 +65,25 @@ class HolidaysScreen extends ConsumerStatefulWidget {
 }
 
 class _HolidaysScreenState extends ConsumerState<HolidaysScreen> {
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadCountriesIfMissing());
+  }
+
+  /// First run: fetch the country names quietly; failure keeps the fallbacks.
+  Future<void> _loadCountriesIfMissing() async {
+    final cache = ref.read(holidayCacheProvider);
+    final dio = ref.read(holidayDioProvider);
+    try {
+      if ((await cache.readCountries()).isNotEmpty) return;
+      final list = await fetchAvailableCountries(dio);
+      if (list == null) return;
+      await cache.writeCountries(list);
+      if (mounted) ref.invalidate(holidayCountryNamesProvider);
+    } catch (_) {}
+  }
+
   void _offline(AppLocalizations l) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()

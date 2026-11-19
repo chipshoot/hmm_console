@@ -88,14 +88,18 @@ Future<ProviderContainer> _mount(
   WidgetTester tester, {
   TargetPlatform platform = TargetPlatform.android,
   Locale locale = const Locale('en'),
+  bool seedCountries = true,
+  bool offline = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  _adapter = _Adapter();
+  _adapter = _Adapter()..offline = offline;
   _cache = _FakeCache()
-    ..countries = [(code: 'CN', name: 'China'), (code: 'CA', name: 'Canada')];
+    ..countries = !seedCountries
+        ? const []
+        : [(code: 'CN', name: 'China'), (code: 'CA', name: 'Canada')];
   _refresher = _Refresher(_cache);
   final container = ProviderContainer(
     overrides: [
@@ -134,6 +138,25 @@ Finder _inSheet(String text) =>
     find.descendant(of: find.byType(BottomSheet), matching: find.text(text));
 
 void main() {
+  testWidgets('first run offline: defaults show names, not codes', (
+    tester,
+  ) async {
+    await _mount(tester, seedCountries: false, offline: true);
+    expect(find.text('${flagEmoji('CN')}  China'), findsOneWidget);
+    expect(find.text('${flagEmoji('CA')}  Canada'), findsOneWidget);
+    expect(find.text('${flagEmoji('CN')}  CN'), findsNothing);
+    expect(_cache.countries, isEmpty);
+  });
+
+  testWidgets('first run online: names fetched and countries.json written', (
+    tester,
+  ) async {
+    await _mount(tester, seedCountries: false);
+    expect(_cache.countries.length, greaterThan(100));
+    expect(_cache.countries, contains((code: 'CA', name: 'Canada')));
+    expect(find.text('${flagEmoji('CA')}  Canada'), findsOneWidget);
+  });
+
   testWidgets('default list shows China and Canada · Ontario', (tester) async {
     await _mount(tester);
     expect(find.text('${flagEmoji('CN')}  China'), findsOneWidget);
