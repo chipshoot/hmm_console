@@ -20,7 +20,7 @@ String _fixture(String n) => File('$_fx/$n').readAsStringSync();
 
 class _Adapter implements HttpClientAdapter {
   _Adapter();
-  bool offline;
+  bool offline = false;
   final requests = <String>[];
 
   @override
