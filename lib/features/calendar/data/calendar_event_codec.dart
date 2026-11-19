@@ -38,6 +38,7 @@ class CalendarEventCodec {
     'status',
     'source',
     'draft',
+    'timeSensitive',
     'occurrences',
     'updatedAt',
   };
@@ -162,6 +163,7 @@ class CalendarEventCodec {
       status: enumOf('status', EventStatus.values, EventStatus.active),
       source: enumOf('source', EventSource.values, EventSource.manual),
       draft: read<bool>('draft') ?? false,
+      timeSensitive: read<bool>('timeSensitive') ?? false,
       occurrences: occurrences,
       updatedAt: updatedAt,
       extraFields: _extras(json, _knownKeys),
@@ -225,6 +227,11 @@ class CalendarEventCodec {
       e.source == EventSource.manual,
     );
     out['draft'] = keep('draft', e.draft, !e.draft);
+    out['timeSensitive'] = keep(
+      'timeSensitive',
+      e.timeSensitive,
+      !e.timeSensitive,
+    );
     out['occurrences'] =
         raw.containsKey('occurrences') &&
             e.occurrences.isEmpty &&

@@ -116,6 +116,7 @@ class CalendarEvent {
     this.status = EventStatus.active,
     this.source = EventSource.manual,
     this.draft = false,
+    this.timeSensitive = false,
     this.occurrences = const [],
     this.extraFields = const {},
     this.rawKnownValues = const {},
@@ -136,6 +137,9 @@ class CalendarEvent {
   final EventStatus status;
   final EventSource source;
   final bool draft;
+
+  /// Reminders for this event are Time Sensitive on iOS.
+  final bool timeSensitive;
   final List<OccurrenceOverride> occurrences;
   final DateTime updatedAt;
 
@@ -164,6 +168,7 @@ class CalendarEvent {
     EventStatus? status,
     EventSource? source,
     bool? draft,
+    bool? timeSensitive,
     List<OccurrenceOverride>? occurrences,
     DateTime? updatedAt,
     Map<String, Object?>? extraFields,
@@ -180,6 +185,7 @@ class CalendarEvent {
     status: status ?? this.status,
     source: source ?? this.source,
     draft: draft ?? this.draft,
+    timeSensitive: timeSensitive ?? this.timeSensitive,
     occurrences: occurrences ?? this.occurrences,
     updatedAt: updatedAt ?? this.updatedAt,
     extraFields: extraFields ?? this.extraFields,
@@ -202,6 +208,7 @@ class CalendarEvent {
       other.status == status &&
       other.source == source &&
       other.draft == draft &&
+      other.timeSensitive == timeSensitive &&
       _listEq(other.occurrences, occurrences) &&
       other.updatedAt.isAtSameMomentAs(updatedAt) &&
       _jsonEq(other.extraFields, extraFields) &&
@@ -221,6 +228,7 @@ class CalendarEvent {
     status,
     source,
     draft,
+    timeSensitive,
     Object.hashAll(occurrences),
     updatedAt.microsecondsSinceEpoch,
   );
