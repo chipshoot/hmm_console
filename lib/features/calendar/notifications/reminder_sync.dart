@@ -209,6 +209,9 @@ class ReminderSync with WidgetsBindingObserver {
   Future<void>? _inFlight;
   bool _rerun = false;
 
+  /// The previous run found "Remind on this device" off.
+  bool _lastRunOff = false;
+
   /// Idempotent. Subscribes to changes and the app lifecycle, then triggers.
   void start() {
     if (_started) return;
@@ -303,6 +306,10 @@ class ReminderSync with WidgetsBindingObserver {
       if (!_remindOnDevice()) {
         _onPermissionChecked(false);
         await _scheduler.cancelAll();
+        // Nothing shows on this device while off, so whatever fires now must
+        // never count as unseen once the setting is turned back on.
+        _lastRunOff = true;
+        await _markSeen(_clock().toUtc());
         return;
       }
       final ICalendarRepository repo;
@@ -317,12 +324,22 @@ class ReminderSync with WidgetsBindingObserver {
       }
       final now = _clock().toUtc();
       final events = await _loadEvents(repo, now);
+      final int unseenNow;
+      if (_lastRunOff) {
+        // Back on after an off run: reminders that fired since that run never
+        // showed either, so the unseen count restarts from now.
+        await _markSeen(now);
+        _lastRunOff = false;
+        unseenNow = 0;
+      } else {
+        unseenNow = await _unseenNow(events, now);
+      }
       final plan = planReminders(
         events: events,
         nowUtc: now,
         resolve: _resolve,
         formatTitle: _formatTitle,
-        unseenNow: await _unseenNow(events, now),
+        unseenNow: unseenNow,
       );
       if (plan.isEmpty) {
         // Nothing due: clear stale entries without consulting permission, so
@@ -344,6 +361,16 @@ class ReminderSync with WidgetsBindingObserver {
       await _scheduler.reschedule(plan);
     } catch (e) {
       debugPrint('ReminderSync: run failed (${e.runtimeType})');
+    }
+  }
+
+  /// Stores [now] as seen. A failure is logged, never thrown: the badge may
+  /// then count a few extra reminders, but delivery goes on.
+  Future<void> _markSeen(DateTime now) async {
+    try {
+      await _writeSeenAt(now);
+    } catch (e) {
+      debugPrint('ReminderSync: seen state not stored (${e.runtimeType})');
     }
   }
 
@@ -384,7 +411,8 @@ class ReminderSync with WidgetsBindingObserver {
           if (r is CalendarEventReadable) r.event,
       ];
     }
-    // From the inbox window's start: an occurrence never starts before its
+    // From the inbox window's start. This relies on minutesBefore >= 0 (the
+    // editor enforces it): an occurrence then never starts before its
     // reminder fires, so this covers every reminder fired in the window.
     return repo.eventsBetween(
       now.subtract(kRemindersInboxWindow),

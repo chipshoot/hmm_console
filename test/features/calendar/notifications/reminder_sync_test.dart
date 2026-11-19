@@ -74,6 +74,7 @@ class _Harness {
     void Function()? onRead,
     this.seenAt,
     bool seenAtFails = false,
+    DateTime Function()? clock,
   }) : remindOnDevice = remind,
        gateway = FakeNotificationGateway(granted: granted) {
     gateway.addPending(1, 'other|x');
@@ -96,7 +97,7 @@ class _Harness {
       },
       onPermissionChecked: (denied) => deniedReports.add(denied),
       resolve: _utc,
-      clock: () => _now,
+      clock: clock ?? () => _now,
       refreshZone: refreshZone,
       readSeenAt: () async {
         seenAtReads++;
@@ -206,21 +207,45 @@ void main() {
       });
     });
 
-    test(
-      'remind on device off: no unseen read, no write, nothing scheduled',
-      () {
-        fakeAsync((fa) {
-          final h = _Harness(remind: false);
-          h.sync.start();
-          _settle(fa);
-          expect(h.seenAtReads, 0);
-          expect(h.seenAtWrites, isEmpty);
-          expect(h.gateway.scheduled, isEmpty);
-          expect(h.gateway.pendingById.keys, [1]);
-          h.sync.stop();
-        });
-      },
-    );
+    test('remind on device off: seen set to now, no unseen read, nothing '
+        'scheduled', () {
+      fakeAsync((fa) {
+        final h = _Harness(remind: false);
+        h.sync.start();
+        _settle(fa);
+        expect(h.seenAtReads, 0);
+        expect(h.seenAtWrites, [_now]);
+        expect(h.gateway.scheduled, isEmpty);
+        expect(h.gateway.pendingById.keys, [1]);
+        h.sync.stop();
+      });
+    });
+
+    test('reminders that fired while off never count once back on', () {
+      fakeAsync((fa) {
+        var now = _now.subtract(const Duration(hours: 1));
+        final h = _Harness(
+          remind: false,
+          seenAt: _now.subtract(const Duration(days: 2)),
+          clock: () => now,
+        );
+        h.repo.events = [
+          _ev('a'),
+          // Fires 11:50, while reminders are off on this device.
+          _at('f', const FloatingTime(2026, 11, 17, 12, 5), 15),
+        ];
+        h.sync.start();
+        _settle(fa);
+        expect(h.gateway.scheduled, isEmpty);
+        now = _now;
+        h.remindOnDevice = true;
+        h.sync.trigger();
+        _settle(fa);
+        expect(h.gateway.scheduled.map((r) => r.badgeNumber), [1]);
+        expect(h.seenAtWrites, [now.subtract(const Duration(hours: 1)), now]);
+        h.sync.stop();
+      });
+    });
 
     test('a failing seenAt read still schedules, numbered from 1', () {
       fakeAsync((fa) {
