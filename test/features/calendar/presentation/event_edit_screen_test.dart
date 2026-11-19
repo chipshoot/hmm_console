@@ -727,6 +727,103 @@ void main() {
       expect(form.rrule, rule);
     });
 
+    const day30 =
+        'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=30;SKIP=BACKWARD';
+
+    String savedRule(EventForm f, CalendarEvent base, EventForm initial) =>
+        buildEvent(
+          f,
+          base: base,
+          initial: initial,
+          now: DateTime.utc(2025),
+        ).rrule!;
+
+    String ruleFor(LunarDate d) => RecurrenceRule.lunarYearly(
+      month: d.month,
+      day: d.day,
+      leap: d.isLeap,
+    ).format();
+
+    test('a date round trip keeps day 30 (fix round 1)', () {
+      final base = lunarEv(const AllDay(2025, 1, 28), day30);
+      final initial = EventForm.fromEvent(base);
+      final back = initial
+          .copyWith(start: DateTime(2025, 2, 3))
+          .copyWith(start: DateTime(2025, 1, 28));
+      expect(back.rrule, contains('BYMONTH=12;BYMONTHDAY=30'));
+      expect(back.lunarDate!.day, 30);
+      expect(savedRule(back, base, initial), contains('BYMONTHDAY=30'));
+    });
+
+    test('at an occurrence, a date move shifts the series lunar date and the '
+        'label equals the saved rule (day-30 fallback)', () {
+      final base = lunarEv(const AllDay(2025, 1, 28), day30);
+      // Next year's 腊月三十 (falls back to 廿九 when 腊月 is short).
+      final occ = fromLunarBackward(2025, 12, 30)!;
+      final at = resolveOccurrence(
+        base,
+        AllDay(occ.year, occ.month, occ.day).wireKey,
+      )!;
+      final initial = EventForm.fromEvent(base, at: at);
+      expect(initial.lunarDate, const LunarDate(2024, 12, 30));
+      final moved = initial.copyWith(
+        start: DateTime(occ.year, occ.month, occ.day - 1),
+      );
+      // Series start moves 2025-01-28 → 2025-01-27 (腊月廿八).
+      expect(moved.lunarDate, toLunar(DateTime(2025, 1, 27)));
+      expect(moved.lunarDate!.day, 28);
+      expect(savedRule(moved, base, initial), ruleFor(moved.lunarDate!));
+    });
+
+    test('a Gregorian yearly series opened at a later occurrence: the lunar '
+        'label is the series start lunar date, which is what is saved', () {
+      final base = lunarEv(const AllDay(2020, 11, 18), 'FREQ=YEARLY');
+      final at = resolveOccurrence(base, const AllDay(2025, 11, 18).wireKey)!;
+      final initial = EventForm.fromEvent(base, at: at);
+      final on = initial.copyWith(lunar: true);
+      expect(on.lunarDate, toLunar(DateTime(2020, 11, 18)));
+      expect(savedRule(on, base, initial), ruleFor(on.lunarDate!));
+      final moved = on.copyWith(start: DateTime(2025, 11, 19));
+      expect(moved.lunarDate, toLunar(DateTime(2020, 11, 19)));
+      expect(savedRule(moved, base, initial), ruleFor(moved.lunarDate!));
+    });
+
+    test('moving one occurrence of a lunar series is not a repeat change', () {
+      final base = lunarEv(
+        const AllDay(2025, 1, 29),
+        'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1;SKIP=BACKWARD',
+      );
+      final at = resolveOccurrence(base, const AllDay(2026, 2, 17).wireKey)!;
+      final initial = EventForm.fromEvent(base, at: at);
+      final moved = initial.copyWith(start: DateTime(2026, 2, 18));
+      expect(moved.repeatChangedFrom(initial), isFalse);
+      expect(moved.copyWith(interval: 2).repeatChangedFrom(initial), isTrue);
+    });
+
+    testWidgets('a lunar series: a new date at an occurrence offers the scope '
+        'dialog and This occurrence keeps the rule', (tester) async {
+      const rule =
+          'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1;SKIP=BACKWARD';
+      final repo = FakeCalendarRepository()
+        ..seed(_ev('n', const AllDay(2025, 1, 29), rrule: rule));
+      await _mount(tester, repo, eventId: 'n', at: 'allDay:2026-02-17');
+      await tester.tap(find.byKey(const Key('calendar-edit-start-date')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('18'));
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await _save(tester);
+      expect(find.text('This occurrence'), findsOneWidget);
+      await tester.tap(find.text('This occurrence'));
+      await tester.pumpAndSettle();
+      final e = repo.events['n']!;
+      expect(e.rrule, rule);
+      expect(e.start, const AllDay(2025, 1, 29));
+      final o = e.occurrences.single;
+      expect(o.originalStart, const AllDay(2026, 2, 17));
+      expect(o.movedTo, const AllDay(2026, 2, 18));
+    });
+
     testWidgets('a lunar rule that does not match its start stays clear-only', (
       tester,
     ) async {

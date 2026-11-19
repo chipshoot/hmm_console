@@ -207,6 +207,8 @@ class EventForm {
     this.timeSensitive = false,
     this.lunar = false,
     this.lunarAnchor,
+    this.seriesStart,
+    this.openedStart,
   });
 
   final String title;
@@ -237,13 +239,42 @@ class EventForm {
   /// A yearly repeat follows the lunar date instead of the Gregorian one.
   final bool lunar;
 
-  /// The lunar month/day/leap of a rule the form was opened from. Null means
-  /// "the lunar date of [start]". Kept so a day-30 rule whose start fell on
-  /// day 29 of a short month saves as day 30 (Review Focus 5).
+  /// The lunar month/day/leap of the rule the form was opened from, which
+  /// belongs to [seriesStart]'s date. Kept so a day-30 rule whose start fell
+  /// on day 29 of a short month saves as day 30 (Review Focus 5).
   final LunarDate? lunarAnchor;
 
-  /// The lunar date a lunar yearly repeat uses; null outside the lunar range.
-  LunarDate? get lunarDate => lunarAnchor ?? toLunar(dateOnly(start));
+  /// For an existing event: the series start and the start shown when the
+  /// form opened (an occurrence's when opened at one). Saving "all" moves the
+  /// series start by however far the shown start moved ([buildEvent]).
+  final DateTime? seriesStart;
+  final DateTime? openedStart;
+
+  /// The date of the series start this form saves: [start] for a new event,
+  /// otherwise [seriesStart] moved as [buildEvent] moves it.
+  DateTime get seriesDate {
+    final s = seriesStart, o = openedStart;
+    if (s == null || o == null) return dateOnly(start);
+    return dateOnly(wallAdd(s, wallDiff(start, o)));
+  }
+
+  /// The lunar date a lunar yearly repeat uses (picker label and [rrule]
+  /// alike): the opened rule's own date while the series start is on its
+  /// original date, else the lunar date of [seriesDate]. Null outside the
+  /// lunar range.
+  LunarDate? get lunarDate {
+    final d = seriesDate;
+    final s = seriesStart;
+    final anchor = lunarAnchor;
+    if (anchor != null && s != null && d == dateOnly(s)) return anchor;
+    return toLunar(d);
+  }
+
+  /// Whether the repeat itself was changed since [initial], ignoring that a
+  /// lunar rule's date follows the start: moving one occurrence is not a
+  /// repeat change, so it can still be saved to that occurrence only.
+  bool repeatChangedFrom(EventForm initial) =>
+      copyWith(start: initial.start).rrule != initial.rrule;
 
   /// A new event on [day]: today starts at the next full hour, any other day
   /// at 09:00; one hour long; one reminder 15 minutes before.
@@ -276,6 +307,8 @@ class EventForm {
     }
 
     var form = EventForm(
+      seriesStart: seriesStart,
+      openedStart: start,
       title: at?.titleOverride ?? e.title,
       notes: e.notes ?? '',
       allDay: allDay,
@@ -307,10 +340,7 @@ class EventForm {
       byDay: rule.byDay.toSet(),
       byMonthDay: anchor != null ? const [] : rule.byMonthDay,
       lunar: anchor != null,
-      // Opened at a later occurrence, a lunar choice still means the series
-      // start's lunar date, which is what the rule is built from on save.
-      lunarAnchor:
-          anchor ?? (at != null ? toLunar(dateOnly(seriesStart)) : null),
+      lunarAnchor: anchor,
       repeatEnd: rule.count != null
           ? RepeatEnd.afterCount
           : until != null
@@ -343,8 +373,6 @@ class EventForm {
     return LunarDate(year, month, day, isLeap: rule.byMonthLeap);
   }
 
-  /// A [start] on another date drops [lunarAnchor] (the lunar date is then
-  /// read from the new start) unless [lunarAnchor] is passed too.
   EventForm copyWith({
     String? title,
     String? notes,
@@ -381,11 +409,9 @@ class EventForm {
     reminders: reminders ?? this.reminders,
     timeSensitive: timeSensitive ?? this.timeSensitive,
     lunar: lunar ?? this.lunar,
-    lunarAnchor:
-        lunarAnchor ??
-        (start != null && dateOnly(start) != dateOnly(this.start)
-            ? null
-            : this.lunarAnchor),
+    lunarAnchor: lunarAnchor ?? this.lunarAnchor,
+    seriesStart: seriesStart,
+    openedStart: openedStart,
   );
 
   bool get repeats => customRule != null || freq != RepeatFreq.none;
@@ -416,6 +442,8 @@ class EventForm {
         : null;
     final anchor = f == Frequency.yearly && lunar ? lunarDate : null;
     if (anchor != null) {
+      // Picker form: an opened rule without SKIP gains SKIP=BACKWARD, which
+      // the expander reads the same way.
       return RecurrenceRule.lunarYearly(
         month: anchor.month,
         day: anchor.day,
@@ -474,14 +502,11 @@ CalendarEvent buildEvent(
     form = f.copyWith(
       start: start,
       end: wallAdd(start, wallDiff(f.end, f.start)),
-      // The series' own lunar date stays unless the shown date moved.
-      lunarAnchor: dateOnly(f.start) == dateOnly(initial.start)
-          ? f.lunarAnchor
-          : null,
     );
   }
   final (start, end) = storedTimes(form);
-  final rrule = form.rrule;
+  // From [f]: its lunar date already follows the moved series start.
+  final rrule = f.rrule;
   final notes = form.notes.trim().isEmpty ? null : form.notes;
   // The form shows an occurrence's own title when it has one; left as shown,
   // the series keeps its title.
