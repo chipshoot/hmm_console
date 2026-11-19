@@ -228,3 +228,39 @@ gathered, whether the day detail shows block ranges.
 - Canada's "observed" substitute days (a holiday on a weekend moved to Monday)
   appear only if the source lists them; Nager lists the actual date. Fix with
   My holidays if needed.
+
+## Calls settled after the builder check (designer's calls, owner may overrule)
+
+- **H-1 Hide removes the whole holiday.** Hiding (source, name) drops every
+  day with that name from that source — its days off and its 班 days — in all
+  years. (holiday-cn names 补班 days after their holiday; a lone 班 without
+  its holiday would be confusing.)
+- **H-2 Stored shapes.** `calendar.holiday_regions`: a JSON list of
+  `{country, region?, color}` (`region` = ISO 3166-2 code, `color` = palette
+  index). `calendar.my_holidays`: a JSON object
+  `{entries: [{id, name, kind: once|yearly, start, end?, offDay}], hidden:
+  [{source, name}]}` with dates as `YYYY-MM-DD` (`yearly` uses the month/day
+  of `start`). Both nullable (absent ≠ empty); every edit bumps the bundle's
+  last-modified, as the lunar switch does.
+- **H-3 Sources never override each other.** Each source marks the day for
+  itself: Canada off and China 班 on the same day are both true (different
+  people) and show as two dots (the 班 one hollow). My holidays is its own
+  source and only adds its own mark; the way to remove a downloaded holiday
+  is Hide. There is no combined "day off" verdict.
+- **H-4 Flags and names.** Flags are emoji built from the ISO country code
+  (iOS and Android are the targets). Country names are Nager's English names
+  in both app languages, plus 中国 shown for CN in zh; region names from the
+  built-in table.
+- **H-5 Blocks** (the optional "Oct 1–8") are grouped at display time from
+  consecutive days with the same name and source; the stored data stays one
+  entry per day.
+- **H-6 Adding a country needs the network.** Add-country loads the country
+  list and the current year (to find its regions); offline it shows a short
+  message and adds nothing.
+- **H-7 Per-device cache.** A country added on another device is fetched here
+  on the next calendar open; "Updated <date>" and "not published yet" are
+  per device.
+- **H-8 Device-local today** decides the current year and the 1 November rule.
+- **H-9 Years fetched** are every year that appears in the visible grid range
+  (a December grid also fetches next January's year), plus next year from
+  1 November.
