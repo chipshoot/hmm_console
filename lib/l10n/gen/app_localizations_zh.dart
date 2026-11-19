@@ -3789,6 +3789,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get calendarUndoFailed => '无法撤销';
 
   @override
+  String get calendarHolidays => '节假日';
+
+  @override
+  String get calendarHolidayDayOff => '休息日';
+
+  @override
+  String get calendarHolidayWorkday => '工作日';
+
+  @override
+  String get calendarHolidayHide => '不是我的假日';
+
+  @override
+  String calendarHolidayHidden(String name) {
+    return '已隐藏$name';
+  }
+
+  @override
+  String calendarHolidayShown(String name) {
+    return '已恢复$name';
+  }
+
+  @override
+  String calendarHolidayHideFailed(String name) {
+    return '无法隐藏$name';
+  }
+
+  @override
+  String get calendarHolidayUndoFailed => '无法撤销';
+
+  @override
   String get calendarEdit => '编辑';
 
   @override

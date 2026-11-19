@@ -6980,6 +6980,54 @@ abstract class AppLocalizations {
   /// **'Could not undo'**
   String get calendarUndoFailed;
 
+  /// No description provided for @calendarHolidays.
+  ///
+  /// In en, this message translates to:
+  /// **'Holidays'**
+  String get calendarHolidays;
+
+  /// No description provided for @calendarHolidayDayOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Day off'**
+  String get calendarHolidayDayOff;
+
+  /// No description provided for @calendarHolidayWorkday.
+  ///
+  /// In en, this message translates to:
+  /// **'Workday'**
+  String get calendarHolidayWorkday;
+
+  /// No description provided for @calendarHolidayHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a day off for me'**
+  String get calendarHolidayHide;
+
+  /// No description provided for @calendarHolidayHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} hidden'**
+  String calendarHolidayHidden(String name);
+
+  /// No description provided for @calendarHolidayShown.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} shown again'**
+  String calendarHolidayShown(String name);
+
+  /// No description provided for @calendarHolidayHideFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t hide {name}'**
+  String calendarHolidayHideFailed(String name);
+
+  /// No description provided for @calendarHolidayUndoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo'**
+  String get calendarHolidayUndoFailed;
+
   /// No description provided for @calendarEdit.
   ///
   /// In en, this message translates to:

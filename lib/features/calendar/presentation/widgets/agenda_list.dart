@@ -1,9 +1,34 @@
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../domain/holidays.dart';
 import '../../states/calendar_view_state.dart';
 import 'agenda_row.dart';
 import 'unreadable_event_tile.dart';
+
+/// One holiday on the selected day, ready to show.
+class HolidayLine {
+  const HolidayLine({
+    required this.flag,
+    required this.name,
+    required this.offDay,
+    required this.color,
+    required this.range,
+    required this.day,
+  });
+
+  /// Flag emoji; null for My holidays (shown with a person icon).
+  final String? flag;
+  final String name;
+  final bool offDay;
+  final Color color;
+
+  /// Formatted block range (e.g. `Oct 1 – Oct 8`); null for a single day.
+  final String? range;
+  final HolidayDay day;
+
+  bool get downloaded => day.sourceId != kMyHolidaysSourceId;
+}
 
 /// The selected day's occurrences, then a tile for each unreadable event.
 class AgendaList extends StatelessWidget {
@@ -17,6 +42,8 @@ class AgendaList extends StatelessWidget {
     required this.onSkip,
     required this.onMenu,
     this.lunarText,
+    this.holidayLines = const [],
+    this.onHolidayTap,
   });
 
   final DateTime day;
@@ -29,6 +56,44 @@ class AgendaList extends StatelessWidget {
 
   /// Lunar date text for the header; null = off.
   final String? lunarText;
+
+  /// The day's holidays, shown under the header.
+  final List<HolidayLine> holidayLines;
+
+  /// Tap on a downloaded holiday line (My holidays lines are not tappable).
+  final void Function(HolidayLine)? onHolidayTap;
+
+  Widget _holiday(BuildContext context, AppLocalizations l, HolidayLine h) {
+    final theme = Theme.of(context);
+    final status = h.offDay
+        ? l.calendarHolidayDayOff
+        : l.calendarHolidayWorkday;
+    final text = '${h.name} · $status${h.range == null ? '' : ' (${h.range})'}';
+    final tap = onHolidayTap;
+    return InkWell(
+      onTap: tap != null && h.downloaded ? () => tap(h) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              child: h.flag == null
+                  ? Icon(Icons.person_outline, size: 18, color: h.color)
+                  : Text(h.flag!, style: theme.textTheme.bodyMedium),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: theme.textTheme.bodyMedium?.copyWith(color: h.color),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +112,7 @@ class AgendaList extends StatelessWidget {
             style: theme.textTheme.titleSmall,
           ),
         ),
+        for (final h in holidayLines) _holiday(context, l, h),
         if (items.isEmpty)
           Padding(
             padding: const EdgeInsets.all(24),

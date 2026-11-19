@@ -3966,6 +3966,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarUndoFailed => 'Could not undo';
 
   @override
+  String get calendarHolidays => 'Holidays';
+
+  @override
+  String get calendarHolidayDayOff => 'Day off';
+
+  @override
+  String get calendarHolidayWorkday => 'Workday';
+
+  @override
+  String get calendarHolidayHide => 'Not a day off for me';
+
+  @override
+  String calendarHolidayHidden(String name) {
+    return '$name hidden';
+  }
+
+  @override
+  String calendarHolidayShown(String name) {
+    return '$name shown again';
+  }
+
+  @override
+  String calendarHolidayHideFailed(String name) {
+    return 'Couldn\'t hide $name';
+  }
+
+  @override
+  String get calendarHolidayUndoFailed => 'Couldn\'t undo';
+
+  @override
   String get calendarEdit => 'Edit';
 
   @override

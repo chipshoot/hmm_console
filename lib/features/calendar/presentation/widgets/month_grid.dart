@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/lunar.dart';
+import '../../states/holiday_providers.dart';
 
 const double _lunarFontSize = 9;
 const double _lunarLineHeight = 1.2;
@@ -23,6 +24,7 @@ class MonthGrid extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     this.lunarLabels,
+    this.holidayMarks,
   });
 
   /// Any date in the month shown.
@@ -38,6 +40,9 @@ class MonthGrid extends StatelessWidget {
 
   /// Lunar label per day of month; null = lunar display off.
   final Map<int, LunarCellLabel>? lunarLabels;
+
+  /// Holiday marks per day of month (one per source); null/empty = none.
+  final Map<int, List<HolidayMark>>? holidayMarks;
 
   @override
   Widget build(BuildContext context) {
@@ -62,77 +67,125 @@ class MonthGrid extends StatelessWidget {
       (lunarScaler.scale(_lunarFontSize) * _lunarLineHeight).ceilToDouble(),
     );
 
+    // The 休/班 mark grows with text size up to 1.3×, like the lunar label.
+    Widget? holidayMark(int day) {
+      final marks = holidayMarks?[day];
+      if (marks == null || marks.isEmpty) return null;
+      final Widget child;
+      if (marks.length == 1) {
+        final mk = marks.single;
+        child = Text(
+          mk.offDay ? '休' : '班',
+          textScaler: lunarScaler,
+          style: TextStyle(
+            fontSize: 10,
+            height: 1,
+            fontWeight: FontWeight.bold,
+            color: mk.color,
+          ),
+        );
+      } else {
+        child = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (i, mk) in marks.take(3).indexed)
+              Container(
+                key: Key('calendar-holiday-dot-$i'),
+                width: 5,
+                height: 5,
+                margin: const EdgeInsets.only(left: 1),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: mk.offDay ? mk.color : null,
+                  border: mk.offDay ? null : Border.all(color: mk.color),
+                ),
+              ),
+          ],
+        );
+      }
+      return Positioned(
+        top: 2,
+        right: 2,
+        child: KeyedSubtree(key: Key('calendar-holiday-$day'), child: child),
+      );
+    }
+
     Widget cell(int? day) {
       if (day == null) return SizedBox(height: cellHeight);
       final date = DateTime(month.year, month.month, day);
       final isSel = date == selected;
       final isToday = date == today;
+      final mark = holidayMark(day);
       return InkWell(
         key: Key('calendar-day-$day'),
         customBorder: const CircleBorder(),
         onTap: () => onSelect(date),
         child: SizedBox(
           height: cellHeight,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSel ? theme.colorScheme.primary : null,
-                    border: isToday && !isSel
-                        ? Border.all(color: theme.colorScheme.primary)
-                        : null,
-                  ),
-                  child: Text(
-                    m.formatDecimal(day),
-                    style: TextStyle(
-                      color: isSel ? theme.colorScheme.onPrimary : null,
+          child: _withMark(
+            mark,
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSel ? theme.colorScheme.primary : null,
+                      border: isToday && !isSel
+                          ? Border.all(color: theme.colorScheme.primary)
+                          : null,
+                    ),
+                    child: Text(
+                      m.formatDecimal(day),
+                      style: TextStyle(
+                        color: isSel ? theme.colorScheme.onPrimary : null,
+                      ),
                     ),
                   ),
-                ),
-                if (lunar != null)
-                  SizedBox(
-                    height: lunarHeight,
-                    child: lunar[day] == null
-                        ? null
-                        : Text(
-                            lunar[day]!.text,
-                            key: Key('calendar-lunar-$day'),
-                            maxLines: 1,
-                            overflow: TextOverflow.clip,
-                            textScaler: lunarScaler,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: _lunarFontSize,
-                              height: _lunarLineHeight,
-                              color:
-                                  lunar[day]!.kind == LunarLabelKind.festival ||
-                                      lunar[day]!.kind ==
-                                          LunarLabelKind.solarTerm
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurfaceVariant,
+                  if (lunar != null)
+                    SizedBox(
+                      height: lunarHeight,
+                      child: lunar[day] == null
+                          ? null
+                          : Text(
+                              lunar[day]!.text,
+                              key: Key('calendar-lunar-$day'),
+                              maxLines: 1,
+                              overflow: TextOverflow.clip,
+                              textScaler: lunarScaler,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: _lunarFontSize,
+                                height: _lunarLineHeight,
+                                color:
+                                    lunar[day]!.kind ==
+                                            LunarLabelKind.festival ||
+                                        lunar[day]!.kind ==
+                                            LunarLabelKind.solarTerm
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
+                    ),
+                  SizedBox(
+                    height: 6,
+                    child: eventDays.contains(day)
+                        ? Container(
+                            key: Key('calendar-dot-$day'),
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: theme.colorScheme.primary,
+                            ),
+                          )
+                        : null,
                   ),
-                SizedBox(
-                  height: 6,
-                  child: eventDays.contains(day)
-                      ? Container(
-                          key: Key('calendar-dot-$day'),
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.colorScheme.primary,
-                          ),
-                        )
-                      : null,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -195,3 +248,8 @@ class MonthGrid extends StatelessWidget {
     );
   }
 }
+
+/// [content] alone when there is no mark, so the cell is exactly as before.
+Widget _withMark(Widget? mark, Widget content) => mark == null
+    ? content
+    : Stack(fit: StackFit.expand, children: [content, mark]);

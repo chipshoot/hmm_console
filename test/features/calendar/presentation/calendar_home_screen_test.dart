@@ -1,20 +1,55 @@
 import 'package:flutter/rendering.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/help/help_registry.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/calendar/data/holiday_cache.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
+import 'package:hmm_console/features/calendar/domain/holidays.dart';
 import 'package:hmm_console/features/calendar/presentation/screens/calendar_home_screen.dart';
 import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/features/calendar/states/calendar_view_state.dart';
+import 'package:hmm_console/features/calendar/states/holiday_providers.dart';
 import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
 import 'package:hmm_console/features/launcher/domain/launcher_registry.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/fake_calendar_repository.dart';
+
+/// In-memory holiday cache: no files, no path_provider.
+class _FakeHolidayCache extends HolidayCache {
+  _FakeHolidayCache(this.days) : super(() => throw UnimplementedError());
+  final List<HolidayDay> days;
+  int reads = 0;
+  @override
+  Future<List<HolidayDay>> daysFor(Set<String> sourceIds, Set<int> years) {
+    reads++;
+    return Future.value([
+      for (final d in days)
+        if (sourceIds.contains(d.sourceId) && years.contains(d.date.year)) d,
+    ]);
+  }
+}
+
+/// Never touches the network; nothing is ever due.
+class _NoopRefresher extends HolidayRefresher {
+  _NoopRefresher(HolidayCache cache)
+    : super(cache, (_) => throw UnimplementedError(), DateTime.now);
+  int calls = 0;
+  @override
+  Future<bool> refresh(List<HolidayRegion> regions, Set<int> years) {
+    calls++;
+    return Future.value(false);
+  }
+}
+
+HolidayDay _hol(String src, DateTime d, String name, {bool off = true}) =>
+    HolidayDay(date: d, name: name, offDay: off, sourceId: src);
 
 class _Mode extends DataModeNotifier {
   _Mode(this._m);
@@ -47,28 +82,55 @@ Future<ProviderContainer> _mount(
   DataMode mode = DataMode.local,
   Locale locale = const Locale('en'),
   DateTime? day,
+  _FakeHolidayCache? holidays,
+  bool withRouter = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
+  final cache = holidays ?? _FakeHolidayCache(const []);
   final container = ProviderContainer(
     overrides: [
       dataModeProvider.overrideWith(() => _Mode(mode)),
       localCalendarRepositoryProvider.overrideWithValue(repo),
+      holidayCacheProvider.overrideWithValue(cache),
+      holidayRefresherProvider.overrideWithValue(_NoopRefresher(cache)),
     ],
   );
   addTearDown(container.dispose);
   container.read(selectedDayProvider.notifier).select(day ?? _day);
+  final theme = ThemeData(platform: platform);
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: ThemeData(platform: platform),
-        locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const CalendarHomeScreen(),
-      ),
+      child: withRouter
+          ? MaterialApp.router(
+              theme: theme,
+              locale: locale,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              routerConfig: GoRouter(
+                routes: [
+                  GoRoute(
+                    path: '/',
+                    builder: (_, _) => const CalendarHomeScreen(),
+                  ),
+                  // Stub (R-1): the real Holidays screen arrives in Task 6.
+                  GoRoute(
+                    path: '/calendar/holidays',
+                    builder: (_, _) =>
+                        const Scaffold(body: Text('holidays-stub')),
+                  ),
+                ],
+              ),
+            )
+          : MaterialApp(
+              theme: theme,
+              locale: locale,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const CalendarHomeScreen(),
+            ),
     ),
   );
   await tester.pumpAndSettle();
@@ -298,6 +360,244 @@ void main() {
     c.read(calendarPermissionDeniedProvider.notifier).set(false);
     await tester.pumpAndSettle();
     expect(find.textContaining('notification permission'), findsNothing);
+  });
+
+  group('holidays', () {
+    final oct1 = DateTime(2025, 10, 1);
+    List<HolidayDay> nationalDay() => [
+      for (var d = 1; d <= 8; d++) _hol('CN', DateTime(2025, 10, d), '国庆节、中秋节'),
+      _hol('CN', DateTime(2025, 10, 11), '国庆节、中秋节', off: false),
+    ];
+
+    testWidgets('grid: one source shows 休 in its colour', (tester) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: oct1,
+        holidays: _FakeHolidayCache(nationalDay()),
+      );
+      final xiu = find.descendant(
+        of: find.byKey(const Key('calendar-holiday-1')),
+        matching: find.text('休'),
+      );
+      expect(xiu, findsOneWidget);
+      expect(tester.widget<Text>(xiu).style!.color, kHolidayPalette[0]);
+      final ban = find.descendant(
+        of: find.byKey(const Key('calendar-holiday-11')),
+        matching: find.text('班'),
+      );
+      expect(ban, findsOneWidget);
+      expect(find.byKey(const Key('calendar-holiday-9')), findsNothing);
+      expect(
+        tester.getSize(find.byKey(const Key('calendar-day-1'))).height,
+        44,
+      );
+    });
+
+    testWidgets('grid: two sources show two dots, no text', (tester) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: oct1,
+        holidays: _FakeHolidayCache([
+          _hol('CN', DateTime(2025, 10, 13), '补班', off: false),
+          _hol('CA-ON', DateTime(2025, 10, 13), 'Thanksgiving'),
+        ]),
+      );
+      final mark = find.byKey(const Key('calendar-holiday-13'));
+      expect(mark, findsOneWidget);
+      expect(
+        find.descendant(of: mark, matching: find.byType(Text)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: mark,
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w.key is ValueKey<String> &&
+                (w.key! as ValueKey<String>).value.startsWith(
+                  'calendar-holiday-dot-',
+                ),
+          ),
+        ),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('grid: more than three sources show three dots; a workday '
+        'dot is hollow', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'calendar.holiday_regions':
+            '[{"country":"CN","color":0},'
+            '{"country":"CA","region":"CA-ON","color":1},'
+            '{"country":"JP","color":2}]',
+        'calendar.my_holidays':
+            '{"entries":[{"id":"1","name":"Trip","kind":"once",'
+            '"start":"2025-10-13","offDay":true}],"hidden":[]}',
+      });
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: oct1,
+        holidays: _FakeHolidayCache([
+          _hol('CN', DateTime(2025, 10, 13), '补班', off: false),
+          _hol('CA-ON', DateTime(2025, 10, 13), 'Thanksgiving'),
+          _hol('JP', DateTime(2025, 10, 13), 'Sports Day'),
+        ]),
+      );
+      final mark = find.byKey(const Key('calendar-holiday-13'));
+      Container dot(int i) => tester.widget<Container>(
+        find.descendant(
+          of: mark,
+          matching: find.byKey(Key('calendar-holiday-dot-$i')),
+        ),
+      );
+      expect(
+        find.descendant(
+          of: mark,
+          matching: find.byKey(const Key('calendar-holiday-dot-3')),
+        ),
+        findsNothing,
+      );
+      final cn = dot(0).decoration! as BoxDecoration;
+      expect(cn.color, isNull);
+      expect(cn.border, isNotNull);
+      final ca = dot(1).decoration! as BoxDecoration;
+      expect(ca.color, kHolidayPalette[1]);
+    });
+
+    testWidgets('grid: no holidays → no calendar-holiday keys, cell height '
+        '44 / 56 as before', (tester) async {
+      await _mount(tester, FakeCalendarRepository(), day: oct1);
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('calendar-holiday'),
+        ),
+        findsNothing,
+      );
+      expect(
+        tester.getSize(find.byKey(const Key('calendar-day-1'))).height,
+        44,
+      );
+    });
+
+    testWidgets('grid: lunar on keeps the 56 pt cell with holidays', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({'calendar.show_lunar': true});
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: oct1,
+        holidays: _FakeHolidayCache(nationalDay()),
+      );
+      expect(find.byKey(const Key('calendar-holiday-1')), findsOneWidget);
+      expect(
+        tester.getSize(find.byKey(const Key('calendar-day-1'))).height,
+        56,
+      );
+      expect(
+        tester.getSize(find.byKey(const Key('calendar-day-9'))).height,
+        56,
+      );
+    });
+
+    testWidgets('day detail lists 国庆节、中秋节 · Day off (Oct 1 – Oct 8)', (
+      tester,
+    ) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: DateTime(2025, 10, 3),
+        holidays: _FakeHolidayCache(nationalDay()),
+      );
+      expect(find.text('国庆节、中秋节 · Day off (Oct 1 – Oct 8)'), findsOneWidget);
+      expect(find.text(flagEmoji('CN')), findsOneWidget);
+    });
+
+    testWidgets('day detail: single-day workday, no range', (tester) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: DateTime(2025, 10, 11),
+        holidays: _FakeHolidayCache(nationalDay()),
+      );
+      expect(find.text('国庆节、中秋节 · Workday'), findsOneWidget);
+    });
+
+    testWidgets('day detail: my holiday shows a person icon', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'calendar.my_holidays':
+            '{"entries":[{"id":"1","name":"Trip","kind":"once",'
+            '"start":"2025-10-20","offDay":true}],"hidden":[]}',
+      });
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: DateTime(2025, 10, 20),
+      );
+      expect(find.text('Trip · Day off'), findsOneWidget);
+      expect(find.byIcon(Icons.person_outline), findsOneWidget);
+      // My holidays are not hidden from here: tapping offers nothing.
+      await tester.tap(find.text('Trip · Day off'));
+      await tester.pumpAndSettle();
+      expect(find.text('Not a day off for me'), findsNothing);
+    });
+
+    testWidgets('Hide removes the line; Undo brings it back', (tester) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: DateTime(2025, 10, 3),
+        holidays: _FakeHolidayCache(nationalDay()),
+      );
+      const line = '国庆节、中秋节 · Day off (Oct 1 – Oct 8)';
+      await tester.tap(find.text(line));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Not a day off for me'));
+      await tester.pumpAndSettle();
+      expect(find.text(line), findsNothing);
+      expect(find.byKey(const Key('calendar-holiday-1')), findsNothing);
+      expect(find.text('国庆节、中秋节 hidden'), findsOneWidget);
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(find.text(line), findsOneWidget);
+      expect(find.text('国庆节、中秋节 shown again'), findsOneWidget);
+    });
+
+    testWidgets('Hide on iOS uses an action sheet', (tester) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        platform: TargetPlatform.iOS,
+        day: DateTime(2025, 10, 3),
+        holidays: _FakeHolidayCache(nationalDay()),
+      );
+      await tester.tap(find.text('国庆节、中秋节 · Day off (Oct 1 – Oct 8)'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CupertinoActionSheet), findsOneWidget);
+      expect(find.text('Not a day off for me'), findsOneWidget);
+    });
+
+    testWidgets('Holidays button with tooltip opens /calendar/holidays', (
+      tester,
+    ) async {
+      await _mount(tester, seeded(), withRouter: true);
+      expect(find.byTooltip('Holidays'), findsOneWidget);
+      await tester.tap(find.byTooltip('Holidays'));
+      await tester.pumpAndSettle();
+      expect(find.text('holidays-stub'), findsOneWidget);
+    });
+
+    testWidgets('Cloud API mode: no Holidays button', (tester) async {
+      final cache = _FakeHolidayCache(nationalDay());
+      await _mount(tester, seeded(), mode: DataMode.cloudApi, holidays: cache);
+      expect(find.byTooltip('Holidays'), findsNothing);
+      expect(cache.reads, 0);
+    });
   });
 
   test('the launcher registry contains calendar', () {

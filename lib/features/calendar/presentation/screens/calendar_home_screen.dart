@@ -2,18 +2,23 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
 import '../../../../core/help/undoable_action.dart';
 import '../../../../core/navigation/route_names.dart';
+import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../contract/calendar_errors.dart';
 import '../../domain/calendar_event.dart';
+import '../../domain/holidays.dart';
 import '../../domain/lunar.dart';
 import '../../states/calendar_providers.dart';
 import '../../states/calendar_view_state.dart';
+import '../../states/holiday_providers.dart';
+import '../../states/holiday_settings_providers.dart';
 import '../../states/remind_on_device_provider.dart';
 import '../../states/show_lunar_provider.dart';
 import '../widgets/agenda_list.dart';
@@ -201,6 +206,72 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
     }
   }
 
+  /// Offers Hide for a downloaded holiday. The sheet's action pops and hides
+  /// synchronously, so no context is used after an await.
+  void _holidayTap(HolidayLine h) {
+    final l = AppLocalizations.of(context);
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      showCupertinoModalPopup<void>(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          title: Text(h.name),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _hideHoliday(h);
+              },
+              child: Text(l.calendarHolidayHide),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+          ),
+        ),
+      );
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.visibility_off_outlined),
+              title: Text(l.calendarHolidayHide),
+              onTap: () {
+                Navigator.pop(ctx);
+                _hideHoliday(h);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Hides (source, name) in every year, with Undo. The snackbar outlives
+  /// this screen, so it uses the captured container, not ref.
+  void _hideHoliday(HolidayLine h) {
+    final l = AppLocalizations.of(context);
+    final container = ProviderScope.containerOf(context, listen: false);
+    final source = h.day.sourceId;
+    final name = h.day.name;
+    showUndoableAction(
+      context,
+      busyKey: ('holiday-hide', source, name),
+      run: () => container.read(myHolidaysProvider.notifier).hide(source, name),
+      undo: () =>
+          container.read(myHolidaysProvider.notifier).unhide(source, name),
+      done: l.calendarHolidayHidden(name),
+      failed: l.calendarHolidayHideFailed(name),
+      undone: l.calendarHolidayShown(name),
+      undoFailed: l.calendarHolidayUndoFailed,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -210,10 +281,13 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
     final showLunar = ref.watch(showLunarProvider);
     final wide = MediaQuery.sizeOf(context).width >= kCalendarWideBreakpoint;
 
+    final cloudUnavailable =
+        async.hasError && isCalendarCloudApiUnavailable(async.error!);
+
     Widget body;
     if (async.hasError) {
       final e = async.error!;
-      if (isCalendarCloudApiUnavailable(e)) {
+      if (cloudUnavailable) {
         body = const CalendarCloudApiMessage();
       } else {
         // Type only: the error text can quote stored event data.
@@ -226,7 +300,18 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
         );
       }
     } else if (async.hasValue) {
-      body = _content(async.requireValue, wide, showLunar);
+      final data = async.requireValue;
+      // Read only here: in the Cloud API unavailable state no holiday
+      // provider is touched.
+      final regions = ref.watch(holidayRegionsProvider);
+      final holidays = ref
+          .watch(
+            holidaysForMonthProvider(
+              DateTime(data.month.year, data.month.month),
+            ),
+          )
+          .value;
+      body = _content(data, wide, showLunar, holidays, regions);
     } else {
       body = const Center(child: CircularProgressIndicator.adaptive());
     }
@@ -245,6 +330,16 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
               icon: Icons.add,
               tooltip: l.calendarAddEvent,
               onPressed: _add,
+            ),
+          if (!cloudUnavailable)
+            HmmIconButton(
+              icon: adaptiveIcon(
+                context,
+                material: Icons.flag_outlined,
+                apple: CupertinoIcons.flag,
+              ),
+              tooltip: l.calendarHolidays,
+              onPressed: () => context.push('/calendar/holidays'),
             ),
           const HelpButton(helpId: HelpId.calendar),
         ],
@@ -265,7 +360,40 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
     );
   }
 
-  Widget _content(CalendarViewData data, bool wide, bool showLunar) {
+  Widget _content(
+    CalendarViewData data,
+    bool wide,
+    bool showLunar,
+    HolidayIndex? holidays,
+    List<HolidayRegion> regions,
+  ) {
+    final l = AppLocalizations.of(context);
+    final colors = holidayColors(regions);
+    final countryOf = {for (final r in regions) r.sourceId: r.country};
+    final holidayMarks = holidays == null
+        ? null
+        : holidayMarksFor(holidays, data.month, colors);
+    final holidayLines = <HolidayLine>[
+      if (holidays != null)
+        for (final h in holidays.on(data.day))
+          HolidayLine(
+            flag: h.sourceId == kMyHolidaysSourceId
+                ? null
+                : flagEmoji(
+                    countryOf[h.sourceId] ?? h.sourceId.split('-').first,
+                  ),
+            name: h.name,
+            offDay: h.offDay,
+            color: colors[h.sourceId] ?? kHolidayPalette.first,
+            range: switch (holidays.blockOf(h)) {
+              null => null,
+              (:final from, :final to) =>
+                '${DateFormat.MMMd(l.localeName).format(from)} – '
+                    '${DateFormat.MMMd(l.localeName).format(to)}',
+            },
+            day: h,
+          ),
+    ];
     Map<int, LunarCellLabel>? lunarLabels;
     if (showLunar) {
       lunarLabels = {};
@@ -287,6 +415,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
       ),
       eventDays: data.eventDays,
       lunarLabels: lunarLabels,
+      holidayMarks: holidayMarks,
       onSelect: (d) => ref.read(selectedDayProvider.notifier).select(d),
       onPrevious: () => ref.read(visibleMonthProvider.notifier).shift(-1),
       onNext: () => ref.read(visibleMonthProvider.notifier).shift(1),
@@ -296,6 +425,8 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
       items: data.agenda,
       unreadableIds: data.unreadableIds,
       lunarText: showLunar ? lunarFullText(data.day) : null,
+      holidayLines: holidayLines,
+      onHolidayTap: _holidayTap,
       onTap: _open,
       onDone: (i) => _mark(i, OccurrenceStatus.done),
       onSkip: (i) => _mark(i, OccurrenceStatus.skipped),
