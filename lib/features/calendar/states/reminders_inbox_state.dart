@@ -30,25 +30,12 @@ final remindersInboxClockProvider = Provider<DateTime Function()>(
 /// API mode the build fails with the repository's error, which callers
 /// recognise with `isCalendarCloudApiUnavailable`.
 class RemindersInboxNotifier extends AsyncNotifier<RemindersInbox> {
-  /// Bumped by every build; markSeen uses it to tell whether the state it
-  /// read is still current.
-  int _generation = 0;
-
-  /// "Remind on this device" as the previous build saw it.
-  bool? _lastRemindOn;
-
   @override
   Future<RemindersInbox> build() async {
-    _generation++;
     final repo = ref.watch(calendarRepositoryProvider);
     final remindOn = ref.watch(remindOnDeviceProvider);
     final formatTitle = ref.watch(reminderTitleFormatProvider);
     final clock = ref.watch(remindersInboxClockProvider);
-    // Just switched back on: what fired while off never showed, and
-    // ReminderSync restarts the count from now on its next run (which may
-    // not have stored the new seen instant yet).
-    final justTurnedOn = _lastRemindOn == false && remindOn;
-    _lastRemindOn = remindOn;
 
     // changes() never emits its current snapshot, so this cannot loop.
     final sub = repo.changes().listen(
@@ -64,8 +51,10 @@ class RemindersInboxNotifier extends AsyncNotifier<RemindersInbox> {
       nextFire?.cancel();
     });
 
+    // Watched: ReminderSync's writes (first run, remind-off runs, the first
+    // run back on) and markSeen's rebuild the count.
+    final seenAt = await _seenAt();
     final now = clock();
-    final seenAt = await _readSeenAt();
     final events = await loadReminderEvents(repo, now);
     final items = firedReminders(
       events: events,
@@ -91,46 +80,42 @@ class RemindersInboxNotifier extends AsyncNotifier<RemindersInbox> {
 
     // R-1: unset means "now" (ReminderSync owns the first write). Nothing
     // shows on this device while its reminders are off, so nothing counts.
-    final unseen = !remindOn || justTurnedOn || seenAt == null
+    final unseen = !remindOn || seenAt == null
         ? 0
         : items.where((r) => r.fireAtUtc.isAfter(seenAt)).length;
     return RemindersInbox(items: items, unseen: unseen);
   }
 
-  static Future<DateTime?> _readSeenAt() async {
+  Future<DateTime?> _seenAt() async {
     try {
-      return await readRemindersSeenAt();
+      return await ref.watch(remindersSeenAtProvider.future);
     } catch (e) {
       debugPrint('remindersInbox: seen state unavailable (${e.runtimeType})');
       return null;
     }
   }
 
-  /// The owner looked at the inbox: seen = now, the icon badge is cleared
-  /// and pending badge numbers restart from 1 (a ReminderSync run).
+  /// The owner looked at the inbox: seen = now (which rebuilds the count),
+  /// the icon badge is cleared and pending badge numbers restart from 1 (a
+  /// ReminderSync run).
   Future<void> markSeen() async {
     // Everything is read before the first await.
+    final seen = ref.read(remindersSeenAtProvider.notifier);
     final gateway = ref.read(notificationGatewayProvider);
     final sync = ref.read(reminderSyncProvider);
     final now = ref.read(remindersInboxClockProvider)();
-    final before = state.value;
-    final generation = _generation;
 
     try {
-      await writeRemindersSeenAt(now);
+      await seen.write(now);
     } catch (e) {
       debugPrint('remindersInbox: seen state not stored (${e.runtimeType})');
     }
-    await gateway.clearBadge();
-    sync.trigger();
-
-    if (!ref.mounted) return;
-    if (before != null && generation == _generation) {
-      state = AsyncData(RemindersInbox(items: before.items, unseen: 0));
-    } else {
-      // Still loading (it may have read the old seen instant): load again.
-      ref.invalidateSelf();
+    try {
+      await gateway.clearBadge();
+    } catch (e) {
+      debugPrint('remindersInbox: badge not cleared (${e.runtimeType})');
     }
+    sync.trigger();
   }
 }
 

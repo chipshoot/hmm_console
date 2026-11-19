@@ -20,6 +20,7 @@ import '../../../../core/data/sync/widgets/sync_status_dot.dart';
 import '../../../settings/presentation/widgets/sync_status_card.dart';
 import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
+import '../../../calendar/contract/calendar_errors.dart';
 import '../../../calendar/states/remind_on_device_provider.dart';
 import '../../../calendar/states/reminders_inbox_state.dart';
 
@@ -510,16 +511,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 }
 
 /// Fired calendar reminders not yet seen; opens the reminders list. Hidden
-/// where no reminders show: Cloud API mode, or "Remind on this device" off.
+/// where no reminders show: "Remind on this device" off, or Cloud API mode
+/// (recognised from the inbox's error).
 class _RemindersBell extends ConsumerWidget {
   const _RemindersBell();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final remindOn = ref.watch(remindOnDeviceProvider);
-    final mode = ref.watch(dataModeProvider);
-    if (!remindOn || mode == DataMode.cloudApi) return const SizedBox.shrink();
-    final unseen = ref.watch(remindersInboxProvider).value?.unseen ?? 0;
+    if (!ref.watch(remindOnDeviceProvider)) return const SizedBox.shrink();
+    final inbox = ref.watch(remindersInboxProvider);
+    // Shown once the first load settles, so Cloud API mode never flashes it.
+    if (!inbox.hasValue && !inbox.hasError) return const SizedBox.shrink();
+    if (inbox.hasError && isCalendarCloudApiUnavailable(inbox.error!)) {
+      return const SizedBox.shrink();
+    }
+    final unseen = inbox.value?.unseen ?? 0;
     return HmmIconButton(
       icon: adaptiveIcon(
         context,

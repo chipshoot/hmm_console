@@ -494,6 +494,34 @@ void main() {
     expect(c.read(calendarPermissionDeniedProvider), isTrue);
   });
 
+  test(
+    'reminderSyncProvider stores seenAt through remindersSeenAtProvider',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final gw = FakeNotificationGateway();
+      final c = ProviderContainer(
+        overrides: [
+          notificationGatewayProvider.overrideWithValue(gw),
+          calendarRepositoryProvider.overrideWithValue(_FakeRepo([])),
+          // A tablet: remind on this device is off by default.
+          deviceShortestSideProvider.overrideWith(
+            () => DeviceShortestSideNotifier(800),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      await c.read(remindOnDeviceProvider.notifier).loaded;
+      expect(await c.read(remindersSeenAtProvider.future), isNull);
+      final before = DateTime.now().toUtc();
+      // An off run marks everything seen; the app state must see it.
+      await c.read(reminderSyncProvider).runNow();
+      final seen = c.read(remindersSeenAtProvider).value;
+      expect(seen, isNotNull);
+      expect(seen!.isBefore(before), isFalse);
+      expect(await readRemindersSeenAt(), seen);
+    },
+  );
+
   group('the sync asks for permission once itself (R-18)', () {
     test('never asked + a plan → asks once and schedules on a grant', () {
       fakeAsync((fa) {

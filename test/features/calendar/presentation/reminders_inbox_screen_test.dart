@@ -192,6 +192,15 @@ void main() {
     expect(find.text('${_hm(_aStart)} · Title a'), findsOneWidget);
   });
 
+  testWidgets('a deleted event disappears after the change', (tester) async {
+    final repo = _seeded();
+    await _mount(tester, repo);
+    await repo.deleteEvent('b');
+    await tester.pumpAndSettle();
+    expect(find.text('${_hm(_bStart)} · Title b'), findsNothing);
+    expect(find.text('${_hm(_aStart)} · Title a'), findsOneWidget);
+  });
+
   testWidgets('empty state', (tester) async {
     await _mount(tester, FakeCalendarRepository());
     expect(find.text('No reminders in the last 7 days'), findsOneWidget);

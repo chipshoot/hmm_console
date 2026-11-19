@@ -446,6 +446,9 @@ final reminderSyncProvider = Provider<ReminderSync>((ref) {
     refreshZone: initDeviceTimeZone,
     // Read per run, so a language change applies at the next run.
     formatTitle: (e, o) => ref.read(reminderTitleFormatProvider)(e, o),
+    // Through the app state, so the inbox and the bell see every write.
+    readSeenAt: () => ref.read(remindersSeenAtProvider.future),
+    writeSeenAt: (utc) => ref.read(remindersSeenAtProvider.notifier).write(utc),
   );
   ref.listen(reminderTitleFormatProvider, (_, _) => sync.trigger());
   ref.listen<bool>(remindOnDeviceProvider, (_, _) => sync.trigger());

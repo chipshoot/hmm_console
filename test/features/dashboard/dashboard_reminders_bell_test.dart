@@ -7,13 +7,22 @@ import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/core/navigation/calendar_routes.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
+import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/calendar/domain/event_time.dart';
+import 'package:hmm_console/features/calendar/notifications/notification_gateway.dart';
+import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
 import 'package:hmm_console/features/calendar/presentation/screens/reminders_inbox_screen.dart';
+import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
+import 'package:hmm_console/features/calendar/states/reminders_seen_provider.dart';
 import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
 import 'package:hmm_console/features/calendar/states/reminders_inbox_state.dart';
 import 'package:hmm_console/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:hmm_console/features/dashboard/providers/intro_card_provider.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../calendar/support/fake_calendar_repository.dart';
+import '../calendar/support/fake_notification_gateway.dart';
 
 class _SignedIn extends CurrentUserNotifier {
   @override
@@ -49,6 +58,9 @@ class _Remind extends RemindOnDeviceNotifier {
     loaded = Future.value();
     return _on;
   }
+
+  @override
+  Future<void> set(bool value) async => state = value;
 }
 
 class _Inbox extends RemindersInboxNotifier {
@@ -85,7 +97,8 @@ Future<void> _mount(
         syncControllerProvider.overrideWithValue(_IdleSync()),
         dataModeProvider.overrideWith(() => _Mode(mode)),
         remindOnDeviceProvider.overrideWith(() => _Remind(remind)),
-        remindersInboxProvider.overrideWith(() => _Inbox(unseen)),
+        if (mode != DataMode.cloudApi)
+          remindersInboxProvider.overrideWith(() => _Inbox(unseen)),
       ],
       child: MaterialApp.router(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -133,4 +146,79 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RemindersInboxScreen), findsOneWidget);
   });
+
+  testWidgets(
+    'switched back on: reminders that fired while off never show on the bell',
+    (tester) async {
+      final now = DateTime.now().toUtc();
+      SharedPreferences.setMockInitialValues({
+        kCalendarPermissionAskedKey: true,
+      });
+      // Fired 30 minutes ago, while this device's reminders were off.
+      final repo = FakeCalendarRepository()
+        ..seed(
+          CalendarEvent(
+            id: 'walk',
+            title: 'Walk',
+            start: FixedTime(
+              now.subtract(const Duration(minutes: 25)),
+              Duration.zero,
+            ),
+            reminders: const [Reminder(minutesBefore: 5)],
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+      final container = ProviderContainer(
+        overrides: [
+          currentUserProvider.overrideWith(_SignedIn.new),
+          introCardSeenProvider.overrideWith(_IntroSeen.new),
+          syncControllerProvider.overrideWithValue(_IdleSync()),
+          dataModeProvider.overrideWith(() => _Mode(DataMode.local)),
+          remindOnDeviceProvider.overrideWith(() => _Remind(false)),
+          localCalendarRepositoryProvider.overrideWithValue(repo),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
+          ...calendarRoutes,
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip(_tooltip), findsNothing);
+
+      // The app starts ReminderSync; its off run marks everything seen.
+      container.read(reminderSyncProvider).start();
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      // The reminder fired after that off run: seenAt is older than it.
+      await container
+          .read(remindersSeenAtProvider.notifier)
+          .write(now.subtract(const Duration(hours: 2)));
+
+      // Back on: the inbox is built afresh (it was disposed while hidden).
+      await container.read(remindOnDeviceProvider.notifier).set(true);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip(_tooltip), findsOneWidget);
+      expect(find.byType(Badge), findsNothing);
+    },
+  );
 }

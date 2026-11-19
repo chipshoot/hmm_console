@@ -105,10 +105,11 @@ void main() {
     expect(inbox.unseen, 0);
   });
 
-  test('switched back on: what fired while off is not counted', () async {
-    final (:c, gateway: _, sync: _) = _container(_seeded(), remind: false);
-    expect((await c.read(remindersInboxProvider.future)).unseen, 0);
-    await c.read(remindOnDeviceProvider.notifier).set(true);
+  test('a seenAt stored by ReminderSync rebuilds the count', () async {
+    final (:c, gateway: _, sync: _) = _container(_seeded());
+    expect((await c.read(remindersInboxProvider.future)).unseen, 2);
+    // What reminderSyncProvider's writeSeenAt does (e.g. first run back on).
+    await c.read(remindersSeenAtProvider.notifier).write(_now);
     expect((await c.read(remindersInboxProvider.future)).unseen, 0);
   });
 
