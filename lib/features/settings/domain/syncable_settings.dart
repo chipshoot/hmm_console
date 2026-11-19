@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../calendar/domain/holidays.dart';
 import '../../contacts/domain/contact_sort_by.dart';
 import '../../launcher/domain/launcher_prefs.dart';
 import '../../notes/query/saved_search.dart';
@@ -40,6 +41,8 @@ class SyncableSettings {
     this.contactSortBy = ContactSortBy.family,
     this.notesSavedSearches,
     this.calendarShowLunar,
+    this.calendarHolidayRegions,
+    this.calendarMyHolidays,
   });
 
   final GasLogSettings gasLog;
@@ -60,6 +63,13 @@ class SyncableSettings {
   /// Calendar "Show lunar calendar". Null = the bundle did not carry the key
   /// (an older client), so applying it must leave this device's value alone.
   final bool? calendarShowLunar;
+
+  /// Subscribed public-holiday regions. Null = the bundle did not carry the
+  /// key (absent is not empty), so applying it leaves local values alone.
+  final List<HolidayRegion>? calendarHolidayRegions;
+
+  /// The user's own holidays and hidden downloaded holidays. Null = absent.
+  final MyHolidaysData? calendarMyHolidays;
 
   /// User-selected UI locale code (e.g. 'en', 'zh'). Null = follow
   /// system. Stored as the raw language code rather than a `Locale`
@@ -90,6 +100,12 @@ class SyncableSettings {
             s.toJson(),
         ],
         if (calendarShowLunar != null) 'calendarShowLunar': calendarShowLunar,
+        if (calendarHolidayRegions != null)
+          'calendarHolidayRegions': [
+            for (final r in calendarHolidayRegions!) r.toJson(),
+          ],
+        if (calendarMyHolidays != null)
+          'calendarMyHolidays': calendarMyHolidays!.toJson(),
         'lastModified': lastModified.toUtc().toIso8601String(),
         '_v': 1,
       };
@@ -122,6 +138,15 @@ class SyncableSettings {
       calendarShowLunar: json['calendarShowLunar'] is bool
           ? json['calendarShowLunar'] as bool
           : null,
+      calendarHolidayRegions: json['calendarHolidayRegions'] is List
+          ? [
+              for (final r in json['calendarHolidayRegions'] as List)
+                ?HolidayRegion.fromJson(r),
+            ]
+          : null,
+      calendarMyHolidays: json['calendarMyHolidays'] is Map
+          ? MyHolidaysData.fromJson(json['calendarMyHolidays'])
+          : null,
       lastModified: () {
         final raw = json['lastModified'] as String?;
         if (raw == null) return epochZero;
@@ -152,6 +177,8 @@ class SyncableSettings {
     ContactSortBy? contactSortBy,
     List<SavedSearch>? notesSavedSearches,
     bool? calendarShowLunar,
+    List<HolidayRegion>? calendarHolidayRegions,
+    MyHolidaysData? calendarMyHolidays,
   }) {
     return SyncableSettings(
       gasLog: gasLog ?? this.gasLog,
@@ -163,6 +190,9 @@ class SyncableSettings {
       contactSortBy: contactSortBy ?? this.contactSortBy,
       notesSavedSearches: notesSavedSearches ?? this.notesSavedSearches,
       calendarShowLunar: calendarShowLunar ?? this.calendarShowLunar,
+      calendarHolidayRegions:
+          calendarHolidayRegions ?? this.calendarHolidayRegions,
+      calendarMyHolidays: calendarMyHolidays ?? this.calendarMyHolidays,
     );
   }
 }

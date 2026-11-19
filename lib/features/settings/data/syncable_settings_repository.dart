@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../calendar/domain/holidays.dart';
 import '../../contacts/domain/contact_sort_by.dart';
 import '../../launcher/domain/launcher_prefs.dart';
 import '../../notes/query/saved_search.dart';
@@ -47,6 +48,12 @@ class SyncableSettingsRepository {
 
   /// Public: `ShowLunarNotifier` owns the same key (a bool).
   static const calendarShowLunarKey = 'calendar.show_lunar';
+
+  /// Public: `HolidayRegionsNotifier` owns the same key (a JSON list).
+  static const calendarHolidayRegionsKey = 'calendar.holiday_regions';
+
+  /// Public: `MyHolidaysNotifier` owns the same key (a JSON object).
+  static const calendarMyHolidaysKey = 'calendar.my_holidays';
 
   /// Reads the current local snapshot. Missing keys fall back to
   /// defaults — same behaviour as the per-feature notifiers' first-
@@ -105,6 +112,32 @@ class SyncableSettingsRepository {
       }
     }
 
+    List<HolidayRegion>? holidayRegions;
+    final regionsRaw = prefs.getString(calendarHolidayRegionsKey);
+    if (regionsRaw != null) {
+      try {
+        final decoded = jsonDecode(regionsRaw);
+        if (decoded is List) {
+          holidayRegions = [
+            for (final r in decoded) ?HolidayRegion.fromJson(r),
+          ];
+        }
+      } catch (e) {
+        debugPrint('SyncableSettings: holiday regions unreadable (${e.runtimeType})');
+      }
+    }
+
+    MyHolidaysData? myHolidays;
+    final myRaw = prefs.getString(calendarMyHolidaysKey);
+    if (myRaw != null) {
+      try {
+        final decoded = jsonDecode(myRaw);
+        if (decoded is Map) myHolidays = MyHolidaysData.fromJson(decoded);
+      } catch (e) {
+        debugPrint('SyncableSettings: my holidays unreadable (${e.runtimeType})');
+      }
+    }
+
     return SyncableSettings(
       gasLog: gasLog,
       syncSettings: syncSettings,
@@ -114,6 +147,8 @@ class SyncableSettingsRepository {
       contactSortBy: ContactSortBy.fromName(prefs.getString(contactSortKey)),
       notesSavedSearches: savedSearches,
       calendarShowLunar: prefs.getBool(calendarShowLunarKey),
+      calendarHolidayRegions: holidayRegions,
+      calendarMyHolidays: myHolidays,
     );
   }
 
@@ -149,6 +184,18 @@ class SyncableSettingsRepository {
     // Null = the bundle predates this field: keep this device's value.
     final lunar = settings.calendarShowLunar;
     if (lunar != null) await prefs.setBool(calendarShowLunarKey, lunar);
+    // Null = the bundle predates these fields: keep this device's values.
+    final regions = settings.calendarHolidayRegions;
+    if (regions != null) {
+      await prefs.setString(
+        calendarHolidayRegionsKey,
+        jsonEncode([for (final r in regions) r.toJson()]),
+      );
+    }
+    final mine = settings.calendarMyHolidays;
+    if (mine != null) {
+      await prefs.setString(calendarMyHolidaysKey, jsonEncode(mine.toJson()));
+    }
     await prefs.setString(
       _lastModifiedKey,
       settings.lastModified.toUtc().toIso8601String(),
