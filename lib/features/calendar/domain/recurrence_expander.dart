@@ -1,5 +1,6 @@
 import 'calendar_event.dart';
 import 'event_time.dart';
+import 'lunar.dart';
 import 'occurrence.dart';
 import 'recurrence_rule.dart';
 
@@ -193,14 +194,40 @@ class _Ctx {
   Iterable<EventTime> slots(RecurrenceRule? rule) sync* {
     final base = DateTime.utc(_baseWall.year, _baseWall.month, _baseWall.day);
     if (rule == null ||
-        rule.isLunar ||
+        (rule.isLunar && !rule.isSupportedLunar) ||
         (rule.count != null && rule.count! <= 0)) {
       if (rule?.count == 0) return;
       yield e.start;
       return;
     }
+    if (rule.isSupportedLunar) {
+      yield* _lunarSlots(rule, base);
+      return;
+    }
     for (final d in _dates(rule, base)) {
       yield _slotAt(d);
+    }
+  }
+
+  /// A supported lunar yearly rule: the start is always occurrence 1 (C-1),
+  /// then the rule's date in every INTERVAL-th lunar year counted from the
+  /// start's own lunar year (C-2), keeping only dates after the start. [base]
+  /// is the event's own wall date, never the device's (C-3). Stops at the
+  /// first year the converter cannot cover, so it never guesses a day.
+  Iterable<EventTime> _lunarSlots(RecurrenceRule r, DateTime base) sync* {
+    yield e.start;
+    final first = toLunar(base);
+    if (first == null) return;
+    final step = r.interval < 1 ? 1 : r.interval;
+    for (var k = 0; k < kMaxExpansionCandidates; k++) {
+      final d = fromLunarBackward(
+        first.year + k * step,
+        r.byMonth!,
+        r.byMonthDay.single,
+        leap: r.byMonthLeap,
+      );
+      if (d == null) return;
+      if (d.isAfter(base)) yield _slotAt(d);
     }
   }
 

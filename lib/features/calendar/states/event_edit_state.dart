@@ -518,7 +518,8 @@ CalendarEvent? truncateBefore(CalendarEvent e, EventTime originalStart) {
   } on FormatException {
     return null; // expands as a one-off: only the first occurrence exists
   }
-  if (rule.isLunar) return null; // stage 1 expands only the first (R-3)
+  // An unsupported lunar rule expands only the first occurrence (R-3).
+  if (rule.isLunar && !rule.isSupportedLunar) return null;
 
   final DateTime until;
   final bool untilIsDate;
@@ -543,6 +544,9 @@ CalendarEvent? truncateBefore(CalendarEvent e, EventTime originalStart) {
       untilIsDate: untilIsDate,
       unsupported: rule.unsupported,
       rscale: rule.rscale,
+      byMonth: rule.byMonth,
+      byMonthLeap: rule.byMonthLeap,
+      skip: rule.skip,
     ).format(),
   );
 

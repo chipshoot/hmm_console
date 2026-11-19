@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
+import 'package:hmm_console/features/calendar/domain/lunar.dart';
 import 'package:hmm_console/features/calendar/domain/occurrence.dart';
 import 'package:hmm_console/features/calendar/domain/recurrence_expander.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -181,7 +182,7 @@ void main() {
   });
 
   group('lunar reserve', () {
-    const lunar = 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15';
+    const lunar = 'RSCALE=CHINESE;FREQ=MONTHLY;BYMONTHDAY=1';
 
     test('yields only the first occurrence over three years', () {
       final e = ev(const FloatingTime(2026, 5, 20, 8, 0), rrule: lunar);
@@ -202,6 +203,101 @@ void main() {
       );
       final o = run(e, utc(2026, 1, 1), utc(2029, 1, 1));
       expect(o.single.status, OccurrenceStatus.done);
+    });
+  });
+
+  group('lunar yearly', () {
+    const cny = 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1';
+
+    test('lunar birthday: 腊月三十 falls on 廿九 in short years', () {
+      final e = ev(
+        const AllDay(2024, 2, 9),
+        rrule:
+            'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=30;SKIP=BACKWARD',
+      );
+      final o = run(e, utc(2024, 1, 1), utc(2027, 1, 1));
+      expect(starts(o), [utc(2024, 2, 9), utc(2025, 1, 28), utc(2026, 2, 16)]);
+    });
+
+    test('leap-month birthday uses the normal month in other years', () {
+      final e = ev(
+        const AllDay(2025, 7, 25),
+        rrule: 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=6L;BYMONTHDAY=1',
+      );
+      final o = run(e, utc(2025, 1, 1), utc(2027, 1, 1));
+      expect(starts(o), [utc(2025, 7, 25), fromLunar(2026, 6, 1)!]);
+    });
+
+    test('normal month never lands in a leap month', () {
+      final s = fromLunar(2025, 6, 1)!;
+      final e = ev(
+        AllDay(s.year, s.month, s.day),
+        rrule: 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=6;BYMONTHDAY=1',
+      );
+      final o = run(e, utc(2025, 1, 1), utc(2026, 1, 1));
+      expect(starts(o), [s]);
+    });
+
+    test(
+      'Review Focus 1: January start belongs to the previous lunar year',
+      () {
+        final e = ev(
+          const AllDay(2025, 1, 28),
+          rrule: 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=29',
+        );
+        final o = run(e, utc(2025, 1, 1), utc(2027, 1, 1));
+        expect(starts(o), [utc(2025, 1, 28), utc(2026, 2, 16)]);
+      },
+    );
+
+    test('INTERVAL=2 counts lunar years from the start', () {
+      final e = ev(const AllDay(2024, 2, 10), rrule: '$cny;INTERVAL=2');
+      final o = run(e, utc(2024, 1, 1), utc(2027, 1, 1));
+      expect(starts(o), [utc(2024, 2, 10), utc(2026, 2, 17)]);
+    });
+
+    test('COUNT includes the start', () {
+      final e = ev(const AllDay(2024, 2, 10), rrule: '$cny;COUNT=2');
+      final o = run(e, utc(2024, 1, 1), utc(2030, 1, 1));
+      expect(starts(o), [utc(2024, 2, 10), utc(2025, 1, 29)]);
+    });
+
+    test('UNTIL stops the series', () {
+      final e = ev(const AllDay(2024, 2, 10), rrule: '$cny;UNTIL=20251231');
+      final o = run(e, utc(2024, 1, 1), utc(2030, 1, 1));
+      expect(starts(o), [utc(2024, 2, 10), utc(2025, 1, 29)]);
+    });
+
+    test('start that does not match the rule is still occurrence 1', () {
+      final e = ev(const AllDay(2024, 3, 1), rrule: cny);
+      final o = run(e, utc(2024, 1, 1), utc(2027, 1, 1));
+      expect(starts(o), [utc(2024, 3, 1), utc(2025, 1, 29), utc(2026, 2, 17)]);
+    });
+
+    test('Review Focus 2: fixed-time event converts in its own offset', () {
+      // Wall 2024-02-10 00:30 +08:00 is 春节, though the UTC date is Feb 9.
+      final e = ev(
+        FixedTime(utc(2024, 2, 9, 16, 30), const Duration(hours: 8)),
+        rrule: cny,
+      );
+      DateTime utcMinus5(int y, int m, int d, int hh, int mm) =>
+          utc(y, m, d, hh, mm).add(const Duration(hours: 5));
+      final o = run(e, utc(2024, 1, 1), utc(2026, 1, 1), resolve: utcMinus5);
+      expect(starts(o), [utc(2024, 2, 9, 16, 30), utc(2025, 1, 28, 16, 30)]);
+    });
+
+    test('timed floating lunar event keeps its time', () {
+      final e = ev(const FloatingTime(2024, 2, 10, 9, 0), rrule: cny);
+      final o = run(e, utc(2024, 1, 1), utc(2026, 1, 1));
+      expect(starts(o), [utc(2024, 2, 10, 9), utc(2025, 1, 29, 9)]);
+      expect(o[1].originalStart, const FloatingTime(2025, 1, 29, 9, 0));
+    });
+
+    test('a start whose lunar year is out of range yields only the start', () {
+      // 1901-01-01 is lunar 1900, which the converter does not cover.
+      final e = ev(const AllDay(1901, 1, 1), rrule: cny);
+      final o = run(e, utc(1900, 1, 1), utc(1905, 1, 1));
+      expect(starts(o), [utc(1901, 1, 1)]);
     });
   });
 
