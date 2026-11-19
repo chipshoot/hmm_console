@@ -7,10 +7,13 @@ import 'package:hmm_console/core/help/help_registry.dart';
 import 'package:hmm_console/features/calendar/contract/i_reminder_scheduler.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
+import 'package:hmm_console/features/calendar/domain/lunar.dart';
+import 'package:hmm_console/features/calendar/domain/recurrence_rule.dart';
 import 'package:hmm_console/features/calendar/notifications/local_reminder_scheduler.dart';
 import 'package:hmm_console/features/calendar/notifications/reminder_plan.dart';
 import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
 import 'package:hmm_console/features/calendar/presentation/screens/event_edit_screen.dart';
+import 'package:hmm_console/features/calendar/presentation/widgets/repeat_picker.dart';
 import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/features/calendar/states/calendar_view_state.dart';
 import 'package:hmm_console/features/calendar/states/event_edit_state.dart';
@@ -554,17 +557,187 @@ void main() {
     }
   });
 
-  test('a supported lunar rule still opens as a custom rule', () {
-    const text = 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15';
-    final form = EventForm.fromEvent(
-      CalendarEvent(
-        id: 'l',
-        title: 'Lunar',
-        start: const AllDay(2026, 5, 21),
-        rrule: text,
-        updatedAt: DateTime.utc(2020),
-      ),
+  group('lunar yearly repeat', () {
+    CalendarEvent lunarEv(EventTime start, String rule) => CalendarEvent(
+      id: 'l',
+      title: 'Lunar',
+      start: start,
+      rrule: rule,
+      updatedAt: DateTime.utc(2020),
     );
-    expect(form.customRule, text);
+
+    Future<ValueNotifier<EventForm>> pumpPicker(
+      WidgetTester tester,
+      EventForm initial,
+    ) async {
+      final form = ValueNotifier(initial);
+      addTearDown(form.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: ValueListenableBuilder<EventForm>(
+              valueListenable: form,
+              builder: (_, f, _) =>
+                  RepeatPicker(form: f, onChanged: (n) => form.value = n),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return form;
+    }
+
+    testWidgets('yearly shows date and lunar-date choices; lunar builds the '
+        'lunar rule', (tester) async {
+      final d = DateTime(2025, 11, 18, 9);
+      final form = await pumpPicker(
+        tester,
+        EventForm(
+          title: 'B',
+          start: d,
+          end: d.add(const Duration(hours: 1)),
+          freq: RepeatFreq.yearly,
+        ),
+      );
+      final lunar = toLunar(d)!;
+      final text = lunarMonthDayText(
+        lunar.month,
+        lunar.day,
+        leap: lunar.isLeap,
+      );
+      expect(
+        find.byKey(const Key('calendar-repeat-calendar-false')),
+        findsOneWidget,
+      );
+      expect(find.text('On Nov 18'), findsOneWidget);
+      expect(find.text('On 农历$text'), findsOneWidget);
+      expect(form.value.rrule, 'FREQ=YEARLY');
+
+      await tester.tap(find.byKey(const Key('calendar-repeat-calendar-true')));
+      await tester.pumpAndSettle();
+      expect(form.value.lunar, isTrue);
+      expect(
+        form.value.rrule,
+        RecurrenceRule.lunarYearly(
+          month: lunar.month,
+          day: lunar.day,
+          leap: lunar.isLeap,
+        ).format(),
+      );
+      expect(
+        describeRuleText(
+          form.value.rrule!,
+          lookupAppLocalizations(const Locale('en')),
+        ),
+        'Every year on 农历$text',
+      );
+    });
+
+    testWidgets('a start outside the lunar range shows no calendar choice', (
+      tester,
+    ) async {
+      final d = DateTime(2150, 3, 1, 9);
+      final form = await pumpPicker(
+        tester,
+        EventForm(
+          title: 'B',
+          start: d,
+          end: d.add(const Duration(hours: 1)),
+          freq: RepeatFreq.yearly,
+          lunar: true,
+        ),
+      );
+      expect(
+        find.byKey(const Key('calendar-repeat-calendar-false')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('calendar-repeat-calendar-true')),
+        findsNothing,
+      );
+      expect(form.value.rrule, 'FREQ=YEARLY');
+    });
+
+    test('a new start date re-derives the lunar date (Review Focus 4)', () {
+      final d = DateTime(2025, 11, 18, 9);
+      final form = EventForm(
+        title: 'B',
+        start: d,
+        end: d.add(const Duration(hours: 1)),
+        freq: RepeatFreq.yearly,
+        lunar: true,
+      );
+      final moved = form.copyWith(start: DateTime(2026, 2, 17, 9));
+      expect(moved.rrule, contains('BYMONTH=1;BYMONTHDAY=1'));
+    });
+
+    test('day 30 on a 29-day month keeps day 30 (Review Focus 5)', () {
+      const rule =
+          'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=30;SKIP=BACKWARD';
+      final form = EventForm.fromEvent(
+        lunarEv(const AllDay(2025, 1, 28), rule),
+      );
+      expect(form.customRule, isNull);
+      expect(form.freq, RepeatFreq.yearly);
+      expect(form.lunar, isTrue);
+      expect(form.lunarAnchor!.day, 30);
+      expect(form.rrule, contains('BYMONTHDAY=30'));
+      // Editing an unrelated field keeps the anchor.
+      final retitled = form.copyWith(title: 'New');
+      expect(retitled.rrule, contains('BYMONTH=12;BYMONTHDAY=30'));
+      final retimed = form.copyWith(start: DateTime(2025, 1, 28, 0));
+      expect(retimed.rrule, contains('BYMONTH=12;BYMONTHDAY=30'));
+    });
+
+    test('day 30 survives a title-only save (buildEvent)', () {
+      const rule =
+          'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=30;SKIP=BACKWARD';
+      final base = lunarEv(const AllDay(2025, 1, 28), rule);
+      final initial = EventForm.fromEvent(base);
+      final saved = buildEvent(
+        initial.copyWith(title: 'New'),
+        base: base,
+        initial: initial,
+        now: DateTime.utc(2025),
+      );
+      expect(saved.rrule, contains('BYMONTH=12;BYMONTHDAY=30'));
+    });
+
+    test('a supported lunar rule matching its start opens as editable', () {
+      final start = DateTime(2026, 5, 21);
+      final lunar = toLunar(start)!;
+      final rule = RecurrenceRule.lunarYearly(
+        month: lunar.month,
+        day: lunar.day,
+        leap: lunar.isLeap,
+        interval: 2,
+        count: 3,
+      ).format();
+      final form = EventForm.fromEvent(
+        lunarEv(const AllDay(2026, 5, 21), rule),
+      );
+      expect(form.customRule, isNull);
+      expect(form.freq, RepeatFreq.yearly);
+      expect(form.lunar, isTrue);
+      expect(form.interval, 2);
+      expect(form.repeatEnd, RepeatEnd.afterCount);
+      expect(form.count, 3);
+      expect(form.rrule, rule);
+    });
+
+    testWidgets('a lunar rule that does not match its start stays clear-only', (
+      tester,
+    ) async {
+      const text =
+          'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1;SKIP=BACKWARD';
+      final form = EventForm.fromEvent(lunarEv(const AllDay(2024, 3, 1), text));
+      expect(form.customRule, text);
+      expect(form.lunar, isFalse);
+      await pumpPicker(tester, form);
+      expect(find.text('Clear'), findsOneWidget);
+      expect(find.text('Yearly'), findsNothing);
+    });
   });
 }

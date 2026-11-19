@@ -3978,6 +3978,27 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String calendarRepeatOnDate(String date) {
+    return '$date';
+  }
+
+  @override
+  String calendarRepeatOnLunarDate(String date) {
+    return '农历$date';
+  }
+
+  @override
+  String calendarRepeatLunarYearlyText(int n, String date) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '每$n年农历$date',
+      one: '每年农历$date',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String calendarRepeatTimes(int n) {
     String _temp0 = intl.Intl.pluralLogic(
       n,
@@ -4147,7 +4168,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpCalendarEventEditRepeatBody =>
-      '选择重复频率和结束方式。在别处设置的重复显示为自定义或农历，只能清除。';
+      '选择重复频率和结束方式。每年重复可以按开始日期的农历日期：闰月日期在其他年份落在同名的普通月份，三十日在小月落在廿九。在其他地方设置的重复显示为\"自定义\"或\"农历\"，只能清除。';
 
   @override
   String get helpCalendarEventEditRemindersTitle => '提醒';

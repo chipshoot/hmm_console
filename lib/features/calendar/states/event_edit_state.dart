@@ -5,6 +5,7 @@ import '../../../core/util/uuid.dart';
 import '../contract/i_reminder_scheduler.dart';
 import '../domain/calendar_event.dart';
 import '../domain/event_time.dart';
+import '../domain/lunar.dart';
 import '../domain/occurrence.dart';
 import '../domain/recurrence_expander.dart';
 import '../domain/recurrence_rule.dart';
@@ -204,6 +205,8 @@ class EventForm {
     this.customRule,
     this.reminders = const [Reminder(minutesBefore: 15)],
     this.timeSensitive = false,
+    this.lunar = false,
+    this.lunarAnchor,
   });
 
   final String title;
@@ -230,6 +233,17 @@ class EventForm {
 
   /// Device reminders break through Focus (series-only).
   final bool timeSensitive;
+
+  /// A yearly repeat follows the lunar date instead of the Gregorian one.
+  final bool lunar;
+
+  /// The lunar month/day/leap of a rule the form was opened from. Null means
+  /// "the lunar date of [start]". Kept so a day-30 rule whose start fell on
+  /// day 29 of a short month saves as day 30 (Review Focus 5).
+  final LunarDate? lunarAnchor;
+
+  /// The lunar date a lunar yearly repeat uses; null outside the lunar range.
+  LunarDate? get lunarDate => lunarAnchor ?? toLunar(dateOnly(start));
 
   /// A new event on [day]: today starts at the next full hour, any other day
   /// at 09:00; one hour long; one reminder 15 minutes before.
@@ -278,14 +292,25 @@ class EventForm {
     } on FormatException {
       return form.copyWith(customRule: text);
     }
-    // Lunar rules stay clear-only until the editor learns them.
-    if (rule.isCustom || rule.isLunar) return form.copyWith(customRule: text);
+    final anchor = rule.isSupportedLunar
+        ? _lunarAnchorOf(rule, dateOnly(seriesStart))
+        : null;
+    // Any other lunar rule, or one that does not fall on its own start, stays
+    // clear-only.
+    if (rule.isCustom || (rule.isLunar && anchor == null)) {
+      return form.copyWith(customRule: text);
+    }
     final until = rule.until;
     form = form.copyWith(
       freq: RepeatFreq.values[rule.freq.index + 1],
       interval: rule.interval,
       byDay: rule.byDay.toSet(),
-      byMonthDay: rule.byMonthDay,
+      byMonthDay: anchor != null ? const [] : rule.byMonthDay,
+      lunar: anchor != null,
+      // Opened at a later occurrence, a lunar choice still means the series
+      // start's lunar date, which is what the rule is built from on save.
+      lunarAnchor:
+          anchor ?? (at != null ? toLunar(dateOnly(seriesStart)) : null),
       repeatEnd: rule.count != null
           ? RepeatEnd.afterCount
           : until != null
@@ -301,6 +326,25 @@ class EventForm {
     return form;
   }
 
+  /// The rule's lunar date when it falls on [seriesStart] (its first
+  /// occurrence, C-1); null otherwise.
+  static LunarDate? _lunarAnchorOf(RecurrenceRule rule, DateTime seriesStart) {
+    final year = toLunar(seriesStart)?.year;
+    if (year == null) return null;
+    final month = rule.byMonth!;
+    final day = rule.byMonthDay.single;
+    final date = fromLunarBackward(year, month, day, leap: rule.byMonthLeap);
+    if (date == null ||
+        date.year != seriesStart.year ||
+        date.month != seriesStart.month ||
+        date.day != seriesStart.day) {
+      return null;
+    }
+    return LunarDate(year, month, day, isLeap: rule.byMonthLeap);
+  }
+
+  /// A [start] on another date drops [lunarAnchor] (the lunar date is then
+  /// read from the new start) unless [lunarAnchor] is passed too.
   EventForm copyWith({
     String? title,
     String? notes,
@@ -318,6 +362,8 @@ class EventForm {
     bool clearCustomRule = false,
     List<Reminder>? reminders,
     bool? timeSensitive,
+    bool? lunar,
+    LunarDate? lunarAnchor,
   }) => EventForm(
     title: title ?? this.title,
     notes: notes ?? this.notes,
@@ -334,6 +380,12 @@ class EventForm {
     customRule: clearCustomRule ? null : (customRule ?? this.customRule),
     reminders: reminders ?? this.reminders,
     timeSensitive: timeSensitive ?? this.timeSensitive,
+    lunar: lunar ?? this.lunar,
+    lunarAnchor:
+        lunarAnchor ??
+        (start != null && dateOnly(start) != dateOnly(this.start)
+            ? null
+            : this.lunarAnchor),
   );
 
   bool get repeats => customRule != null || freq != RepeatFreq.none;
@@ -356,6 +408,23 @@ class EventForm {
     if (freq == RepeatFreq.none) return null;
     final f = Frequency.values[freq.index - 1];
     final u = until;
+    final count = repeatEnd == RepeatEnd.afterCount ? this.count : null;
+    // Date-form UNTIL: repeating timed events are floating (R8), and the
+    // expander compares a date UNTIL against each slot's own date.
+    final untilUtc = repeatEnd == RepeatEnd.onDate && u != null
+        ? DateTime.utc(u.year, u.month, u.day)
+        : null;
+    final anchor = f == Frequency.yearly && lunar ? lunarDate : null;
+    if (anchor != null) {
+      return RecurrenceRule.lunarYearly(
+        month: anchor.month,
+        day: anchor.day,
+        leap: anchor.isLeap,
+        interval: interval,
+        count: count,
+        until: untilUtc,
+      ).format();
+    }
     return RecurrenceRule(
       freq: f,
       interval: interval,
@@ -363,12 +432,8 @@ class EventForm {
           ? (byDay.toList()..sort((a, b) => a.index - b.index))
           : const [],
       byMonthDay: f == Frequency.monthly ? byMonthDay : const [],
-      count: repeatEnd == RepeatEnd.afterCount ? count : null,
-      // Date-form UNTIL: repeating timed events are floating (R8), and the
-      // expander compares a date UNTIL against each slot's own date.
-      until: repeatEnd == RepeatEnd.onDate && u != null
-          ? DateTime.utc(u.year, u.month, u.day)
-          : null,
+      count: count,
+      until: untilUtc,
       untilIsDate: true,
     ).format();
   }
@@ -409,6 +474,10 @@ CalendarEvent buildEvent(
     form = f.copyWith(
       start: start,
       end: wallAdd(start, wallDiff(f.end, f.start)),
+      // The series' own lunar date stays unless the shown date moved.
+      lunarAnchor: dateOnly(f.start) == dateOnly(initial.start)
+          ? f.lunarAnchor
+          : null,
     );
   }
   final (start, end) = storedTimes(form);

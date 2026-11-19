@@ -4158,6 +4158,27 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String calendarRepeatOnDate(String date) {
+    return 'On $date';
+  }
+
+  @override
+  String calendarRepeatOnLunarDate(String date) {
+    return 'On 农历$date';
+  }
+
+  @override
+  String calendarRepeatLunarYearlyText(int n, String date) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Every $n years on 农历$date',
+      one: 'Every year on 农历$date',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String calendarRepeatTimes(int n) {
     String _temp0 = intl.Intl.pluralLogic(
       n,
@@ -4355,7 +4376,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpCalendarEventEditRepeatBody =>
-      'Choose how often it repeats and when the repeat ends. A repeat set elsewhere is shown as Custom or Lunar and can only be cleared.';
+      'Choose how often it repeats and when the repeat ends. A yearly repeat can follow the lunar date (农历) of the start day: a leap-month date falls in the normal month in other years, and day 30 falls on day 29 when that month is short. A repeat set elsewhere is shown as Custom or Lunar and can only be cleared.';
 
   @override
   String get helpCalendarEventEditRemindersTitle => 'Reminders';

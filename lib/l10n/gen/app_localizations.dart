@@ -7262,6 +7262,24 @@ abstract class AppLocalizations {
   /// **'{n, plural, =1{Every year} other{Every {n} years}}'**
   String calendarRepeatYearlyText(int n);
 
+  /// No description provided for @calendarRepeatOnDate.
+  ///
+  /// In en, this message translates to:
+  /// **'On {date}'**
+  String calendarRepeatOnDate(String date);
+
+  /// No description provided for @calendarRepeatOnLunarDate.
+  ///
+  /// In en, this message translates to:
+  /// **'On 农历{date}'**
+  String calendarRepeatOnLunarDate(String date);
+
+  /// No description provided for @calendarRepeatLunarYearlyText.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{Every year on 农历{date}} other{Every {n} years on 农历{date}}}'**
+  String calendarRepeatLunarYearlyText(int n, String date);
+
   /// No description provided for @calendarRepeatTimes.
   ///
   /// In en, this message translates to:
@@ -7559,7 +7577,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpCalendarEventEditRepeatBody.
   ///
   /// In en, this message translates to:
-  /// **'Choose how often it repeats and when the repeat ends. A repeat set elsewhere is shown as Custom or Lunar and can only be cleared.'**
+  /// **'Choose how often it repeats and when the repeat ends. A yearly repeat can follow the lunar date (农历) of the start day: a leap-month date falls in the normal month in other years, and day 30 falls on day 29 when that month is short. A repeat set elsewhere is shown as Custom or Lunar and can only be cleared.'**
   String get helpCalendarEventEditRepeatBody;
 
   /// No description provided for @helpCalendarEventEditRemindersTitle.

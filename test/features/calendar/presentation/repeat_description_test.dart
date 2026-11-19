@@ -37,9 +37,22 @@ void main() {
   });
 
   test('a lunar rule reads "Lunar repeat"', () {
+    expect(d('RSCALE=CHINESE;FREQ=MONTHLY;BYMONTHDAY=1'), 'Lunar repeat');
+  });
+
+  test('a supported lunar yearly rule reads its lunar date', () {
+    const rule =
+        'RSCALE=CHINESE;FREQ=YEARLY;INTERVAL=2;BYMONTH=4L;BYMONTHDAY=8;'
+        'SKIP=BACKWARD;COUNT=3';
+    expect(d(rule), 'Every 2 years on 农历闰四月初八, 3 times');
     expect(
-      d('RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=15'),
-      'Lunar repeat',
+      d('RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=8;BYMONTHDAY=15'),
+      'Every year on 农历八月十五',
+    );
+    final zh = lookupAppLocalizations(const Locale('zh'));
+    expect(
+      describeRepeat(RecurrenceRule.parse(rule), zh),
+      startsWith('每2年农历闰四月初八'),
     );
   });
 

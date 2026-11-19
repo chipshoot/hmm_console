@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../domain/lunar.dart';
 import '../../domain/recurrence_rule.dart';
 import '../../states/event_edit_state.dart';
 import 'platform_date_time_pickers.dart';
@@ -18,9 +19,10 @@ String describeRuleText(String text, AppLocalizations l) {
   }
 }
 
-/// Repeat: None, Daily, Weekly (weekday chips), Monthly, Yearly, and when it
-/// ends (never, on a date, after N times). A rule outside the subset is shown
-/// in words and read-only until the owner taps Clear.
+/// Repeat: None, Daily, Weekly (weekday chips), Monthly, Yearly (on the
+/// date or on its lunar date), and when it ends (never, on a date, after N
+/// times). A rule outside the subset is shown in words and read-only until
+/// the owner taps Clear.
 class RepeatPicker extends StatelessWidget {
   const RepeatPicker({super.key, required this.form, required this.onChanged});
 
@@ -129,6 +131,29 @@ class RepeatPicker extends StatelessWidget {
                 },
               ),
           ],
+        ),
+      );
+    }
+    final lunarDate = form.freq == RepeatFreq.yearly ? form.lunarDate : null;
+    if (lunarDate != null) {
+      children.add(
+        _choice<bool>(
+          context,
+          keyPrefix: 'calendar-repeat-calendar',
+          value: form.lunar,
+          options: {
+            false: l.calendarRepeatOnDate(
+              DateFormat.MMMd(l.localeName).format(form.start),
+            ),
+            true: l.calendarRepeatOnLunarDate(
+              lunarMonthDayText(
+                lunarDate.month,
+                lunarDate.day,
+                leap: lunarDate.isLeap,
+              ),
+            ),
+          },
+          onSelected: (v) => onChanged(form.copyWith(lunar: v)),
         ),
       );
     }
