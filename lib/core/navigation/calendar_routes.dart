@@ -5,6 +5,7 @@ import '../../features/calendar/presentation/screens/calendar_home_screen.dart';
 import '../../features/calendar/presentation/screens/event_detail_screen.dart';
 import '../../features/calendar/presentation/screens/event_edit_screen.dart';
 import '../../features/calendar/presentation/screens/holidays_screen.dart';
+import '../../features/calendar/presentation/screens/my_holidays_screen.dart';
 import '../../features/calendar/presentation/screens/reminders_inbox_screen.dart';
 import 'route_names.dart';
 
@@ -41,6 +42,13 @@ final calendarRoutes = <RouteBase>[
         path: 'holidays',
         name: RouterNames.calendarHolidays.name,
         builder: (context, state) => const HolidaysScreen(),
+        routes: [
+          GoRoute(
+            path: 'mine',
+            name: RouterNames.calendarMyHolidays.name,
+            builder: (context, state) => const MyHolidaysScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: 'event/new',

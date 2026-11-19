@@ -15,6 +15,7 @@ enum HelpId {
   calendarEventEdit,
   calendarReminders,
   calendarHolidays,
+  calendarMyHolidays,
   contacts,
   contactDetail,
   contactEdit,
@@ -115,6 +116,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpCalendarHoldTitle,
         body: l.helpCalendarHoldBody,
       ),
+      HelpEntry(
+        icon: Icons.flag_outlined,
+        title: l.helpCalendarHolidaysMarksTitle,
+        body: l.helpCalendarHolidaysMarksBody,
+      ),
     ],
   ),
   HelpId.calendarEvent => ScreenHelp(
@@ -208,6 +214,22 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.edit_calendar_outlined,
         title: l.helpCalendarHolidaysMineTitle,
         body: l.helpCalendarHolidaysMineBody,
+      ),
+    ],
+  ),
+  HelpId.calendarMyHolidays => ScreenHelp(
+    title: l.helpCalendarMyHolidaysTitle,
+    summary: l.helpCalendarMyHolidaysSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.add,
+        title: l.helpCalendarMyHolidaysAddTitle,
+        body: l.helpCalendarMyHolidaysAddBody,
+      ),
+      HelpEntry(
+        icon: Icons.visibility_outlined,
+        title: l.helpCalendarMyHolidaysHiddenTitle,
+        body: l.helpCalendarMyHolidaysHiddenBody,
       ),
     ],
   ),

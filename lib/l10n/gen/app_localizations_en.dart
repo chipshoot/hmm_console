@@ -4597,4 +4597,80 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpCalendarHolidaysMineBody =>
       'Add your own days, such as birthdays or a company day off, and bring back holidays you hid.';
+
+  @override
+  String get calendarMyHolidaysAdd => 'Add holiday';
+
+  @override
+  String get calendarMyHolidaysEdit => 'Edit holiday';
+
+  @override
+  String get calendarMyHolidaysName => 'Name';
+
+  @override
+  String get calendarMyHolidaysOnce => 'One-time';
+
+  @override
+  String get calendarMyHolidaysYearly => 'Every year';
+
+  @override
+  String get calendarMyHolidaysEveryYear => 'Every year';
+
+  @override
+  String get calendarMyHolidaysStart => 'Start date';
+
+  @override
+  String get calendarMyHolidaysEnd => 'End date (optional)';
+
+  @override
+  String get calendarMyHolidaysDayOff => 'Day off';
+
+  @override
+  String calendarMyHolidaysDeleted(String name) {
+    return '$name deleted';
+  }
+
+  @override
+  String calendarMyHolidaysDeleteFailed(String name) {
+    return 'Couldn\'t delete $name';
+  }
+
+  @override
+  String calendarMyHolidaysRestored(String name) {
+    return '$name restored';
+  }
+
+  @override
+  String get calendarMyHolidaysHiddenSection => 'Hidden holidays';
+
+  @override
+  String get calendarMyHolidaysShowAgain => 'Show again';
+
+  @override
+  String get helpCalendarMyHolidaysTitle => 'My holidays';
+
+  @override
+  String get helpCalendarMyHolidaysSummary =>
+      'Your own special days, and the downloaded holidays you chose to hide. Both are shared across your devices.';
+
+  @override
+  String get helpCalendarMyHolidaysAddTitle => 'Add a holiday';
+
+  @override
+  String get helpCalendarMyHolidaysAddBody =>
+      'Add a single day, a range of days, or a day that repeats every year. Choose whether it is a day off. Tap an entry to edit it, or swipe it sideways to delete it; Undo brings it back.';
+
+  @override
+  String get helpCalendarMyHolidaysHiddenTitle => 'Hidden holidays';
+
+  @override
+  String get helpCalendarMyHolidaysHiddenBody =>
+      'Holidays you hid from a day\'s details are listed here. Tap Show again to bring one back on the calendar.';
+
+  @override
+  String get helpCalendarHolidaysMarksTitle => 'Holidays on the calendar';
+
+  @override
+  String get helpCalendarHolidaysMarksBody =>
+      'A 休 mark is a day off and a 班 mark is a make-up workday. Several countries show as coloured dots. Open a day to see each holiday, and tap Hide on one that is wrong for you. The Holidays button chooses the countries.';
 }

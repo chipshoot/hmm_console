@@ -4382,4 +4382,80 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpCalendarHolidaysMineBody =>
       '添加你自己的日子，例如生日或公司休息日，也可以恢复你隐藏过的假日。';
+
+  @override
+  String get calendarMyHolidaysAdd => '添加假日';
+
+  @override
+  String get calendarMyHolidaysEdit => '编辑假日';
+
+  @override
+  String get calendarMyHolidaysName => '名称';
+
+  @override
+  String get calendarMyHolidaysOnce => '仅一次';
+
+  @override
+  String get calendarMyHolidaysYearly => '每年';
+
+  @override
+  String get calendarMyHolidaysEveryYear => '每年';
+
+  @override
+  String get calendarMyHolidaysStart => '开始日期';
+
+  @override
+  String get calendarMyHolidaysEnd => '结束日期（可选）';
+
+  @override
+  String get calendarMyHolidaysDayOff => '休息日';
+
+  @override
+  String calendarMyHolidaysDeleted(String name) {
+    return '已删除$name';
+  }
+
+  @override
+  String calendarMyHolidaysDeleteFailed(String name) {
+    return '无法删除$name';
+  }
+
+  @override
+  String calendarMyHolidaysRestored(String name) {
+    return '已恢复$name';
+  }
+
+  @override
+  String get calendarMyHolidaysHiddenSection => '已隐藏的假日';
+
+  @override
+  String get calendarMyHolidaysShowAgain => '重新显示';
+
+  @override
+  String get helpCalendarMyHolidaysTitle => '我的假日';
+
+  @override
+  String get helpCalendarMyHolidaysSummary =>
+      '你自己的特别日子，以及你选择隐藏的已下载假日。两者都会在你的设备间同步。';
+
+  @override
+  String get helpCalendarMyHolidaysAddTitle => '添加假日';
+
+  @override
+  String get helpCalendarMyHolidaysAddBody =>
+      '可以添加单独一天、连续几天，或每年重复的日子，并选择是否为休息日。点按条目可编辑，向一侧滑动可删除；点“撤销”可恢复。';
+
+  @override
+  String get helpCalendarMyHolidaysHiddenTitle => '已隐藏的假日';
+
+  @override
+  String get helpCalendarMyHolidaysHiddenBody =>
+      '你在某天详情里隐藏的假日会列在这里。点“重新显示”即可让它回到日历上。';
+
+  @override
+  String get helpCalendarHolidaysMarksTitle => '日历上的假日';
+
+  @override
+  String get helpCalendarHolidaysMarksBody =>
+      '“休”表示休息日，“班”表示调休上班日。多个国家会显示为彩色圆点。打开某一天可查看每个假日，对不适用于你的假日点“隐藏”。“节假日”按钮用来选择国家。';
 }

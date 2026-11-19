@@ -7951,6 +7951,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add your own days, such as birthdays or a company day off, and bring back holidays you hid.'**
   String get helpCalendarHolidaysMineBody;
+
+  /// No description provided for @calendarMyHolidaysAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add holiday'**
+  String get calendarMyHolidaysAdd;
+
+  /// No description provided for @calendarMyHolidaysEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit holiday'**
+  String get calendarMyHolidaysEdit;
+
+  /// No description provided for @calendarMyHolidaysName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get calendarMyHolidaysName;
+
+  /// No description provided for @calendarMyHolidaysOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'One-time'**
+  String get calendarMyHolidaysOnce;
+
+  /// No description provided for @calendarMyHolidaysYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every year'**
+  String get calendarMyHolidaysYearly;
+
+  /// No description provided for @calendarMyHolidaysEveryYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Every year'**
+  String get calendarMyHolidaysEveryYear;
+
+  /// No description provided for @calendarMyHolidaysStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get calendarMyHolidaysStart;
+
+  /// No description provided for @calendarMyHolidaysEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End date (optional)'**
+  String get calendarMyHolidaysEnd;
+
+  /// No description provided for @calendarMyHolidaysDayOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Day off'**
+  String get calendarMyHolidaysDayOff;
+
+  /// No description provided for @calendarMyHolidaysDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted'**
+  String calendarMyHolidaysDeleted(String name);
+
+  /// No description provided for @calendarMyHolidaysDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete {name}'**
+  String calendarMyHolidaysDeleteFailed(String name);
+
+  /// No description provided for @calendarMyHolidaysRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} restored'**
+  String calendarMyHolidaysRestored(String name);
+
+  /// No description provided for @calendarMyHolidaysHiddenSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden holidays'**
+  String get calendarMyHolidaysHiddenSection;
+
+  /// No description provided for @calendarMyHolidaysShowAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Show again'**
+  String get calendarMyHolidaysShowAgain;
+
+  /// No description provided for @helpCalendarMyHolidaysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My holidays'**
+  String get helpCalendarMyHolidaysTitle;
+
+  /// No description provided for @helpCalendarMyHolidaysSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own special days, and the downloaded holidays you chose to hide. Both are shared across your devices.'**
+  String get helpCalendarMyHolidaysSummary;
+
+  /// No description provided for @helpCalendarMyHolidaysAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a holiday'**
+  String get helpCalendarMyHolidaysAddTitle;
+
+  /// No description provided for @helpCalendarMyHolidaysAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a single day, a range of days, or a day that repeats every year. Choose whether it is a day off. Tap an entry to edit it, or swipe it sideways to delete it; Undo brings it back.'**
+  String get helpCalendarMyHolidaysAddBody;
+
+  /// No description provided for @helpCalendarMyHolidaysHiddenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden holidays'**
+  String get helpCalendarMyHolidaysHiddenTitle;
+
+  /// No description provided for @helpCalendarMyHolidaysHiddenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Holidays you hid from a day\'s details are listed here. Tap Show again to bring one back on the calendar.'**
+  String get helpCalendarMyHolidaysHiddenBody;
+
+  /// No description provided for @helpCalendarHolidaysMarksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Holidays on the calendar'**
+  String get helpCalendarHolidaysMarksTitle;
+
+  /// No description provided for @helpCalendarHolidaysMarksBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A 休 mark is a day off and a 班 mark is a make-up workday. Several countries show as coloured dots. Open a day to see each holiday, and tap Hide on one that is wrong for you. The Holidays button chooses the countries.'**
+  String get helpCalendarHolidaysMarksBody;
 }
 
 class _AppLocalizationsDelegate
