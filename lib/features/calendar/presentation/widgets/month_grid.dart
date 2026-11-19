@@ -1,8 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/lunar.dart';
+
+const double _lunarFontSize = 9;
+const double _lunarLineHeight = 1.2;
 
 /// A compact month: header with previous/next, weekday initials, day cells
 /// with a dot under days that have events. The first weekday follows the
@@ -47,6 +52,15 @@ class MonthGrid extends StatelessWidget {
 
     final lunar = lunarLabels;
     final cellHeight = lunar == null ? 44.0 : 56.0;
+    // The 9 pt label grows with system text size up to 1.3×, in a box sized
+    // to fit (≤ 15 pt: 30 + 15 + 6 stays inside the 56 pt cell).
+    final lunarScaler = MediaQuery.textScalerOf(
+      context,
+    ).clamp(maxScaleFactor: 1.3);
+    final lunarHeight = math.max(
+      12.0,
+      (lunarScaler.scale(_lunarFontSize) * _lunarLineHeight).ceilToDouble(),
+    );
 
     Widget cell(int? day) {
       if (day == null) return SizedBox(height: cellHeight);
@@ -83,7 +97,7 @@ class MonthGrid extends StatelessWidget {
                 ),
                 if (lunar != null)
                   SizedBox(
-                    height: 12,
+                    height: lunarHeight,
                     child: lunar[day] == null
                         ? null
                         : Text(
@@ -91,9 +105,10 @@ class MonthGrid extends StatelessWidget {
                             key: Key('calendar-lunar-$day'),
                             maxLines: 1,
                             overflow: TextOverflow.clip,
+                            textScaler: lunarScaler,
                             style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 9,
-                              height: 1.2,
+                              fontSize: _lunarFontSize,
+                              height: _lunarLineHeight,
                               color:
                                   lunar[day]!.kind == LunarLabelKind.festival ||
                                       lunar[day]!.kind ==

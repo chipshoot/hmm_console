@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -123,6 +124,42 @@ void main() {
         day: DateTime(2026, 8, 15),
       );
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('on: large text does not clip the label; 6-row month still '
+        'fits a phone', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      SharedPreferences.setMockInitialValues({'calendar.show_lunar': true});
+      await _mount(
+        tester,
+        seeded(),
+        size: const Size(360, 640),
+        day: DateTime(2026, 8, 15),
+      );
+      expect(tester.takeException(), isNull);
+      for (final d in [1, 15, 31]) {
+        final p = tester.renderObject<RenderParagraph>(
+          find.byKey(Key('calendar-lunar-$d')),
+        );
+        expect(
+          p.getMaxIntrinsicHeight(double.infinity),
+          lessThanOrEqualTo(p.size.height),
+          reason: 'label of day $d is cut',
+        );
+      }
+    });
+
+    testWidgets('off: large text leaves the 44 pt row unchanged', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _mount(tester, seeded(), size: const Size(360, 640));
+      expect(
+        tester.getSize(find.byKey(const Key('calendar-day-18'))).height,
+        44,
+      );
     });
   });
 
