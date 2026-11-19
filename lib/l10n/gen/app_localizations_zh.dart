@@ -4458,4 +4458,7 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get helpCalendarHolidaysMarksBody =>
       '“休”表示休息日，“班”表示调休上班日。多个国家会显示为彩色圆点。打开某一天可查看每个假日，对不适用于你的假日点“隐藏”。“节假日”按钮用来选择国家。';
+
+  @override
+  String get calendarMyHolidaysSaveFailed => '无法保存假日';
 }

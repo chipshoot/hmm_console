@@ -66,10 +66,15 @@ class _MyHolidayEditorState extends ConsumerState<MyHolidayEditor> {
       end: _kind == MyHolidayKind.once ? _end : null,
       offDay: _offDay,
     );
+    final messenger = ScaffoldMessenger.of(context);
+    final failed = AppLocalizations.of(context).calendarMyHolidaysSaveFailed;
     setState(() => _saving = true);
     try {
       await notifier.upsert(holiday);
     } catch (_) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(failed)));
       if (mounted) setState(() => _saving = false);
       return;
     }

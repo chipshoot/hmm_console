@@ -2009,5 +2009,6 @@
   "helpCalendarMyHolidaysHiddenTitle": "Hidden holidays",
   "helpCalendarMyHolidaysHiddenBody": "Holidays you hid from a day's details are listed here. Tap Show again to bring one back on the calendar.",
   "helpCalendarHolidaysMarksTitle": "Holidays on the calendar",
-  "helpCalendarHolidaysMarksBody": "A 休 mark is a day off and a 班 mark is a make-up workday. Several countries show as coloured dots. Open a day to see each holiday, and tap Hide on one that is wrong for you. The Holidays button chooses the countries."
+  "helpCalendarHolidaysMarksBody": "A 休 mark is a day off and a 班 mark is a make-up workday. Several countries show as coloured dots. Open a day to see each holiday, and tap Hide on one that is wrong for you. The Holidays button chooses the countries.",
+  "calendarMyHolidaysSaveFailed": "Couldn't save the holiday"
 }

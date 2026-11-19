@@ -78,7 +78,49 @@ Future<void> _tapDate(WidgetTester tester, Key key, int day) async {
   await tester.pumpAndSettle();
 }
 
+class _FailingNotifier extends MyHolidaysNotifier {
+  @override
+  Future<void> upsert(MyHoliday holiday) => Future.error(StateError('x'));
+}
+
 void main() {
+  testWidgets('a failed save shows a message and keeps the page open', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final container = ProviderContainer(
+      overrides: [myHolidaysProvider.overrideWith(_FailingNotifier.new)],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const MyHolidaysScreen(),
+        ),
+      ),
+    );
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('my-holiday-name')), 'Trip');
+    await tester.tap(find.byKey(const Key('my-holiday-save')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text("Couldn't save the holiday"), findsOneWidget);
+    expect(find.byKey(const Key('my-holiday-name')), findsOneWidget);
+    expect(
+      tester
+          .widget<TextButton>(find.byKey(const Key('my-holiday-save')))
+          .onPressed,
+      isNotNull,
+    );
+  });
+
   testWidgets('add a one-time range; the index has it on each day', (
     tester,
   ) async {

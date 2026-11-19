@@ -8083,6 +8083,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A 休 mark is a day off and a 班 mark is a make-up workday. Several countries show as coloured dots. Open a day to see each holiday, and tap Hide on one that is wrong for you. The Holidays button chooses the countries.'**
   String get helpCalendarHolidaysMarksBody;
+
+  /// No description provided for @calendarMyHolidaysSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the holiday'**
+  String get calendarMyHolidaysSaveFailed;
 }
 
 class _AppLocalizationsDelegate
