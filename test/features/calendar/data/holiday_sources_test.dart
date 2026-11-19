@@ -139,6 +139,38 @@ void main() {
     );
   });
 
+  test('bad or missing dates fail with a date reason', () async {
+    Future<void> expectBadDate(HolidayFetch r) async {
+      expect(r, isA<HolidayFetchFailed>());
+      expect((r as HolidayFetchFailed).reason.toString(), contains('bad date'));
+    }
+
+    const nager =
+        '[{"date":"2025-13-40","localName":"x","name":"x","global":true,'
+        '"counties":null,"types":["Public"]}]';
+    await expectBadDate(
+      await NagerSource(dioServing(nager), country: 'CA').fetchYear(2025),
+    );
+    const cn = '{"days":[{"name":"x","date":"2025-13-40","isOffDay":true}]}';
+    await expectBadDate(await HolidayCnSource(dioServing(cn)).fetchYear(2025));
+  });
+
+  test('missing date is a failure', () async {
+    const nager =
+        '[{"localName":"x","name":"x","global":true,"counties":null,'
+        '"types":["Public"]}]';
+    expect(
+      await NagerSource(dioServing(nager), country: 'CA').fetchYear(2025),
+      isA<HolidayFetchFailed>(),
+    );
+    expect(
+      await HolidayCnSource(
+        dioServing('{"days":[{"name":"x","isOffDay":true}]}'),
+      ).fetchYear(2025),
+      isA<HolidayFetchFailed>(),
+    );
+  });
+
   test('requests carry no auth header and only the country/year', () async {
     await sourceFor(
       const HolidayRegion(country: 'CN', color: 0),
