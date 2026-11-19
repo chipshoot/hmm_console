@@ -120,8 +120,11 @@ display.
 
 ### 4. Countries list (synced)
 
-- **Settings → Calendar → Holidays** opens a new screen (with its own `HelpId`
-  and `HelpButton`).
+- **In the calendar, not Settings (owner, 2026-11-19).** A Holidays button
+  (`HmmIconButton`, localized tooltip, flag glyph via `adaptiveIcon`) in the
+  calendar home top bar, before the help button, opens the Holidays screen at
+  `/calendar/holidays` (its own `HelpId` and `HelpButton`). My holidays is at
+  `/calendar/holidays/mine`. Nothing about holidays is added to Settings.
 - The list shows each chosen country (flag, name, region if any, its colour,
   and "Updated <date>" or "2027 not published yet"), plus a **My holidays**
   row.
@@ -139,7 +142,7 @@ display.
   `notesSavedSearches` and `calendarShowLunar`) so older clients don't clobber
   it. Key e.g. `calendar.holiday_regions`. When absent the default is
   **China + Canada (Ontario)**; once the owner edits the list, it is stored.
-- Hidden in Cloud API mode, like the rest of the calendar settings.
+- In Cloud API mode the calendar is unavailable, so the button never shows.
 
 ### 5. My holidays (synced)
 
@@ -191,7 +194,7 @@ display.
 ### 9. Help and docs
 
 - New help entries: Holidays screen, My holidays screen.
-- Updated: month grid help (the marks), calendar settings mention.
+- Updated: calendar home help (the marks and the Holidays button).
 - CLAUDE.md calendar row: one sentence on public holidays.
 
 ## Testing
