@@ -456,6 +456,22 @@ void main() {
       expect(tester.widget<SwitchListTile>(find.byKey(sw)).onChanged, isNull);
     });
 
+    testWidgets('on, then the last device reminder removed: saves false', (
+      tester,
+    ) async {
+      final repo = FakeCalendarRepository();
+      await _mount(tester, repo);
+      await _typeTitle(tester, 'No reminder');
+      await tester.tap(find.byKey(sw));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Remove reminder'));
+      await tester.pumpAndSettle();
+      await _save(tester);
+      final e = repo.events.values.single;
+      expect(e.reminders, isEmpty);
+      expect(e.timeSensitive, isFalse);
+    });
+
     testWidgets('changing only the switch on a repeating event saves to the '
         'series without the scope dialog', (tester) async {
       final repo = FakeCalendarRepository()

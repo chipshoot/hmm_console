@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -138,6 +139,18 @@ void main() {
   testWidgets('hidden in cloud API mode', (tester) async {
     await _mount(tester, mode: DataMode.cloudApi);
     expect(find.byTooltip(_tooltip), findsNothing);
+  });
+
+  testWidgets('hidden where device reminders are unsupported (desktop)', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    try {
+      await _mount(tester);
+      expect(find.byTooltip(_tooltip), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('tapping the bell opens the reminders list', (tester) async {

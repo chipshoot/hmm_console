@@ -21,6 +21,7 @@ import '../../../settings/presentation/widgets/sync_status_card.dart';
 import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../calendar/contract/calendar_errors.dart';
+import '../../../calendar/notifications/notification_gateway.dart';
 import '../../../calendar/states/remind_on_device_provider.dart';
 import '../../../calendar/states/reminders_inbox_state.dart';
 
@@ -518,6 +519,8 @@ class _RemindersBell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Web and desktop never run ReminderSync, so nothing would ever show.
+    if (!calendarRemindersSupported) return const SizedBox.shrink();
     if (!ref.watch(remindOnDeviceProvider)) return const SizedBox.shrink();
     final inbox = ref.watch(remindersInboxProvider);
     // Shown once the first load settles, so Cloud API mode never flashes it.

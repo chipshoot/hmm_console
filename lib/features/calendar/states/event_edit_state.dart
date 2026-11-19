@@ -421,6 +421,9 @@ CalendarEvent buildEvent(
           form.title.trim() == initial.title.trim()
       ? base.title
       : form.title.trim();
+  // Time Sensitive only applies to device reminders; without one it is off,
+  // so the detail screen never labels an event that cannot break through.
+  final timeSensitive = form.timeSensitive && form.hasDeviceReminder;
   if (base == null) {
     return CalendarEvent(
       id: generateUuid(),
@@ -430,7 +433,7 @@ CalendarEvent buildEvent(
       end: end,
       rrule: rrule,
       reminders: form.reminders,
-      timeSensitive: form.timeSensitive,
+      timeSensitive: timeSensitive,
       updatedAt: now.toUtc(),
     );
   }
@@ -444,7 +447,7 @@ CalendarEvent buildEvent(
     rrule: rrule,
     clearRrule: rrule == null,
     reminders: form.reminders,
-    timeSensitive: form.timeSensitive,
+    timeSensitive: timeSensitive,
     updatedAt: now.toUtc(),
   );
 }
