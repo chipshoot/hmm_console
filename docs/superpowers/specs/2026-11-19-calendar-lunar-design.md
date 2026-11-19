@@ -46,6 +46,21 @@ and the month grid reads like a Chinese wall calendar when lunar display is on.
 
 ## Design
 
+### 0. Gregorian is the only internal calendar (owner, 2026-11-19)
+
+Every stored and computed date is Gregorian: event start, occurrence
+overrides (done/skip/move), reminder times, `firedReminders`, grid dots and
+agenda. Lunar exists in exactly two places: the repeat *rule* (converted to
+Gregorian dates inside the expander, nothing downstream sees lunar) and the
+grid *label* (display only, never stored). Any later calendar system
+(holidays, other calendars) follows the same rule: convert to Gregorian at the
+edge.
+
+**Language (owner, 2026-11-19):** all lunar text — days, months, 节气,
+festivals, and the lunar part of repeat descriptions — is Chinese in every app
+language. For the holidays project: holiday names show in each country's own
+language (e.g. 国庆节 for China).
+
 ### 1. Lunar module
 
 - Dependency `lunar: 1.7.8` (pinned exactly; 1.7.9 is under two weeks old).
