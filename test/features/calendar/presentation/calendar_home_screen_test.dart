@@ -369,11 +369,58 @@ void main() {
       _hol('CN', DateTime(2025, 10, 11), '国庆节、中秋节', off: false),
     ];
 
-    testWidgets('grid: one source shows 休 in its colour', (tester) async {
+    Icon markIcon(WidgetTester tester, int day) => tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(Key('calendar-holiday-$day')),
+        matching: find.byType(Icon),
+      ),
+    );
+
+    testWidgets('grid (English, Android): one source shows icons in its '
+        'colour, no Chinese characters', (tester) async {
       await _mount(
         tester,
         FakeCalendarRepository(),
         day: oct1,
+        holidays: _FakeHolidayCache(nationalDay()),
+      );
+      final off = markIcon(tester, 1);
+      expect(off.icon, Icons.beach_access);
+      expect(off.color, kHolidayPalette[0]);
+      expect(off.semanticLabel, 'Day off');
+      final work = markIcon(tester, 11);
+      expect(work.icon, Icons.work);
+      expect(work.color, kHolidayPalette[0]);
+      expect(work.semanticLabel, 'Workday');
+      expect(find.text('休'), findsNothing);
+      expect(find.text('班'), findsNothing);
+      expect(find.byKey(const Key('calendar-holiday-9')), findsNothing);
+      expect(
+        tester.getSize(find.byKey(const Key('calendar-day-1'))).height,
+        44,
+      );
+    });
+
+    testWidgets('grid (English, iOS): Apple glyphs', (tester) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: oct1,
+        platform: TargetPlatform.iOS,
+        holidays: _FakeHolidayCache(nationalDay()),
+      );
+      expect(markIcon(tester, 1).icon, CupertinoIcons.sun_max_fill);
+      expect(markIcon(tester, 11).icon, CupertinoIcons.briefcase_fill);
+    });
+
+    testWidgets('grid (Chinese): one source shows 休/班 in its colour', (
+      tester,
+    ) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository(),
+        day: oct1,
+        locale: const Locale('zh'),
         holidays: _FakeHolidayCache(nationalDay()),
       );
       final xiu = find.descendant(
@@ -387,6 +434,13 @@ void main() {
         matching: find.text('班'),
       );
       expect(ban, findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('calendar-holiday-1')),
+          matching: find.byType(Icon),
+        ),
+        findsNothing,
+      );
       expect(find.byKey(const Key('calendar-holiday-9')), findsNothing);
       expect(
         tester.getSize(find.byKey(const Key('calendar-day-1'))).height,

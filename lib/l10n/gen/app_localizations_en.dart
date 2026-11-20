@@ -4677,7 +4677,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpCalendarHolidaysMarksBody =>
-      'A 休 mark is a day off and a 班 mark is a make-up workday. Several countries show as coloured dots. Open a day to see each holiday, and tap Hide on one that is wrong for you. The Holidays button chooses the countries.';
+      'An umbrella or sun mark is a day off and a briefcase mark is a make-up workday, in the country\'s colour. Several countries show as coloured dots. Open a day to see each holiday, and tap Hide on one that is wrong for you. The Holidays button chooses the countries.';
 
   @override
   String get calendarMyHolidaysSaveFailed => 'Couldn\'t save the holiday';

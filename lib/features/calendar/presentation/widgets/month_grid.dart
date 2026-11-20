@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/lunar.dart';
@@ -67,23 +69,45 @@ class MonthGrid extends StatelessWidget {
       (lunarScaler.scale(_lunarFontSize) * _lunarLineHeight).ceilToDouble(),
     );
 
-    // The 休/班 mark grows with text size up to 1.3×, like the lunar label.
+    // A single mark is 休/班 in Chinese and an icon in other languages (the
+    // characters mean nothing to non-Chinese readers). Both grow with text
+    // size up to 1.3×, like the lunar label.
+    final hanMarks = Localizations.localeOf(context).languageCode == 'zh';
+    final offIcon = adaptiveIcon(
+      context,
+      material: Icons.beach_access,
+      apple: CupertinoIcons.sun_max_fill,
+    );
+    final workIcon = adaptiveIcon(
+      context,
+      material: Icons.work,
+      apple: CupertinoIcons.briefcase_fill,
+    );
     Widget? holidayMark(int day) {
       final marks = holidayMarks?[day];
       if (marks == null || marks.isEmpty) return null;
       final Widget child;
       if (marks.length == 1) {
         final mk = marks.single;
-        child = Text(
-          mk.offDay ? '休' : '班',
-          textScaler: lunarScaler,
-          style: TextStyle(
-            fontSize: 10,
-            height: 1,
-            fontWeight: FontWeight.bold,
-            color: mk.color,
-          ),
-        );
+        child = hanMarks
+            ? Text(
+                mk.offDay ? '休' : '班',
+                textScaler: lunarScaler,
+                style: TextStyle(
+                  fontSize: 10,
+                  height: 1,
+                  fontWeight: FontWeight.bold,
+                  color: mk.color,
+                ),
+              )
+            : Icon(
+                mk.offDay ? offIcon : workIcon,
+                size: lunarScaler.scale(10),
+                color: mk.color,
+                semanticLabel: mk.offDay
+                    ? l.calendarHolidayDayOff
+                    : l.calendarHolidayWorkday,
+              );
       } else {
         child = Row(
           mainAxisSize: MainAxisSize.min,
