@@ -383,9 +383,13 @@ class EventDetailScreen extends ConsumerWidget {
   ) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // The age needs an occurrence: opened without ?at= (from Notes) the
+    // start is the birth date itself.
     final title =
         eventTitleWithOverride(e, o?.titleOverride, l) +
-        birthdayAgeSuffix(e, eventTimeDate(o?.originalStart ?? e.start), l);
+        (o == null
+            ? ''
+            : birthdayAgeSuffix(e, eventTimeDate(o.originalStart), l));
     final status = o?.status;
     final statusText = switch (status) {
       OccurrenceStatus.done => l.calendarStatusDone,

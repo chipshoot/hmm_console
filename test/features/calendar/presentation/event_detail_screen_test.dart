@@ -363,6 +363,28 @@ void main() {
     expect(find.byTooltip('Edit'), findsOneWidget);
   });
 
+  testWidgets('a birthday opened without an occurrence shows no age', (
+    tester,
+  ) async {
+    final e = _linked();
+    await _mountLinked(
+      tester,
+      FakeCalendarRepository()..seed(
+        e.copyWith(
+          start: const AllDay(1990, 3, 5),
+          extraFields: {
+            'linked': linkedToJson(LinkedKind.birthday, {
+              'name': 'Ann',
+              'birthYear': 1990,
+            }),
+          },
+        ),
+      ),
+    );
+    expect(find.textContaining('Ann'), findsWidgets);
+    expect(find.textContaining('turns'), findsNothing);
+  });
+
   testWidgets('tapping Open pushes the contact screen', (tester) async {
     await _mountLinked(tester, FakeCalendarRepository()..seed(_linked()));
     await tester.tap(find.text('Open Contacts'));
