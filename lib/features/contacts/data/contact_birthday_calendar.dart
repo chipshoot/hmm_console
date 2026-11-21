@@ -7,7 +7,7 @@ import '../domain/entities/contact_birthday.dart';
 
 /// First day of the birthday series: the birth year when known (and, for a
 /// lunar date, inside the supported range), else 2000. Null when the lunar
-/// date cannot be resolved (the caller skips it).
+/// date cannot be resolved (e.g. an invalid month); the caller skips it.
 AllDay? birthdaySeriesStart(ContactBirthday b) {
   if (b.calendar == BirthdayCalendar.gregorian) {
     return AllDay(b.year ?? 2000, b.month, b.day);
@@ -15,9 +15,7 @@ AllDay? birthdaySeriesStart(ContactBirthday b) {
   final y = b.year;
   final inRange = y != null && y >= kLunarMinYear && y <= kLunarMaxYear;
   final d = fromLunarBackward(inRange ? y : 2000, b.month, b.day, leap: b.leap);
-  return d == null
-      ? AllDay(2000, b.month, b.day)
-      : AllDay(d.year, d.month, d.day);
+  return d == null ? null : AllDay(d.year, d.month, d.day);
 }
 
 RecurrenceRule birthdayRule(ContactBirthday b) =>

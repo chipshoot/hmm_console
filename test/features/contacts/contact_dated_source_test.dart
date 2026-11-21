@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/calendar/contract/dated_note.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/contacts/data/contact_birthday_calendar.dart';
 import 'package:hmm_console/features/contacts/data/contact_dated_source.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
-import 'package:hmm_console/features/contacts/data/contact_birthday_calendar.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_birthday.dart';
 
 import 'data/contact_repository_fakes.dart';
@@ -82,19 +82,35 @@ void main() {
     );
   });
 
-  test('lunar 2099 month 12 day 30 does not throw in the source', () async {
+  test(
+    'lunar 2099 month 12 day 30 yields an item starting 2100-02-08',
+    () async {
+      repo.seed(
+        _c(
+          b: const ContactBirthday(
+            calendar: BirthdayCalendar.lunar,
+            month: 12,
+            day: 30,
+            year: 2099,
+          ),
+        ),
+      );
+      final item = (await source.datedNotes()).single.dates.single;
+      expect((item.date.year, item.date.month, item.date.day), (2100, 2, 8));
+    },
+  );
+
+  test('an unresolvable lunar birthday emits no item', () async {
     repo.seed(
       _c(
         b: const ContactBirthday(
           calendar: BirthdayCalendar.lunar,
-          month: 12,
-          day: 30,
-          year: 2099,
+          month: 13,
+          day: 1,
         ),
       ),
     );
-    // An item or a skip are both fine; it must not throw.
     final notes = await source.datedNotes();
-    expect(notes.length, lessThanOrEqualTo(1));
+    expect([for (final n in notes) ...n.dates], isEmpty);
   });
 }

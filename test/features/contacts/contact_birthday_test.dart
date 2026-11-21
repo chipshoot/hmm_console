@@ -100,15 +100,26 @@ void main() {
     },
   );
 
-  test('lunar 2099 month 12 day 30 does not throw (null or a date)', () {
+  test('lunar 2099 month 12 day 30 resolves into February 2100', () {
     const b = ContactBirthday(
       calendar: BirthdayCalendar.lunar,
       month: 12,
       day: 30,
       year: 2099,
     );
-    // Either a start date or null is acceptable; the source skips a null.
-    expect(() => birthdaySeriesStart(b), returnsNormally);
-    expect(() => nextBirthday(b, DateTime(2026, 1, 1)), returnsNormally);
+    final s = birthdaySeriesStart(b)!;
+    expect((s.year, s.month, s.day), (2100, 2, 8));
+    expect(nextBirthday(b, DateTime(2026, 1, 1)), isNull);
+  });
+
+  test('an unresolvable lunar birthday has no start and no next date', () {
+    // Not constructible through fromJson; the model is const-unvalidated.
+    const b = ContactBirthday(
+      calendar: BirthdayCalendar.lunar,
+      month: 13,
+      day: 1,
+    );
+    expect(birthdaySeriesStart(b), isNull);
+    expect(nextBirthday(b, DateTime(2026, 1, 1)), isNull);
   });
 }
