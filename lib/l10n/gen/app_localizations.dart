@@ -7556,6 +7556,78 @@ abstract class AppLocalizations {
   /// **'Diabetes'**
   String get calendarSubsystemDiabetes;
 
+  /// No description provided for @calendarSubsystemDriverLicence.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver\'s licence'**
+  String get calendarSubsystemDriverLicence;
+
+  /// No description provided for @calendarSubsystemAutomobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle'**
+  String get calendarSubsystemAutomobile;
+
+  /// No description provided for @calendarSubsystemInsurance.
+  ///
+  /// In en, this message translates to:
+  /// **'Insurance'**
+  String get calendarSubsystemInsurance;
+
+  /// No description provided for @calendarSubsystemScheduledService.
+  ///
+  /// In en, this message translates to:
+  /// **'Car service'**
+  String get calendarSubsystemScheduledService;
+
+  /// No description provided for @calendarSubsystemContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get calendarSubsystemContacts;
+
+  /// No description provided for @calendarOpenSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {source}'**
+  String calendarOpenSource(String source);
+
+  /// No description provided for @calendarLinkedChangeIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Change it in {source}'**
+  String calendarLinkedChangeIn(String source);
+
+  /// No description provided for @calendarOpenSourceGone.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s no longer there'**
+  String get calendarOpenSourceGone;
+
+  /// No description provided for @helpCalendarEventLinkedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked events'**
+  String get helpCalendarEventLinkedTitle;
+
+  /// No description provided for @helpCalendarEventLinkedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'An event kept on the calendar for a licence, vehicle, policy, service or birthday. Open goes to its source, where you change the title, date or repeat. You can change its reminders, Time Sensitive and notes here, and mark it done or skipped. It has no Delete: switch it off at the source.'**
+  String get helpCalendarEventLinkedBody;
+
+  /// No description provided for @helpCalendarEventEditLinkedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked events'**
+  String get helpCalendarEventEditLinkedTitle;
+
+  /// No description provided for @helpCalendarEventEditLinkedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The title, date and repeat of a linked event are set by its source and cannot be changed here. Reminders, Time Sensitive and notes can.'**
+  String get helpCalendarEventEditLinkedBody;
+
   /// No description provided for @calendarDraftBanner.
   ///
   /// In en, this message translates to:

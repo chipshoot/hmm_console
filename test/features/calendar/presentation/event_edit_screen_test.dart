@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/help/help_registry.dart';
 import 'package:hmm_console/features/calendar/contract/i_reminder_scheduler.dart';
+import 'package:hmm_console/features/calendar/contract/dated_note.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/calendar/domain/linked_event.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
 import 'package:hmm_console/features/calendar/domain/lunar.dart';
 import 'package:hmm_console/features/calendar/domain/recurrence_rule.dart';
@@ -151,6 +153,21 @@ CalendarEvent _ev(
   end: end,
   rrule: rrule,
   reminders: reminders,
+  notes: 'keep me',
+  updatedAt: DateTime.utc(2020),
+);
+
+CalendarEvent _linkedEv() => CalendarEvent(
+  id: 'l',
+  title: 'stored title',
+  start: const AllDay(2030, 3, 5),
+  rrule: 'RSCALE=GREGORIAN;FREQ=YEARLY;SKIP=BACKWARD',
+  owner: const EventOwner(subsystem: 'contacts', noteUuid: 'c1'),
+  source: EventSource.subsystem,
+  extraFields: {
+    'linked': linkedToJson(LinkedKind.birthday, {'name': 'Ann'}),
+  },
+  reminders: const [Reminder(minutesBefore: 0)],
   notes: 'keep me',
   updatedAt: DateTime.utc(2020),
 );
@@ -863,5 +880,46 @@ void main() {
       expect(find.text('Clear'), findsOneWidget);
       expect(find.text('Yearly'), findsNothing);
     });
+  });
+
+  testWidgets('linked event: title, date and repeat are read-only; reminders '
+      'and notes editable; save keeps start and rrule', (tester) async {
+    final repo = FakeCalendarRepository()..seed(_linkedEv());
+    await _mount(tester, repo, eventId: 'l');
+    expect(find.text('Change it in Contacts'), findsOneWidget);
+    expect(find.text("Ann's birthday"), findsOneWidget);
+    expect(find.byKey(const Key('calendar-edit-title')), findsNothing);
+
+    // The date buttons ignore taps: no picker opens.
+    await tester.tap(
+      find.byKey(const Key('calendar-edit-start-date')),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const Key('calendar-edit-notes')),
+      'new note',
+    );
+    await tester.tap(find.byTooltip('Remove reminder'));
+    await tester.pump();
+    await _save(tester);
+    final e = repo.events['l']!;
+    expect(e.title, 'stored title');
+    expect(e.start, const AllDay(2030, 3, 5));
+    expect(e.rrule, 'RSCALE=GREGORIAN;FREQ=YEARLY;SKIP=BACKWARD');
+    expect(e.notes, 'new note');
+    expect(e.reminders, isEmpty);
+    expect(e.extraFields['linked'], isNotNull);
+    expect(e.owner?.noteUuid, 'c1');
+  });
+
+  testWidgets('a hand-made event keeps editable fields', (tester) async {
+    final repo = FakeCalendarRepository()
+      ..seed(_ev('h', _fixed(2030, 1, 15, 10), end: _fixed(2030, 1, 15, 11)));
+    await _mount(tester, repo, eventId: 'h');
+    expect(find.text('Change it in Contacts'), findsNothing);
+    expect(find.byKey(const Key('calendar-edit-title')), findsOneWidget);
   });
 }

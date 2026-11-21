@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/help/help_registry.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hmm_console/features/calendar/contract/dated_note.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/calendar/domain/linked_event.dart';
+import 'package:hmm_console/features/calendar/linked/dated_note_sources_provider.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
 import 'package:hmm_console/features/calendar/presentation/screens/event_detail_screen.dart';
 import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
@@ -81,6 +85,73 @@ Future<void> _menu(WidgetTester tester, String item) async {
   await tester.tap(find.byTooltip('More actions'));
   await tester.pumpAndSettle();
   await tester.tap(find.text(item));
+  await tester.pumpAndSettle();
+}
+
+class _Source implements DatedNoteSource {
+  _Source(this.location);
+  final String? location;
+  @override
+  Set<String> get subsystems => {'contacts'};
+  @override
+  Future<List<DatedNote>> datedNotes() async => const [];
+  @override
+  Future<String?> locationOf(EventOwner owner) async =>
+      location == null ? null : '$location/${owner.noteUuid}';
+}
+
+CalendarEvent _linked() => CalendarEvent(
+  id: 'l',
+  title: 'stored title',
+  start: const AllDay(2030, 3, 5),
+  rrule: 'RSCALE=GREGORIAN;FREQ=YEARLY;SKIP=BACKWARD',
+  owner: const EventOwner(subsystem: 'contacts', noteUuid: 'c1'),
+  source: EventSource.subsystem,
+  extraFields: {
+    'linked': linkedToJson(LinkedKind.birthday, {'name': 'Ann'}),
+  },
+  reminders: const [Reminder(minutesBefore: 0)],
+  updatedAt: DateTime.utc(2020),
+);
+
+Future<void> _mountLinked(
+  WidgetTester tester,
+  FakeCalendarRepository repo, {
+  String? location = '/contacts',
+}) async {
+  tester.view.physicalSize = const Size(390, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final c = ProviderContainer(
+    overrides: [
+      dataModeProvider.overrideWith(() => _Mode(DataMode.local)),
+      localCalendarRepositoryProvider.overrideWithValue(repo),
+      datedNoteSourcesProvider.overrideWithValue([_Source(location)]),
+    ],
+  );
+  addTearDown(c.dispose);
+  final router = GoRouter(
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (_, _) => const EventDetailScreen(eventId: 'l'),
+      ),
+      GoRoute(
+        path: '/contacts/:id',
+        builder: (_, s) => Text('contact page ${s.pathParameters['id']}'),
+      ),
+    ],
+  );
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: c,
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -280,6 +351,41 @@ void main() {
       find.textContaining('available in Local and Cloud storage'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('linked event: no Delete, Open Contacts shown, Edit kept', (
+    tester,
+  ) async {
+    await _mountLinked(tester, FakeCalendarRepository()..seed(_linked()));
+    expect(find.text('From Contacts'), findsOneWidget);
+    expect(find.text('Open Contacts'), findsOneWidget);
+    expect(find.byTooltip('More actions'), findsNothing);
+    expect(find.byTooltip('Edit'), findsOneWidget);
+  });
+
+  testWidgets('tapping Open pushes the contact screen', (tester) async {
+    await _mountLinked(tester, FakeCalendarRepository()..seed(_linked()));
+    await tester.tap(find.text('Open Contacts'));
+    await tester.pumpAndSettle();
+    expect(find.text('contact page c1'), findsOneWidget);
+  });
+
+  testWidgets('Open when the source is gone says so', (tester) async {
+    await _mountLinked(
+      tester,
+      FakeCalendarRepository()..seed(_linked()),
+      location: null,
+    );
+    await tester.tap(find.text('Open Contacts'));
+    await tester.pumpAndSettle();
+    expect(find.text("It's no longer there"), findsOneWidget);
+    expect(find.text('contact page c1'), findsNothing);
+  });
+
+  testWidgets('a hand-made event keeps Delete and has no Open', (tester) async {
+    await _mount(tester, FakeCalendarRepository()..seed(_ev('r')));
+    expect(find.byTooltip('More actions'), findsOneWidget);
+    expect(find.textContaining('Open '), findsNothing);
   });
 
   test('help for the event screen resolves in en and zh', () {

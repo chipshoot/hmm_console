@@ -147,6 +147,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpCalendarEventDeleteTitle,
         body: l.helpCalendarEventDeleteBody,
       ),
+      HelpEntry(
+        icon: Icons.link,
+        title: l.helpCalendarEventLinkedTitle,
+        body: l.helpCalendarEventLinkedBody,
+      ),
     ],
   ),
   HelpId.calendarEventEdit => ScreenHelp(
@@ -177,6 +182,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.notification_important_outlined,
         title: l.helpCalendarEventEditTimeSensitiveTitle,
         body: l.helpCalendarEventEditTimeSensitiveBody,
+      ),
+      HelpEntry(
+        icon: Icons.link,
+        title: l.helpCalendarEventEditLinkedTitle,
+        body: l.helpCalendarEventEditLinkedBody,
       ),
     ],
   ),

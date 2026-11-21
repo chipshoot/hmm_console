@@ -13,9 +13,13 @@ import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../contract/calendar_errors.dart';
+import '../../contract/dated_note.dart';
 import '../../contract/i_calendar_repository.dart';
 import '../../domain/calendar_event.dart';
 import '../../domain/event_time.dart';
+import '../../domain/linked_event.dart';
+import '../../linked/dated_note_sources_provider.dart';
+import '../../linked/linked_source_location.dart';
 import '../linked_event_title.dart';
 import '../../states/calendar_providers.dart';
 import '../../states/event_edit_state.dart';
@@ -30,6 +34,11 @@ enum _Delete { one, following, series }
 String subsystemLabel(String subsystem, AppLocalizations l) =>
     switch (subsystem) {
       'diabetes' => l.calendarSubsystemDiabetes,
+      kLinkedSubsystemLicence => l.calendarSubsystemDriverLicence,
+      kLinkedSubsystemAutomobile => l.calendarSubsystemAutomobile,
+      kLinkedSubsystemInsurance => l.calendarSubsystemInsurance,
+      kLinkedSubsystemScheduledService => l.calendarSubsystemScheduledService,
+      kLinkedSubsystemContacts => l.calendarSubsystemContacts,
       _ =>
         subsystem.isEmpty
             ? subsystem
@@ -235,6 +244,30 @@ class EventDetailScreen extends ConsumerWidget {
     }
   }
 
+  /// Goes to the screen the linked event's date comes from, or says it is
+  /// gone. The sources are read before the lookup awaits.
+  Future<void> _openSource(
+    BuildContext context,
+    WidgetRef ref,
+    EventOwner owner,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final sources = ref.read(datedNoteSourcesProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    String? location;
+    try {
+      location = await linkedSourceLocation(sources, owner);
+    } catch (err) {
+      debugPrint('Calendar source lookup failed (${err.runtimeType})');
+    }
+    if (!context.mounted) return;
+    if (location == null) {
+      messenger.showSnackBar(SnackBar(content: Text(l.calendarOpenSourceGone)));
+      return;
+    }
+    context.push(location);
+  }
+
   Future<void> _approve(
     BuildContext context,
     WidgetRef ref,
@@ -409,6 +442,16 @@ class EventDetailScreen extends ConsumerWidget {
               l.calendarFromSubsystem(subsystemLabel(owner.subsystem, l)),
             ),
           ),
+        if (owner != null && linkedInfoOf(e) != null)
+          ListTile(
+            key: const Key('calendar-open-source'),
+            leading: const Icon(Icons.link),
+            title: Text(
+              l.calendarOpenSource(subsystemLabel(owner.subsystem, l)),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openSource(context, ref, owner),
+          ),
         if (e.reminders.isEmpty)
           ListTile(
             leading: const Icon(Icons.notifications_off_outlined),
@@ -479,15 +522,17 @@ class EventDetailScreen extends ConsumerWidget {
                 queryParameters: {'at': ?at},
               ),
             ),
-            HmmIconButton(
-              icon: adaptiveIcon(
-                context,
-                material: Icons.more_vert,
-                apple: CupertinoIcons.ellipsis_circle,
+            // A linked event is removed at its source, never here.
+            if (linkedInfoOf(event) == null)
+              HmmIconButton(
+                icon: adaptiveIcon(
+                  context,
+                  material: Icons.more_vert,
+                  apple: CupertinoIcons.ellipsis_circle,
+                ),
+                tooltip: l.calendarMoreActions,
+                onPressed: () => _delete(context, ref, event, occurrence),
               ),
-              tooltip: l.calendarMoreActions,
-              onPressed: () => _delete(context, ref, event, occurrence),
-            ),
           ],
           const HelpButton(helpId: HelpId.calendarEvent),
         ],

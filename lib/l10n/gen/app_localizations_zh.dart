@@ -4170,6 +4170,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get calendarSubsystemDiabetes => '糖尿病';
 
   @override
+  String get calendarSubsystemDriverLicence => '驾照';
+
+  @override
+  String get calendarSubsystemAutomobile => '车辆';
+
+  @override
+  String get calendarSubsystemInsurance => '保险';
+
+  @override
+  String get calendarSubsystemScheduledService => '保养';
+
+  @override
+  String get calendarSubsystemContacts => '联系人';
+
+  @override
+  String calendarOpenSource(String source) {
+    return '打开$source';
+  }
+
+  @override
+  String calendarLinkedChangeIn(String source) {
+    return '请在$source中修改';
+  }
+
+  @override
+  String get calendarOpenSourceGone => '已不存在';
+
+  @override
+  String get helpCalendarEventLinkedTitle => '关联日程';
+
+  @override
+  String get helpCalendarEventLinkedBody =>
+      '为驾照、车辆、保单、保养或生日保留在日历上的日程。“打开”会进入它的来源，标题、日期和重复要在那里修改。这里可以改它的提醒、时间敏感和备注，也可以标记完成或跳过。它没有删除：请在来源中关闭。';
+
+  @override
+  String get helpCalendarEventEditLinkedTitle => '关联日程';
+
+  @override
+  String get helpCalendarEventEditLinkedBody =>
+      '关联日程的标题、日期和重复由来源决定，这里不能修改。提醒、时间敏感和备注可以修改。';
+
+  @override
   String get calendarDraftBanner => '建议的日程。批准后保留，并开始提醒。';
 
   @override

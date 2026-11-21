@@ -8,17 +8,20 @@ import '../../../../l10n/gen/app_localizations.dart';
 import '../../contract/calendar_errors.dart';
 import '../../contract/i_calendar_repository.dart';
 import '../../domain/calendar_event.dart';
+import '../../domain/linked_event.dart';
 import '../../notifications/local_reminder_scheduler.dart';
 import '../../notifications/reminder_sync.dart';
 import '../../states/calendar_providers.dart';
 import '../../states/event_edit_state.dart';
 import '../../states/remind_on_device_provider.dart';
+import '../linked_event_title.dart';
 import '../widgets/calendar_cloud_api_message.dart';
 import '../widgets/edit_scope_dialog.dart';
 import '../widgets/platform_date_time_pickers.dart';
 import '../widgets/reminder_list_editor.dart';
 import '../widgets/repeat_picker.dart';
 import '../widgets/unreadable_event_tile.dart';
+import 'event_detail_screen.dart' show subsystemLabel;
 
 enum _Load { loading, ready, notFound, unreadable, cloudApi, failed }
 
@@ -151,6 +154,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
         at != null &&
         initial != null &&
         isRepeating(base) &&
+        linkedInfoOf(base) == null &&
         !_seriesFieldsChanged(f, initial)) {
       final s = await showEditScopeDialog(context);
       if (s == null || !mounted) return;
@@ -288,60 +292,97 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     final l = AppLocalizations.of(context);
     final f = _form;
     final error = Theme.of(context).colorScheme.error;
+    final base = _event;
+    final linked = base == null ? null : linkedInfoOf(base);
+    final owner = base?.owner;
+    final timing = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: TextField(
+          key: const Key('calendar-edit-title'),
+          controller: _title,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            labelText: l.calendarTitleLabel,
+            border: const OutlineInputBorder(),
+            errorText: _showErrors && f.titleMissing
+                ? l.calendarTitleRequired
+                : null,
+          ),
+          onChanged: (v) => _update(_form.copyWith(title: v)),
+        ),
+      ),
+      SwitchListTile.adaptive(
+        key: const Key('calendar-edit-allday'),
+        secondary: const Icon(Icons.wb_sunny_outlined),
+        title: Text(l.calendarAllDay),
+        value: f.allDay,
+        onChanged: _setAllDay,
+      ),
+      _timeRow(
+        context,
+        label: l.calendarStartLabel,
+        value: f.start,
+        keyPrefix: 'calendar-edit-start',
+        onDate: () => _pickStart(time: false),
+        onTime: () => _pickStart(time: true),
+      ),
+      _timeRow(
+        context,
+        label: l.calendarEndLabel,
+        value: f.end,
+        keyPrefix: 'calendar-edit-end',
+        onDate: () => _pickEnd(time: false),
+        onTime: () => _pickEnd(time: true),
+      ),
+      if (f.endBeforeStart)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(l.calendarEndBeforeStart, style: TextStyle(color: error)),
+        ),
+      const Divider(),
+      _sectionLabel(context, l.calendarRepeatLabel),
+      RepeatPicker(form: f, onChanged: _update),
+      const Divider(),
+    ];
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: TextField(
-            key: const Key('calendar-edit-title'),
-            controller: _title,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: l.calendarTitleLabel,
-              border: const OutlineInputBorder(),
-              errorText: _showErrors && f.titleMissing
-                  ? l.calendarTitleRequired
-                  : null,
-            ),
-            onChanged: (v) => _update(_form.copyWith(title: v)),
-          ),
-        ),
-        SwitchListTile.adaptive(
-          key: const Key('calendar-edit-allday'),
-          secondary: const Icon(Icons.wb_sunny_outlined),
-          title: Text(l.calendarAllDay),
-          value: f.allDay,
-          onChanged: _setAllDay,
-        ),
-        _timeRow(
-          context,
-          label: l.calendarStartLabel,
-          value: f.start,
-          keyPrefix: 'calendar-edit-start',
-          onDate: () => _pickStart(time: false),
-          onTime: () => _pickStart(time: true),
-        ),
-        _timeRow(
-          context,
-          label: l.calendarEndLabel,
-          value: f.end,
-          keyPrefix: 'calendar-edit-end',
-          onDate: () => _pickEnd(time: false),
-          onTime: () => _pickEnd(time: true),
-        ),
-        if (f.endBeforeStart)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              l.calendarEndBeforeStart,
-              style: TextStyle(color: error),
+        if (linked != null && owner != null) ...[
+          ListTile(
+            key: const Key('calendar-edit-linked-note'),
+            leading: const Icon(Icons.link),
+            title: Text(
+              l.calendarLinkedChangeIn(subsystemLabel(owner.subsystem, l)),
             ),
           ),
-        const Divider(),
-        _sectionLabel(context, l.calendarRepeatLabel),
-        RepeatPicker(form: f, onChanged: _update),
-        const Divider(),
+          // The source owns the title, date and repeat; shown, not editable.
+          IgnorePointer(
+            child: ExcludeFocus(
+              child: Opacity(
+                opacity: 0.6,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: l.calendarTitleLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        child: Text(
+                          eventTitleWithOverride(base!, _at?.titleOverride, l),
+                        ),
+                      ),
+                    ),
+                    ...timing.skip(1),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ] else
+          ...timing,
         _sectionLabel(context, l.calendarRemindersLabel),
         ReminderListEditor(
           reminders: f.reminders,

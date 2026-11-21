@@ -4369,6 +4369,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarSubsystemDiabetes => 'Diabetes';
 
   @override
+  String get calendarSubsystemDriverLicence => 'Driver\'s licence';
+
+  @override
+  String get calendarSubsystemAutomobile => 'Vehicle';
+
+  @override
+  String get calendarSubsystemInsurance => 'Insurance';
+
+  @override
+  String get calendarSubsystemScheduledService => 'Car service';
+
+  @override
+  String get calendarSubsystemContacts => 'Contacts';
+
+  @override
+  String calendarOpenSource(String source) {
+    return 'Open $source';
+  }
+
+  @override
+  String calendarLinkedChangeIn(String source) {
+    return 'Change it in $source';
+  }
+
+  @override
+  String get calendarOpenSourceGone => 'It\'s no longer there';
+
+  @override
+  String get helpCalendarEventLinkedTitle => 'Linked events';
+
+  @override
+  String get helpCalendarEventLinkedBody =>
+      'An event kept on the calendar for a licence, vehicle, policy, service or birthday. Open goes to its source, where you change the title, date or repeat. You can change its reminders, Time Sensitive and notes here, and mark it done or skipped. It has no Delete: switch it off at the source.';
+
+  @override
+  String get helpCalendarEventEditLinkedTitle => 'Linked events';
+
+  @override
+  String get helpCalendarEventEditLinkedBody =>
+      'The title, date and repeat of a linked event are set by its source and cannot be changed here. Reminders, Time Sensitive and notes can.';
+
+  @override
   String get calendarDraftBanner =>
       'Suggested event. Approve it to keep it and get its reminders.';
 

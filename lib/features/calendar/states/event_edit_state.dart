@@ -5,6 +5,7 @@ import '../../../core/util/uuid.dart';
 import '../contract/i_reminder_scheduler.dart';
 import '../domain/calendar_event.dart';
 import '../domain/event_time.dart';
+import '../domain/linked_event.dart';
 import '../domain/lunar.dart';
 import '../domain/occurrence.dart';
 import '../domain/recurrence_expander.dart';
@@ -527,6 +528,17 @@ CalendarEvent buildEvent(
       start: start,
       end: end,
       rrule: rrule,
+      reminders: form.reminders,
+      timeSensitive: timeSensitive,
+      updatedAt: now.toUtc(),
+    );
+  }
+  if (linkedInfoOf(base) != null) {
+    // A linked event's title, date and repeat belong to its source: only
+    // reminders, Time Sensitive and notes are the user's.
+    return base.copyWith(
+      notes: notes,
+      clearNotes: notes == null,
       reminders: form.reminders,
       timeSensitive: timeSensitive,
       updatedAt: now.toUtc(),
