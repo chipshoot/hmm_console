@@ -295,23 +295,23 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     final base = _event;
     final linked = base == null ? null : linkedInfoOf(base);
     final owner = base?.owner;
-    final timing = <Widget>[
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: TextField(
-          key: const Key('calendar-edit-title'),
-          controller: _title,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            labelText: l.calendarTitleLabel,
-            border: const OutlineInputBorder(),
-            errorText: _showErrors && f.titleMissing
-                ? l.calendarTitleRequired
-                : null,
-          ),
-          onChanged: (v) => _update(_form.copyWith(title: v)),
+    final titleField = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: TextField(
+        key: const Key('calendar-edit-title'),
+        controller: _title,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(
+          labelText: l.calendarTitleLabel,
+          border: const OutlineInputBorder(),
+          errorText: _showErrors && f.titleMissing
+              ? l.calendarTitleRequired
+              : null,
         ),
+        onChanged: (v) => _update(_form.copyWith(title: v)),
       ),
+    );
+    final timing = <Widget>[
       SwitchListTile.adaptive(
         key: const Key('calendar-edit-allday'),
         secondary: const Icon(Icons.wb_sunny_outlined),
@@ -375,14 +375,16 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
                         ),
                       ),
                     ),
-                    ...timing.skip(1),
+                    ...timing,
                   ],
                 ),
               ),
             ),
           ),
-        ] else
+        ] else ...[
+          titleField,
           ...timing,
+        ],
         _sectionLabel(context, l.calendarRemindersLabel),
         ReminderListEditor(
           reminders: f.reminders,

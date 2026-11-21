@@ -15,6 +15,7 @@ import '../../contract/calendar_errors.dart';
 import '../../data/holiday_cache.dart';
 import '../../domain/calendar_event.dart';
 import '../../domain/holidays.dart';
+import '../../domain/linked_event.dart';
 import '../../domain/lunar.dart';
 import '../../states/calendar_providers.dart';
 import '../../states/calendar_view_state.dart';
@@ -115,7 +116,7 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
     );
   }
 
-  Future<_RowAction?> _pickAction() {
+  Future<_RowAction?> _pickAction({required bool deletable}) {
     final l = AppLocalizations.of(context);
     if (Theme.of(context).platform == TargetPlatform.iOS) {
       return showCupertinoModalPopup<_RowAction>(
@@ -126,16 +127,18 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
               onPressed: () => Navigator.pop(ctx, _RowAction.edit),
               child: Text(l.calendarEdit),
             ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () => Navigator.pop(ctx, _RowAction.deleteOne),
-              child: Text(l.calendarDeleteThis),
-            ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () => Navigator.pop(ctx, _RowAction.deleteSeries),
-              child: Text(l.calendarDeleteSeries),
-            ),
+            if (deletable) ...[
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () => Navigator.pop(ctx, _RowAction.deleteOne),
+                child: Text(l.calendarDeleteThis),
+              ),
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () => Navigator.pop(ctx, _RowAction.deleteSeries),
+                child: Text(l.calendarDeleteSeries),
+              ),
+            ],
           ],
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.pop(ctx),
@@ -155,16 +158,18 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
               title: Text(l.calendarEdit),
               onTap: () => Navigator.pop(ctx, _RowAction.edit),
             ),
-            ListTile(
-              leading: const Icon(Icons.event_busy_outlined),
-              title: Text(l.calendarDeleteThis),
-              onTap: () => Navigator.pop(ctx, _RowAction.deleteOne),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: Text(l.calendarDeleteSeries),
-              onTap: () => Navigator.pop(ctx, _RowAction.deleteSeries),
-            ),
+            if (deletable) ...[
+              ListTile(
+                leading: const Icon(Icons.event_busy_outlined),
+                title: Text(l.calendarDeleteThis),
+                onTap: () => Navigator.pop(ctx, _RowAction.deleteOne),
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: Text(l.calendarDeleteSeries),
+                onTap: () => Navigator.pop(ctx, _RowAction.deleteSeries),
+              ),
+            ],
           ],
         ),
       ),
@@ -172,7 +177,10 @@ class _CalendarHomeScreenState extends ConsumerState<CalendarHomeScreen> {
   }
 
   Future<void> _menu(AgendaItem i) async {
-    final action = await _pickAction();
+    final action = await _pickAction(
+      // A linked event is removed at its source, never here.
+      deletable: linkedInfoOf(i.event) == null,
+    );
     if (!mounted || action == null) return;
     final l = AppLocalizations.of(context);
     final repo = ref.read(calendarRepositoryProvider);

@@ -6,7 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/help/help_registry.dart';
+import 'package:hmm_console/features/calendar/contract/dated_note.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/calendar/domain/linked_event.dart';
 import 'package:hmm_console/features/calendar/data/holiday_cache.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
 import 'package:hmm_console/features/calendar/domain/holidays.dart';
@@ -264,6 +266,32 @@ void main() {
     expect(repo.log, contains('occ:a:skipped'));
     expect(find.text('Skipped'), findsWidgets);
   });
+
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('long press on a linked row offers Edit and no Delete '
+        '($platform)', (tester) async {
+      final repo = FakeCalendarRepository()
+        ..seed(
+          CalendarEvent(
+            id: 'l',
+            title: 'stored',
+            start: AllDay(_day.year, _day.month, _day.day),
+            owner: const EventOwner(subsystem: 'contacts', noteUuid: 'c1'),
+            source: EventSource.subsystem,
+            extraFields: {
+              'linked': linkedToJson(LinkedKind.birthday, {'name': 'Ann'}),
+            },
+            updatedAt: DateTime.utc(2020),
+          ),
+        );
+      await _mount(tester, repo, platform: platform);
+      await tester.longPress(find.text("Ann's birthday"));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Delete this one'), findsNothing);
+      expect(find.text('Delete series'), findsNothing);
+    });
+  }
 
   testWidgets('long press offers Edit, Delete this one, Delete series', (
     tester,

@@ -922,4 +922,31 @@ void main() {
     expect(find.text('Change it in Contacts'), findsNothing);
     expect(find.byKey(const Key('calendar-edit-title')), findsOneWidget);
   });
+
+  test('buildEvent on a linked base keeps title, start, end and rrule', () {
+    final base = _linkedEv();
+    final initial = EventForm.fromEvent(base);
+    final edited = initial.copyWith(
+      title: 'Hacked',
+      start: DateTime(2031, 6, 7),
+      end: DateTime(2031, 6, 7),
+      notes: 'new notes',
+      reminders: const [Reminder(minutesBefore: 60)],
+      timeSensitive: false,
+    );
+    final e = buildEvent(
+      edited,
+      base: base,
+      initial: initial,
+      now: DateTime.utc(2030),
+    );
+    expect(e.title, base.title);
+    expect(e.start, base.start);
+    expect(e.end, base.end);
+    expect(e.rrule, base.rrule);
+    expect(e.notes, 'new notes');
+    expect(e.reminders, const [Reminder(minutesBefore: 60)]);
+    expect(e.extraFields['linked'], base.extraFields['linked']);
+    expect(e.owner, base.owner);
+  });
 }
