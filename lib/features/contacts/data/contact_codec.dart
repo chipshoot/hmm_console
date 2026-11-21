@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../domain/entities/contact.dart';
+import '../domain/entities/contact_birthday.dart';
 import '../domain/entities/contact_field.dart';
 
 /// `Contact` <-> the JSON map stored as note content.
@@ -52,6 +53,8 @@ class ContactCodec {
     'addresses',
     'relationship',
     'isSelf',
+    'birthday',
+    'remindBirthday',
     'notes',
     'isActivated',
     // Kept verbatim on an untouched save (Contact.storedDisplayName),
@@ -157,6 +160,14 @@ class ContactCodec {
     ]);
     out['relationship'] = _relationshipToJson(c);
     out['isSelf'] = _keep(raw, 'isSelf', c.isSelf, false);
+    // An unreadable birthday decodes to null and is written back verbatim
+    // until the user sets one.
+    final birthday = c.birthday == null && raw.containsKey('birthday')
+        ? raw['birthday']
+        : c.birthday?.toJson();
+    if (birthday != null) out['birthday'] = birthday;
+    final remind = _keep(raw, 'remindBirthday', c.remindBirthday, false);
+    if (remind != false) out['remindBirthday'] = remind;
     _putOptional(out, raw, 'notes', c.notes);
     out['isActivated'] =
         raw.containsKey('isActivated') &&
@@ -264,6 +275,12 @@ class ContactCodec {
       r.raw['nameOrder'] = storedOrder;
     }
 
+    final storedBirthday = m['birthday'];
+    final birthday = ContactBirthday.fromJson(storedBirthday);
+    if (storedBirthday != null && birthday == null) {
+      r.raw['birthday'] = storedBirthday;
+    }
+
     final contact = Contact(
       id: id,
       contactType: ContactType.values.firstWhere(
@@ -322,6 +339,8 @@ class ContactCodec {
         rawCategory: rawCategory,
       ),
       isSelf: r.boolean('isSelf') ?? false,
+      birthday: birthday,
+      remindBirthday: r.boolean('remindBirthday') ?? false,
       notes: r.str('notes'),
       isActivated: r.activated(),
       extraFields: _extras(m, _knownKeys),

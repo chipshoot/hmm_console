@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/contacts/data/contact_codec.dart';
 import 'package:hmm_console/features/contacts/domain/address_format.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
+import 'package:hmm_console/features/contacts/domain/entities/contact_birthday.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
 
 void main() {
@@ -809,6 +810,54 @@ void main() {
           '"relationship":{"category":"other"},"isSelf":false,'
           '"isActivated":true}';
       expect(roundTrip(stored), stored);
+    });
+  });
+
+  group('birthday', () {
+    const bday = ContactBirthday(
+      calendar: BirthdayCalendar.lunar,
+      month: 4,
+      day: 5,
+      leap: true,
+      year: 1985,
+    );
+
+    test('birthday and remindBirthday round-trip', () {
+      final c = full.copyWith(birthday: bday, remindBirthday: true);
+      final map = ContactCodec.toMap(c);
+      expect(map['birthday'], bday.toJson());
+      expect(map['remindBirthday'], true);
+      final back = ContactCodec.fromMap(map);
+      expect(back.birthday, bday);
+      expect(back.remindBirthday, true);
+    });
+
+    test('remindBirthday defaults false and is not written', () {
+      final map = ContactCodec.toMap(full);
+      expect(map.containsKey('remindBirthday'), isFalse);
+      expect(map.containsKey('birthday'), isFalse);
+      expect(ContactCodec.fromMap(map).remindBirthday, isFalse);
+    });
+
+    test('unknown keys still preserved', () {
+      final map = ContactCodec.toMap(full)..['futureKey'] = {'a': 1};
+      expect(ContactCodec.toMap(ContactCodec.fromMap(map))['futureKey'], {
+        'a': 1,
+      });
+    });
+
+    test('an invalid birthday reads as null and the contact still loads', () {
+      final map = ContactCodec.toMap(full)
+        ..['birthday'] = {'calendar': 'lunar', 'month': 13, 'day': 1};
+      final c = ContactCodec.fromMap(map);
+      expect(c.firstName, 'Ada');
+      expect(c.birthday, isNull);
+      // Kept verbatim until the user sets one.
+      expect(ContactCodec.toMap(c)['birthday'], map['birthday']);
+      expect(
+        ContactCodec.toMap(c.copyWith(birthday: bday))['birthday'],
+        bday.toJson(),
+      );
     });
   });
 }

@@ -155,6 +155,12 @@ DateTime? fromLunarBackward(int year, int month, int day, {bool leap = false}) {
 String _monthName(int month, bool leap) =>
     '${leap ? '闰' : ''}${_monthNames[month - 1]}月';
 
+/// 正月 / 闰四月 and so on.
+String lunarMonthName(int month, {bool leap = false}) => _monthName(month, leap);
+
+/// 初一 … 三十.
+String lunarDayName(int day) => _dayNames[day - 1];
+
 String lunarMonthDayText(int month, int day, {bool leap = false}) =>
     '${_monthName(month, leap)}${_dayNames[day - 1]}';
 

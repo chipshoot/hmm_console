@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/repository_providers.dart';
 import '../../automobile_records/data/automobile_dated_source.dart';
+import '../../contacts/data/contact_dated_source.dart';
 import '../../driver_licence/data/licence_dated_source.dart';
 import '../contract/dated_note.dart';
 
@@ -17,5 +18,6 @@ final datedNoteSourcesProvider = Provider<List<DatedNoteSource>>(
       schedules: () => ref.read(scheduledServiceRepositoryModeProvider),
       notes: () => ref.read(hmmNoteRepositoryProvider),
     ),
+    ContactDatedSource(() => ref.read(contactRepositoryModeProvider)),
   ],
 );

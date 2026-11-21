@@ -1,3 +1,4 @@
+import 'contact_birthday.dart';
 import 'contact_field.dart';
 import '../contact_name.dart';
 
@@ -103,6 +104,8 @@ class Contact {
     this.addresses = const [],
     this.relationship = const ContactRelationship(),
     this.isSelf = false,
+    this.birthday,
+    this.remindBirthday = false,
     this.notes,
     this.isActivated = true,
     this.extraFields = const {},
@@ -149,6 +152,12 @@ class Contact {
   /// Marks the "me" contact. At most one across all contacts; enforced in the
   /// repository, not here, because it is a collection-wide rule.
   final bool isSelf;
+
+  /// Optional birthday; unreadable stored values decode to null (kept raw).
+  final ContactBirthday? birthday;
+
+  /// Put the birthday on the calendar. Meaningful only with a [birthday].
+  final bool remindBirthday;
 
   final String? notes;
 
@@ -204,6 +213,8 @@ class Contact {
     List<ContactAddress>? addresses,
     ContactRelationship? relationship,
     bool? isSelf,
+    Object? birthday = _kSentinel,
+    bool? remindBirthday,
     Object? notes = _kSentinel,
     bool? isActivated,
     Map<String, dynamic>? extraFields,
@@ -232,6 +243,10 @@ class Contact {
       addresses: addresses ?? this.addresses,
       relationship: relationship ?? this.relationship,
       isSelf: isSelf ?? this.isSelf,
+      birthday: identical(birthday, _kSentinel)
+          ? this.birthday
+          : birthday as ContactBirthday?,
+      remindBirthday: remindBirthday ?? this.remindBirthday,
       notes: identical(notes, _kSentinel) ? this.notes : notes as String?,
       isActivated: isActivated ?? this.isActivated,
       extraFields: extraFields ?? this.extraFields,
@@ -256,6 +271,8 @@ class Contact {
       addresses: next.addresses,
       relationship: next.relationship,
       isSelf: next.isSelf,
+      birthday: next.birthday,
+      remindBirthday: next.remindBirthday,
       notes: next.notes,
       isActivated: next.isActivated,
       extraFields: next.extraFields,
@@ -293,6 +310,8 @@ class Contact {
           _sameList(other.addresses, addresses) &&
           other.relationship == relationship &&
           other.isSelf == isSelf &&
+          other.birthday == birthday &&
+          other.remindBirthday == remindBirthday &&
           other.notes == notes &&
           other.isActivated == isActivated;
 
@@ -312,6 +331,8 @@ class Contact {
         Object.hashAll(addresses),
         relationship,
         isSelf,
+        birthday,
+        remindBirthday,
         notes,
         isActivated,
       );
