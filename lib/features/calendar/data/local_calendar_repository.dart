@@ -137,6 +137,22 @@ class LocalCalendarRepository implements ICalendarRepository {
   }
 
   @override
+  Future<CalendarEvent?> getEventIncludingDeleted(String id) async {
+    if (id.isEmpty) return null;
+    final note = await _notes.getNoteByUuid(id);
+    if (note == null || note.catalogId != await _catalogId()) return null;
+    return _decode(note);
+  }
+
+  @override
+  Future<List<CalendarEvent>> eventsOwnedBySubsystems(
+    Set<String> subsystems,
+  ) async => [
+    for (final e in await _readable())
+      if (subsystems.contains(e.owner?.subsystem)) e,
+  ];
+
+  @override
   Future<List<CalendarEvent>> eventsOwnedBy(EventOwner owner) async => [
     for (final e in await _readable())
       if (e.owner?.subsystem == owner.subsystem &&

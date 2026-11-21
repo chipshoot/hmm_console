@@ -9,6 +9,10 @@ abstract interface class ICalendarRepository {
   /// is stored but cannot be decoded.
   Future<CalendarEvent?> getEvent(String id);
 
+  /// Like [getEvent] but also decodes a soft-deleted event, so its settings
+  /// can come back. Null when there is no note of this catalog under [id].
+  Future<CalendarEvent?> getEventIncludingDeleted(String id);
+
   /// Upsert by id; sets `updatedAt`. A deleted id is restored, not duplicated.
   Future<CalendarEvent> saveEvent(CalendarEvent event);
 
@@ -16,6 +20,9 @@ abstract interface class ICalendarRepository {
   Future<void> deleteEvent(String id);
 
   Future<List<CalendarEvent>> eventsOwnedBy(EventOwner owner);
+
+  /// Live, readable events whose `owner.subsystem` is in [subsystems].
+  Future<List<CalendarEvent>> eventsOwnedBySubsystems(Set<String> subsystems);
 
   /// Replaces the override with the same `originalStart`, else appends.
   /// Throws `CalendarEventNotFound` for a missing event.

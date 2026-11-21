@@ -58,6 +58,20 @@ class _FakeRepo implements ICalendarRepository {
   }
 
   @override
+  Future<CalendarEvent?> getEventIncludingDeleted(String id) async => [
+    for (final e in events)
+      if (e.id == id) e,
+  ].firstOrNull;
+
+  @override
+  Future<List<CalendarEvent>> eventsOwnedBySubsystems(
+    Set<String> subsystems,
+  ) async => [
+    for (final e in events)
+      if (subsystems.contains(e.owner?.subsystem)) e,
+  ];
+
+  @override
   Stream<void> changes() => _changes.stream;
 
   @override

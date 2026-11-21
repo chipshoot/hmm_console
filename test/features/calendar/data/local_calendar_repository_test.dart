@@ -137,6 +137,43 @@ void main() {
     );
 
     test(
+      'getEventIncludingDeleted returns a soft-deleted event with its reminders',
+      () async {
+        await repo.saveEvent(
+          _ev('d1').copyWith(reminders: const [Reminder(minutesBefore: 60)]),
+        );
+        await repo.deleteEvent('d1');
+
+        final e = await repo.getEventIncludingDeleted('d1');
+
+        expect(e, isNotNull);
+        expect(e!.reminders.single.minutesBefore, 60);
+        expect(await repo.getEventIncludingDeleted('missing'), isNull);
+      },
+    );
+
+    test('getEvent still returns null for a soft-deleted event', () async {
+      await repo.saveEvent(_ev('d2'));
+      await repo.deleteEvent('d2');
+      expect(await repo.getEvent('d2'), isNull);
+    });
+
+    test('eventsOwnedBySubsystems returns only matching live events', () async {
+      EventOwner o(String s) => EventOwner(subsystem: s, noteUuid: 'n-$s');
+      await repo.saveEvent(_ev('o1').copyWith(owner: o('contacts')));
+      await repo.saveEvent(_ev('o2').copyWith(owner: o('insurance')));
+      await repo.saveEvent(_ev('o3').copyWith(owner: o('diabetes')));
+      await repo.saveEvent(_ev('o4').copyWith(owner: o('contacts')));
+      await repo.deleteEvent('o4');
+      await repo.saveEvent(_ev('o5'));
+
+      final got = await repo.eventsOwnedBySubsystems({'contacts', 'insurance'});
+
+      expect(got.map((e) => e.id).toSet(), {'o1', 'o2'});
+      expect(await repo.eventsOwnedBySubsystems({}), isEmpty);
+    });
+
+    test(
       'a deleted uuid saved again restores the same note (Review Focus 2)',
       () async {
         await repo.saveEvent(_ev('e1', title: 'Old'));
