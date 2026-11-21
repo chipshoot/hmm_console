@@ -52,12 +52,8 @@ int _daysIn(ContactBirthday b) => b.calendar == BirthdayCalendar.lunar
 int _minYear(BirthdayCalendar c) => c == BirthdayCalendar.lunar ? 1901 : 1900;
 
 ContactBirthday _clamp(ContactBirthday b) {
-  var year = b.year;
-  if (year != null && year < _minYear(b.calendar)) {
-    year = _minYear(b.calendar);
-  }
-  final day = b.day.clamp(1, _daysIn(_with(b, year: year)));
-  return _with(b, year: year, day: day);
+  // The year is never altered: a stored year outside the wheel's range stays.
+  return _with(b, day: b.day.clamp(1, _daysIn(b)));
 }
 
 ContactBirthday _with(
@@ -90,13 +86,14 @@ class _BirthdayShell extends StatefulWidget {
 }
 
 class _BirthdayShellState extends State<_BirthdayShell> {
-  late ContactBirthday _value =
-      widget.initial ??
-      const ContactBirthday(
-        calendar: BirthdayCalendar.gregorian,
-        month: 1,
-        day: 1,
-      );
+  late ContactBirthday _value = _clamp(
+    widget.initial ??
+        const ContactBirthday(
+          calendar: BirthdayCalendar.gregorian,
+          month: 1,
+          day: 1,
+        ),
+  );
 
   void _pop(BirthdayPickResult? r) => Navigator.of(context).pop(r);
 
@@ -106,6 +103,7 @@ class _BirthdayShellState extends State<_BirthdayShell> {
     final form = _BirthdayForm(
       value: _value,
       apple: widget.apple,
+      storedYear: widget.initial?.year,
       onChanged: (v) => setState(() => _value = _clamp(v)),
     );
     final hasInitial = widget.initial != null;
@@ -176,9 +174,12 @@ class _BirthdayForm extends StatelessWidget {
   const _BirthdayForm({
     required this.value,
     required this.apple,
+    required this.storedYear,
     required this.onChanged,
   });
 
+  /// The year the contact already had; kept selectable even outside the range.
+  final int? storedYear;
   final ContactBirthday value;
   final bool apple;
   final ValueChanged<ContactBirthday> onChanged;
@@ -196,9 +197,11 @@ class _BirthdayForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final years = [
-      for (var y = _minYear(value.calendar); y <= DateTime.now().year; y++) y,
-    ];
+    final now = DateTime.now().year;
+    final years = <int>{
+      for (var y = now; y >= _minYear(value.calendar); y--) y,
+      ?storedYear,
+    }.toList()..sort((a, b) => b.compareTo(a));
     final calendarControl = apple
         ? SizedBox(
             width: double.infinity,
@@ -289,7 +292,7 @@ class _BirthdayForm extends StatelessWidget {
                 count: years.length + 1,
                 selected: value.year == null
                     ? 0
-                    : value.year! - years.first + 1,
+                    : years.indexOf(value.year!) + 1,
                 label: (i) =>
                     i == 0 ? l.contactBirthdayNoYear : '${years[i - 1]}',
                 onChanged: (i) =>
@@ -361,7 +364,7 @@ class _BirthdayForm extends StatelessWidget {
                 value: null,
                 child: Text(l.contactBirthdayNoYear),
               ),
-              for (final y in years.reversed)
+              for (final y in years)
                 DropdownMenuItem<int?>(value: y, child: Text('$y')),
             ],
             onSelected: (y) => onChanged(_with(value, year: y)),

@@ -162,4 +162,24 @@ void main() {
       ),
     );
   });
+
+  for (final p in [TargetPlatform.iOS, TargetPlatform.android]) {
+    for (final year in [1850, DateTime.now().year + 3]) {
+      testWidgets('$p: out-of-range stored year $year survives Done', (
+        tester,
+      ) async {
+        final initial = ContactBirthday(
+          calendar: BirthdayCalendar.gregorian,
+          month: 5,
+          day: 10,
+          year: year,
+        );
+        final result = await _open(tester, p, initial: initial);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.text('Done'));
+        await tester.pumpAndSettle();
+        expect((result()! as BirthdayPicked).birthday, initial);
+      });
+    }
+  }
 }
