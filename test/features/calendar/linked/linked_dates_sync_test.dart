@@ -41,7 +41,7 @@ class _Note implements DatedNote {
 class _Source implements DatedNoteSource {
   _Source(this.items);
   final List<DatedItem> items;
-  bool fail;
+  bool fail = false;
   @override
   Set<String> get subsystems => {'driverLicence'};
   @override
