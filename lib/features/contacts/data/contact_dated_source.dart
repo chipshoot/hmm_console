@@ -1,7 +1,6 @@
 import '../../calendar/contract/dated_note.dart';
 import '../../calendar/domain/calendar_event.dart';
 import '../domain/entities/contact.dart';
-import '../domain/entities/contact_birthday.dart';
 import 'contact_birthday_calendar.dart';
 import 'i_contact_repository.dart';
 
