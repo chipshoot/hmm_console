@@ -10,6 +10,7 @@ import 'package:hmm_console/core/i18n/locale_provider.dart';
 import 'package:hmm_console/core/navigation/router.dart';
 import 'package:hmm_console/core/theme/theme.dart';
 import 'package:hmm_console/core/widgets/home_sync_overlay.dart';
+import 'package:hmm_console/features/calendar/linked/linked_dates_sync.dart';
 import 'package:hmm_console/features/calendar/notifications/notification_gateway.dart';
 import 'package:hmm_console/features/calendar/notifications/notification_tap.dart';
 import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
@@ -70,6 +71,10 @@ class _MainAppState extends ConsumerState<MainApp> {
     // a reminder).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(_startCalendarReminders());
+    });
+    // Linked dates (licence, vehicle, insurance, service, birthday events).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(linkedDatesSyncProvider).start();
     });
   }
 
@@ -136,6 +141,9 @@ class _MainAppState extends ConsumerState<MainApp> {
     ref.listen<NotePurgeScheduler>(notePurgeSchedulerProvider, (previous, next) {});
     // Same for the video upload scheduler (resume, Wi-Fi, after-sync triggers).
     ref.listen<VideoUploadScheduler>(videoUploadSchedulerProvider, (previous, next) {});
+    // Linked dates matcher: a rebuilt instance (sync controller or data mode
+    // change) starts itself.
+    ref.listen<LinkedDatesSync>(linkedDatesSyncProvider, (previous, next) => next.start());
     // Keep the reminder sync alive; a rebuilt instance starts itself.
     if (calendarRemindersSupported) {
       ref.listen<ReminderSync>(reminderSyncProvider, (previous, next) => next.start());

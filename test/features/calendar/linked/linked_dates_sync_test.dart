@@ -1,0 +1,194 @@
+import 'dart:async';
+import 'dart:ui';
+
+import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
+import 'package:fake_async/fake_async.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
+import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
+import 'package:hmm_console/features/calendar/contract/dated_note.dart';
+import 'package:hmm_console/features/calendar/data/local_calendar_repository.dart';
+import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/calendar/domain/event_time.dart';
+import 'package:hmm_console/features/calendar/linked/linked_dates_matcher.dart';
+import 'package:hmm_console/features/calendar/linked/linked_dates_sync.dart';
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
+
+Future<LocalCalendarRepository> _make() async {
+  final db = HmmDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
+  final authorId = await db
+      .into(db.authors)
+      .insert(AuthorsCompanion.insert(accountName: 'tester'));
+  final author = await (db.select(
+    db.authors,
+  )..where((a) => a.id.equals(authorId))).getSingle();
+  return LocalCalendarRepository(
+    LocalHmmNoteRepository(db, () async => author),
+    LocalNoteCatalogRepository(db),
+  );
+}
+
+class _Note implements DatedNote {
+  _Note(this.dates);
+  @override
+  final List<DatedItem> dates;
+}
+
+class _Source implements DatedNoteSource {
+  _Source(this.items);
+  final List<DatedItem> items;
+  bool fail;
+  @override
+  Set<String> get subsystems => {'driverLicence'};
+  @override
+  Future<List<DatedNote>> datedNotes() async {
+    if (fail) throw StateError('boom');
+    return [_Note(items)];
+  }
+
+  @override
+  Future<String?> locationOf(EventOwner owner) async => null;
+}
+
+class _FakeController extends ChangeNotifier {
+  bool syncing = false;
+  bool busy = false;
+  void notify() => notifyListeners();
+  Future<T?> runExclusive<T>(Future<T> Function() body) async {
+    if (syncing || busy) return null;
+    busy = true;
+    try {
+      return await body();
+    } finally {
+      busy = false;
+    }
+  }
+}
+
+final _en = lookupAppLocalizations(const Locale('en'));
+
+DatedItem _licence() => const DatedItem(
+  key: 'licence:expiry',
+  kind: LinkedKind.licenceExpiry,
+  args: {},
+  date: AllDay(2027, 3, 14),
+  owner: EventOwner(subsystem: 'driverLicence', noteUuid: 'self'),
+);
+
+LinkedDatesSync _sync(
+  LocalCalendarRepository repo,
+  _FakeController c,
+  List<DatedNoteSource> sources, {
+  bool cloudApi = false,
+  Stream<void> notes = const Stream.empty(),
+}) => LinkedDatesSync(
+  sources: () => sources,
+  matcher: () => LinkedDatesMatcher(repo, l: _en),
+  isCloudApi: () => cloudApi,
+  noteChanges: () => notes,
+  syncEvents: c,
+  isSyncing: () => c.syncing,
+  runExclusive: c.runExclusive,
+);
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  final id = linkedEventId('licence:expiry');
+
+  test('runs the matcher over every source', () async {
+    final repo = await _make();
+    final sync = _sync(repo, _FakeController(), [
+      _Source([_licence()]),
+    ]);
+    expect(await sync.runNow(), const MatchResult(1, 0, 0));
+    expect(await repo.getEvent(id), isNotNull);
+    sync.dispose();
+  });
+
+  test('a throwing source leaves existing linked events alone', () async {
+    final repo = await _make();
+    final ok = _Source([_licence()]);
+    await _sync(repo, _FakeController(), [ok]).runNow();
+    ok.fail = true;
+    final result = await _sync(repo, _FakeController(), [ok]).runNow();
+    expect(result, isNull);
+    expect(await repo.getEvent(id), isNotNull);
+  });
+
+  test('no run while a sync is in progress', () async {
+    final repo = await _make();
+    final c = _FakeController()..syncing = true;
+    final sync = _sync(repo, c, [
+      _Source([_licence()]),
+    ]);
+    expect(await sync.runNow(), isNull);
+    expect(await repo.getEvent(id), isNull);
+
+    c.syncing = false;
+    sync.start();
+    // start() triggers once; let the debounce and the run finish.
+    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    expect(await repo.getEvent(id), isNotNull);
+    sync.dispose();
+  });
+
+  test('a finished sync triggers a run, a running one does not', () async {
+    final repo = await _make();
+    final c = _FakeController();
+    final sync = _sync(repo, c, [
+      _Source([_licence()]),
+    ])..start();
+    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    await repo.deleteEvent(id);
+    c.syncing = true;
+    c.notify();
+    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    expect(await repo.getEvent(id), isNull);
+    c.syncing = false;
+    c.notify();
+    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    expect(await repo.getEvent(id), isNotNull);
+    sync.dispose();
+  });
+
+  test('cloud API mode does nothing', () async {
+    final repo = await _make();
+    final sync = _sync(repo, _FakeController(), [
+      _Source([_licence()]),
+    ], cloudApi: true);
+    expect(await sync.runNow(), isNull);
+    expect(await repo.getEvent(id), isNull);
+  });
+
+  test('bursts of note changes run once', () {
+    fakeAsync((async) {
+      var runs = 0;
+      final c = _FakeController();
+      final sync = LinkedDatesSync(
+        sources: () => const [],
+        matcher: () {
+          runs++;
+          throw StateError('stop after counting');
+        },
+        isCloudApi: () => false,
+        noteChanges: () => const Stream.empty(),
+        syncEvents: c,
+        isSyncing: () => false,
+        runExclusive: c.runExclusive,
+      );
+      for (var i = 0; i < 5; i++) {
+        sync.trigger();
+        async.elapse(const Duration(milliseconds: 200));
+      }
+      expect(runs, 0);
+      async.elapse(const Duration(milliseconds: 2100));
+      expect(runs, 1);
+      sync.dispose();
+    });
+  });
+}
