@@ -80,6 +80,7 @@ class LocalDriverLicenceRepository implements IDriverLicenceRepository {
   /// note under the same subject.
   Future<HmmNote?> _note() async {
     final catalogId = await _catalogId();
+    HmmNote? best;
     var page = 1;
     while (true) {
       final res = await _notes.getNotes(
@@ -88,12 +89,17 @@ class LocalDriverLicenceRepository implements IDriverLicenceRepository {
         pageSize: _pageSize,
       );
       for (final n in res.items) {
-        if (n.subject == kDriverLicenceSubject) return n;
+        if (n.subject != kDriverLicenceSubject) continue;
+        if (best == null || _stamp(n).isAfter(_stamp(best))) best = n;
       }
-      if (res.items.isEmpty || page >= res.meta.totalPages) return null;
+      if (res.items.isEmpty || page >= res.meta.totalPages) return best;
       page++;
     }
   }
+
+  // Two devices can each create a licence note before they sync; the most
+  // recently modified one wins so every read and the calendar agree.
+  DateTime _stamp(HmmNote n) => n.lastModifiedDate ?? n.createDate;
 
   @override
   Future<DriverLicence?> getLicence() async => _deserialize(await _note());

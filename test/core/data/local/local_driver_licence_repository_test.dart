@@ -14,6 +14,7 @@ import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_driver_licence_repository.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
+import 'package:hmm_console/core/data/hmm_note_input.dart';
 import 'package:hmm_console/features/driver_licence/domain/driver_licence.dart';
 
 void main() {
@@ -142,5 +143,22 @@ void main() {
     expect(stored, isNot(contains(front.path)));
     expect(stored, isNot(contains(back.path)));
     expect((await repo.getLicence())!.frontImage, isNull);
+  });
+
+  test('two licence notes: the most recently modified wins', () async {
+    final catalogId =
+        (await catalogs.getOrCreateCatalog(driverLicenceCatalogName, '{}')).id;
+    String body(String n) =>
+        '{"note":{"content":{"DriverLicence":{"number":"$n"}}}}';
+    final a = await notes.createNote(HmmNoteCreate(
+        subject: 'DriverLicence:self', catalogId: catalogId, content: body('A')));
+    await notes.createNote(HmmNoteCreate(
+        subject: 'DriverLicence:self', catalogId: catalogId, content: body('B')));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await notes.updateNote(
+        a.id, HmmNoteUpdate(subject: 'DriverLicence:self', content: body('A2')));
+
+    expect((await repo.getLicence())!.number, 'A2');
+    expect(await repo.noteId(), a.id);
   });
 }
