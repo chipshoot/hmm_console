@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../../../l10n/gen/app_localizations.dart';
 import '../contract/dated_note.dart';
 import '../contract/i_calendar_repository.dart';
@@ -44,9 +46,12 @@ class LinkedDatesMatcher {
   final ICalendarRepository _repo;
   final AppLocalizations _l;
 
+  /// With [removals] false (or when any item fails) nothing is deleted:
+  /// the wanted list may be incomplete.
   Future<MatchResult> apply({
     required List<DatedItem> wanted,
     required Set<String> subsystems,
+    bool removals = true,
   }) async {
     final items = <String, DatedItem>{};
     for (final item in wanted) {
@@ -54,30 +59,38 @@ class LinkedDatesMatcher {
     }
     var created = 0, updated = 0, removed = 0;
     final wantedIds = <String>{};
+    var failed = false;
     for (final item in items.values) {
       final id = item.eventId;
       wantedIds.add(id);
-      final live = await _repo.getEvent(id);
-      if (live != null) {
-        if (_matches(live, item)) continue;
-        final info = linkedInfoOf(live);
-        final sameContent =
-            info != null &&
-            info.kind == item.kind &&
-            jsonEncode(linkedToJson(info.kind, info.args)) ==
-                jsonEncode(linkedToJson(item.kind, item.args));
-        await _repo.saveEvent(_withOwned(live, item, retitle: !sameContent));
-        updated++;
-        continue;
+      try {
+        final live = await _repo.getEvent(id);
+        if (live != null) {
+          if (_matches(live, item)) continue;
+          final info = linkedInfoOf(live);
+          final sameContent =
+              info != null &&
+              info.kind == item.kind &&
+              jsonEncode(linkedToJson(info.kind, info.args)) ==
+                  jsonEncode(linkedToJson(item.kind, item.args));
+          await _repo.saveEvent(_withOwned(live, item, retitle: !sameContent));
+          updated++;
+          continue;
+        }
+        final prev = await _repo.getEventIncludingDeleted(id);
+        if (prev != null) {
+          await _repo.saveEvent(_withOwned(prev, item, retitle: true));
+        } else {
+          await _repo.saveEvent(_fresh(item));
+        }
+        created++;
+      } catch (e) {
+        // One unreadable note or id collision must not block the rest.
+        debugPrint('Linked date skipped (${e.runtimeType})');
+        failed = true;
       }
-      final prev = await _repo.getEventIncludingDeleted(id);
-      if (prev != null) {
-        await _repo.saveEvent(_withOwned(prev, item, retitle: true));
-      } else {
-        await _repo.saveEvent(_fresh(item));
-      }
-      created++;
     }
+    if (!removals || failed) return MatchResult(created, updated, removed);
     for (final e in await _repo.eventsOwnedBySubsystems(subsystems)) {
       if (linkedInfoOf(e) == null || wantedIds.contains(e.id)) continue;
       await _repo.deleteEvent(e.id);
@@ -122,7 +135,11 @@ class LinkedDatesMatcher {
     start: item.date,
     rrule: item.repeat?.format(),
     clearRrule: item.repeat == null,
-    owner: item.owner,
+    owner: EventOwner(
+      subsystem: item.owner.subsystem,
+      noteUuid: item.owner.noteUuid,
+      extraFields: e.owner?.extraFields ?? const {},
+    ),
     extraFields: _extra(e.extraFields, item),
   );
 

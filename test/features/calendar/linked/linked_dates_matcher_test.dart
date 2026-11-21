@@ -30,6 +30,33 @@ Future<LocalCalendarRepository> _make() async {
   );
 }
 
+/// Throws on reads of [badId], like an unreadable stored note.
+class _Flaky extends LocalCalendarRepository {
+  _Flaky(super.notes, super.catalogs, this.badId);
+  final String badId;
+  @override
+  Future<CalendarEvent?> getEvent(String id) {
+    if (id == badId) throw const FormatException('unreadable');
+    return super.getEvent(id);
+  }
+}
+
+Future<_Flaky> _makeFlaky(String badId) async {
+  final db = HmmDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
+  final authorId = await db
+      .into(db.authors)
+      .insert(AuthorsCompanion.insert(accountName: 'tester'));
+  final author = await (db.select(
+    db.authors,
+  )..where((a) => a.id.equals(authorId))).getSingle();
+  return _Flaky(
+    LocalHmmNoteRepository(db, () async => author),
+    LocalNoteCatalogRepository(db),
+    badId,
+  );
+}
+
 final _en = lookupAppLocalizations(const Locale('en'));
 final _zh = lookupAppLocalizations(const Locale('zh'));
 const _subs = {'driverLicence', 'contacts'};
@@ -218,5 +245,70 @@ void main() {
   test('a second run after creating a birthday writes nothing', () async {
     await run([_birthday()]);
     expect(await run([_birthday()]), const MatchResult(0, 0, 0));
+  });
+
+  test(
+    'one failing item does not stop the others and skips removals',
+    () async {
+      final flaky = await _makeFlaky(linkedEventId('contact:c1:birthday'));
+      final m = LinkedDatesMatcher(flaky, l: _en);
+      // A linked event that is no longer wanted.
+      await m.apply(
+        wanted: [
+          DatedItem(
+            key: 'contact:c9:birthday',
+            kind: LinkedKind.birthday,
+            args: const {'name': 'Old'},
+            date: const AllDay(1990, 1, 1),
+            owner: const EventOwner(subsystem: 'contacts', noteUuid: 'c9'),
+          ),
+        ],
+        subsystems: _subs,
+      );
+      final r = await m.apply(
+        wanted: [_birthday(), _licence()],
+        subsystems: _subs,
+      );
+      expect(r, const MatchResult(1, 0, 0));
+      expect(await flaky.getEvent(id), isNotNull);
+      expect(
+        await flaky.getEvent(linkedEventId('contact:c9:birthday')),
+        isNotNull,
+      );
+    },
+  );
+
+  test('removals: false keeps unwanted linked events', () async {
+    await run([_licence()]);
+    final r = await matcher.apply(
+      wanted: [],
+      subsystems: _subs,
+      removals: false,
+    );
+    expect(r, const MatchResult(0, 0, 0));
+    expect(await repo.getEvent(id), isNotNull);
+  });
+
+  test('an update keeps the stored owner extra fields and settles', () async {
+    await run([_licence()]);
+    final e = (await repo.getEvent(id))!;
+    await repo.saveEvent(
+      e.copyWith(
+        owner: const EventOwner(
+          subsystem: 'driverLicence',
+          noteUuid: 'self',
+          extraFields: {'future': 1},
+        ),
+      ),
+    );
+    expect(
+      await run([_licence(const AllDay(2027, 6, 1))]),
+      const MatchResult(0, 1, 0),
+    );
+    expect((await repo.getEvent(id))!.owner!.extraFields, {'future': 1});
+    expect(
+      await run([_licence(const AllDay(2027, 6, 1))]),
+      const MatchResult(0, 0, 0),
+    );
   });
 }
