@@ -2238,6 +2238,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactBirthdayClear => 'Clear';
 
   @override
+  String contactBirthdayAge(int age) {
+    return 'Age $age';
+  }
+
+  @override
+  String contactBirthdayNext(String date) {
+    return 'next $date';
+  }
+
+  @override
+  String get contactBirthdayNotSet => 'Not set';
+
+  @override
+  String get contactRemind => 'Remind me';
+
+  @override
+  String get contactRemindHint => 'Show on the calendar and remind on the day';
+
+  @override
+  String get contactRemindOn => 'Birthday reminder on';
+
+  @override
+  String get contactRemindOff => 'Birthday reminder off';
+
+  @override
+  String get contactRemindFailed => 'Could not change the reminder';
+
+  @override
+  String get contactRemindUndone => 'Reminder change undone';
+
+  @override
+  String get contactRemindUndoFailed => 'Could not undo the reminder change';
+
+  @override
+  String get helpContactEditBirthdayTitle => 'Birthday';
+
+  @override
+  String get helpContactEditBirthdayBody =>
+      'Set a Gregorian or lunar birthday, with or without the year. Clearing it also turns off the reminder.';
+
+  @override
+  String get helpContactDetailRemindTitle => 'Remind me';
+
+  @override
+  String get helpContactDetailRemindBody =>
+      'Shows this birthday on the calendar and reminds you at 9:00 on the day. You can adjust the reminder in the calendar.';
+
+  @override
   String get contactsEmpty => 'No contacts yet';
 
   @override

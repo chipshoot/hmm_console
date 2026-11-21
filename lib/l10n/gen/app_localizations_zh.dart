@@ -2176,6 +2176,53 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactBirthdayClear => '清除';
 
   @override
+  String contactBirthdayAge(int age) {
+    return '$age岁';
+  }
+
+  @override
+  String contactBirthdayNext(String date) {
+    return '下次 $date';
+  }
+
+  @override
+  String get contactBirthdayNotSet => '未设置';
+
+  @override
+  String get contactRemind => '提醒我';
+
+  @override
+  String get contactRemindHint => '显示在日历中，并在当天提醒';
+
+  @override
+  String get contactRemindOn => '已开启生日提醒';
+
+  @override
+  String get contactRemindOff => '已关闭生日提醒';
+
+  @override
+  String get contactRemindFailed => '无法更改提醒';
+
+  @override
+  String get contactRemindUndone => '已撤销提醒更改';
+
+  @override
+  String get contactRemindUndoFailed => '无法撤销提醒更改';
+
+  @override
+  String get helpContactEditBirthdayTitle => '生日';
+
+  @override
+  String get helpContactEditBirthdayBody => '可设置公历或农历生日，年份可填可不填。清除生日会同时关闭提醒。';
+
+  @override
+  String get helpContactDetailRemindTitle => '提醒我';
+
+  @override
+  String get helpContactDetailRemindBody =>
+      '把这个生日显示在日历中，并在当天 9:00 提醒你。可在日历中调整提醒。';
+
+  @override
   String get contactsEmpty => '暂无联系人';
 
   @override

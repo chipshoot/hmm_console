@@ -14,25 +14,28 @@ import '../../../cheatsheet/domain/entities/cheatsheet_source.dart';
 import '../../domain/address_format.dart';
 import '../../domain/entities/contact.dart';
 import '../../states/contacts_state.dart';
+import '../birthday_text.dart';
 import '../contact_labels.dart';
 
 /// Opens the edit screen for a contact. Overridable so tests can assert the
 /// navigation.
 final contactEditProvider = Provider<void Function(BuildContext, String)>(
-  (ref) => (context, id) => context.pushNamed(
-    RouterNames.contactEdit.name,
-    pathParameters: {'id': id},
-  ),
+  (ref) =>
+      (context, id) => context.pushNamed(
+        RouterNames.contactEdit.name,
+        pathParameters: {'id': id},
+      ),
 );
 
 /// Resolves by id through the repository, not the active-only list, so a
 /// deactivated contact still renders. Watching the list state re-reads after
 /// a save.
-final contactByIdProvider =
-    FutureProvider.autoDispose.family<Contact?, String>((ref, id) async {
-  await ref.watch(contactsStateProvider.future);
-  return ref.watch(contactRepositoryModeProvider).getContact(id);
-});
+final contactByIdProvider = FutureProvider.autoDispose.family<Contact?, String>(
+  (ref, id) async {
+    await ref.watch(contactsStateProvider.future);
+    return ref.watch(contactRepositoryModeProvider).getContact(id);
+  },
+);
 
 class ContactDetailScreen extends ConsumerWidget {
   const ContactDetailScreen({super.key, required this.contactId});
@@ -76,14 +79,14 @@ class ContactDetailScreen extends ConsumerWidget {
           child: async.isLoading
               ? const CircularProgressIndicator()
               : async.hasError
-                  ? Text(l.contactsLoadFailed)
-                  : Text(l.contactNotFound,
-                      key: const Key('contact-not-found')),
+              ? Text(l.contactsLoadFailed)
+              : Text(l.contactNotFound, key: const Key('contact-not-found')),
         ),
       );
     }
 
     final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
     return Scaffold(
       appBar: AppBar(
         actions: [
@@ -103,11 +106,12 @@ class ContactDetailScreen extends ConsumerWidget {
       body: ListView(
         children: [
           ListTile(
-            leading: Icon(contact.contactType == ContactType.organization
-                ? Icons.business
-                : Icons.person_outline),
-            title: Text(contact.displayName,
-                style: theme.textTheme.titleLarge),
+            leading: Icon(
+              contact.contactType == ContactType.organization
+                  ? Icons.business
+                  : Icons.person_outline,
+            ),
+            title: Text(contact.displayName, style: theme.textTheme.titleLarge),
             subtitle: Text(
               contact.relationship.category == RelationshipCategory.other &&
                       (contact.relationship.customLabel ?? '').isNotEmpty
@@ -122,6 +126,16 @@ class ContactDetailScreen extends ConsumerWidget {
               icon: Icons.language,
               action: ValueAction.none,
             ),
+          if (contact.birthday != null) ...[
+            _FieldRow(
+              label: l.contactBirthday,
+              value: birthdayText(contact.birthday!, locale),
+              display: birthdayDetailText(context, contact.birthday!),
+              icon: Icons.cake,
+              action: ValueAction.none,
+            ),
+            _RemindRow(contact: contact),
+          ],
           if (contact.phones.isNotEmpty) ...[
             _Header(l.contactPhones),
             for (final p in contact.phones)
@@ -164,15 +178,53 @@ class ContactDetailScreen extends ConsumerWidget {
   }
 }
 
+/// Remind me: saves at once, with Undo.
+class _RemindRow extends ConsumerWidget {
+  const _RemindRow({required this.contact});
+  final Contact contact;
+
+  Future<void> _toggle(BuildContext context, WidgetRef ref, bool on) {
+    final l = AppLocalizations.of(context);
+    // Captured before any await: the snackbar outlives this widget.
+    final state = ref.read(contactsStateProvider.notifier);
+    final id = contact.id;
+    return showUndoableAction(
+      context,
+      busyKey: ('contact-remind', id),
+      run: () => state.setRemindBirthday(id, on),
+      undo: () => state.setRemindBirthday(id, !on),
+      done: on ? l.contactRemindOn : l.contactRemindOff,
+      failed: l.contactRemindFailed,
+      undone: l.contactRemindUndone,
+      undoFailed: l.contactRemindUndoFailed,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    return ListTile(
+      key: const Key('contact-remind'),
+      leading: const Icon(Icons.notifications_active),
+      title: Text(l.contactRemind),
+      subtitle: Text(l.contactRemindHint),
+      trailing: Switch.adaptive(
+        value: contact.remindBirthday,
+        onChanged: (v) => _toggle(context, ref, v),
+      ),
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header(this.text);
   final String text;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-        child: Text(text, style: Theme.of(context).textTheme.titleSmall),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+    child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+  );
 }
 
 class _FieldRow extends ConsumerWidget {
@@ -203,16 +255,17 @@ class _FieldRow extends ConsumerWidget {
       // Everything, Errors included: the user tapped a value and must hear
       // that it did not open. Logged by type only - never the value or uri.
       debugPrint(
-          'ContactDetail: launching ${action.name} failed (${e.runtimeType})');
+        'ContactDetail: launching ${action.name} failed (${e.runtimeType})',
+      );
       messenger.showSnackBar(SnackBar(content: Text(l.cheatsheetOpenFailed)));
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListTile(
-        leading: Icon(icon),
-        title: Text(display ?? value),
-        subtitle: Text(label),
-        onTap: action == ValueAction.none ? null : () => _launch(context, ref),
-      );
+    leading: Icon(icon),
+    title: Text(display ?? value),
+    subtitle: Text(label),
+    onTap: action == ValueAction.none ? null : () => _launch(context, ref),
+  );
 }

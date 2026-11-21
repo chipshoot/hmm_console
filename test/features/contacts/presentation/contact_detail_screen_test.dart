@@ -8,6 +8,7 @@ import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_sourc
 import 'package:hmm_console/features/contacts/data/contact_codec.dart';
 import 'package:hmm_console/features/contacts/data/i_contact_repository.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
+import 'package:hmm_console/features/contacts/domain/entities/contact_birthday.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_field.dart';
 import 'package:hmm_console/features/contacts/presentation/screens/contact_detail_screen.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -66,6 +67,7 @@ Future<InMemoryContactRepository> _mount(
 }
 
 void main() {
+  birthdayTests();
   testWidgets('shows the English name when set', (tester) async {
     await _mount(
       tester,
@@ -231,8 +233,9 @@ void main() {
     expect(find.text('Contact restored'), findsOneWidget);
   });
 
-  testWidgets('a failed remove says so and stays on the screen',
-      (tester) async {
+  testWidgets('a failed remove says so and stays on the screen', (
+    tester,
+  ) async {
     final repo = InMemoryContactRepository()
       ..throwOnDeactivate = const ContactNotFound('d1');
     await _mount(tester, id: 'd1', seed: _doc, repository: repo);
@@ -257,8 +260,9 @@ void main() {
     expect(find.text('Contact restored'), findsNothing);
   });
 
-  testWidgets('an unreadable contact shows load-failed, not not-found',
-      (tester) async {
+  testWidgets('an unreadable contact shows load-failed, not not-found', (
+    tester,
+  ) async {
     final repo = InMemoryContactRepository()
       ..throwOnGet = const ContactUnreadable('d1');
     await _mount(tester, id: 'd1', repository: repo);
@@ -269,8 +273,12 @@ void main() {
   testWidgets('a launch that throws an Error still shows the failure', (
     tester,
   ) async {
-    await _mount(tester,
-        id: 'd1', seed: _doc, launchError: StateError('(604) 555-0100'));
+    await _mount(
+      tester,
+      id: 'd1',
+      seed: _doc,
+      launchError: StateError('(604) 555-0100'),
+    );
 
     // Restored inside the body: the widget binding checks debugPrint is
     // unchanged before tear-downs run.
@@ -288,8 +296,9 @@ void main() {
     expect(logs.join('\n'), isNot(contains('555-0100')));
   });
 
-  testWidgets('a Chinese name is shown family-first in the title',
-      (tester) async {
+  testWidgets('a Chinese name is shown family-first in the title', (
+    tester,
+  ) async {
     await _mount(
       tester,
       id: 'zh',
@@ -302,5 +311,58 @@ void main() {
     );
     expect(find.text('张伟'), findsOneWidget);
     expect(find.text('伟 张'), findsNothing);
+  });
+}
+
+void birthdayTests() {
+  const base = Contact(
+    id: 'b1',
+    contactType: ContactType.person,
+    firstName: 'Bea',
+  );
+
+  testWidgets('detail: no birthday → no Remind me switch', (tester) async {
+    await _mount(tester, id: 'b1', seed: base);
+    expect(find.byKey(const Key('contact-remind')), findsNothing);
+  });
+
+  testWidgets('detail: Remind me on saves remindBirthday true; Undo restores '
+      'false', (tester) async {
+    final repo = await _mount(
+      tester,
+      id: 'b1',
+      seed: base.copyWith(
+        birthday: const ContactBirthday(
+          calendar: BirthdayCalendar.gregorian,
+          month: 3,
+          day: 4,
+        ),
+      ),
+    );
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect((await repo.getContact('b1'))!.remindBirthday, isTrue);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect((await repo.getContact('b1'))!.remindBirthday, isFalse);
+  });
+
+  testWidgets('detail: lunar birthday shows 闰四月初五 and the next date', (
+    tester,
+  ) async {
+    await _mount(
+      tester,
+      id: 'b1',
+      seed: base.copyWith(
+        birthday: const ContactBirthday(
+          calendar: BirthdayCalendar.lunar,
+          month: 4,
+          day: 5,
+          leap: true,
+        ),
+      ),
+    );
+    expect(find.textContaining('闰四月初五'), findsOneWidget);
+    expect(find.textContaining('next '), findsOneWidget);
   });
 }

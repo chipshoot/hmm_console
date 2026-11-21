@@ -283,6 +283,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpContactDetailRemoveTitle,
         body: l.helpContactDetailRemoveBody,
       ),
+      HelpEntry(
+        icon: Icons.notifications_active,
+        title: l.helpContactDetailRemindTitle,
+        body: l.helpContactDetailRemindBody,
+      ),
     ],
   ),
   HelpId.contactEdit => ScreenHelp(
@@ -318,6 +323,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.arrow_drop_down,
         title: l.helpContactEditRelationshipTitle,
         body: l.helpContactEditRelationshipBody,
+      ),
+      HelpEntry(
+        icon: Icons.cake,
+        title: l.helpContactEditBirthdayTitle,
+        body: l.helpContactEditBirthdayBody,
       ),
       HelpEntry(
         icon: Icons.person_pin_outlined,

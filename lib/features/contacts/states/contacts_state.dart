@@ -27,6 +27,19 @@ class ContactsState extends AsyncNotifier<List<Contact>> {
     }
   }
 
+  /// Saves only the Remind me flag. Throws `ContactNotFound` if the contact
+  /// no longer exists.
+  Future<void> setRemindBirthday(String id, bool on) async {
+    try {
+      final repo = ref.read(contactRepositoryModeProvider);
+      final contact = await repo.getContact(id);
+      if (contact == null) throw ContactNotFound(id);
+      await repo.saveContact(contact.copyWith(remindBirthday: on));
+    } finally {
+      ref.invalidateSelf();
+    }
+  }
+
   /// Throws `ContactNotFound` / `ContactUnreadable` rather than reporting a
   /// removal that wrote nothing.
   Future<void> deactivate(String id) async {

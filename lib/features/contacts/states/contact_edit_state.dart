@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/contact_name.dart';
 import '../domain/entities/contact.dart';
+import '../domain/entities/contact_birthday.dart';
 import '../domain/entities/contact_field.dart';
 import '../presentation/widgets/labeled_field_editor.dart';
 import 'contacts_state.dart';
@@ -39,8 +40,9 @@ class ContactEditState extends Notifier<ContactEditData> {
     final c = state.contact;
     // Phonetic fields are person-only: for a known organization they are
     // hidden and dropped on save, so they cannot refuse it.
-    final knownType =
-        ContactType.values.any((t) => t.name == c.storedContactTypeName);
+    final knownType = ContactType.values.any(
+      (t) => t.name == c.storedContactTypeName,
+    );
     if (knownType && c.contactType == ContactType.organization) return false;
     return !ContactName.isValidPhonetic(c.phoneticFamily ?? '') ||
         !ContactName.isValidPhonetic(c.phoneticGiven ?? '');
@@ -69,8 +71,7 @@ class ContactEditState extends Notifier<ContactEditData> {
       _set(state.contact.copyWith(phoneticFamily: v));
   void setPhoneticGiven(String v) =>
       _set(state.contact.copyWith(phoneticGiven: v));
-  void setEnglishName(String v) =>
-      _set(state.contact.copyWith(englishName: v));
+  void setEnglishName(String v) => _set(state.contact.copyWith(englishName: v));
 
   void setPhones(List<LabeledFieldEntry> rows) => _set(
     state.contact.copyWith(
@@ -142,6 +143,15 @@ class ContactEditState extends Notifier<ContactEditData> {
     ),
   );
 
+  /// Clearing the birthday also turns Remind me off: there is nothing to
+  /// remind about.
+  void setBirthday(ContactBirthday? b) => _set(
+    state.contact.copyWith(
+      birthday: b,
+      remindBirthday: b == null ? false : state.contact.remindBirthday,
+    ),
+  );
+
   void setNotes(String v) =>
       _set(state.contact.copyWith(notes: v.trim().isEmpty ? null : v));
 
@@ -171,8 +181,9 @@ class ContactEditState extends Notifier<ContactEditData> {
     final isOrg = c.contactType == ContactType.organization;
     // A stored type this version does not know (a newer client's) is neither
     // person nor organization here, so neither set of names may be dropped.
-    final knownType =
-        ContactType.values.any((t) => t.name == c.storedContactTypeName);
+    final knownType = ContactType.values.any(
+      (t) => t.name == c.storedContactTypeName,
+    );
     final dropPerson = knownType && isOrg;
     return c.copyWith(
       firstName: dropPerson ? null : _part(c.firstName, o.firstName),
@@ -182,27 +193,34 @@ class ContactEditState extends Notifier<ContactEditData> {
           : null,
       // Person-only options, dropped with the person names.
       nameOrder: dropPerson ? ContactNameOrder.auto : c.nameOrder,
-      phoneticFamily:
-          dropPerson ? null : _part(c.phoneticFamily, o.phoneticFamily),
-      phoneticGiven:
-          dropPerson ? null : _part(c.phoneticGiven, o.phoneticGiven),
+      phoneticFamily: dropPerson
+          ? null
+          : _part(c.phoneticFamily, o.phoneticFamily),
+      phoneticGiven: dropPerson
+          ? null
+          : _part(c.phoneticGiven, o.phoneticGiven),
       // Both types have one: a clinic has an English name too.
       englishName: _part(c.englishName, o.englishName),
       phones: c.phones
-          .where((p) =>
-              p.number.trim().isNotEmpty ||
-              p.rawKnownValues.containsKey('number'))
+          .where(
+            (p) =>
+                p.number.trim().isNotEmpty ||
+                p.rawKnownValues.containsKey('number'),
+          )
           .toList(),
       emails: c.emails
-          .where((e) =>
-              e.address.trim().isNotEmpty ||
-              e.rawKnownValues.containsKey('address'))
+          .where(
+            (e) =>
+                e.address.trim().isNotEmpty ||
+                e.rawKnownValues.containsKey('address'),
+          )
           .toList(),
       // Any raw (malformed) stored part keeps the address: the codec still
       // has a value to write back.
       addresses: c.addresses
-          .where((a) =>
-              a.value.trim().isNotEmpty || a.rawKnownValues.isNotEmpty)
+          .where(
+            (a) => a.value.trim().isNotEmpty || a.rawKnownValues.isNotEmpty,
+          )
           .toList(),
     );
   }

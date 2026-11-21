@@ -4070,6 +4070,90 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get contactBirthdayClear;
 
+  /// No description provided for @contactBirthdayAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Age {age}'**
+  String contactBirthdayAge(int age);
+
+  /// No description provided for @contactBirthdayNext.
+  ///
+  /// In en, this message translates to:
+  /// **'next {date}'**
+  String contactBirthdayNext(String date);
+
+  /// No description provided for @contactBirthdayNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get contactBirthdayNotSet;
+
+  /// No description provided for @contactRemind.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me'**
+  String get contactRemind;
+
+  /// No description provided for @contactRemindHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Show on the calendar and remind on the day'**
+  String get contactRemindHint;
+
+  /// No description provided for @contactRemindOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday reminder on'**
+  String get contactRemindOn;
+
+  /// No description provided for @contactRemindOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday reminder off'**
+  String get contactRemindOff;
+
+  /// No description provided for @contactRemindFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not change the reminder'**
+  String get contactRemindFailed;
+
+  /// No description provided for @contactRemindUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder change undone'**
+  String get contactRemindUndone;
+
+  /// No description provided for @contactRemindUndoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not undo the reminder change'**
+  String get contactRemindUndoFailed;
+
+  /// No description provided for @helpContactEditBirthdayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday'**
+  String get helpContactEditBirthdayTitle;
+
+  /// No description provided for @helpContactEditBirthdayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a Gregorian or lunar birthday, with or without the year. Clearing it also turns off the reminder.'**
+  String get helpContactEditBirthdayBody;
+
+  /// No description provided for @helpContactDetailRemindTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me'**
+  String get helpContactDetailRemindTitle;
+
+  /// No description provided for @helpContactDetailRemindBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows this birthday on the calendar and reminds you at 9:00 on the day. You can adjust the reminder in the calendar.'**
+  String get helpContactDetailRemindBody;
+
   /// No description provided for @contactsEmpty.
   ///
   /// In en, this message translates to:

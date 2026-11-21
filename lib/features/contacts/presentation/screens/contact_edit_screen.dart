@@ -14,7 +14,9 @@ import '../../domain/pinyin_transcriber.dart';
 import '../../states/contact_edit_state.dart';
 import '../../states/device_region_provider.dart';
 import '../../states/pinyin_transcriber_provider.dart';
+import '../birthday_text.dart';
 import '../contact_labels.dart';
+import '../widgets/birthday_picker.dart';
 import '../widgets/address_editor.dart';
 import '../widgets/labeled_field_editor.dart';
 import 'contact_detail_screen.dart' show contactByIdProvider;
@@ -481,6 +483,33 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
                     onChanged: notifier.setCustomLabel,
                   ),
                 ),
+              ListTile(
+                key: const Key('contact-birthday'),
+                leading: const Icon(Icons.cake),
+                title: Text(l.contactBirthday),
+                subtitle: Text(
+                  c.birthday == null
+                      ? l.contactBirthdayNotSet
+                      : birthdayText(
+                          c.birthday!,
+                          Localizations.localeOf(context).toString(),
+                        ),
+                ),
+                onTap: () async {
+                  final r = await showBirthdayPicker(
+                    context,
+                    initial: c.birthday,
+                  );
+                  switch (r) {
+                    case BirthdayPicked(:final birthday):
+                      notifier.setBirthday(birthday);
+                    case BirthdayCleared():
+                      notifier.setBirthday(null);
+                    case null:
+                      break;
+                  }
+                },
+              ),
               SwitchListTile.adaptive(
                 key: const Key('contact-is-self'),
                 title: Text(l.contactIsSelf),
