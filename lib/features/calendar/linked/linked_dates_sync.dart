@@ -52,9 +52,14 @@ class LinkedDatesSync with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     syncEvents.addListener(_afterSync);
     try {
-      _notes = noteChanges().listen((_) => trigger(), onError: (_) {});
-    } catch (_) {
+      _notes = noteChanges().listen(
+        (_) => trigger(),
+        onError: (Object e) =>
+            debugPrint('Linked dates watch failed (${e.runtimeType})'),
+      );
+    } catch (e) {
       // Note repository unavailable (Cloud API): nothing to watch.
+      debugPrint('Linked dates watch failed (${e.runtimeType})');
     }
     trigger();
   }
@@ -71,7 +76,7 @@ class LinkedDatesSync with WidgetsBindingObserver {
   }
 
   /// Runs the matcher once now. Null when it did not run (Cloud API, a
-  /// source failed, or a sync is in progress).
+  /// source failed, or the lock was held, which schedules a retry).
   Future<MatchResult?> runNow() async {
     if (_disposed || isCloudApi()) return null;
     try {
@@ -82,7 +87,9 @@ class LinkedDatesSync with WidgetsBindingObserver {
         if (isCalendarCloudApiUnavailable(e)) return null;
         rethrow;
       }
-      return await runExclusive<MatchResult?>(() async {
+      var bodyRan = false;
+      final result = await runExclusive<MatchResult?>(() async {
+        bodyRan = true;
         final list = sources();
         final dates = <DatedItem>[];
         final subsystems = <String>{};
@@ -99,6 +106,10 @@ class LinkedDatesSync with WidgetsBindingObserver {
         }
         return m.apply(wanted: dates, subsystems: subsystems);
       });
+      // The lock was held (a sync, the note purge): try again later through
+      // the normal debounce so the run is not lost.
+      if (!bodyRan) trigger();
+      return result;
     } catch (e) {
       debugPrint('Linked dates skipped (${e.runtimeType})');
       return null;

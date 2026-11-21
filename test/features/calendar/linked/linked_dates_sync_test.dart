@@ -85,6 +85,7 @@ LinkedDatesSync _sync(
   List<DatedNoteSource> sources, {
   bool cloudApi = false,
   Stream<void> notes = const Stream.empty(),
+  Duration debounce = const Duration(milliseconds: 20),
 }) => LinkedDatesSync(
   sources: () => sources,
   matcher: () => LinkedDatesMatcher(repo, l: _en),
@@ -93,6 +94,7 @@ LinkedDatesSync _sync(
   syncEvents: c,
   isSyncing: () => c.syncing,
   runExclusive: c.runExclusive,
+  debounce: debounce,
 );
 
 void main() {
@@ -132,7 +134,7 @@ void main() {
     c.syncing = false;
     sync.start();
     // start() triggers once; let the debounce and the run finish.
-    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    await Future<void>.delayed(const Duration(milliseconds: 150));
     expect(await repo.getEvent(id), isNotNull);
     sync.dispose();
   });
@@ -143,15 +145,15 @@ void main() {
     final sync = _sync(repo, c, [
       _Source([_licence()]),
     ])..start();
-    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    await Future<void>.delayed(const Duration(milliseconds: 150));
     await repo.deleteEvent(id);
     c.syncing = true;
     c.notify();
-    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    await Future<void>.delayed(const Duration(milliseconds: 150));
     expect(await repo.getEvent(id), isNull);
     c.syncing = false;
     c.notify();
-    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    await Future<void>.delayed(const Duration(milliseconds: 150));
     expect(await repo.getEvent(id), isNotNull);
     sync.dispose();
   });
@@ -190,5 +192,57 @@ void main() {
       expect(runs, 1);
       sync.dispose();
     });
+  });
+
+  test('a note change triggers a run', () async {
+    final repo = await _make();
+    final notes = StreamController<void>();
+    addTearDown(notes.close);
+    final sync = _sync(repo, _FakeController(), [
+      _Source([_licence()]),
+    ], notes: notes.stream)..start();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    await repo.deleteEvent(id);
+    notes.add(null);
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    expect(await repo.getEvent(id), isNotNull);
+    sync.dispose();
+  });
+
+  test('app resume triggers a run', () async {
+    final repo = await _make();
+    final sync = _sync(repo, _FakeController(), [
+      _Source([_licence()]),
+    ]);
+    sync.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    expect(await repo.getEvent(id), isNotNull);
+    sync.dispose();
+  });
+
+  test('a run skipped by the lock is retried once', () async {
+    final repo = await _make();
+    final c = _FakeController();
+    var calls = 0;
+    final sync = LinkedDatesSync(
+      sources: () => [
+        _Source([_licence()]),
+      ],
+      matcher: () => LinkedDatesMatcher(repo, l: _en),
+      isCloudApi: () => false,
+      noteChanges: () => const Stream.empty(),
+      syncEvents: c,
+      isSyncing: () => false,
+      runExclusive: <T>(body) async {
+        calls++;
+        return calls == 1 ? null : c.runExclusive<T>(body);
+      },
+      debounce: const Duration(milliseconds: 20),
+    );
+    expect(await sync.runNow(), isNull);
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    expect(calls, 2);
+    expect(await repo.getEvent(id), isNotNull);
+    sync.dispose();
   });
 }
