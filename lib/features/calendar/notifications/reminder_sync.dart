@@ -4,14 +4,12 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../core/data/data_mode.dart';
-import '../../../core/i18n/locale_provider.dart';
-import '../../../l10n/gen/app_localizations.dart';
+import '../../../core/i18n/app_localizations_now.dart';
 import '../contract/calendar_errors.dart';
 import '../contract/i_calendar_repository.dart';
 import '../contract/i_reminder_scheduler.dart';
@@ -19,6 +17,7 @@ import '../data/local_calendar_repository.dart';
 import '../domain/calendar_event.dart';
 import '../domain/occurrence.dart';
 import '../domain/recurrence_expander.dart';
+import '../presentation/linked_event_title.dart';
 import '../states/calendar_providers.dart';
 import '../states/remind_on_device_provider.dart';
 import '../states/reminders_seen_provider.dart';
@@ -100,8 +99,9 @@ String reminderTitle(
   required String allDayLabel,
   required String Function(DateTime wall) formatTime,
   DateTime Function(DateTime utc) toLocal = deviceLocalTimeOf,
+  String Function(CalendarEvent, Occurrence)? titleOf,
 }) {
-  final title = o.titleOverride ?? e.title;
+  final title = titleOf != null ? titleOf(e, o) : (o.titleOverride ?? e.title);
   final when = o.allDay ? allDayLabel : formatTime(toLocal(o.start));
   return '$when · $title';
 }
@@ -119,22 +119,14 @@ String defaultReminderTitle(CalendarEvent e, Occurrence o) => reminderTitle(
 /// the platform's), built without a BuildContext.
 final reminderTitleFormatProvider =
     Provider<String Function(CalendarEvent, Occurrence)>((ref) {
-      final chosen = ref.watch(localeProvider);
-      final platform = PlatformDispatcher.instance.locale;
-      final locale = AppLocalizations.supportedLocales.firstWhere(
-        (s) => s.languageCode == (chosen ?? platform).languageCode,
-        orElse: () => const Locale('en'),
-      );
-      final l = lookupAppLocalizations(locale);
-      // Normally loaded by the Material localizations; make sure (the data
-      // is bundled, so this completes synchronously).
-      unawaited(initializeDateFormatting(l.localeName));
+      final l = ref.watch(appLocalizationsNowProvider);
       final formatTime = shortTimeFormatter(l.localeName);
       return (e, o) => reminderTitle(
         e,
         o,
         allDayLabel: l.calendarAllDay,
         formatTime: formatTime,
+        titleOf: (e, o) => eventTitle(e, o, l),
       );
     });
 

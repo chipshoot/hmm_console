@@ -4681,4 +4681,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get calendarMyHolidaysSaveFailed => 'Couldn\'t save the holiday';
+
+  @override
+  String get calendarLinkedLicenceExpiry => 'Driver\'s licence expires';
+
+  @override
+  String calendarLinkedRegistrationExpiry(String vehicle) {
+    return '$vehicle registration expires';
+  }
+
+  @override
+  String calendarLinkedInsuranceExpiry(String vehicle) {
+    return '$vehicle insurance expires';
+  }
+
+  @override
+  String calendarLinkedServiceDue(String vehicle, String service) {
+    return '$vehicle: $service due';
+  }
+
+  @override
+  String calendarLinkedBirthday(String name) {
+    return '$name\'s birthday';
+  }
+
+  @override
+  String calendarLinkedTurnsAge(int age) {
+    return 'turns $age';
+  }
 }

@@ -10,7 +10,9 @@ import '../data/calendar_event_codec.dart';
 import '../data/local_calendar_repository.dart' show calendarCatalogName;
 import '../domain/calendar_event.dart';
 import '../domain/event_time.dart';
+import '../domain/linked_event.dart';
 import '../states/calendar_view_state.dart' show localTimeOf;
+import 'linked_event_title.dart' show linkedTitle;
 
 /// How a calendar event's note reads in the Notes UI. The subject
 /// (`Event:<id>`) is identity and the content is JSON; neither is shown.
@@ -22,14 +24,15 @@ class CalendarNoteDisplay implements NoteDisplayEntry {
 
   @override
   String title(HmmNote note, AppLocalizations l) {
-    final t = _decode(note)?.title.trim() ?? '';
+    final d = _decode(note);
+    final t = d == null ? '' : _titleOf(d, l);
     return t.isEmpty ? l.notesCalendarEventTitleFallback : t;
   }
 
   @override
   NoteDisplay display(HmmNote note, AppLocalizations l) {
     final e = _decode(note);
-    final t = e?.title.trim() ?? '';
+    final t = e == null ? '' : _titleOf(e, l);
     if (e == null || t.isEmpty) {
       return (title: l.notesCalendarEventTitleFallback, preview: '');
     }
@@ -80,6 +83,11 @@ class CalendarNoteDisplay implements NoteDisplayEntry {
       // Locale data unavailable: a plain ISO date still beats raw JSON.
       return wall.toIso8601String().substring(0, timed ? 16 : 10);
     }
+  }
+
+  static String _titleOf(CalendarEvent e, AppLocalizations l) {
+    final info = linkedInfoOf(e);
+    return (info == null ? e.title : linkedTitle(info, l)).trim();
   }
 
   CalendarEvent? _decode(HmmNote note) {

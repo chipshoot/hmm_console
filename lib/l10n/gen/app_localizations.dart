@@ -8095,6 +8095,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save the holiday'**
   String get calendarMyHolidaysSaveFailed;
+
+  /// No description provided for @calendarLinkedLicenceExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver\'s licence expires'**
+  String get calendarLinkedLicenceExpiry;
+
+  /// No description provided for @calendarLinkedRegistrationExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'{vehicle} registration expires'**
+  String calendarLinkedRegistrationExpiry(String vehicle);
+
+  /// No description provided for @calendarLinkedInsuranceExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'{vehicle} insurance expires'**
+  String calendarLinkedInsuranceExpiry(String vehicle);
+
+  /// No description provided for @calendarLinkedServiceDue.
+  ///
+  /// In en, this message translates to:
+  /// **'{vehicle}: {service} due'**
+  String calendarLinkedServiceDue(String vehicle, String service);
+
+  /// No description provided for @calendarLinkedBirthday.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s birthday'**
+  String calendarLinkedBirthday(String name);
+
+  /// No description provided for @calendarLinkedTurnsAge.
+  ///
+  /// In en, this message translates to:
+  /// **'turns {age}'**
+  String calendarLinkedTurnsAge(int age);
 }
 
 class _AppLocalizationsDelegate

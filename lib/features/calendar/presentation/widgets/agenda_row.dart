@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/calendar_event.dart';
+import '../linked_event_title.dart';
 import '../../states/calendar_view_state.dart';
 
 /// One occurrence in the day's agenda: time, title, repeat mark and status.
@@ -42,7 +43,9 @@ class AgendaRow extends StatelessWidget {
     }
     final done = o.status == OccurrenceStatus.done;
     final skipped = o.status == OccurrenceStatus.skipped;
-    final title = o.titleOverride ?? e.title;
+    final title =
+        eventTitle(e, o, l) +
+        birthdayAgeSuffix(e, eventTimeDate(o.originalStart), l);
     final muted = e.draft || done || skipped;
 
     final tile = ListTile(

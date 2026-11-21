@@ -1376,5 +1376,11 @@
   "helpCalendarMyHolidaysHiddenBody": "你在某天详情里隐藏的假日会列在这里。点“重新显示”即可让它回到日历上。",
   "helpCalendarHolidaysMarksTitle": "日历上的假日",
   "helpCalendarHolidaysMarksBody": "“休”表示休息日，“班”表示调休上班日。多个国家会显示为彩色圆点。打开某一天可查看每个假日，对不适用于你的假日点“隐藏”。“节假日”按钮用来选择国家。",
-  "calendarMyHolidaysSaveFailed": "无法保存假日"
+  "calendarMyHolidaysSaveFailed": "无法保存假日",
+  "calendarLinkedLicenceExpiry": "驾照到期",
+  "calendarLinkedRegistrationExpiry": "{vehicle} 行驶证到期",
+  "calendarLinkedInsuranceExpiry": "{vehicle} 保险到期",
+  "calendarLinkedServiceDue": "{vehicle}：{service} 到期",
+  "calendarLinkedBirthday": "{name}生日",
+  "calendarLinkedTurnsAge": "{age}岁"
 }

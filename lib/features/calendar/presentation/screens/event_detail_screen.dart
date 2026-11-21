@@ -16,6 +16,7 @@ import '../../contract/calendar_errors.dart';
 import '../../contract/i_calendar_repository.dart';
 import '../../domain/calendar_event.dart';
 import '../../domain/event_time.dart';
+import '../linked_event_title.dart';
 import '../../states/calendar_providers.dart';
 import '../../states/event_edit_state.dart';
 import '../widgets/calendar_cloud_api_message.dart';
@@ -349,7 +350,9 @@ class EventDetailScreen extends ConsumerWidget {
   ) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final title = o?.titleOverride ?? e.title;
+    final title =
+        eventTitleWithOverride(e, o?.titleOverride, l) +
+        birthdayAgeSuffix(e, eventTimeDate(o?.originalStart ?? e.start), l);
     final status = o?.status;
     final statusText = switch (status) {
       OccurrenceStatus.done => l.calendarStatusDone,

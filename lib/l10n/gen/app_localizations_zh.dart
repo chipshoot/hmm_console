@@ -4466,4 +4466,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get calendarMyHolidaysSaveFailed => '无法保存假日';
+
+  @override
+  String get calendarLinkedLicenceExpiry => '驾照到期';
+
+  @override
+  String calendarLinkedRegistrationExpiry(String vehicle) {
+    return '$vehicle 行驶证到期';
+  }
+
+  @override
+  String calendarLinkedInsuranceExpiry(String vehicle) {
+    return '$vehicle 保险到期';
+  }
+
+  @override
+  String calendarLinkedServiceDue(String vehicle, String service) {
+    return '$vehicle：$service 到期';
+  }
+
+  @override
+  String calendarLinkedBirthday(String name) {
+    return '$name生日';
+  }
+
+  @override
+  String calendarLinkedTurnsAge(int age) {
+    return '$age岁';
+  }
 }
