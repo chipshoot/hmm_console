@@ -201,6 +201,7 @@ class _BirthdayForm extends StatelessWidget {
     final years = <int>{
       for (var y = now; y >= _minYear(value.calendar); y--) y,
       ?storedYear,
+      ?value.year,
     }.toList()..sort((a, b) => b.compareTo(a));
     final calendarControl = apple
         ? SizedBox(

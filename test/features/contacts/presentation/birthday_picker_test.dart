@@ -182,4 +182,38 @@ void main() {
       });
     }
   }
+
+  for (final p in [TargetPlatform.iOS, TargetPlatform.android]) {
+    testWidgets('$p: year 1900 stays after switching to lunar', (tester) async {
+      final result = await _open(
+        tester,
+        p,
+        initial: const ContactBirthday(
+          calendar: BirthdayCalendar.gregorian,
+          month: 5,
+          day: 10,
+          year: 1900,
+        ),
+      );
+      await tester.tap(
+        p == TargetPlatform.iOS
+            ? find.byKey(const Key('birthday-cal-lunar'))
+            : find.text('Lunar'),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('1900'), findsWidgets);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(
+        (result()! as BirthdayPicked).birthday,
+        const ContactBirthday(
+          calendar: BirthdayCalendar.lunar,
+          month: 5,
+          day: 10,
+          year: 1900,
+        ),
+      );
+    });
+  }
 }
