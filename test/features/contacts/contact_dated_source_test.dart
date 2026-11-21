@@ -3,6 +3,7 @@ import 'package:hmm_console/features/calendar/contract/dated_note.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
 import 'package:hmm_console/features/contacts/data/contact_dated_source.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
+import 'package:hmm_console/features/contacts/data/contact_birthday_calendar.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_birthday.dart';
 
 import 'data/contact_repository_fakes.dart';
@@ -66,7 +67,7 @@ void main() {
         'calendar': 'lunar',
       });
       expect(item.repeat!.format(), birthdayRule(_bday).format());
-      expect(item.date, birthdaySeriesStart(_bday));
+      expect(item.date, birthdaySeriesStart(_bday)!);
       expect(item.owner.noteUuid, 'c-1');
       expect(await source.locationOf(item.owner), '/contacts/c-1');
     },
@@ -79,5 +80,21 @@ void main() {
       ),
       isNull,
     );
+  });
+
+  test('lunar 2099 month 12 day 30 does not throw in the source', () async {
+    repo.seed(
+      _c(
+        b: const ContactBirthday(
+          calendar: BirthdayCalendar.lunar,
+          month: 12,
+          day: 30,
+          year: 2099,
+        ),
+      ),
+    );
+    // An item or a skip are both fine; it must not throw.
+    final notes = await source.datedNotes();
+    expect(notes.length, lessThanOrEqualTo(1));
   });
 }

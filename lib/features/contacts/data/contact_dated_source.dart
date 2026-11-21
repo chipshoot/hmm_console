@@ -2,6 +2,7 @@ import '../../calendar/contract/dated_note.dart';
 import '../../calendar/domain/calendar_event.dart';
 import '../domain/entities/contact.dart';
 import '../domain/entities/contact_birthday.dart';
+import 'contact_birthday_calendar.dart';
 import 'i_contact_repository.dart';
 
 /// Adapter so the contact entity stays free of calendar types.
@@ -14,6 +15,8 @@ class ContactDatedNote implements DatedNote {
   List<DatedItem> get dates {
     final b = contact.birthday;
     if (b == null || !contact.remindBirthday) return const [];
+    final start = birthdaySeriesStart(b);
+    if (start == null) return const [];
     return [
       DatedItem(
         key: 'contact:${contact.id}:birthday',
@@ -23,7 +26,7 @@ class ContactDatedNote implements DatedNote {
           'birthYear': b.year,
           'calendar': b.calendar.name,
         },
-        date: birthdaySeriesStart(b),
+        date: start,
         repeat: birthdayRule(b),
         owner: EventOwner(
           subsystem: kLinkedSubsystemContacts,

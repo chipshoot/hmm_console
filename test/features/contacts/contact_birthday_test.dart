@@ -2,13 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
 import 'package:hmm_console/features/calendar/domain/recurrence_expander.dart';
+import 'package:hmm_console/features/contacts/data/contact_birthday_calendar.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact_birthday.dart';
 
 List<AllDay> _years(ContactBirthday b, int from, int to) {
   final e = CalendarEvent(
     id: 'x',
     title: 't',
-    start: birthdaySeriesStart(b),
+    start: birthdaySeriesStart(b)!,
     rrule: birthdayRule(b).format(),
     updatedAt: DateTime.utc(2026),
   );
@@ -29,7 +30,7 @@ void main() {
       month: 2,
       day: 29,
     );
-    final s = birthdaySeriesStart(b);
+    final s = birthdaySeriesStart(b)!;
     expect((s.year, s.month, s.day), (2000, 2, 29));
     final days = _years(b, 2026, 2030);
     expect(
@@ -98,4 +99,16 @@ void main() {
       expect(nextBirthday(b, DateTime(2026, 3, 11)), DateTime.utc(2027, 3, 10));
     },
   );
+
+  test('lunar 2099 month 12 day 30 does not throw (null or a date)', () {
+    const b = ContactBirthday(
+      calendar: BirthdayCalendar.lunar,
+      month: 12,
+      day: 30,
+      year: 2099,
+    );
+    // Either a start date or null is acceptable; the source skips a null.
+    expect(() => birthdaySeriesStart(b), returnsNormally);
+    expect(() => nextBirthday(b, DateTime(2026, 1, 1)), returnsNormally);
+  });
 }
