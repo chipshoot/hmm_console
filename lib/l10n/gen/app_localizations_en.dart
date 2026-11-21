@@ -2217,6 +2217,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactsTitle => 'Contacts';
 
   @override
+  String get contactBirthday => 'Birthday';
+
+  @override
+  String get contactBirthdayGregorian => 'Gregorian';
+
+  @override
+  String get contactBirthdayLunar => 'Lunar';
+
+  @override
+  String get contactBirthdayLeapMonth => 'Leap month';
+
+  @override
+  String get contactBirthdayYear => 'Year (optional)';
+
+  @override
+  String get contactBirthdayNoYear => 'No year';
+
+  @override
+  String get contactBirthdayClear => 'Clear';
+
+  @override
   String get contactsEmpty => 'No contacts yet';
 
   @override

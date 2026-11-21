@@ -4028,6 +4028,48 @@ abstract class AppLocalizations {
   /// **'Contacts'**
   String get contactsTitle;
 
+  /// No description provided for @contactBirthday.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthday'**
+  String get contactBirthday;
+
+  /// No description provided for @contactBirthdayGregorian.
+  ///
+  /// In en, this message translates to:
+  /// **'Gregorian'**
+  String get contactBirthdayGregorian;
+
+  /// No description provided for @contactBirthdayLunar.
+  ///
+  /// In en, this message translates to:
+  /// **'Lunar'**
+  String get contactBirthdayLunar;
+
+  /// No description provided for @contactBirthdayLeapMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Leap month'**
+  String get contactBirthdayLeapMonth;
+
+  /// No description provided for @contactBirthdayYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year (optional)'**
+  String get contactBirthdayYear;
+
+  /// No description provided for @contactBirthdayNoYear.
+  ///
+  /// In en, this message translates to:
+  /// **'No year'**
+  String get contactBirthdayNoYear;
+
+  /// No description provided for @contactBirthdayClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get contactBirthdayClear;
+
   /// No description provided for @contactsEmpty.
   ///
   /// In en, this message translates to:

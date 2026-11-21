@@ -2155,6 +2155,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactsTitle => '联系人';
 
   @override
+  String get contactBirthday => '生日';
+
+  @override
+  String get contactBirthdayGregorian => '公历';
+
+  @override
+  String get contactBirthdayLunar => '农历';
+
+  @override
+  String get contactBirthdayLeapMonth => '闰月';
+
+  @override
+  String get contactBirthdayYear => '年份（可选）';
+
+  @override
+  String get contactBirthdayNoYear => '不填年份';
+
+  @override
+  String get contactBirthdayClear => '清除';
+
+  @override
   String get contactsEmpty => '暂无联系人';
 
   @override
