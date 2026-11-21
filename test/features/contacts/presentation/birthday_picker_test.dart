@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -184,7 +185,9 @@ void main() {
   }
 
   for (final p in [TargetPlatform.iOS, TargetPlatform.android]) {
-    testWidgets('$p: year 1900 stays after switching to lunar', (tester) async {
+    testWidgets('$p: picks 1900 then switching to lunar keeps it', (
+      tester,
+    ) async {
       final result = await _open(
         tester,
         p,
@@ -192,14 +195,28 @@ void main() {
           calendar: BirthdayCalendar.gregorian,
           month: 5,
           day: 10,
-          year: 1900,
+          year: 1950,
         ),
       );
-      await tester.tap(
-        p == TargetPlatform.iOS
-            ? find.byKey(const Key('birthday-cal-lunar'))
-            : find.text('Lunar'),
-      );
+      if (p == TargetPlatform.iOS) {
+        final picker = tester.widget<CupertinoPicker>(
+          find.descendant(
+            of: find.byKey(const Key('birthday-year-gregorian')),
+            matching: find.byType(CupertinoPicker),
+          ),
+        );
+        // Newest first with "No year" at 0: 1900 is the last item.
+        picker.scrollController!.jumpToItem(DateTime.now().year - 1900 + 1);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('birthday-cal-lunar')));
+      } else {
+        await _dropdown(
+          tester,
+          find.byKey(const Key('birthday-year-drop')),
+          '1900',
+        );
+        await tester.tap(find.text('Lunar'));
+      }
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.text('1900'), findsWidgets);
