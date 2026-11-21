@@ -72,6 +72,70 @@ appear twice — on either device.
   duplicate, but reminders, per-date reminder changes, done/skip and the
   Reminders inbox all need stored events — the most work for the least gain.
 
+**Within B, where the shared "dated note" shape lives (owner decision,
+2026-11-21).** The owner wants the business entities in a class-style
+hierarchy: the calendar deals only with "a note with dates", and the licence,
+contacts and the rest are kinds of it, keeping their own properties and
+screens. Two ways were weighed:
+
+- **1. Store the shared date part inside each source note** (true
+  inheritance in the data). Rejected: sync is whole-note last-write-wins
+  (`docs/sync_contract.md` §2), so ticking a birthday done on one device and
+  editing the same contact's phone on another would silently lose one change;
+  every existing licence, vehicle, policy and schedule note would need
+  converting, and older builds could drop the new section; the calendar would
+  have to read every catalog; and one base date per entity doesn't fit
+  entities with several dates.
+- **2. The hierarchy lives in the code; each date's calendar settings live in
+  a linked calendar note (chosen).** See "Code structure: dated notes" below.
+
+## Code structure: dated notes
+
+The calendar sees one contract; each subsystem implements it for its own
+entity and keeps everything else to itself.
+
+```dart
+/// A business entity that has dates the calendar should show.
+abstract interface class DatedNote {
+  /// Every date this entity contributes right now; empty when none applies
+  /// (no expiry set, contact's Remind me off, vehicle sold …).
+  List<DatedItem> get dates;
+}
+
+/// One date on one entity, in calendar terms only.
+class DatedItem {
+  final String key;            // e.g. 'contact:<id>:birthday'; see Event identity
+  final LinkedKind kind;       // licenceExpiry, registrationExpiry, insuranceExpiry, serviceDue, birthday
+  final Map<String, Object?> args; // language-neutral title arguments
+  final DateTime date;         // all-day, local date
+  final RecurrenceRule? repeat;    // birthdays only
+  final EventOwner owner;      // subsystem + note uuid
+  final String? reminderBody;  // e.g. the insurer's name
+}
+
+/// One per subsystem: lists its entities as DatedNotes.
+abstract interface class DatedNoteSource {
+  Future<List<DatedNote>> datedNotes();
+}
+```
+
+- **Implementations:** `Contact`, the driver licence, vehicle, insurance
+  policy and scheduled service each implement `DatedNote` (directly, or
+  through a thin adapter where the entity class lives in a module that
+  shouldn't import calendar types — the builder's call). Each subsystem
+  provides one `DatedNoteSource` and owns the scope rules in "Which dates
+  are linked" (e.g. the 90-day insurance cutoff lives in the insurance source,
+  the Remind me check in the contacts source).
+- **The calendar side** (the matcher and everything after it) imports only
+  `DatedNote`, `DatedItem` and `DatedNoteSource`, never the contact, licence
+  or vehicle classes. The list of sources is one Riverpod provider; adding
+  passports later is one new class plus one line in that list.
+- **What each side owns:** the subsystem owns the entity and its date (edited
+  only in its own screens). The calendar owns the per-date settings —
+  reminders, Time Sensitive, notes, done/skip — stored in the linked calendar
+  note whose id comes from `DatedItem.key`. The two never write each other's
+  notes, so the last-write-wins conflict in option 1 cannot happen.
+
 ## Design
 
 ### Storage facts this design relies on
@@ -158,6 +222,8 @@ to `upsertOwnedEvent` (a null id would mint a random one).
 
 ### What the matcher writes, and what it keeps
 
+The wanted set is every `DatedItem` from every `DatedNoteSource` (see "Code
+structure: dated notes"); the matcher has no per-kind code beyond that.
 For each wanted event the matcher compares with what's stored and **writes
 only when something it owns differs**, so repeated runs settle and don't
 churn sync:
@@ -269,3 +335,6 @@ change, so linked events need nothing extra to remind.
   and debounce.
 - Picker layout details within the platform rules.
 - The UUID v5 namespace value.
+- Whether each entity implements `DatedNote` directly or through an adapter,
+  and which folder the three shared contracts live in (one both the calendar
+  and the subsystems can import without a cycle).
