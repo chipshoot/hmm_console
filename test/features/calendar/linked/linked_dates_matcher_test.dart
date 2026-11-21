@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
@@ -51,6 +52,8 @@ DatedItem _birthday() => DatedItem(
 );
 
 void main() {
+  // Several in-memory databases per test is intended here.
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late LocalCalendarRepository repo;
   late LinkedDatesMatcher matcher;
   final id = linkedEventId('licence:expiry');
@@ -171,5 +174,49 @@ void main() {
     expect(e.reminders, [const Reminder(minutesBefore: 0)]);
     expect(e.title, _en.calendarLinkedBirthday('Ann'));
     expect(linkedInfoOf(e)!.kind, LinkedKind.birthday);
+  });
+
+  test('changed args update the stored title and count as updated', () async {
+    await run([_birthday()]);
+    final renamed = DatedItem(
+      key: 'contact:c1:birthday',
+      kind: LinkedKind.birthday,
+      args: const {'name': 'Anna'},
+      date: const AllDay(2000, 2, 29),
+      repeat: RecurrenceRule.gregorianYearlyBackward(),
+      owner: const EventOwner(subsystem: 'contacts', noteUuid: 'c1'),
+    );
+    expect(await run([renamed]), const MatchResult(0, 1, 0));
+    final e = (await repo.getEvent(linkedEventId('contact:c1:birthday')))!;
+    expect(e.title, _en.calendarLinkedBirthday('Anna'));
+  });
+
+  test('a linked event of a subsystem outside the scope survives', () async {
+    await run([_licence()]);
+    final r = await matcher.apply(wanted: [], subsystems: {'contacts'});
+    expect(r, const MatchResult(0, 0, 0));
+    expect(await repo.getEvent(id), isNotNull);
+  });
+
+  test('duplicate keys: the first wins', () async {
+    final r = await run([_licence(), _licence(const AllDay(2030, 1, 1))]);
+    expect(r, const MatchResult(1, 0, 0));
+    expect((await repo.getEvent(id))!.start, const AllDay(2027, 3, 14));
+  });
+
+  test('a restored event keeps Time Sensitive off and its notes', () async {
+    await run([_licence()]);
+    final e = (await repo.getEvent(id))!;
+    await repo.saveEvent(e.copyWith(timeSensitive: false, notes: 'my note'));
+    await run([]);
+    await run([_licence()]);
+    final back = (await repo.getEvent(id))!;
+    expect(back.timeSensitive, isFalse);
+    expect(back.notes, 'my note');
+  });
+
+  test('a second run after creating a birthday writes nothing', () async {
+    await run([_birthday()]);
+    expect(await run([_birthday()]), const MatchResult(0, 0, 0));
   });
 }
