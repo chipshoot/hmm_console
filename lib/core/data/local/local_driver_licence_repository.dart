@@ -90,7 +90,7 @@ class LocalDriverLicenceRepository implements IDriverLicenceRepository {
       );
       for (final n in res.items) {
         if (n.subject != kDriverLicenceSubject) continue;
-        if (best == null || _stamp(n).isAfter(_stamp(best))) best = n;
+        if (best == null || _newer(n, best)) best = n;
       }
       if (res.items.isEmpty || page >= res.meta.totalPages) return best;
       page++;
@@ -100,6 +100,12 @@ class LocalDriverLicenceRepository implements IDriverLicenceRepository {
   // Two devices can each create a licence note before they sync; the most
   // recently modified one wins so every read and the calendar agree.
   DateTime _stamp(HmmNote n) => n.lastModifiedDate ?? n.createDate;
+
+  // Equal stamps: the larger uuid wins, so every device picks the same note.
+  bool _newer(HmmNote a, HmmNote b) {
+    final c = _stamp(a).compareTo(_stamp(b));
+    return c > 0 || (c == 0 && a.uuid.compareTo(b.uuid) > 0);
+  }
 
   @override
   Future<DriverLicence?> getLicence() async => _deserialize(await _note());

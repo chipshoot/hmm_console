@@ -7,6 +7,7 @@
 // `attachments` column. VaultGc builds its live-file set from that column
 // alone, so a ref recorded only in content gets its bytes collected.
 
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
@@ -160,5 +161,29 @@ void main() {
 
     expect((await repo.getLicence())!.number, 'A2');
     expect(await repo.noteId(), a.id);
+  });
+
+  test('two licence notes with equal stamps: the larger uuid wins', () async {
+    final catalogId =
+        (await catalogs.getOrCreateCatalog(driverLicenceCatalogName, '{}')).id;
+    String body(String n) =>
+        '{"note":{"content":{"DriverLicence":{"number":"$n"}}}}';
+    final a = await notes.createNote(HmmNoteCreate(
+        subject: 'DriverLicence:self', catalogId: catalogId, content: body('A')));
+    final b = await notes.createNote(HmmNoteCreate(
+        subject: 'DriverLicence:self', catalogId: catalogId, content: body('B')));
+    final stamp = DateTime.utc(2026, 1, 1);
+    Future<void> setUuids(String ua, String ub) async {
+      for (final (id, u) in [(a.id, ua), (b.id, ub)]) {
+        await (db.update(db.notes)..where((n) => n.id.equals(id))).write(
+            NotesCompanion(uuid: Value(u), lastModifiedDate: Value(stamp)));
+      }
+    }
+
+    // Both ways round, so the result never depends on list order.
+    await setUuids('ffffffff-0000', '00000000-0000');
+    expect((await repo.getLicence())!.number, 'A');
+    await setUuids('11111111-0000', 'eeeeeeee-0000');
+    expect((await repo.getLicence())!.number, 'B');
   });
 }
