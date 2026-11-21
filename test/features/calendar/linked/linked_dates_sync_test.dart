@@ -5,16 +5,25 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/auth/current_author_account_name_provider.dart';
+import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
+import 'package:hmm_console/core/data/sync/sync_controller.dart';
+import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
+import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
+import 'package:hmm_console/core/i18n/app_localizations_now.dart';
 import 'package:hmm_console/features/calendar/contract/dated_note.dart';
 import 'package:hmm_console/features/calendar/data/local_calendar_repository.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
 import 'package:hmm_console/features/calendar/domain/event_time.dart';
 import 'package:hmm_console/features/calendar/linked/linked_dates_matcher.dart';
+import 'package:hmm_console/features/calendar/linked/dated_note_sources_provider.dart';
 import 'package:hmm_console/features/calendar/linked/linked_dates_sync.dart';
+import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 Future<LocalCalendarRepository> _make() async {
@@ -69,6 +78,25 @@ class _FakeController extends ChangeNotifier {
   }
 }
 
+class _LocalMode extends DataModeNotifier {
+  @override
+  DataMode build() => DataMode.local;
+}
+
+class _CountingSource implements DatedNoteSource {
+  int calls = 0;
+  @override
+  Set<String> get subsystems => {'driverLicence'};
+  @override
+  Future<List<DatedNote>> datedNotes() async {
+    calls++;
+    return const [];
+  }
+
+  @override
+  Future<String?> locationOf(EventOwner owner) async => null;
+}
+
 final _en = lookupAppLocalizations(const Locale('en'));
 
 DatedItem _licence() => const DatedItem(
@@ -86,6 +114,8 @@ LinkedDatesSync _sync(
   bool cloudApi = false,
   Stream<void> notes = const Stream.empty(),
   Duration debounce = const Duration(milliseconds: 20),
+  bool Function()? waitingForFirstSync,
+  bool Function()? lastSyncFailed,
 }) => LinkedDatesSync(
   sources: () => sources,
   matcher: () => LinkedDatesMatcher(repo, l: _en),
@@ -95,6 +125,8 @@ LinkedDatesSync _sync(
   isSyncing: () => c.syncing,
   runExclusive: c.runExclusive,
   debounce: debounce,
+  waitingForFirstSync: waitingForFirstSync ?? () => false,
+  lastSyncFailed: lastSyncFailed ?? () => false,
 );
 
 void main() {
@@ -244,5 +276,109 @@ void main() {
     expect(calls, 2);
     expect(await repo.getEvent(id), isNotNull);
     sync.dispose();
+  });
+
+  test('a notes watch that errors is re-attached and still triggers', () async {
+    final repo = await _make();
+    final source = _Source([_licence()])..fail = true;
+    final second = StreamController<void>();
+    addTearDown(second.close);
+    var attaches = 0;
+    final sync = LinkedDatesSync(
+      sources: () => [source],
+      matcher: () => LinkedDatesMatcher(repo, l: _en),
+      isCloudApi: () => false,
+      noteChanges: () => ++attaches == 1
+          ? Stream<void>.error(StateError('no author yet'))
+          : second.stream,
+      syncEvents: _FakeController(),
+      isSyncing: () => false,
+      runExclusive: _FakeController().runExclusive,
+      debounce: const Duration(milliseconds: 20),
+      retryDelay: const Duration(milliseconds: 20),
+    )..start();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    expect(attaches, 2);
+    expect(await repo.getEvent(id), isNull);
+    source.fail = false;
+    second.add(null);
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    expect(await repo.getEvent(id), isNotNull);
+    sync.dispose();
+  });
+
+  test('runs wait for the first sync, then the finished sync runs', () async {
+    final repo = await _make();
+    final c = _FakeController();
+    var waiting = true;
+    final sync = _sync(repo, c, [
+      _Source([_licence()]),
+    ], waitingForFirstSync: () => waiting)..start();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    expect(await sync.runNow(), isNull);
+    expect(await repo.getEvent(id), isNull);
+    waiting = false;
+    c.notify();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    expect(await repo.getEvent(id), isNotNull);
+    sync.dispose();
+  });
+
+  test('after a failed sync nothing is removed', () async {
+    final repo = await _make();
+    final source = _Source([_licence()]);
+    var failed = false;
+    final sync = _sync(repo, _FakeController(), [
+      source,
+    ], lastSyncFailed: () => failed);
+    await sync.runNow();
+    source.items.clear();
+    failed = true;
+    expect(await sync.runNow(), const MatchResult(0, 0, 0));
+    expect(await repo.getEvent(id), isNotNull);
+    failed = false;
+    expect(await sync.runNow(), const MatchResult(0, 0, 1));
+    sync.dispose();
+  });
+
+  test('the provider runs once the current author is ready', () async {
+    final repo = await _make();
+    final db = HmmDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final controller = SyncController(
+      syncAction: () async {
+        throw StateError('not exercised');
+      },
+    );
+    addTearDown(controller.dispose);
+    final author = Completer<Author>();
+    final source = _CountingSource();
+    final container = ProviderContainer(
+      overrides: [
+        dataModeProvider.overrideWith(_LocalMode.new),
+        syncOrchestratorProvider.overrideWithValue(
+          SyncOrchestrator(
+            provider: null,
+            db: db,
+            meta: SyncMetaRepository(),
+            vaultStore: () async => throw UnimplementedError(),
+          ),
+        ),
+        syncControllerProvider.overrideWithValue(controller),
+        currentAuthorProvider.overrideWith((ref) => author.future),
+        datedNoteSourcesProvider.overrideWithValue([source]),
+        calendarRepositoryProvider.overrideWithValue(repo),
+        appLocalizationsNowProvider.overrideWithValue(_en),
+      ],
+    );
+    addTearDown(container.dispose);
+    // Not started, so only the author becoming ready can cause a run.
+    container.read(linkedDatesSyncProvider);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    author.complete(
+      const Author(id: 1, accountName: 'tester', role: 0, isActivated: true),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 2300));
+    expect(source.calls, 1);
   });
 }
