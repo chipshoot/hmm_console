@@ -16,8 +16,7 @@ class _Autos implements IAutomobileRepository {
   _Autos(this.list);
   final List<Automobile> list;
   @override
-  Future<List<Automobile>> getAutomobiles() async =>
-      list.where((a) => a.isActive).toList();
+  Future<List<Automobile>> getAutomobiles() async => list;
   @override
   dynamic noSuchMethod(Invocation i) => throw UnimplementedError();
 }
@@ -170,8 +169,8 @@ void main() {
     final r = await items(
       policies: {
         1: [
-          _pol(10, 1, DateTime.utc(2026, 8, 23)),
-          _pol(11, 1, DateTime.utc(2026, 8, 22)),
+          _pol(10, 1, DateTime(2026, 8, 23).toUtc()),
+          _pol(11, 1, DateTime(2026, 8, 22).toUtc()),
         ],
       },
     );
@@ -181,10 +180,25 @@ void main() {
     expect(r.single.owner.subsystem, kLinkedSubsystemInsurance);
   });
 
+  test('local-midnight dates stored as UTC keep their local day', () async {
+    final r = await items(
+      policies: {
+        1: [_pol(10, 1, DateTime(2027, 3, 14).toUtc())],
+      },
+      schedules: {
+        1: [_sched(20, 1, due: DateTime(2027, 3, 14).toUtc())],
+      },
+    );
+    expect(r.map((e) => e.date), [
+      const AllDay(2027, 3, 14),
+      const AllDay(2027, 3, 14),
+    ]);
+  });
+
   test('inactive policy contributes nothing', () async {
     final r = await items(
       policies: {
-        1: [_pol(10, 1, DateTime.utc(2027, 1, 1), active: false)],
+        1: [_pol(10, 1, DateTime(2027, 1, 1).toUtc(), active: false)],
       },
     );
     expect(r, isEmpty);
@@ -194,7 +208,7 @@ void main() {
     final r = await items(
       schedules: {
         1: [
-          _sched(20, 1, due: DateTime.utc(2027, 1, 1), active: false),
+          _sched(20, 1, due: DateTime(2027, 1, 1).toUtc(), active: false),
           _sched(21, 1),
         ],
       },
@@ -205,7 +219,7 @@ void main() {
   test('service item', () async {
     final r = await items(
       schedules: {
-        1: [_sched(20, 1, due: DateTime.utc(2027, 1, 5))],
+        1: [_sched(20, 1, due: DateTime(2027, 1, 5).toUtc())],
       },
     );
     expect(r.single.key, 'service:u20:due');
@@ -219,8 +233,8 @@ void main() {
     final r = await items(
       policies: {
         1: [
-          _pol(10, 1, DateTime.utc(2027, 1, 1)),
-          _pol(11, 1, DateTime.utc(2027, 1, 1), provider: ''),
+          _pol(10, 1, DateTime(2027, 1, 1).toUtc()),
+          _pol(11, 1, DateTime(2027, 1, 1).toUtc(), provider: ''),
         ],
       },
     );
@@ -234,8 +248,8 @@ void main() {
       final r = await items(
         policies: {
           1: [
-            _pol(10, 1, DateTime.utc(2027, 1, 1)),
-            _pol(99, 1, DateTime.utc(2027, 1, 1)),
+            _pol(10, 1, DateTime(2027, 1, 1).toUtc()),
+            _pol(99, 1, DateTime(2027, 1, 1).toUtc()),
           ],
         },
         noteMap: {...notes}..remove(99),
@@ -247,7 +261,7 @@ void main() {
   test('a deleted note is skipped', () async {
     final r = await items(
       policies: {
-        1: [_pol(10, 1, DateTime.utc(2027, 1, 1))],
+        1: [_pol(10, 1, DateTime(2027, 1, 1).toUtc())],
       },
       noteMap: {
         ...notes,

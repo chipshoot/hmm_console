@@ -50,9 +50,13 @@ class AutomobileDatedSource implements DatedNoteSource {
     kLinkedSubsystemScheduledService,
   };
 
-  // The record screens print the stored date's own year/month/day (no
-  // toLocal), so those components are the calendar day here.
-  static AllDay _day(DateTime d) => AllDay(d.year, d.month, d.day);
+  // Pickers yield local midnight, but policies and schedules are stored as
+  // UTC, so the calendar day is the local one (a no-op for vehicle dates,
+  // which parse as local).
+  static AllDay _day(DateTime v) {
+    final d = v.toLocal();
+    return AllDay(d.year, d.month, d.day);
+  }
 
   Future<String?> _uuid(int id) async {
     final n = await _notes().getNoteById(id);
@@ -97,8 +101,10 @@ class AutomobileDatedSource implements DatedNoteSource {
 
       for (final p in await _insurance().getPolicies(car.id)) {
         if (!p.isActive) continue;
-        final e = p.expiryDate;
-        if (DateTime.utc(e.year, e.month, e.day).isBefore(cutoff)) continue;
+        final local = p.expiryDate.toLocal();
+        if (DateTime.utc(local.year, local.month, local.day).isBefore(cutoff)) {
+          continue;
+        }
         final uuid = await _uuid(p.id);
         if (uuid == null) continue;
         out.add(AutomobileDatedNote([_policyItem(p, uuid, vehicle)]));
@@ -155,11 +161,13 @@ class AutomobileDatedSource implements DatedNoteSource {
         return auto == null
             ? null
             : '/automobiles/manage/$auto/insurance/${note.id}/edit';
-      default:
+      case kLinkedSubsystemScheduledService:
         final auto = note.parentNoteId;
         return auto == null
             ? null
             : '/automobiles/manage/$auto/scheduled-services/${note.id}/edit';
+      default:
+        return null;
     }
   }
 }
