@@ -69,6 +69,14 @@ class RecurrenceRule {
     untilIsDate: true,
   );
 
+  /// A Gregorian yearly rule whose 29 February falls back to 28 February in
+  /// non-leap years (SKIP=BACKWARD), used for birthdays.
+  factory RecurrenceRule.gregorianYearlyBackward() => const RecurrenceRule(
+    freq: Frequency.yearly,
+    rscale: 'GREGORIAN',
+    skip: 'BACKWARD',
+  );
+
   final Frequency freq;
   final int interval;
   final List<Weekday> byDay;
@@ -114,6 +122,15 @@ class RecurrenceRule {
       byMonthDay.single <= 30 &&
       (skip == null || skip == 'BACKWARD') &&
       byDay.isEmpty &&
+      unsupported.isEmpty;
+
+  /// A plain Gregorian yearly rule with SKIP=BACKWARD.
+  bool get isGregorianSkipBackward =>
+      rscale == 'GREGORIAN' &&
+      freq == Frequency.yearly &&
+      skip == 'BACKWARD' &&
+      byDay.isEmpty &&
+      byMonthDay.isEmpty &&
       unsupported.isEmpty;
 
   bool get isCustom =>
@@ -214,6 +231,15 @@ class RecurrenceRule {
         (p) => p.toUpperCase().startsWith('SKIP='),
       );
       if (sIdx >= 0 && byMonth != null) {
+        skip = unsupported[sIdx].substring(5).trim().toUpperCase();
+        unsupported.removeAt(sIdx);
+      }
+    }
+    if (rscale == 'GREGORIAN') {
+      final sIdx = unsupported.indexWhere(
+        (p) => p.toUpperCase().startsWith('SKIP='),
+      );
+      if (sIdx >= 0) {
         skip = unsupported[sIdx].substring(5).trim().toUpperCase();
         unsupported.removeAt(sIdx);
       }

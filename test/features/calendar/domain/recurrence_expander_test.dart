@@ -206,6 +206,28 @@ void main() {
     });
   });
 
+  group('Gregorian yearly 29 Feb', () {
+    test('SKIP=BACKWARD shows 28 Feb in non-leap years', () {
+      final e = ev(
+        const AllDay(2000, 2, 29),
+        rrule: 'RSCALE=GREGORIAN;FREQ=YEARLY;SKIP=BACKWARD',
+      );
+      final o = run(e, utc(2025, 1, 1), utc(2029, 1, 1));
+      expect(starts(o), [
+        utc(2025, 2, 28),
+        utc(2026, 2, 28),
+        utc(2027, 2, 28),
+        utc(2028, 2, 29),
+      ]);
+    });
+
+    test('plain FREQ=YEARLY still skips non-leap years', () {
+      final e = ev(const AllDay(2000, 2, 29), rrule: 'FREQ=YEARLY');
+      final o = run(e, utc(2025, 1, 1), utc(2029, 1, 1));
+      expect(starts(o), [utc(2028, 2, 29)]);
+    });
+  });
+
   group('lunar yearly', () {
     const cny = 'RSCALE=CHINESE;FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1';
 

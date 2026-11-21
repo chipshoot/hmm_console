@@ -1,4 +1,8 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/features/calendar/presentation/widgets/repeat_picker.dart'
+    show describeRuleText;
+import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:hmm_console/features/calendar/domain/recurrence_rule.dart';
 
 void main() {
@@ -137,5 +141,38 @@ void main() {
     expect(r.byMonth, isNull);
     expect(r.isCustom, isTrue);
     expect(r.format(), t);
+  });
+
+  test(
+    'RSCALE=GREGORIAN;FREQ=YEARLY;SKIP=BACKWARD round-trips and is not custom',
+    () {
+      final r = RecurrenceRule.parse(
+        'RSCALE=GREGORIAN;FREQ=YEARLY;SKIP=BACKWARD',
+      );
+      expect(r.skip, 'BACKWARD');
+      expect(r.unsupported, isEmpty);
+      expect(r.isCustom, isFalse);
+      expect(r.isGregorianSkipBackward, isTrue);
+      expect(
+        RecurrenceRule.gregorianYearlyBackward().format(),
+        'RSCALE=GREGORIAN;FREQ=YEARLY;SKIP=BACKWARD',
+      );
+      expect(
+        RecurrenceRule.parse('FREQ=YEARLY').isGregorianSkipBackward,
+        isFalse,
+      );
+    },
+  );
+
+  test('repeat description reads the Gregorian fallback rule as yearly', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    expect(
+      describeRuleText(RecurrenceRule.gregorianYearlyBackward().format(), l),
+      describeRuleText('FREQ=YEARLY', l),
+    );
+    expect(
+      describeRuleText(RecurrenceRule.gregorianYearlyBackward().format(), l),
+      isNot(l.calendarRepeatCustom),
+    );
   });
 }

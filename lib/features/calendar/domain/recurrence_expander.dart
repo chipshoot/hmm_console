@@ -273,7 +273,11 @@ class _Ctx {
         case Frequency.yearly:
           final y = base.year + step * k;
           final dim = DateTime.utc(y, base.month + 1, 0).day;
-          if (base.day <= dim) yield DateTime.utc(y, base.month, base.day);
+          if (base.day <= dim) {
+            yield DateTime.utc(y, base.month, base.day);
+          } else if (r.isGregorianSkipBackward) {
+            yield DateTime.utc(y, base.month, dim);
+          }
       }
     }
   }
