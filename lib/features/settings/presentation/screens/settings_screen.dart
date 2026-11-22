@@ -374,6 +374,20 @@ class SettingsScreen extends ConsumerWidget {
               const Divider(),
               GapWidgets.h24,
             ],
+            if (dataMode != DataMode.cloudApi) ...[
+              ListTile(
+                key: const Key('settings-glucose'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.bloodtype_outlined),
+                title: Text(l.glucoseTitle),
+                subtitle: Text(l.glucoseSettingsSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.pushNamed(RouterNames.glucoseRange.name),
+              ),
+              GapWidgets.h24,
+              const Divider(),
+              GapWidgets.h24,
+            ],
             Text(
               l.settingsDataStorage,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(

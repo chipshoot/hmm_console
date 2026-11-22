@@ -30,6 +30,8 @@ enum HelpId {
   activity,
   activityEdit,
   glucose,
+  glucoseEdit,
+  glucoseRange,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
@@ -56,6 +58,48 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.delete_outline,
         title: l.helpGlucoseDeleteTitle,
         body: l.helpGlucoseDeleteBody,
+      ),
+    ],
+  ),
+  HelpId.glucoseEdit => ScreenHelp(
+    title: l.helpGlucoseEditTitle,
+    summary: l.helpGlucoseEditSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.bloodtype_outlined,
+        title: l.helpGlucoseEditValueTitle,
+        body: l.helpGlucoseEditValueBody,
+      ),
+      HelpEntry(
+        icon: Icons.schedule,
+        title: l.helpGlucoseEditTimeTitle,
+        body: l.helpGlucoseEditTimeBody,
+      ),
+      HelpEntry(
+        icon: Icons.label_outline,
+        title: l.helpGlucoseEditTagTitle,
+        body: l.helpGlucoseEditTagBody,
+      ),
+    ],
+  ),
+  HelpId.glucoseRange => ScreenHelp(
+    title: l.helpGlucoseRangeTitle,
+    summary: l.helpGlucoseRangeSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.track_changes,
+        title: l.helpGlucoseRangeLowHighTitle,
+        body: l.helpGlucoseRangeLowHighBody,
+      ),
+      HelpEntry(
+        icon: Icons.straighten,
+        title: l.helpGlucoseRangeUnitTitle,
+        body: l.helpGlucoseRangeUnitBody,
+      ),
+      HelpEntry(
+        icon: Icons.favorite_border,
+        title: l.helpGlucoseRangeImportTitle,
+        body: l.helpGlucoseRangeImportBody,
       ),
     ],
   ),

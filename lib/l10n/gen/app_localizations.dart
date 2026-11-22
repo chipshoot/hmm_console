@@ -9055,6 +9055,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Touch and hold a reading, or swipe it left, to delete it. Tap Undo in the message to bring it back.'**
   String get helpGlucoseDeleteBody;
+
+  /// No description provided for @glucoseNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a reading'**
+  String get glucoseNewTitle;
+
+  /// No description provided for @glucoseEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get glucoseEditTitle;
+
+  /// No description provided for @glucoseSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get glucoseSave;
+
+  /// No description provided for @glucoseSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the reading.'**
+  String get glucoseSaveFailed;
+
+  /// No description provided for @glucoseValueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Glucose'**
+  String get glucoseValueLabel;
+
+  /// No description provided for @glucoseValueOutOfRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value from {min} to {max} {unit}.'**
+  String glucoseValueOutOfRange(String min, String max, String unit);
+
+  /// No description provided for @glucoseTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get glucoseTimeLabel;
+
+  /// No description provided for @glucoseTagLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get glucoseTagLabel;
+
+  /// No description provided for @glucoseTagClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear tag'**
+  String get glucoseTagClear;
+
+  /// No description provided for @glucoseNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get glucoseNotesLabel;
+
+  /// No description provided for @glucoseFromHealthSource.
+  ///
+  /// In en, this message translates to:
+  /// **'From Apple Health · {source}'**
+  String glucoseFromHealthSource(String source);
+
+  /// No description provided for @glucoseRangeLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get glucoseRangeLow;
+
+  /// No description provided for @glucoseRangeHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get glucoseRangeHigh;
+
+  /// No description provided for @glucoseRangeSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get glucoseRangeSave;
+
+  /// No description provided for @glucoseRangeSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the target range.'**
+  String get glucoseRangeSaveFailed;
+
+  /// No description provided for @glucoseRangeOrderError.
+  ///
+  /// In en, this message translates to:
+  /// **'Low must be below high.'**
+  String get glucoseRangeOrderError;
+
+  /// No description provided for @glucoseRangeClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear target range'**
+  String get glucoseRangeClear;
+
+  /// No description provided for @glucoseDisplayUnitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Display unit'**
+  String get glucoseDisplayUnitLabel;
+
+  /// No description provided for @glucoseImportOnDeviceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Apple Health on this device'**
+  String get glucoseImportOnDeviceLabel;
+
+  /// No description provided for @glucoseSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Target range and units'**
+  String get glucoseSettingsSubtitle;
+
+  /// No description provided for @helpGlucoseEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Glucose reading'**
+  String get helpGlucoseEditTitle;
+
+  /// No description provided for @helpGlucoseEditSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a reading, or change the tag and notes of one you already have. A reading imported from Apple Health keeps its value and time.'**
+  String get helpGlucoseEditSummary;
+
+  /// No description provided for @helpGlucoseEditValueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Value and unit'**
+  String get helpGlucoseEditValueTitle;
+
+  /// No description provided for @helpGlucoseEditValueBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The reading is stored in the unit you type it in. Values from 20 to 600 mg/dL (1.1 to 33.3 mmol/L) are accepted.'**
+  String get helpGlucoseEditValueBody;
+
+  /// No description provided for @helpGlucoseEditTimeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get helpGlucoseEditTimeTitle;
+
+  /// No description provided for @helpGlucoseEditTimeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When the reading was taken. It starts at the current time.'**
+  String get helpGlucoseEditTimeBody;
+
+  /// No description provided for @helpGlucoseEditTagTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get helpGlucoseEditTagTitle;
+
+  /// No description provided for @helpGlucoseEditTagBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Optionally say when you measured: fasting, before or after a meal, bedtime or other. Tap the chosen tag again to clear it.'**
+  String get helpGlucoseEditTagBody;
+
+  /// No description provided for @helpGlucoseRangeSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own target range, the unit readings are shown in, and, on iPhone, whether this device imports from Apple Health.'**
+  String get helpGlucoseRangeSummary;
+
+  /// No description provided for @helpGlucoseRangeLowHighTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Low and high'**
+  String get helpGlucoseRangeLowHighTitle;
+
+  /// No description provided for @helpGlucoseRangeLowHighBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Both ends count as in range. Low must be below high. Hmm suggests no range.'**
+  String get helpGlucoseRangeLowHighBody;
+
+  /// No description provided for @helpGlucoseRangeUnitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Display unit'**
+  String get helpGlucoseRangeUnitTitle;
+
+  /// No description provided for @helpGlucoseRangeUnitBody.
+  ///
+  /// In en, this message translates to:
+  /// **'mg/dL or mmol/L. Readings are shown in this unit and the range you save is read in it. The choice syncs to your other devices.'**
+  String get helpGlucoseRangeUnitBody;
+
+  /// No description provided for @helpGlucoseRangeImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import on this device'**
+  String get helpGlucoseRangeImportTitle;
+
+  /// No description provided for @helpGlucoseRangeImportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turns the automatic Apple Health import on or off for this device only.'**
+  String get helpGlucoseRangeImportBody;
 }
 
 class _AppLocalizationsDelegate

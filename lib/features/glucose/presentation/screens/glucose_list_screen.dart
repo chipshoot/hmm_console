@@ -20,6 +20,7 @@ import '../../import/glucose_importer.dart';
 import '../../states/glucose_list_state.dart';
 import '../../states/glucose_providers.dart';
 import '../../states/glucose_settings_providers.dart';
+import '../widgets/glucose_cloud_api_message.dart';
 import '../widgets/glucose_row.dart';
 
 enum _RowAction { edit, delete }
@@ -185,15 +186,7 @@ class _GlucoseListScreenState extends ConsumerState<GlucoseListScreen> {
       body = _content(async.requireValue, canImport);
     } else if (async.hasError) {
       if (cloudUnavailable) {
-        body = Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              l.glucoseCloudApiUnavailable,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        );
+        body = const GlucoseCloudApiMessage();
       } else {
         // Type only: the error text can quote stored data.
         debugPrint('Glucose list failed to load (${async.error.runtimeType})');

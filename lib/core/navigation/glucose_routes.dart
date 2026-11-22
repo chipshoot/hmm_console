@@ -1,13 +1,12 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/glucose/presentation/screens/glucose_edit_screen.dart';
 import '../../features/glucose/presentation/screens/glucose_list_screen.dart';
+import '../../features/glucose/presentation/screens/glucose_range_screen.dart';
 import 'route_names.dart';
 
 /// The glucose route subtree, spread into the app router. GoRouter matches
-/// in order, so literal child paths go before `:id`: `new` now, and `range`
-/// (the target range screen) must also be declared before `:id` when it is
-/// added.
+/// in order, so the literal child paths `new` and `range` go before `:id`.
 final glucoseRoutes = <RouteBase>[
   GoRoute(
     path: '/glucose',
@@ -17,21 +16,19 @@ final glucoseRoutes = <RouteBase>[
       GoRoute(
         path: 'new',
         name: RouterNames.glucoseCreate.name,
-        builder: (context, state) => const _FormPending(),
+        builder: (context, state) => const GlucoseEditScreen(),
+      ),
+      GoRoute(
+        path: 'range',
+        name: RouterNames.glucoseRange.name,
+        builder: (context, state) => const GlucoseRangeScreen(),
       ),
       GoRoute(
         path: ':id',
         name: RouterNames.glucoseEdit.name,
-        builder: (context, state) => const _FormPending(),
+        builder: (context, state) =>
+            GlucoseEditScreen(readingId: state.pathParameters['id']),
       ),
     ],
   ),
 ];
-
-/// Stands in for the entry form until it is built.
-class _FormPending extends StatelessWidget {
-  const _FormPending();
-
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: SizedBox());
-}

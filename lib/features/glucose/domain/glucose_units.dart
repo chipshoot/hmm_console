@@ -64,12 +64,15 @@ class GlucoseValue {
   String toString() => 'GlucoseValue($value ${unit.wire})';
 }
 
-/// Whether a typed [v] is plausible: 20-600 mg/dL or 1.1-33.3 mmol/L,
-/// checked in the value's own unit.
+/// The typed-value bounds in [u]: 20-600 mg/dL, 1.1-33.3 mmol/L.
+({num min, num max}) glucoseTypedBounds(GlucoseUnit u) => switch (u) {
+  GlucoseUnit.mgdl => (min: 20, max: 600),
+  GlucoseUnit.mmoll => (min: 1.1, max: 33.3),
+};
+
+/// Whether a typed [v] is plausible: inside [glucoseTypedBounds] for the
+/// value's own unit.
 bool isValidTypedValue(GlucoseValue v) {
-  final x = v.value;
-  return switch (v.unit) {
-    GlucoseUnit.mgdl => x >= 20 && x <= 600,
-    GlucoseUnit.mmoll => x >= 1.1 && x <= 33.3,
-  };
+  final b = glucoseTypedBounds(v.unit);
+  return v.value >= b.min && v.value <= b.max;
 }

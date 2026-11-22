@@ -4990,4 +4990,117 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpGlucoseDeleteBody => '按住读数或向左轻扫即可删除。点按提示中的“撤销”可恢复。';
+
+  @override
+  String get glucoseNewTitle => '记录读数';
+
+  @override
+  String get glucoseEditTitle => '读数';
+
+  @override
+  String get glucoseSave => '保存';
+
+  @override
+  String get glucoseSaveFailed => '无法保存读数。';
+
+  @override
+  String get glucoseValueLabel => '血糖';
+
+  @override
+  String glucoseValueOutOfRange(String min, String max, String unit) {
+    return '请输入 $min 到 $max $unit 之间的数值。';
+  }
+
+  @override
+  String get glucoseTimeLabel => '时间';
+
+  @override
+  String get glucoseTagLabel => '标签';
+
+  @override
+  String get glucoseTagClear => '清除标签';
+
+  @override
+  String get glucoseNotesLabel => '备注';
+
+  @override
+  String glucoseFromHealthSource(String source) {
+    return '来自“健康” · $source';
+  }
+
+  @override
+  String get glucoseRangeLow => '下限';
+
+  @override
+  String get glucoseRangeHigh => '上限';
+
+  @override
+  String get glucoseRangeSave => '保存';
+
+  @override
+  String get glucoseRangeSaveFailed => '无法保存目标范围。';
+
+  @override
+  String get glucoseRangeOrderError => '下限必须小于上限。';
+
+  @override
+  String get glucoseRangeClear => '清除目标范围';
+
+  @override
+  String get glucoseDisplayUnitLabel => '显示单位';
+
+  @override
+  String get glucoseImportOnDeviceLabel => '在此设备上从“健康”导入';
+
+  @override
+  String get glucoseSettingsSubtitle => '目标范围和单位';
+
+  @override
+  String get helpGlucoseEditTitle => '血糖读数';
+
+  @override
+  String get helpGlucoseEditSummary =>
+      '手动输入读数，或修改已有读数的标签和备注。从“健康”导入的读数不能改数值和时间。';
+
+  @override
+  String get helpGlucoseEditValueTitle => '数值和单位';
+
+  @override
+  String get helpGlucoseEditValueBody =>
+      '读数按你输入时的单位保存。可输入 20 到 600 mg/dL（1.1 到 33.3 mmol/L）。';
+
+  @override
+  String get helpGlucoseEditTimeTitle => '时间';
+
+  @override
+  String get helpGlucoseEditTimeBody => '读数的测量时间，默认是当前时间。';
+
+  @override
+  String get helpGlucoseEditTagTitle => '标签';
+
+  @override
+  String get helpGlucoseEditTagBody => '可选，说明测量时机：空腹、餐前、餐后、睡前或其他。再次点按已选标签即可清除。';
+
+  @override
+  String get helpGlucoseRangeSummary =>
+      '你自己的目标范围、读数的显示单位，以及在 iPhone 上此设备是否从“健康”导入。';
+
+  @override
+  String get helpGlucoseRangeLowHighTitle => '下限和上限';
+
+  @override
+  String get helpGlucoseRangeLowHighBody => '两端都算达标。下限必须小于上限。Hmm 不会建议任何范围。';
+
+  @override
+  String get helpGlucoseRangeUnitTitle => '显示单位';
+
+  @override
+  String get helpGlucoseRangeUnitBody =>
+      'mg/dL 或 mmol/L。读数按此单位显示，保存的范围也按此单位解读。该选择会同步到你的其他设备。';
+
+  @override
+  String get helpGlucoseRangeImportTitle => '在此设备上导入';
+
+  @override
+  String get helpGlucoseRangeImportBody => '仅为此设备开启或关闭“健康”自动导入。';
 }

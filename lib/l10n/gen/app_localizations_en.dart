@@ -5225,4 +5225,122 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpGlucoseDeleteBody =>
       'Touch and hold a reading, or swipe it left, to delete it. Tap Undo in the message to bring it back.';
+
+  @override
+  String get glucoseNewTitle => 'Log a reading';
+
+  @override
+  String get glucoseEditTitle => 'Reading';
+
+  @override
+  String get glucoseSave => 'Save';
+
+  @override
+  String get glucoseSaveFailed => 'Couldn\'t save the reading.';
+
+  @override
+  String get glucoseValueLabel => 'Glucose';
+
+  @override
+  String glucoseValueOutOfRange(String min, String max, String unit) {
+    return 'Enter a value from $min to $max $unit.';
+  }
+
+  @override
+  String get glucoseTimeLabel => 'Time';
+
+  @override
+  String get glucoseTagLabel => 'Tag';
+
+  @override
+  String get glucoseTagClear => 'Clear tag';
+
+  @override
+  String get glucoseNotesLabel => 'Notes';
+
+  @override
+  String glucoseFromHealthSource(String source) {
+    return 'From Apple Health · $source';
+  }
+
+  @override
+  String get glucoseRangeLow => 'Low';
+
+  @override
+  String get glucoseRangeHigh => 'High';
+
+  @override
+  String get glucoseRangeSave => 'Save';
+
+  @override
+  String get glucoseRangeSaveFailed => 'Couldn\'t save the target range.';
+
+  @override
+  String get glucoseRangeOrderError => 'Low must be below high.';
+
+  @override
+  String get glucoseRangeClear => 'Clear target range';
+
+  @override
+  String get glucoseDisplayUnitLabel => 'Display unit';
+
+  @override
+  String get glucoseImportOnDeviceLabel =>
+      'Import from Apple Health on this device';
+
+  @override
+  String get glucoseSettingsSubtitle => 'Target range and units';
+
+  @override
+  String get helpGlucoseEditTitle => 'Glucose reading';
+
+  @override
+  String get helpGlucoseEditSummary =>
+      'Type a reading, or change the tag and notes of one you already have. A reading imported from Apple Health keeps its value and time.';
+
+  @override
+  String get helpGlucoseEditValueTitle => 'Value and unit';
+
+  @override
+  String get helpGlucoseEditValueBody =>
+      'The reading is stored in the unit you type it in. Values from 20 to 600 mg/dL (1.1 to 33.3 mmol/L) are accepted.';
+
+  @override
+  String get helpGlucoseEditTimeTitle => 'Time';
+
+  @override
+  String get helpGlucoseEditTimeBody =>
+      'When the reading was taken. It starts at the current time.';
+
+  @override
+  String get helpGlucoseEditTagTitle => 'Tag';
+
+  @override
+  String get helpGlucoseEditTagBody =>
+      'Optionally say when you measured: fasting, before or after a meal, bedtime or other. Tap the chosen tag again to clear it.';
+
+  @override
+  String get helpGlucoseRangeSummary =>
+      'Your own target range, the unit readings are shown in, and, on iPhone, whether this device imports from Apple Health.';
+
+  @override
+  String get helpGlucoseRangeLowHighTitle => 'Low and high';
+
+  @override
+  String get helpGlucoseRangeLowHighBody =>
+      'Both ends count as in range. Low must be below high. Hmm suggests no range.';
+
+  @override
+  String get helpGlucoseRangeUnitTitle => 'Display unit';
+
+  @override
+  String get helpGlucoseRangeUnitBody =>
+      'mg/dL or mmol/L. Readings are shown in this unit and the range you save is read in it. The choice syncs to your other devices.';
+
+  @override
+  String get helpGlucoseRangeImportTitle => 'Import on this device';
+
+  @override
+  String get helpGlucoseRangeImportBody =>
+      'Turns the automatic Apple Health import on or off for this device only.';
 }
