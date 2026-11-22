@@ -48,7 +48,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (ref.read(currentUserProvider) != null) return;
     final claims = await ref.read(idpTokenServiceProvider).getStoredClaims();
     if (claims != null && mounted) {
-      ref.read(currentUserProvider.notifier).setUser(
+      ref
+          .read(currentUserProvider.notifier)
+          .setUser(
             CurrentUserDataModel(
               uid: claims['sub'] as String? ?? '',
               email: claims['email'] as String?,
@@ -262,7 +264,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             hintText: l.launcherSearchHint,
             prefixIcon: const Icon(Icons.search),
             filled: true,
-            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            fillColor: colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.5,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(28),
               borderSide: BorderSide.none,
@@ -290,10 +294,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       spacing: 24,
       runSpacing: 20,
       alignment: WrapAlignment.center,
-      children:
-          _allFunctions
-              .map((f) => _buildShortcutItem(f, colorScheme))
-              .toList(),
+      children: _allFunctions
+          .map((f) => _buildShortcutItem(f, colorScheme))
+          .toList(),
     );
   }
 
@@ -315,20 +318,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Text(
               switch (function.route) {
                 'contacts' => AppLocalizations.of(context).contactsTitle,
-                'calendar' =>
-                  AppLocalizations.of(context).dashboardCalendarTitle,
-                'activity' =>
-                  AppLocalizations.of(context).dashboardActivityTitle,
+                'calendar' => AppLocalizations.of(
+                  context,
+                ).dashboardCalendarTitle,
+                'activity' => AppLocalizations.of(
+                  context,
+                ).dashboardActivityTitle,
                 _ => function.title,
               },
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurface,
-              ),
+              style: TextStyle(fontSize: 12, color: colorScheme.onSurface),
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
             ),
-            if (function.route == 'activity') _buildActivitySubtitle(colorScheme),
+            if (function.route == 'activity')
+              _buildActivitySubtitle(colorScheme),
           ],
         ),
       ),
@@ -361,7 +364,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Future<void> _showUserMenu() async {
     final l = AppLocalizations.of(context);
-    final isApple = Theme.of(context).platform == TargetPlatform.iOS ||
+    final isApple =
+        Theme.of(context).platform == TargetPlatform.iOS ||
         Theme.of(context).platform == TargetPlatform.macOS;
 
     final controller = ref.read(syncControllerProvider);
@@ -417,7 +421,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               onPressed: () {
                 Navigator.pop(ctx);
                 ref.read(signOutUseCaseProvider).signOut();
-
               },
               child: Text(l.dashboardSignOut),
             ),
@@ -435,8 +438,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       final position = RelativeRect.fromRect(
         Rect.fromPoints(
           button.localToGlobal(Offset.zero, ancestor: overlay),
-          button.localToGlobal(button.size.bottomRight(Offset.zero),
-              ancestor: overlay),
+          button.localToGlobal(
+            button.size.bottomRight(Offset.zero),
+            ancestor: overlay,
+          ),
         ),
         Offset.zero & overlay.size,
       );
@@ -450,11 +455,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(l.syncSheetSignedInAs(email),
-                    style: Theme.of(context).textTheme.labelLarge),
+                Text(
+                  l.syncSheetSignedInAs(email),
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
                 if (hasCloud)
-                  Text(statusLine,
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    statusLine,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
               ],
             ),
           ),
@@ -541,7 +550,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
     }
