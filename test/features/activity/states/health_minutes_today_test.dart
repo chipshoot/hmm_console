@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
@@ -22,6 +24,16 @@ class _Mode extends DataModeNotifier {
   final DataMode mode;
   @override
   DataMode build() => mode;
+}
+
+/// A repository whose change stream can fail.
+class _ErroringRepo extends FakeActivityRepository {
+  _ErroringRepo(super.seed);
+
+  final errors = StreamController<void>.broadcast();
+
+  @override
+  Stream<void> changes() => errors.stream;
 }
 
 void main() {
@@ -70,5 +82,26 @@ void main() {
   test('provider yields null in Cloud API mode', () async {
     final c = container(DataMode.cloudApi, const []);
     expect(await c.read(healthMinutesTodayProvider.future), isNull);
+  });
+
+  test('a change-stream error is swallowed; the value stays', () async {
+    final repo = _ErroringRepo([
+      _act('a', 'health.walk', 30, '2026-11-21T08:00:00Z'),
+    ]);
+    final c = ProviderContainer(
+      overrides: [
+        dataModeProvider.overrideWith(() => _Mode(DataMode.local)),
+        localActivityRepositoryProvider.overrideWithValue(repo),
+        activityClockProvider.overrideWithValue(
+          () => DateTime(2026, 11, 21, 12),
+        ),
+      ],
+    );
+    addTearDown(c.dispose);
+    c.listen(healthMinutesTodayProvider, (_, _) {});
+    expect(await c.read(healthMinutesTodayProvider.future), 30);
+    repo.errors.addError(StateError('watch failed'));
+    await pumpEventQueue();
+    expect(c.read(healthMinutesTodayProvider).value, 30);
   });
 }

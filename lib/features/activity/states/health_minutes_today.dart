@@ -34,7 +34,11 @@ final healthMinutesTodayProvider = FutureProvider<int?>((ref) async {
     if (isActivityCloudApiUnavailable(e)) return null;
     rethrow;
   }
-  final sub = repo.changes().listen((_) => ref.invalidateSelf());
+  // A failed change stream only stops refreshing; the value stays.
+  final sub = repo.changes().listen(
+    (_) => ref.invalidateSelf(),
+    onError: (Object _) {},
+  );
   ref.onDispose(sub.cancel);
   final now = ref.read(activityClockProvider)();
   final entries = await repo.activitiesBetween(
