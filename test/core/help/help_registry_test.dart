@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/help/help_registry.dart';
@@ -172,5 +173,27 @@ void main() {
         Icons.format_color_reset_outlined,
       ]),
     );
+  });
+
+  test('glucose import help shows on iOS only, like the range help', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    List<String> titles(HelpId id) =>
+        helpFor(id, l).entries.map((e) => e.title).toList();
+
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    expect(titles(HelpId.glucose), isNot(contains(l.helpGlucoseImportTitle)));
+    expect(
+      titles(HelpId.glucoseRange),
+      isNot(contains(l.helpGlucoseRangeImportTitle)),
+    );
+
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    expect(titles(HelpId.glucose), contains(l.helpGlucoseImportTitle));
+    expect(
+      titles(HelpId.glucoseRange),
+      contains(l.helpGlucoseRangeImportTitle),
+    );
+    debugDefaultTargetPlatformOverride = null;
   });
 }

@@ -45,11 +45,13 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpGlucoseAddTitle,
         body: l.helpGlucoseAddBody,
       ),
-      HelpEntry(
-        icon: Icons.sync,
-        title: l.helpGlucoseImportTitle,
-        body: l.helpGlucoseImportBody,
-      ),
+      // Import from Apple Health exists on iOS only.
+      if (defaultTargetPlatform == TargetPlatform.iOS)
+        HelpEntry(
+          icon: Icons.sync,
+          title: l.helpGlucoseImportTitle,
+          body: l.helpGlucoseImportBody,
+        ),
       HelpEntry(
         icon: Icons.track_changes,
         title: l.helpGlucoseRangeTitle,
