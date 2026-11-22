@@ -50,11 +50,13 @@ Activity _act(String id, String eventId, String occurrence, DateTime start) =>
     );
 
 void main() {
-  test('offers timed, open, unlinked occurrences from yesterday to now + 12 h, '
-      'nearest first', () async {
+  test('offers timed, open, unlinked occurrences that have started, from '
+      'yesterday, nearest first', () async {
     const doneStart = FloatingTime(2026, 11, 21, 8, 0);
     final repo = FakeCalendarRepository()
-      ..seed(_ev('oneoff', const FloatingTime(2026, 11, 21, 18, 30)))
+      ..seed(_ev('atnow', const FloatingTime(2026, 11, 21, 10, 0)))
+      // Not started yet (ruling R3).
+      ..seed(_ev('oneoff', const FloatingTime(2026, 11, 21, 10, 1)))
       ..seed(_ev('allday', const AllDay(2026, 11, 21)))
       ..seed(
         _ev(
@@ -104,8 +106,8 @@ void main() {
           '${p.event.id}@${p.occurrence.originalStart.wireKey}',
       ],
       [
+        'atnow@floating:2026-11-21T10:00',
         'daily@floating:2026-11-21T07:00',
-        'oneoff@floating:2026-11-21T18:30',
         'daily@floating:2026-11-20T07:00',
       ],
     );

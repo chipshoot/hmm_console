@@ -24,20 +24,20 @@ class PlannedSession {
   final Occurrence occurrence;
 }
 
-/// How far ahead of [now] a planned session may start.
-const _ahead = Duration(hours: 12);
-
-/// Occurrences starting from local midnight of yesterday up to `now + 12 h`
-/// that a log can fulfil: timed, not done / skipped / cancelled, of an
-/// active event that no subsystem date owns (birthdays and expiries are
-/// dates, not sessions). Nearest to [now] first.
+/// Occurrences that have started (start <= [now]), from local midnight of
+/// yesterday, that a log can fulfil: timed, not done / skipped / cancelled,
+/// of an active event that no subsystem date owns (birthdays and expiries
+/// are dates, not sessions). A later session is not offered: the form logs
+/// afterwards and "ended" may not be in the future. Nearest to [now] first.
 Future<List<PlannedSession>> plannedSessions(
   ICalendarRepository repo, {
   required DateTime now,
 }) async {
   final local = now.toLocal();
   final from = DateTime(local.year, local.month, local.day - 1).toUtc();
-  final to = now.toUtc().add(_ahead);
+  final at = now.toUtc();
+  // eventsBetween / expandOccurrences take an exclusive end.
+  final to = at.add(const Duration(microseconds: 1));
   final resolve = deviceResolver();
   final out = <PlannedSession>[];
   for (final e in await repo.eventsBetween(from, to)) {
@@ -45,7 +45,7 @@ Future<List<PlannedSession>> plannedSessions(
     if (e.owner != null && linkedInfoOf(e) != null) continue;
     for (final o in expandOccurrences(e, from, to, resolve: resolve)) {
       if (o.allDay) continue;
-      if (o.start.isBefore(from) || !o.start.isBefore(to)) continue;
+      if (o.start.isBefore(from) || o.start.isAfter(at)) continue;
       if (o.status == OccurrenceStatus.done ||
           o.status == OccurrenceStatus.skipped ||
           o.status == OccurrenceStatus.cancelled) {
@@ -54,7 +54,6 @@ Future<List<PlannedSession>> plannedSessions(
       out.add(PlannedSession(event: e, occurrence: o));
     }
   }
-  final at = now.toUtc();
   Duration gap(PlannedSession p) => p.occurrence.start.difference(at).abs();
   out.sort((a, b) => gap(a).compareTo(gap(b)));
   return out;
