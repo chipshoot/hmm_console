@@ -2093,5 +2093,20 @@
         "type": "int"
       }
     }
-  }
+  },
+  "activityKindWalk": "Walk",
+  "activityKindRun": "Run",
+  "activityKindCycling": "Cycling",
+  "activityKindSwim": "Swim",
+  "activityKindGym": "Gym",
+  "activityKindYoga": "Yoga",
+  "activityKindOther": "Other",
+  "activityKindReading": "Reading",
+  "activityKindCoding": "Coding",
+  "activityAreaHealth": "Health",
+  "activityAreaReading": "Reading",
+  "activityAreaDevelopment": "Development",
+  "activityIntensityLight": "Light",
+  "activityIntensityModerate": "Moderate",
+  "activityIntensityVigorous": "Vigorous"
 }

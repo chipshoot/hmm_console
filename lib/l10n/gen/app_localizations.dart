@@ -8329,6 +8329,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'turns {age}'**
   String calendarLinkedTurnsAge(int age);
+
+  /// No description provided for @activityKindWalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Walk'**
+  String get activityKindWalk;
+
+  /// No description provided for @activityKindRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get activityKindRun;
+
+  /// No description provided for @activityKindCycling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycling'**
+  String get activityKindCycling;
+
+  /// No description provided for @activityKindSwim.
+  ///
+  /// In en, this message translates to:
+  /// **'Swim'**
+  String get activityKindSwim;
+
+  /// No description provided for @activityKindGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym'**
+  String get activityKindGym;
+
+  /// No description provided for @activityKindYoga.
+  ///
+  /// In en, this message translates to:
+  /// **'Yoga'**
+  String get activityKindYoga;
+
+  /// No description provided for @activityKindOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get activityKindOther;
+
+  /// No description provided for @activityKindReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get activityKindReading;
+
+  /// No description provided for @activityKindCoding.
+  ///
+  /// In en, this message translates to:
+  /// **'Coding'**
+  String get activityKindCoding;
+
+  /// No description provided for @activityAreaHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Health'**
+  String get activityAreaHealth;
+
+  /// No description provided for @activityAreaReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading'**
+  String get activityAreaReading;
+
+  /// No description provided for @activityAreaDevelopment.
+  ///
+  /// In en, this message translates to:
+  /// **'Development'**
+  String get activityAreaDevelopment;
+
+  /// No description provided for @activityIntensityLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get activityIntensityLight;
+
+  /// No description provided for @activityIntensityModerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get activityIntensityModerate;
+
+  /// No description provided for @activityIntensityVigorous.
+  ///
+  /// In en, this message translates to:
+  /// **'Vigorous'**
+  String get activityIntensityVigorous;
 }
 
 class _AppLocalizationsDelegate

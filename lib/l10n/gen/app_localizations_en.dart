@@ -4820,4 +4820,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String calendarLinkedTurnsAge(int age) {
     return 'turns $age';
   }
+
+  @override
+  String get activityKindWalk => 'Walk';
+
+  @override
+  String get activityKindRun => 'Run';
+
+  @override
+  String get activityKindCycling => 'Cycling';
+
+  @override
+  String get activityKindSwim => 'Swim';
+
+  @override
+  String get activityKindGym => 'Gym';
+
+  @override
+  String get activityKindYoga => 'Yoga';
+
+  @override
+  String get activityKindOther => 'Other';
+
+  @override
+  String get activityKindReading => 'Reading';
+
+  @override
+  String get activityKindCoding => 'Coding';
+
+  @override
+  String get activityAreaHealth => 'Health';
+
+  @override
+  String get activityAreaReading => 'Reading';
+
+  @override
+  String get activityAreaDevelopment => 'Development';
+
+  @override
+  String get activityIntensityLight => 'Light';
+
+  @override
+  String get activityIntensityModerate => 'Moderate';
+
+  @override
+  String get activityIntensityVigorous => 'Vigorous';
 }

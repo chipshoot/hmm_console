@@ -1415,5 +1415,20 @@
   "calendarLinkedInsuranceExpiry": "{vehicle} 保险到期",
   "calendarLinkedServiceDue": "{vehicle}：{service} 到期",
   "calendarLinkedBirthday": "{name}生日",
-  "calendarLinkedTurnsAge": "{age}岁"
+  "calendarLinkedTurnsAge": "{age}岁",
+  "activityKindWalk": "步行",
+  "activityKindRun": "跑步",
+  "activityKindCycling": "骑行",
+  "activityKindSwim": "游泳",
+  "activityKindGym": "健身",
+  "activityKindYoga": "瑜伽",
+  "activityKindOther": "其他",
+  "activityKindReading": "阅读",
+  "activityKindCoding": "编程",
+  "activityAreaHealth": "健康",
+  "activityAreaReading": "阅读",
+  "activityAreaDevelopment": "开发",
+  "activityIntensityLight": "轻度",
+  "activityIntensityModerate": "中等",
+  "activityIntensityVigorous": "剧烈"
 }

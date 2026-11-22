@@ -4604,4 +4604,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String calendarLinkedTurnsAge(int age) {
     return '$age岁';
   }
+
+  @override
+  String get activityKindWalk => '步行';
+
+  @override
+  String get activityKindRun => '跑步';
+
+  @override
+  String get activityKindCycling => '骑行';
+
+  @override
+  String get activityKindSwim => '游泳';
+
+  @override
+  String get activityKindGym => '健身';
+
+  @override
+  String get activityKindYoga => '瑜伽';
+
+  @override
+  String get activityKindOther => '其他';
+
+  @override
+  String get activityKindReading => '阅读';
+
+  @override
+  String get activityKindCoding => '编程';
+
+  @override
+  String get activityAreaHealth => '健康';
+
+  @override
+  String get activityAreaReading => '阅读';
+
+  @override
+  String get activityAreaDevelopment => '开发';
+
+  @override
+  String get activityIntensityLight => '轻度';
+
+  @override
+  String get activityIntensityModerate => '中等';
+
+  @override
+  String get activityIntensityVigorous => '剧烈';
 }
