@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://homemademessage.com/schemas/activity.activity.schema.json",
+  "title": "Hmm.ActivityMan.Activity",
+  "description": "One logged activity. Unknown keys are allowed and must be kept when written back.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "kind", "start", "durationMinutes", "source", "updatedAt"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "id": { "type": "string" },
+    "kind": { "type": "string", "minLength": 1, "description": "<area>.<name>, e.g. health.walk" },
+    "start": { "type": "string", "format": "date-time", "description": "ISO 8601 with UTC offset" },
+    "durationMinutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+    "intensity": { "enum": ["light", "moderate", "vigorous"] },
+    "measurements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value", "unit"],
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": "number" },
+          "unit": { "type": "string" }
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["noteUuid"],
+        "properties": {
+          "noteUuid": { "type": "string" },
+          "role": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "plannedEvent": {
+      "type": "object",
+      "required": ["eventId", "occurrence"],
+      "properties": {
+        "eventId": { "type": "string" },
+        "occurrence": { "type": "string", "description": "Calendar EventTime.wireKey of the occurrence" },
+        "at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "notes": { "type": ["string", "null"] },
+    "details": { "type": "object", "description": "Per-area sections keyed by area id" },
+    "source": { "enum": ["manual", "appleHealth", "assistant"] },
+    "draft": { "type": "boolean" },
+    "updatedAt": { "type": "string", "format": "date-time", "description": "UTC, whole seconds" }
+  }
+}
