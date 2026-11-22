@@ -146,6 +146,21 @@ void main() {
     expect(find.text('11:30 PM'), findsOneWidget);
   });
 
+  testWidgets('a +14:00 entry stays on its recorded date (date line)', (
+    t,
+  ) async {
+    // 00:30 on 21 Nov at +14:00 is 20 Nov 10:30 UTC: 20 Nov in every zone
+    // from -12:00 to +13:00, yet it was recorded on 21 Nov, so Today.
+    final start = OffsetDateTime.tryParse('2026-11-21T00:30:00+14:00')!;
+    await _mount(
+      t,
+      repo: FakeActivityRepository([_act('a', 'health.walk', start)]),
+    );
+    expect(_headerAbove(t, 'Walk · 30 min'), 'Today');
+    expect(find.text('Yesterday'), findsNothing);
+    expect(find.text('12:30 AM'), findsOneWidget);
+  });
+
   testWidgets('area chips filter the rows', (t) async {
     await _mount(
       t,

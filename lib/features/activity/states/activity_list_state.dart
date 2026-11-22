@@ -100,7 +100,6 @@ class ActivityListNotifier extends AsyncNotifier<ActivityListData> {
 
   Future<ActivityListData> _load(IActivityRepository repo) async {
     final now = ref.read(activityClockProvider)();
-    final notes = ref.read(localHmmNoteRepositoryProvider);
     // No upper bound: an entry whose start is ahead of the device clock
     // (a skewed clock, or one logged in a zone ahead) still shows.
     final entries = await repo.activitiesBetween(
@@ -120,9 +119,13 @@ class ActivityListNotifier extends AsyncNotifier<ActivityListData> {
       for (final a in entries)
         if (a.links.isNotEmpty) a.links.first.noteUuid,
     };
+    // Read only when needed: most lists have no links.
+    final notes = uuids.isEmpty
+        ? null
+        : ref.read(localHmmNoteRepositoryProvider);
     for (final uuid in uuids) {
       try {
-        final n = await notes.getNoteByUuid(uuid);
+        final n = await notes!.getNoteByUuid(uuid);
         if (n != null && n.deletedAt == null && n.subject.trim().isNotEmpty) {
           titles[uuid] = n.subject.trim();
         }
