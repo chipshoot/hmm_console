@@ -49,6 +49,13 @@ class SyncableSettingsRepository {
   /// Public: `ShowLunarNotifier` owns the same key (a bool).
   static const calendarShowLunarKey = 'calendar.show_lunar';
 
+  /// Public: the glucose notifiers own these keys. The range keys are written
+  /// together (low/high as doubles, unit as `mg/dL`/`mmol/L`).
+  static const glucoseRangeLowKey = 'glucose.rangeLow';
+  static const glucoseRangeHighKey = 'glucose.rangeHigh';
+  static const glucoseRangeUnitKey = 'glucose.rangeUnit';
+  static const glucoseDisplayUnitKey = 'glucose.displayUnit';
+
   /// Public: `HolidayRegionsNotifier` owns the same key (a JSON list).
   static const calendarHolidayRegionsKey = 'calendar.holiday_regions';
 
@@ -149,6 +156,10 @@ class SyncableSettingsRepository {
       calendarShowLunar: prefs.getBool(calendarShowLunarKey),
       calendarHolidayRegions: holidayRegions,
       calendarMyHolidays: myHolidays,
+      glucoseRangeLow: prefs.getDouble(glucoseRangeLowKey),
+      glucoseRangeHigh: prefs.getDouble(glucoseRangeHighKey),
+      glucoseRangeUnit: prefs.getString(glucoseRangeUnitKey),
+      glucoseDisplayUnit: prefs.getString(glucoseDisplayUnitKey),
     );
   }
 
@@ -195,6 +206,20 @@ class SyncableSettingsRepository {
     final mine = settings.calendarMyHolidays;
     if (mine != null) {
       await prefs.setString(calendarMyHolidaysKey, jsonEncode(mine.toJson()));
+    }
+    // Null = the bundle predates these fields: keep this device's values.
+    // The range is applied only when all three parts are present.
+    final low = settings.glucoseRangeLow;
+    final high = settings.glucoseRangeHigh;
+    final rangeUnit = settings.glucoseRangeUnit;
+    if (low != null && high != null && rangeUnit != null) {
+      await prefs.setDouble(glucoseRangeLowKey, low.toDouble());
+      await prefs.setDouble(glucoseRangeHighKey, high.toDouble());
+      await prefs.setString(glucoseRangeUnitKey, rangeUnit);
+    }
+    final displayUnit = settings.glucoseDisplayUnit;
+    if (displayUnit != null) {
+      await prefs.setString(glucoseDisplayUnitKey, displayUnit);
     }
     await prefs.setString(
       _lastModifiedKey,

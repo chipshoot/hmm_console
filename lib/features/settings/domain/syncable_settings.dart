@@ -43,6 +43,10 @@ class SyncableSettings {
     this.calendarShowLunar,
     this.calendarHolidayRegions,
     this.calendarMyHolidays,
+    this.glucoseRangeLow,
+    this.glucoseRangeHigh,
+    this.glucoseRangeUnit,
+    this.glucoseDisplayUnit,
   });
 
   final GasLogSettings gasLog;
@@ -70,6 +74,14 @@ class SyncableSettings {
 
   /// The user's own holidays and hidden downloaded holidays. Null = absent.
   final MyHolidaysData? calendarMyHolidays;
+
+  /// Glucose target range (low, high, unit as `mg/dL`/`mmol/L`) and display
+  /// unit. Null = the bundle did not carry the key, so applying it leaves
+  /// this device's value alone.
+  final num? glucoseRangeLow;
+  final num? glucoseRangeHigh;
+  final String? glucoseRangeUnit;
+  final String? glucoseDisplayUnit;
 
   /// User-selected UI locale code (e.g. 'en', 'zh'). Null = follow
   /// system. Stored as the raw language code rather than a `Locale`
@@ -106,6 +118,11 @@ class SyncableSettings {
           ],
         if (calendarMyHolidays != null)
           'calendarMyHolidays': calendarMyHolidays!.toJson(),
+        if (glucoseRangeLow != null) 'glucoseRangeLow': glucoseRangeLow,
+        if (glucoseRangeHigh != null) 'glucoseRangeHigh': glucoseRangeHigh,
+        if (glucoseRangeUnit != null) 'glucoseRangeUnit': glucoseRangeUnit,
+        if (glucoseDisplayUnit != null)
+          'glucoseDisplayUnit': glucoseDisplayUnit,
         'lastModified': lastModified.toUtc().toIso8601String(),
         '_v': 1,
       };
@@ -147,6 +164,18 @@ class SyncableSettings {
       calendarMyHolidays: json['calendarMyHolidays'] is Map
           ? MyHolidaysData.fromJson(json['calendarMyHolidays'])
           : null,
+      glucoseRangeLow: json['glucoseRangeLow'] is num
+          ? json['glucoseRangeLow'] as num
+          : null,
+      glucoseRangeHigh: json['glucoseRangeHigh'] is num
+          ? json['glucoseRangeHigh'] as num
+          : null,
+      glucoseRangeUnit: json['glucoseRangeUnit'] is String
+          ? json['glucoseRangeUnit'] as String
+          : null,
+      glucoseDisplayUnit: json['glucoseDisplayUnit'] is String
+          ? json['glucoseDisplayUnit'] as String
+          : null,
       lastModified: () {
         final raw = json['lastModified'] as String?;
         if (raw == null) return epochZero;
@@ -179,6 +208,10 @@ class SyncableSettings {
     bool? calendarShowLunar,
     List<HolidayRegion>? calendarHolidayRegions,
     MyHolidaysData? calendarMyHolidays,
+    num? glucoseRangeLow,
+    num? glucoseRangeHigh,
+    String? glucoseRangeUnit,
+    String? glucoseDisplayUnit,
   }) {
     return SyncableSettings(
       gasLog: gasLog ?? this.gasLog,
@@ -193,6 +226,10 @@ class SyncableSettings {
       calendarHolidayRegions:
           calendarHolidayRegions ?? this.calendarHolidayRegions,
       calendarMyHolidays: calendarMyHolidays ?? this.calendarMyHolidays,
+      glucoseRangeLow: glucoseRangeLow ?? this.glucoseRangeLow,
+      glucoseRangeHigh: glucoseRangeHigh ?? this.glucoseRangeHigh,
+      glucoseRangeUnit: glucoseRangeUnit ?? this.glucoseRangeUnit,
+      glucoseDisplayUnit: glucoseDisplayUnit ?? this.glucoseDisplayUnit,
     );
   }
 }
