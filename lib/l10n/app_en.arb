@@ -2207,6 +2207,7 @@
   "@glucoseImported": {"placeholders": {"count": {"type": "int"}}},
   "glucoseImportBusy": "Sync in progress. Try again in a moment.",
   "glucoseImportFailed": "Couldn't import readings.",
+  "glucoseImportWaitingForSync": "Waiting for the first sync. Try again in a moment.",
   "glucoseContextFasting": "Fasting",
   "glucoseContextBeforeMeal": "Before meal",
   "glucoseContextAfterMeal": "After meal",

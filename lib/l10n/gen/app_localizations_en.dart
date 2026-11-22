@@ -5157,6 +5157,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glucoseImportFailed => 'Couldn\'t import readings.';
 
   @override
+  String get glucoseImportWaitingForSync =>
+      'Waiting for the first sync. Try again in a moment.';
+
+  @override
   String get glucoseContextFasting => 'Fasting';
 
   @override

@@ -1516,6 +1516,7 @@
   "glucoseImported": "已导入 {count} 条读数",
   "glucoseImportBusy": "正在同步，请稍后再试。",
   "glucoseImportFailed": "无法导入读数。",
+  "glucoseImportWaitingForSync": "正在等待首次同步，请稍后再试。",
   "glucoseContextFasting": "空腹",
   "glucoseContextBeforeMeal": "餐前",
   "glucoseContextAfterMeal": "餐后",

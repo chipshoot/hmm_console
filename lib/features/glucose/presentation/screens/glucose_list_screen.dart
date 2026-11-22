@@ -96,7 +96,14 @@ class _GlucoseListScreenState extends ConsumerState<GlucoseListScreen> {
           result.added == 0 &&
           result.seen == 0;
     });
-    if (result == null) return;
+    if (result == null) {
+      // The runner's gates held it back. The import controls only show on
+      // iOS with import on, so in practice it waits for the first sync.
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.glucoseImportWaitingForSync)),
+      );
+      return;
+    }
     final error = result.error;
     if (error != null) {
       messenger.showSnackBar(

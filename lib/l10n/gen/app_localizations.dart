@@ -8930,6 +8930,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import readings.'**
   String get glucoseImportFailed;
 
+  /// No description provided for @glucoseImportWaitingForSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the first sync. Try again in a moment.'**
+  String get glucoseImportWaitingForSync;
+
   /// No description provided for @glucoseContextFasting.
   ///
   /// In en, this message translates to:

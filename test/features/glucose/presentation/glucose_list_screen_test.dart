@@ -264,13 +264,18 @@ void main() {
     );
   });
 
-  testWidgets('a gate that blocks the import shows nothing', (t) async {
+  testWidgets('a gate that blocks the import says it waits for sync', (
+    t,
+  ) async {
     final runner = _FakeRunner(null);
     await _mount(t, platform: TargetPlatform.iOS, runner: runner);
     await t.tap(find.text('Import from Apple Health'));
     await t.pumpAndSettle();
     expect(runner.calls, 1);
-    expect(find.byType(SnackBar), findsNothing);
+    expect(
+      find.text('Waiting for the first sync. Try again in a moment.'),
+      findsOneWidget,
+    );
     expect(find.textContaining('No readings found'), findsNothing);
   });
 

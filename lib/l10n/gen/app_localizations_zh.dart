@@ -4926,6 +4926,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get glucoseImportFailed => '无法导入读数。';
 
   @override
+  String get glucoseImportWaitingForSync => '正在等待首次同步，请稍后再试。';
+
+  @override
   String get glucoseContextFasting => '空腹';
 
   @override
