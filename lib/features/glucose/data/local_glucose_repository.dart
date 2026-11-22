@@ -23,8 +23,12 @@ class LocalGlucoseRepository implements IGlucoseRepository {
     this._catalogs, {
     DateTime Function()? now,
     Duration changesRetryDelay = const Duration(seconds: 1),
+    Future<T> Function<T>(Future<T> Function() body)? transaction,
   }) : _now = now ?? DateTime.now,
-       _changesRetryDelay = changesRetryDelay;
+       _changesRetryDelay = changesRetryDelay,
+       _transaction = transaction ?? _noTransaction;
+
+  static Future<T> _noTransaction<T>(Future<T> Function() body) => body();
 
   final IHmmNoteRepository _notes;
   final INoteCatalogRepository _catalogs;
@@ -32,6 +36,10 @@ class LocalGlucoseRepository implements IGlucoseRepository {
 
   /// Wait before re-subscribing when the notes watch fails or ends.
   final Duration _changesRetryDelay;
+
+  /// Runs a body as one database transaction, so the notes watch fires once
+  /// when it commits. Production passes the Drift database's.
+  final Future<T> Function<T>(Future<T> Function() body) _transaction;
 
   static const _pageSize = 100;
 
@@ -167,6 +175,19 @@ class LocalGlucoseRepository implements IGlucoseRepository {
       );
     }
     return saved;
+  }
+
+  @override
+  Future<void> saveReadings(List<GlucoseReading> readings) async {
+    if (readings.isEmpty) return;
+    // Create the catalog first, outside the transaction: its race recovery
+    // relies on a failed insert, which must not abort the batch.
+    await _catalogId();
+    await _transaction(() async {
+      for (final r in readings) {
+        await saveReading(r);
+      }
+    });
   }
 
   @override

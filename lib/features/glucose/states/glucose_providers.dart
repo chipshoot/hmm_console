@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/data_mode.dart';
+import '../../../core/data/local/database.dart';
 import '../../../core/data/local/local_hmm_note_repository.dart';
 import '../../../core/data/local/local_note_catalog_repository.dart';
 import '../contract/glucose_errors.dart';
@@ -11,6 +12,7 @@ final localGlucoseRepositoryProvider = Provider<IGlucoseRepository>((ref) {
   return LocalGlucoseRepository(
     ref.watch(localHmmNoteRepositoryProvider),
     ref.watch(localNoteCatalogRepositoryProvider),
+    transaction: <T>(body) => ref.read(hmmDatabaseProvider).transaction(body),
   );
 });
 

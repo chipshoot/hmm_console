@@ -11,10 +11,15 @@ import 'package:hmm_console/features/glucose/contract/glucose_errors.dart';
 import 'package:hmm_console/features/glucose/data/local_glucose_repository.dart';
 import 'package:hmm_console/features/glucose/domain/glucose_reading.dart';
 import 'package:hmm_console/features/glucose/domain/glucose_units.dart';
+import 'package:hmm_console/features/glucose/import/glucose_importer.dart';
+import 'package:hmm_console/features/glucose/import/glucose_sample_source.dart';
+import 'package:hmm_console/features/glucose/states/glucose_settings_providers.dart';
 import 'package:hmm_console/features/glucose/states/glucose_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../contacts/data/contact_repository_fakes.dart';
 import '../contract/glucose_repository_contract.dart';
+import '../support/fake_glucose_sample_source.dart';
 
 late HmmDatabase _db;
 late LocalHmmNoteRepository _notes;
@@ -30,7 +35,11 @@ Future<LocalGlucoseRepository> _make() async {
   )..where((a) => a.id.equals(authorId))).getSingle();
   _notes = LocalHmmNoteRepository(_db, () async => author);
   _catalogs = LocalNoteCatalogRepository(_db);
-  return LocalGlucoseRepository(_notes, _catalogs);
+  return LocalGlucoseRepository(
+    _notes,
+    _catalogs,
+    transaction: <T>(body) => _db.transaction(body),
+  );
 }
 
 GlucoseReading _rd(String id) => GlucoseReading(
@@ -123,6 +132,68 @@ void main() {
       );
       expect((await _notes.getNoteByUuid('shared'))!.content, 'keep me');
     });
+  });
+
+  group('bulk import', () {
+    test('saveReadings stores the batch and emits one change', () async {
+      final repo = await _make();
+      await repo.saveReading(_rd('seed'));
+      var emits = 0;
+      final sub = repo.changes().listen((_) => emits++);
+      addTearDown(sub.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      await repo.saveReadings([for (var i = 0; i < 20; i++) _rd('b$i')]);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      expect(emits, 1);
+      for (var i = 0; i < 20; i++) {
+        expect(await repo.getReading('b$i'), isNotNull);
+      }
+    });
+
+    test(
+      '2000 samples import with about one change per chunk',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final repo = await _make();
+        await repo.saveReading(_rd('seed'));
+        var emits = 0;
+        final sub = repo.changes().listen((_) => emits++);
+        addTearDown(sub.cancel);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        const count = 2000;
+        final source = FakeGlucoseSampleSource([
+          for (var i = 0; i < count; i++)
+            GlucoseSample(
+              sampleId: 'S$i',
+              instantUtc: DateTime.utc(2022, 1, 1).add(Duration(hours: i)),
+              mgdl: 100 + i % 50,
+            ),
+        ]);
+        final importer = GlucoseImporter(
+          repo: repo,
+          source: source,
+          prefs: GlucoseImportPrefs(),
+          now: () => DateTime.utc(2026, 11, 22, 12),
+          runExclusive: <T>(body) => body(),
+          toOffset: (u) => OffsetDateTime(u, Duration.zero),
+        );
+
+        final watch = Stopwatch()..start();
+        final result = await importer.run(manual: true);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        watch.stop();
+
+        expect(result.error, isNull);
+        expect(result.added, count);
+        const chunks = count ~/ GlucoseImporter.chunkSize;
+        expect(emits, lessThanOrEqualTo(chunks + 3));
+        expect(watch.elapsed, lessThan(const Duration(seconds: 60)));
+      },
+      timeout: const Timeout(Duration(minutes: 3)),
+    );
   });
 
   group('glucoseRepositoryProvider', () {

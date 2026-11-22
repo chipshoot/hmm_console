@@ -19,6 +19,15 @@ class _CountingRepo extends FakeGlucoseRepository {
     saves++;
     return super.saveReading(r);
   }
+
+  int batches = 0;
+
+  @override
+  Future<void> saveReadings(List<GlucoseReading> readings) {
+    saves += readings.length;
+    if (readings.isNotEmpty) batches++;
+    return super.saveReadings(readings);
+  }
 }
 
 final _now = DateTime.utc(2026, 11, 22, 12);
@@ -206,6 +215,45 @@ void main() {
     expect(result.added, 250);
     expect(repo.saves, 250);
     expect(exclusiveCalls, greaterThanOrEqualTo(3));
+  });
+
+  test('250 samples are saved as one batch per chunk', () async {
+    source.samplesList
+      ..clear()
+      ..addAll([
+        for (var i = 0; i < 250; i++)
+          _sample('S$i', DateTime.utc(2026, 1, 1).add(Duration(hours: i)), 100),
+      ]);
+
+    await importer().run(manual: true);
+
+    expect(repo.batches, 3);
+  });
+
+  test('an empty first import advances nothing', () async {
+    source.samplesList.clear();
+
+    final result = await importer().run(manual: true);
+
+    expect(result.error, isNull);
+    expect(result.seen, 0);
+    expect(await prefs.lastImportEnd(), isNull);
+    expect(await prefs.importedOnce(), isFalse);
+  });
+
+  test('after an empty first import, the next reads all history', () async {
+    source.samplesList.clear();
+    await importer().run(manual: true);
+
+    source.samplesList.add(_sample('OLD', DateTime.utc(2024, 3, 1, 8), 110));
+    final result = await importer().run(manual: true);
+
+    expect(source.windows.last, (DateTime.utc(2000), _now));
+    expect(source.accessRequests, 2);
+    expect(result.added, 1);
+    expect(await repo.getReading(glucoseIdForSample('OLD')), isNotNull);
+    expect(await prefs.lastImportEnd(), _now);
+    expect(await prefs.importedOnce(), isTrue);
   });
 
   test('Review Focus 2: takenAt keeps the zone offset at the sample', () async {

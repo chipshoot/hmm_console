@@ -128,6 +128,26 @@ void runGlucoseRepositoryContract(
       },
     );
 
+    test('saveReadings stores every reading and emits a change', () async {
+      await repo.saveReading(_r('seed'));
+      final ch = _Changes(repo.changes());
+      try {
+        await ch.expectBump(
+          () => repo.saveReadings([_r('b1'), _r('b2', value: 140)]),
+        );
+        expect((await repo.getReading('b1'))!.glucose.value, 112);
+        expect((await repo.getReading('b2'))!.glucose.value, 140);
+        expect(await repo.readingsBetween(_from, _to), hasLength(3));
+      } finally {
+        await ch.cancel();
+      }
+    });
+
+    test('saveReadings of an empty list is a no-op', () async {
+      await repo.saveReadings(const []);
+      expect(await repo.readingsBetween(_from, _to), isEmpty);
+    });
+
     test(
       'changes() is quiet on subscribe, emits after save and delete',
       () async {

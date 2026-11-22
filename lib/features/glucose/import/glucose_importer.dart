@@ -35,7 +35,7 @@ class GlucoseImportResult {
   final int seen;
 
   /// Set when the run failed; the window end and first-import flag were not
-  /// advanced.
+  /// advanced. They are also left alone by a first run that saw nothing.
   final Object? error;
 }
 
@@ -104,6 +104,12 @@ class GlucoseImporter {
         added += saved;
       }
 
+      // An empty first run (often access not granted yet, which iOS shows
+      // as no samples) advances nothing: the next run reads all history and
+      // asks for access again instead of only the last 7 days.
+      if (lastEnd == null && seen == 0) {
+        return const GlucoseImportResult();
+      }
       await prefs.setLastImportEnd(end);
       await prefs.markImportedOnce();
       return GlucoseImportResult(added: added, seen: seen);
@@ -112,12 +118,14 @@ class GlucoseImporter {
     }
   }
 
+  /// Saves the chunk's new samples as one batch, so the glucose log reloads
+  /// once per chunk rather than once per reading.
   Future<int> _saveNew(List<GlucoseSample> chunk) async {
-    var saved = 0;
+    final fresh = <GlucoseReading>[];
     for (final s in chunk) {
       final id = glucoseIdForSample(s.sampleId);
       if (await repo.existsIncludingDeleted(id)) continue;
-      await repo.saveReading(
+      fresh.add(
         GlucoseReading(
           id: id,
           takenAt: toOffset(s.instantUtc.toUtc()),
@@ -129,8 +137,8 @@ class GlucoseImporter {
           ),
         ),
       );
-      saved++;
     }
-    return saved;
+    await repo.saveReadings(fresh);
+    return fresh.length;
   }
 }

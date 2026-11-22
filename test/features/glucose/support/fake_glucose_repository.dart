@@ -39,6 +39,12 @@ class FakeGlucoseRepository implements IGlucoseRepository {
 
   @override
   Future<GlucoseReading> saveReading(GlucoseReading r) async {
+    final saved = _save(r);
+    _changes.add(null);
+    return saved;
+  }
+
+  GlucoseReading _save(GlucoseReading r) {
     final now = DateTime.now().toUtc();
     final saved = r.copyWith(
       updatedAt: DateTime.fromMillisecondsSinceEpoch(
@@ -48,8 +54,17 @@ class FakeGlucoseRepository implements IGlucoseRepository {
     );
     _items[saved.id] = saved;
     _deleted.remove(saved.id);
-    _changes.add(null);
     return saved;
+  }
+
+  /// Saves all, then emits once.
+  @override
+  Future<void> saveReadings(List<GlucoseReading> readings) async {
+    if (readings.isEmpty) return;
+    for (final r in readings) {
+      _save(r);
+    }
+    _changes.add(null);
   }
 
   @override

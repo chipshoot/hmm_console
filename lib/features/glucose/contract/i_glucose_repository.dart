@@ -18,6 +18,10 @@ abstract interface class IGlucoseRepository {
   /// `updatedAt` (UTC, whole seconds).
   Future<GlucoseReading> saveReading(GlucoseReading r);
 
+  /// [saveReading] for each of [readings] as one write: [changes] emits
+  /// once for the batch, not once per reading. A failure saves none.
+  Future<void> saveReadings(List<GlucoseReading> readings);
+
   /// Soft delete; a missing id is a no-op.
   Future<void> deleteReading(String id);
 
