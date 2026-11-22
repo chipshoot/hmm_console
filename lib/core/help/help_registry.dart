@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/gen/app_localizations.dart';
@@ -96,11 +97,13 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpGlucoseRangeUnitTitle,
         body: l.helpGlucoseRangeUnitBody,
       ),
-      HelpEntry(
-        icon: Icons.favorite_border,
-        title: l.helpGlucoseRangeImportTitle,
-        body: l.helpGlucoseRangeImportBody,
-      ),
+      // The switch exists on iOS only.
+      if (defaultTargetPlatform == TargetPlatform.iOS)
+        HelpEntry(
+          icon: Icons.favorite_border,
+          title: l.helpGlucoseRangeImportTitle,
+          body: l.helpGlucoseRangeImportBody,
+        ),
     ],
   ),
   HelpId.activity => ScreenHelp(

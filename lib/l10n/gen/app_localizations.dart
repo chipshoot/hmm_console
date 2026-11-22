@@ -9239,7 +9239,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGlucoseRangeLowHighBody.
   ///
   /// In en, this message translates to:
-  /// **'Both ends count as in range. Low must be below high. Hmm suggests no range.'**
+  /// **'Both ends count as in range. Low must be below high. The unit under the fields is the one they are read in. Hmm suggests no range.'**
   String get helpGlucoseRangeLowHighBody;
 
   /// No description provided for @helpGlucoseRangeUnitTitle.
@@ -9251,7 +9251,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpGlucoseRangeUnitBody.
   ///
   /// In en, this message translates to:
-  /// **'mg/dL or mmol/L. Readings are shown in this unit and the range you save is read in it. The choice syncs to your other devices.'**
+  /// **'mg/dL or mmol/L. Readings are shown in this unit. The choice syncs to your other devices.'**
   String get helpGlucoseRangeUnitBody;
 
   /// No description provided for @helpGlucoseRangeImportTitle.

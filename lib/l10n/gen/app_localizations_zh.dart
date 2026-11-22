@@ -5089,14 +5089,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpGlucoseRangeLowHighTitle => '下限和上限';
 
   @override
-  String get helpGlucoseRangeLowHighBody => '两端都算达标。下限必须小于上限。Hmm 不会建议任何范围。';
+  String get helpGlucoseRangeLowHighBody =>
+      '两端都算达标。下限必须小于上限。数值按字段下方所选的单位解读。Hmm 不会建议任何范围。';
 
   @override
   String get helpGlucoseRangeUnitTitle => '显示单位';
 
   @override
   String get helpGlucoseRangeUnitBody =>
-      'mg/dL 或 mmol/L。读数按此单位显示，保存的范围也按此单位解读。该选择会同步到你的其他设备。';
+      'mg/dL 或 mmol/L。读数按此单位显示。该选择会同步到你的其他设备。';
 
   @override
   String get helpGlucoseRangeImportTitle => '在此设备上导入';

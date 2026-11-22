@@ -5,13 +5,14 @@ import '../../domain/glucose_units.dart';
 
 /// The mg/dL | mmol/L choice: Cupertino segments on iOS, Material otherwise.
 Widget glucoseUnitToggle({
+  Key key = const Key('glucose-unit'),
   required bool apple,
   required GlucoseUnit unit,
   required ValueChanged<GlucoseUnit> onChanged,
 }) {
   if (apple) {
     return CupertinoSlidingSegmentedControl<GlucoseUnit>(
-      key: const Key('glucose-unit'),
+      key: key,
       groupValue: unit,
       children: {
         for (final u in GlucoseUnit.values)
@@ -26,7 +27,7 @@ Widget glucoseUnitToggle({
     );
   }
   return SegmentedButton<GlucoseUnit>(
-    key: const Key('glucose-unit'),
+    key: key,
     showSelectedIcon: false,
     segments: [
       for (final u in GlucoseUnit.values)

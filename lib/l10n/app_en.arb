@@ -2261,9 +2261,9 @@
   "helpGlucoseEditTagBody": "Optionally say when you measured: fasting, before or after a meal, bedtime or other. Tap the chosen tag again to clear it.",
   "helpGlucoseRangeSummary": "Your own target range, the unit readings are shown in, and, on iPhone, whether this device imports from Apple Health.",
   "helpGlucoseRangeLowHighTitle": "Low and high",
-  "helpGlucoseRangeLowHighBody": "Both ends count as in range. Low must be below high. Hmm suggests no range.",
+  "helpGlucoseRangeLowHighBody": "Both ends count as in range. Low must be below high. The unit under the fields is the one they are read in. Hmm suggests no range.",
   "helpGlucoseRangeUnitTitle": "Display unit",
-  "helpGlucoseRangeUnitBody": "mg/dL or mmol/L. Readings are shown in this unit and the range you save is read in it. The choice syncs to your other devices.",
+  "helpGlucoseRangeUnitBody": "mg/dL or mmol/L. Readings are shown in this unit. The choice syncs to your other devices.",
   "helpGlucoseRangeImportTitle": "Import on this device",
   "helpGlucoseRangeImportBody": "Turns the automatic Apple Health import on or off for this device only."
 }

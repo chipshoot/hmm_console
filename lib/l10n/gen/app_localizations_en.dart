@@ -5328,14 +5328,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpGlucoseRangeLowHighBody =>
-      'Both ends count as in range. Low must be below high. Hmm suggests no range.';
+      'Both ends count as in range. Low must be below high. The unit under the fields is the one they are read in. Hmm suggests no range.';
 
   @override
   String get helpGlucoseRangeUnitTitle => 'Display unit';
 
   @override
   String get helpGlucoseRangeUnitBody =>
-      'mg/dL or mmol/L. Readings are shown in this unit and the range you save is read in it. The choice syncs to your other devices.';
+      'mg/dL or mmol/L. Readings are shown in this unit. The choice syncs to your other devices.';
 
   @override
   String get helpGlucoseRangeImportTitle => 'Import on this device';

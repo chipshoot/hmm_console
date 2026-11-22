@@ -1569,9 +1569,9 @@
   "helpGlucoseEditTagBody": "可选，说明测量时机：空腹、餐前、餐后、睡前或其他。再次点按已选标签即可清除。",
   "helpGlucoseRangeSummary": "你自己的目标范围、读数的显示单位，以及在 iPhone 上此设备是否从“健康”导入。",
   "helpGlucoseRangeLowHighTitle": "下限和上限",
-  "helpGlucoseRangeLowHighBody": "两端都算达标。下限必须小于上限。Hmm 不会建议任何范围。",
+  "helpGlucoseRangeLowHighBody": "两端都算达标。下限必须小于上限。数值按字段下方所选的单位解读。Hmm 不会建议任何范围。",
   "helpGlucoseRangeUnitTitle": "显示单位",
-  "helpGlucoseRangeUnitBody": "mg/dL 或 mmol/L。读数按此单位显示，保存的范围也按此单位解读。该选择会同步到你的其他设备。",
+  "helpGlucoseRangeUnitBody": "mg/dL 或 mmol/L。读数按此单位显示。该选择会同步到你的其他设备。",
   "helpGlucoseRangeImportTitle": "在此设备上导入",
   "helpGlucoseRangeImportBody": "仅为此设备开启或关闭“健康”自动导入。"
 }

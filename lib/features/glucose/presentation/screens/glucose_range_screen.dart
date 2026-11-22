@@ -26,6 +26,10 @@ class _GlucoseRangeScreenState extends ConsumerState<GlucoseRangeScreen> {
   final _high = TextEditingController();
   bool _seeded = false;
   bool _saving = false;
+
+  /// The unit low and high are read in. Null until a stored range or a
+  /// tap sets it; then it follows the display unit.
+  GlucoseUnit? _rangeUnit;
   ProviderSubscription<GlucoseRange?>? _rangeSub;
 
   @override
@@ -49,24 +53,19 @@ class _GlucoseRangeScreenState extends ConsumerState<GlucoseRangeScreen> {
 
   bool get _isApple => Theme.of(context).platform == TargetPlatform.iOS;
 
-  /// Fills the fields once from a stored range, shown in the display unit.
-  /// Typing first wins over a late hydration.
+  /// Fills the fields once from a stored range, exactly as stored and in
+  /// its own unit. Typing first wins over a late hydration.
   void _seed(GlucoseRange? range) {
     if (_seeded || range == null) return;
     if (_low.text.isNotEmpty || _high.text.isNotEmpty) return;
     _seeded = true;
-    final unit = ref.read(glucoseDisplayUnitProvider);
-    _low.text = _show(GlucoseValue(range.low, range.unit), unit);
-    _high.text = _show(GlucoseValue(range.high, range.unit), unit);
+    _rangeUnit = range.unit;
+    _low.text = _plain(range.low);
+    _high.text = _plain(range.high);
     if (mounted) setState(() {});
   }
 
-  String _show(GlucoseValue v, GlucoseUnit unit) {
-    final x = v.inUnit(unit);
-    return unit == GlucoseUnit.mmoll
-        ? x.toStringAsFixed(1)
-        : x.round().toString();
-  }
+  String _plain(num v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';
 
   num? _parse(String t) => num.tryParse(t.trim().replaceAll(',', '.'));
 
@@ -129,7 +128,8 @@ class _GlucoseRangeScreenState extends ConsumerState<GlucoseRangeScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final unit = ref.watch(glucoseDisplayUnitProvider);
+    final displayUnit = ref.watch(glucoseDisplayUnitProvider);
+    final unit = _rangeUnit ?? displayUnit;
     final range = ref.watch(glucoseRangeProvider);
     final problem = _problem(unit);
     final bounds = glucoseTypedBounds(unit);
@@ -189,6 +189,15 @@ class _GlucoseRangeScreenState extends ConsumerState<GlucoseRangeScreen> {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: glucoseUnitToggle(
+                key: const Key('glucose-range-unit'),
+                apple: _isApple,
+                unit: unit,
+                onChanged: (u) => setState(() => _rangeUnit = u),
+              ),
+            ),
             if (errorText != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -216,7 +225,7 @@ class _GlucoseRangeScreenState extends ConsumerState<GlucoseRangeScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: glucoseUnitToggle(
                 apple: _isApple,
-                unit: unit,
+                unit: displayUnit,
                 onChanged: (u) =>
                     ref.read(glucoseDisplayUnitProvider.notifier).set(u),
               ),
