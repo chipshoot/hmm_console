@@ -28,4 +28,29 @@ void main() {
       GlucoseBand.inRange,
     );
   });
+
+  test('compares at display precision: HealthKit 4.0 mmol/L is in range', () {
+    // HealthKit converts with 18.015588: 4.0 mmol/L arrives as 72.062352
+    // mg/dL, which is 3.99991 mmol/L at 18.016 and shows as 4.0.
+    expect(
+      bandFor(const GlucoseValue(72.062352, GlucoseUnit.mgdl), range),
+      GlucoseBand.inRange,
+    );
+  });
+
+  test('a mg/dL range rounds to whole mg/dL', () {
+    const mgRange = GlucoseRange(low: 70, high: 140, unit: GlucoseUnit.mgdl);
+    expect(
+      bandFor(const GlucoseValue(69.6, GlucoseUnit.mgdl), mgRange),
+      GlucoseBand.inRange,
+    );
+    expect(
+      bandFor(const GlucoseValue(140.4, GlucoseUnit.mgdl), mgRange),
+      GlucoseBand.inRange,
+    );
+    expect(
+      bandFor(const GlucoseValue(140.6, GlucoseUnit.mgdl), mgRange),
+      GlucoseBand.above,
+    );
+  });
 }
