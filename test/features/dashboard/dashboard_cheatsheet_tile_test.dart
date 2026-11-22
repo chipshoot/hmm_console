@@ -137,4 +137,35 @@ void main() {
     expect(find.byType(SnackBar), findsNothing,
         reason: 'not the "coming soon" fallback');
   });
+  testWidgets('the home screen has no Weather or Pomodoro tile',
+      (tester) async {
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith(_SignedIn.new),
+          introCardSeenProvider.overrideWith(_IntroSeen.new),
+          cheatsheetsStateProvider.overrideWith(_EmptyCheatsheets.new),
+          syncControllerProvider.overrideWithValue(_IdleSync()),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cheatsheets'), findsOneWidget,
+        reason: 'the tile grid rendered');
+    expect(find.text('Weather'), findsNothing);
+    expect(find.text('Pomodoro'), findsNothing);
+  });
 }

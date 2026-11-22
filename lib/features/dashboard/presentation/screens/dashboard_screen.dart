@@ -69,12 +69,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       route: "automobile",
     ),
     AppFunction(
-      icon: "\uD83C\uDF45",
-      title: "Pomodoro",
-      description: "Focus timer",
-      route: "pomodoro",
-    ),
-    AppFunction(
       icon: "\uD83D\uDCB0",
       title: "Expenses",
       description: "Track spending",
@@ -97,12 +91,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       title: "Contacts",
       description: "People and places",
       route: "contacts",
-    ),
-    AppFunction(
-      icon: "\uD83C\uDF24\uFE0F",
-      title: "Weather",
-      description: "Current forecast",
-      route: "weather",
     ),
     AppFunction(
       icon: "\uD83D\uDCC5",
