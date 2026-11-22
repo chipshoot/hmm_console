@@ -120,7 +120,13 @@ void main() {
   ) async {
     await _pump(tester, const [], mode: DataMode.cloudApi);
     expect(find.text('Activity'), findsOneWidget);
-    expect(find.text('Not available'), findsOneWidget);
+    final tile = find
+        .ancestor(of: find.text('Activity'), matching: find.byType(Column))
+        .first;
+    expect(
+      find.descendant(of: tile, matching: find.text('Not available')),
+      findsOneWidget,
+    );
     expect(
       find.textContaining("isn't available in Cloud API mode"),
       findsNothing,

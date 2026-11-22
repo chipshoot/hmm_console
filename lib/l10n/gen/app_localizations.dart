@@ -9265,6 +9265,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turns the automatic Apple Health import on or off for this device only.'**
   String get helpGlucoseRangeImportBody;
+
+  /// No description provided for @glucoseTileLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Last: {value} · {when}'**
+  String glucoseTileLast(String value, String when);
+
+  /// No description provided for @glucoseTileNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No readings yet'**
+  String get glucoseTileNone;
 }
 
 class _AppLocalizationsDelegate

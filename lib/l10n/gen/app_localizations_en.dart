@@ -5343,4 +5343,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpGlucoseRangeImportBody =>
       'Turns the automatic Apple Health import on or off for this device only.';
+
+  @override
+  String glucoseTileLast(String value, String when) {
+    return 'Last: $value · $when';
+  }
+
+  @override
+  String get glucoseTileNone => 'No readings yet';
 }

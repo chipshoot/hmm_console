@@ -1573,5 +1573,7 @@
   "helpGlucoseRangeUnitTitle": "显示单位",
   "helpGlucoseRangeUnitBody": "mg/dL 或 mmol/L。读数按此单位显示。该选择会同步到你的其他设备。",
   "helpGlucoseRangeImportTitle": "在此设备上导入",
-  "helpGlucoseRangeImportBody": "仅为此设备开启或关闭“健康”自动导入。"
+  "helpGlucoseRangeImportBody": "仅为此设备开启或关闭“健康”自动导入。",
+  "glucoseTileLast": "最近：{value} · {when}",
+  "glucoseTileNone": "暂无读数"
 }

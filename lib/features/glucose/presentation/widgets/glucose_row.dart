@@ -22,7 +22,7 @@ String _bandLabel(GlucoseBand b, AppLocalizations l) => switch (b) {
 };
 
 /// Readable on light and dark surfaces.
-Color _bandColor(GlucoseBand b, ColorScheme scheme) => switch (b) {
+Color glucoseBandColor(GlucoseBand b, ColorScheme scheme) => switch (b) {
   GlucoseBand.below => Colors.orange.shade700,
   GlucoseBand.inRange => Colors.green.shade600,
   GlucoseBand.above => scheme.error,
@@ -81,7 +81,7 @@ class GlucoseRow extends StatelessWidget {
             Icon(
               Icons.circle,
               size: 10,
-              color: _bandColor(band, theme.colorScheme),
+              color: glucoseBandColor(band, theme.colorScheme),
             ),
             const SizedBox(width: 4),
             Text(_bandLabel(band, l), style: muted),

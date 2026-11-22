@@ -5104,4 +5104,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpGlucoseRangeImportBody => '仅为此设备开启或关闭“健康”自动导入。';
+
+  @override
+  String glucoseTileLast(String value, String when) {
+    return '最近：$value · $when';
+  }
+
+  @override
+  String get glucoseTileNone => '暂无读数';
 }

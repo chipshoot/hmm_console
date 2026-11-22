@@ -64,4 +64,28 @@ void main() {
     expect(cloud, isNot(contains('activity')));
     expect(cloud, isNot(contains('activityLog')));
   });
+
+  test('glucose destinations are found by 血糖 and hidden in Cloud API', () {
+    final byId = launcherDestinationsById(en);
+    expect(
+      match(
+        '血糖',
+        registry: launcherDestinations(en),
+        aliases: const {},
+      ).map((d) => d.id),
+      contains('glucose'),
+    );
+    expect(byId['glucose']?.routeName, RouterNames.glucose.name);
+    expect(byId['glucoseLog']?.routeName, RouterNames.glucoseCreate.name);
+    expect(
+      launcherDestinations(en, mode: DataMode.local).map((d) => d.id),
+      containsAll(['glucose', 'glucoseLog']),
+    );
+    final cloud = launcherDestinations(
+      en,
+      mode: DataMode.cloudApi,
+    ).map((d) => d.id);
+    expect(cloud, isNot(contains('glucose')));
+    expect(cloud, isNot(contains('glucoseLog')));
+  });
 }

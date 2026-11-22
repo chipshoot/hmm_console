@@ -2265,5 +2265,8 @@
   "helpGlucoseRangeUnitTitle": "Display unit",
   "helpGlucoseRangeUnitBody": "mg/dL or mmol/L. Readings are shown in this unit. The choice syncs to your other devices.",
   "helpGlucoseRangeImportTitle": "Import on this device",
-  "helpGlucoseRangeImportBody": "Turns the automatic Apple Health import on or off for this device only."
+  "helpGlucoseRangeImportBody": "Turns the automatic Apple Health import on or off for this device only.",
+  "glucoseTileLast": "Last: {value} · {when}",
+  "@glucoseTileLast": {"placeholders": {"value": {"type": "String"}, "when": {"type": "String"}}},
+  "glucoseTileNone": "No readings yet"
 }

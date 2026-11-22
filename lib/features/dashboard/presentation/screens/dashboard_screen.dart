@@ -26,6 +26,13 @@ import '../../../calendar/states/remind_on_device_provider.dart';
 import '../../../calendar/states/reminders_inbox_state.dart';
 import '../../../activity/presentation/activity_summary.dart';
 import '../../../activity/states/health_minutes_today.dart';
+import '../../../glucose/domain/glucose_range.dart';
+import '../../../glucose/presentation/widgets/glucose_row.dart'
+    show glucoseBandColor;
+import '../../../glucose/states/glucose_list_state.dart'
+    show glucoseClockProvider;
+import '../../../glucose/states/glucose_settings_providers.dart';
+import '../../../glucose/states/last_glucose_reading.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -103,6 +110,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       title: "Activity",
       description: "Log activity",
       route: "activity",
+    ),
+    AppFunction(
+      icon: "\uD83E\uDE78",
+      title: "Glucose",
+      description: "Blood sugar",
+      route: "glucose",
     ),
   ];
 
@@ -312,6 +325,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 'activity' => AppLocalizations.of(
                   context,
                 ).dashboardActivityTitle,
+                'glucose' => AppLocalizations.of(context).glucoseTitle,
                 _ => function.title,
               },
               style: TextStyle(fontSize: 12, color: colorScheme.onSurface),
@@ -320,6 +334,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             if (function.route == 'activity')
               _buildActivitySubtitle(colorScheme),
+            if (function.route == 'glucose') _buildGlucoseSubtitle(colorScheme),
           ],
         ),
       ),
@@ -347,6 +362,58 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       textAlign: TextAlign.center,
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  /// The newest glucose reading under the Glucose tile, with a band dot when
+  /// a target range is set. Cloud API keeps the tile and says unavailable.
+  Widget _buildGlucoseSubtitle(ColorScheme colorScheme) {
+    final l = AppLocalizations.of(context);
+    final style = TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant);
+    final String? text;
+    Color? dot;
+    if (ref.watch(dataModeProvider) == DataMode.cloudApi) {
+      text = l.activityNotAvailableShort;
+    } else {
+      final async = ref.watch(lastGlucoseReadingProvider);
+      final reading = async.value;
+      if (reading != null) {
+        final unit = ref.watch(glucoseDisplayUnitProvider);
+        final band = bandFor(reading.glucose, ref.watch(glucoseRangeProvider));
+        if (band != null) dot = glucoseBandColor(band, colorScheme);
+        final now = ref.read(glucoseClockProvider)();
+        text = l.glucoseTileLast(
+          reading.glucose.display(unit),
+          syncRelativeTime(reading.takenAt.utc, l, now: now),
+        );
+      } else {
+        text = async.isLoading ? null : l.glucoseTileNone;
+      }
+    }
+    if (text == null) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (dot != null) ...[
+          Container(
+            key: const ValueKey('glucose-tile-band-dot'),
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 3),
+        ],
+        Flexible(
+          child: Text(
+            text,
+            style: style,
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -531,6 +598,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         context.pushNamed(RouterNames.calendar.name);
       case 'activity':
         context.pushNamed(RouterNames.activity.name);
+      case 'glucose':
+        context.pushNamed(RouterNames.glucose.name);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -244,8 +244,8 @@ String syncStatusHeadline(SyncStatus status, AppLocalizations l) {
   return l.syncStatusNever;
 }
 
-String syncRelativeTime(DateTime past, AppLocalizations l) {
-  final delta = DateTime.now().toUtc().difference(past);
+String syncRelativeTime(DateTime past, AppLocalizations l, {DateTime? now}) {
+  final delta = (now ?? DateTime.now()).toUtc().difference(past);
   if (delta.inSeconds < 60) return l.syncRelativeJustNow;
   if (delta.inMinutes < 60) return l.syncRelativeMinutes(delta.inMinutes);
   if (delta.inHours < 24) return l.syncRelativeHours(delta.inHours);

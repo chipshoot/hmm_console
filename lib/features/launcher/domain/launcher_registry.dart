@@ -36,6 +36,8 @@ const _localOnlyDestinationIds = <String>{
   'driverLicence',
   'activity',
   'activityLog',
+  'glucose',
+  'glucoseLog',
 };
 
 /// [mode] filters out destinations that cannot work in it. Defaults to showing
@@ -205,6 +207,27 @@ List<LauncherDestination> _allLauncherDestinations(AppLocalizations l) => [
         synonyms: const ['log activity', '记录活动'],
         icon: Icons.add_circle_outline,
         routeName: RouterNames.activityCreate.name,
+      ),
+      LauncherDestination(
+        id: 'glucose',
+        title: l.glucoseTitle,
+        synonyms: const [
+          'Glucose',
+          'blood sugar',
+          'blood glucose',
+          'diabetes',
+          '血糖',
+          '糖尿病',
+        ],
+        icon: Icons.water_drop_outlined,
+        routeName: RouterNames.glucose.name,
+      ),
+      LauncherDestination(
+        id: 'glucoseLog',
+        title: l.glucoseLogAction,
+        synonyms: const ['log glucose', 'log blood sugar', '记录血糖'],
+        icon: Icons.add_circle_outline,
+        routeName: RouterNames.glucoseCreate.name,
       ),
       LauncherDestination(
         id: 'contacts',
