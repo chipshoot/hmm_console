@@ -6,10 +6,10 @@ import 'package:hmm_console/core/data/hmm_note_input.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
+import 'package:hmm_console/features/activity/domain/offset_date_time.dart';
 import 'package:hmm_console/features/glucose/contract/glucose_errors.dart';
 import 'package:hmm_console/features/glucose/data/local_glucose_repository.dart';
 import 'package:hmm_console/features/glucose/domain/glucose_reading.dart';
-import 'package:hmm_console/features/activity/domain/offset_date_time.dart';
 import 'package:hmm_console/features/glucose/domain/glucose_units.dart';
 import 'package:hmm_console/features/glucose/states/glucose_providers.dart';
 
@@ -57,8 +57,14 @@ void main() {
 
     Future<int> catalogId() async => (await _catalogs.getOrCreateCatalog(
       glucoseCatalogName,
-      '{"type":"glucose"}',
+      glucoseCatalogSchema,
     )).id;
+
+    test('creates the catalog with the glucoseReading schema', () async {
+      await repo.saveReading(_rd('g1'));
+      final c = await _catalogs.getCatalogByName(glucoseCatalogName);
+      expect(c?.schema, '{"type":"glucoseReading"}');
+    });
 
     test('stores the subject as Glucose:<id>', () async {
       await repo.saveReading(_rd('a1'));

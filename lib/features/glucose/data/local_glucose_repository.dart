@@ -10,7 +10,7 @@ import '../domain/glucose_reading.dart';
 import 'glucose_codec.dart';
 
 const glucoseCatalogName = 'Hmm.GlucoseMan.Reading';
-const _catalogSchema = '{"type":"glucose"}';
+const glucoseCatalogSchema = '{"type":"glucoseReading"}';
 
 /// The subject is identity: everything else lives in the JSON.
 String glucoseSubjectFor(String id) => 'Glucose:$id';
@@ -42,7 +42,7 @@ class LocalGlucoseRepository implements IGlucoseRepository {
     try {
       return (await _catalogs.getOrCreateCatalog(
         glucoseCatalogName,
-        _catalogSchema,
+        glucoseCatalogSchema,
       )).id;
     } catch (_) {
       final existing = await _catalogs.getCatalogByName(glucoseCatalogName);
