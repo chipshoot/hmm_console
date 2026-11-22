@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://homemademessage.com/schemas/glucose.reading.schema.json",
+  "title": "Hmm.GlucoseMan.Reading",
+  "description": "One blood glucose reading. Unknown keys are allowed and must be kept when written back.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "takenAt", "glucose", "source", "updatedAt"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "id": { "type": "string" },
+    "takenAt": { "type": "string", "format": "date-time", "description": "ISO 8601 with UTC offset" },
+    "glucose": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "number", "description": "Stored exactly as entered or imported" },
+        "unit": { "enum": ["mg/dL", "mmol/L"] }
+      }
+    },
+    "context": { "enum": ["fasting", "beforeMeal", "afterMeal", "bedtime", "other"] },
+    "notes": { "type": "string" },
+    "source": { "enum": ["manual", "appleHealth", "assistant"] },
+    "appleHealth": {
+      "type": "object",
+      "required": ["sampleId"],
+      "properties": {
+        "sampleId": { "type": "string", "description": "HealthKit sample UUID" },
+        "sourceName": { "type": "string" }
+      }
+    },
+    "draft": { "type": "boolean" },
+    "updatedAt": { "type": "string", "format": "date-time", "description": "UTC, whole seconds" }
+  }
+}
