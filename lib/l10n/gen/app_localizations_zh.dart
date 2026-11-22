@@ -4820,4 +4820,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get activitySaveFailed => '无法保存活动';
+
+  @override
+  String get activityPlannedLabel => '计划的日程';
+
+  @override
+  String get activityPlannedNone => '无';
+
+  @override
+  String get activityPlannedMarkFailed => '已保存，但未能将日历中的日程标记为完成';
+
+  @override
+  String activityLoggedLine(String summary) {
+    return '已记录：$summary';
+  }
+
+  @override
+  String get helpActivityEditPlannedTitle => '计划的日程';
+
+  @override
+  String get helpActivityEditPlannedBody =>
+      '选择这次活动对应的日历日程（昨天至未来 12 小时内）。开始时间会移到该日程的时间，保存后该日程会标记为完成。之后移除关联不会撤销标记。';
+
+  @override
+  String get helpCalendarEventLoggedTitle => '已记录';
+
+  @override
+  String get helpCalendarEventLoggedBody => '显示为此日程记录的活动。点按可打开该活动。';
 }

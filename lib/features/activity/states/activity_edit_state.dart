@@ -4,12 +4,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/data/local/local_hmm_note_repository.dart';
 import '../../../core/util/uuid.dart';
+import '../../calendar/domain/calendar_event.dart';
+import '../../calendar/states/calendar_providers.dart';
+import '../../calendar/states/event_edit_state.dart' show eventTimeFromWireKey;
 import '../domain/activity.dart';
 import '../domain/activity_kind.dart';
 import '../domain/offset_date_time.dart';
 import 'activity_kinds_provider.dart';
 import 'activity_list_state.dart';
 import 'activity_providers.dart';
+import 'planned_sessions.dart';
 
 /// Per-device prefs key: the most recently saved kinds, newest first.
 const kActivityRecentKindsKey = 'activity.recentKinds';
@@ -74,6 +78,7 @@ class ActivityEditState {
     required this.recentKinds,
     required this.now,
     required this.touched,
+    this.plannedMarkFailed = false,
   });
 
   final Activity? original;
@@ -110,6 +115,10 @@ class ActivityEditState {
   /// The clock at the last change, for the "ended in the future" check.
   final DateTime now;
   final Set<ActivityField> touched;
+
+  /// The last save stored the activity but could not mark its planned
+  /// occurrence done in the calendar.
+  final bool plannedMarkFailed;
 
   bool get isNew => original == null;
 
@@ -155,6 +164,7 @@ class ActivityEditState {
     bool clearPlanned = false,
     required DateTime now,
     ActivityField? touch,
+    bool? plannedMarkFailed,
   }) => ActivityEditState(
     original: original,
     id: id,
@@ -175,6 +185,7 @@ class ActivityEditState {
     recentKinds: recentKinds,
     now: now,
     touched: touch == null ? touched : {...touched, touch},
+    plannedMarkFailed: plannedMarkFailed ?? this.plannedMarkFailed,
   );
 }
 
@@ -383,6 +394,26 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
         : s._copy(planned: planned, now: now, touch: ActivityField.planned),
   );
 
+  /// Links [p] and moves "ended" so the start is the occurrence's start
+  /// (its moved time when moved), keeping the duration; with no duration
+  /// yet, ended = the occurrence's start.
+  void pickPlannedSession(PlannedSession p) => _update((s, now) {
+    final start = p.occurrence.start.toLocal();
+    final ended = start.add(Duration(minutes: s.durationMinutes ?? 0));
+    return s
+        ._copy(
+          ended: ended,
+          planned: PlannedEventRef(
+            eventId: p.event.id,
+            occurrence: p.occurrence.originalStart.wireKey,
+            at: OffsetDateTime.fromLocal(start),
+          ),
+          now: now,
+          touch: ActivityField.ended,
+        )
+        ._copy(now: now, touch: ActivityField.planned);
+  });
+
   static String _areaOf(String kindId) {
     final i = kindId.indexOf('.');
     return i < 0 ? kindId : kindId.substring(0, i);
@@ -399,7 +430,49 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
     final repo = ref.read(activityRepositoryProvider);
     final saved = await repo.saveActivity(_build(s));
     await _rememberKind(saved.kind);
+    final planned = s.planned;
+    final linkChanged =
+        planned != null &&
+        (s.isNew ||
+            (s.touched.contains(ActivityField.planned) &&
+                planned != s.original!.plannedEvent));
+    final failed = linkChanged && !await _markDone(planned);
+    final after = state.value;
+    if (after != null) {
+      state = AsyncData(after._copy(now: _now(), plannedMarkFailed: failed));
+    }
     return saved;
+  }
+
+  /// Marks [p]'s occurrence done, keeping the rest of its override (a moved
+  /// occurrence stays moved). False when the calendar could not be updated;
+  /// the activity is saved either way.
+  Future<bool> _markDone(PlannedEventRef p) async {
+    try {
+      final cal = ref.read(calendarRepositoryProvider);
+      final e = await cal.getEvent(p.eventId);
+      if (e == null) return false;
+      OccurrenceOverride? existing;
+      for (final o in e.occurrences) {
+        if (o.originalStart.wireKey == p.occurrence) existing = o;
+      }
+      final original =
+          existing?.originalStart ?? eventTimeFromWireKey(p.occurrence, e);
+      if (original == null) return false;
+      await cal.setOccurrence(
+        p.eventId,
+        existing?.copyWith(status: OccurrenceStatus.done) ??
+            OccurrenceOverride(
+              originalStart: original,
+              status: OccurrenceStatus.done,
+            ),
+      );
+      return true;
+    } catch (e) {
+      // Type only: the error text can quote stored data.
+      debugPrint('activityEdit: planned mark failed (${e.runtimeType})');
+      return false;
+    }
   }
 
   Activity _build(ActivityEditState s) {

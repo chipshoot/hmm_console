@@ -77,6 +77,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpActivityEditLinkTitle,
         body: l.helpActivityEditLinkBody,
       ),
+      HelpEntry(
+        icon: Icons.event_available,
+        title: l.helpActivityEditPlannedTitle,
+        body: l.helpActivityEditPlannedBody,
+      ),
     ],
   ),
   HelpId.automobileHub => ScreenHelp(
@@ -200,6 +205,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.link,
         title: l.helpCalendarEventLinkedTitle,
         body: l.helpCalendarEventLinkedBody,
+      ),
+      HelpEntry(
+        icon: Icons.directions_run,
+        title: l.helpCalendarEventLoggedTitle,
+        body: l.helpCalendarEventLoggedBody,
       ),
     ],
   ),

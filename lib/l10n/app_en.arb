@@ -2165,5 +2165,20 @@
   "helpActivityEditLinkTitle": "Linked note",
   "helpActivityEditLinkBody": "Link a note, such as the book you read or the project you worked on. If that note is deleted later, the entry shows Note removed and keeps the link.",
   "activityDurationMinutes": "Minutes",
-  "activitySaveFailed": "Couldn't save the activity"
+  "activitySaveFailed": "Couldn't save the activity",
+  "activityPlannedLabel": "Planned session",
+  "activityPlannedNone": "None",
+  "activityPlannedMarkFailed": "Saved, but the calendar session couldn't be marked done",
+  "activityLoggedLine": "Logged: {summary}",
+  "@activityLoggedLine": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "helpActivityEditPlannedTitle": "Planned session",
+  "helpActivityEditPlannedBody": "Pick the calendar session this was, from yesterday until 12 hours from now. The start moves to the session's time and saving marks the session done. Removing the link later doesn't undo that.",
+  "helpCalendarEventLoggedTitle": "Logged",
+  "helpCalendarEventLoggedBody": "Shows the activity logged for this session. Tap it to open the activity."
 }

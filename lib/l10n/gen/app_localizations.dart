@@ -8743,6 +8743,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save the activity'**
   String get activitySaveFailed;
+
+  /// No description provided for @activityPlannedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned session'**
+  String get activityPlannedLabel;
+
+  /// No description provided for @activityPlannedNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get activityPlannedNone;
+
+  /// No description provided for @activityPlannedMarkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved, but the calendar session couldn\'t be marked done'**
+  String get activityPlannedMarkFailed;
+
+  /// No description provided for @activityLoggedLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged: {summary}'**
+  String activityLoggedLine(String summary);
+
+  /// No description provided for @helpActivityEditPlannedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned session'**
+  String get helpActivityEditPlannedTitle;
+
+  /// No description provided for @helpActivityEditPlannedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the calendar session this was, from yesterday until 12 hours from now. The start moves to the session\'s time and saving marks the session done. Removing the link later doesn\'t undo that.'**
+  String get helpActivityEditPlannedBody;
+
+  /// No description provided for @helpCalendarEventLoggedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged'**
+  String get helpCalendarEventLoggedTitle;
+
+  /// No description provided for @helpCalendarEventLoggedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows the activity logged for this session. Tap it to open the activity.'**
+  String get helpCalendarEventLoggedBody;
 }
 
 class _AppLocalizationsDelegate

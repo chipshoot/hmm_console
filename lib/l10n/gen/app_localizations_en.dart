@@ -5043,4 +5043,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get activitySaveFailed => 'Couldn\'t save the activity';
+
+  @override
+  String get activityPlannedLabel => 'Planned session';
+
+  @override
+  String get activityPlannedNone => 'None';
+
+  @override
+  String get activityPlannedMarkFailed =>
+      'Saved, but the calendar session couldn\'t be marked done';
+
+  @override
+  String activityLoggedLine(String summary) {
+    return 'Logged: $summary';
+  }
+
+  @override
+  String get helpActivityEditPlannedTitle => 'Planned session';
+
+  @override
+  String get helpActivityEditPlannedBody =>
+      'Pick the calendar session this was, from yesterday until 12 hours from now. The start moves to the session\'s time and saving marks the session done. Removing the link later doesn\'t undo that.';
+
+  @override
+  String get helpCalendarEventLoggedTitle => 'Logged';
+
+  @override
+  String get helpCalendarEventLoggedBody =>
+      'Shows the activity logged for this session. Tap it to open the activity.';
 }

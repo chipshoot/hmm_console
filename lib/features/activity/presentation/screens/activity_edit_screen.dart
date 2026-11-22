@@ -19,6 +19,7 @@ import '../../domain/activity_kind.dart';
 import '../../states/activity_edit_state.dart';
 import '../../states/activity_kinds_provider.dart';
 import '../../states/activity_providers.dart';
+import '../../states/planned_sessions.dart';
 import '../distance_unit.dart';
 import '../widgets/activity_cloud_api_message.dart';
 
@@ -94,6 +95,18 @@ class _ActivityEditScreenState extends ConsumerState<ActivityEditScreen> {
     try {
       await _form.save();
       if (!mounted) return;
+      final markFailed =
+          ref
+              .read(activityEditProvider(widget.activityId))
+              .value
+              ?.plannedMarkFailed ??
+          false;
+      // The messenger outlives this screen, so the note shows after the pop.
+      if (markFailed) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l.activityPlannedMarkFailed)),
+        );
+      }
       await Navigator.of(context).maybePop();
     } catch (e) {
       // Type only: the error text can quote stored data.
@@ -161,6 +174,125 @@ class _ActivityEditScreenState extends ConsumerState<ActivityEditScreen> {
     final note = await picker(context);
     if (!mounted || note == null) return;
     _form.setLink(note.uuid, note.subject.trim());
+  }
+
+  /// `Morning walk · Sat, Nov 21 7:00 AM`.
+  String _sessionText(PlannedSession p, AppLocalizations l) {
+    final title = p.occurrence.titleOverride ?? p.event.title;
+    return '$title · ${_dateTime(p.occurrence.start.toLocal(), l)}';
+  }
+
+  String _dateTime(DateTime t, AppLocalizations l) {
+    try {
+      return DateFormat.MMMEd(l.localeName).add_jm().format(t);
+    } catch (_) {
+      // Locale data unavailable: ISO still reads.
+      return t.toIso8601String().substring(0, 16).replaceFirst('T', ' ');
+    }
+  }
+
+  /// "None" first, then the sessions. Pops with a one-field record so
+  /// "None" (null session) differs from dismissing the sheet.
+  Future<void> _pickPlanned(
+    List<PlannedSession> sessions,
+    ActivityEditState s,
+  ) async {
+    final l = AppLocalizations.of(context);
+    bool isPicked(PlannedSession p) =>
+        s.planned?.eventId == p.event.id &&
+        s.planned?.occurrence == p.occurrence.originalStart.wireKey;
+    final options = <(PlannedSession?, String)>[
+      (null, l.activityPlannedNone),
+      for (final p in sessions) (p, _sessionText(p, l)),
+    ];
+    final (PlannedSession?,)? picked;
+    if (_isApple) {
+      picked = await showCupertinoModalPopup<(PlannedSession?,)>(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          title: Text(l.activityPlannedLabel),
+          actions: [
+            for (final (p, text) in options)
+              CupertinoActionSheetAction(
+                isDefaultAction: p == null ? s.planned == null : isPicked(p),
+                onPressed: () => Navigator.pop(ctx, (p,)),
+                child: Text(text),
+              ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+          ),
+        ),
+      );
+    } else {
+      picked = await showModalBottomSheet<(PlannedSession?,)>(
+        context: context,
+        isScrollControlled: true,
+        builder: (ctx) => SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(ctx).height * 0.7,
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final (p, text) in options)
+                  ListTile(
+                    title: Text(text),
+                    trailing: (p == null ? s.planned == null : isPicked(p))
+                        ? const Icon(Icons.check)
+                        : null,
+                    onTap: () => Navigator.pop(ctx, (p,)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    if (!mounted || picked == null) return;
+    final session = picked.$1;
+    if (session == null) {
+      _form.setPlanned(null);
+    } else {
+      _form.pickPlannedSession(session);
+    }
+  }
+
+  /// The "Planned session" row; hidden until the calendar answers and when
+  /// it fails (Cloud API mode).
+  Widget? _plannedRow(ActivityEditState s) {
+    final sessions = ref.watch(plannedSessionsProvider).value;
+    if (sessions == null) return null;
+    final l = AppLocalizations.of(context);
+    final planned = s.planned;
+    String subtitle;
+    if (planned == null) {
+      subtitle = l.activityPlannedNone;
+    } else {
+      final match = sessions
+          .where(
+            (p) =>
+                p.event.id == planned.eventId &&
+                p.occurrence.originalStart.wireKey == planned.occurrence,
+          )
+          .firstOrNull;
+      final at = planned.at;
+      subtitle = match != null
+          ? _sessionText(match, l)
+          : at != null
+          ? _dateTime(at.utc.toLocal(), l)
+          : planned.occurrence;
+    }
+    return ListTile(
+      key: const Key('activity-planned'),
+      leading: const Icon(Icons.event_available),
+      title: Text(l.activityPlannedLabel),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _pickPlanned(sessions, s),
+    );
   }
 
   @override
@@ -355,6 +487,7 @@ class _ActivityEditScreenState extends ConsumerState<ActivityEditScreen> {
           onTap: _pickNote,
         ),
         const Divider(),
+        if (_plannedRow(s) case final row?) ...[row, const Divider()],
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: TextField(

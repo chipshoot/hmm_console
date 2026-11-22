@@ -12,6 +12,9 @@ import '../../../../core/navigation/route_names.dart';
 import '../../../../core/widgets/adaptive_icon.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
 import '../../../../l10n/gen/app_localizations.dart';
+import '../../../activity/presentation/activity_summary.dart';
+import '../../../activity/states/activity_kinds_provider.dart';
+import '../../../activity/states/planned_sessions.dart';
 import '../../contract/calendar_errors.dart';
 import '../../contract/dated_note.dart';
 import '../../contract/i_calendar_repository.dart';
@@ -22,6 +25,7 @@ import '../../linked/dated_note_sources_provider.dart';
 import '../../linked/linked_source_location.dart';
 import '../linked_event_title.dart';
 import '../../states/calendar_providers.dart';
+import '../../states/calendar_view_state.dart' show deviceResolver;
 import '../../states/event_edit_state.dart';
 import '../widgets/calendar_cloud_api_message.dart';
 import '../widgets/reminder_list_editor.dart' show reminderLabel;
@@ -310,6 +314,73 @@ class EventDetailScreen extends ConsumerWidget {
         '${date.format(end)} ${time.format(end)}';
   }
 
+  /// [t] as a UTC instant, wall times read in the device zone.
+  static DateTime _instant(EventTime t) {
+    final resolve = deviceResolver();
+    return switch (t) {
+      FixedTime(:final instant) => instant.toUtc(),
+      FloatingTime(
+        :final year,
+        :final month,
+        :final day,
+        :final hour,
+        :final minute,
+      ) =>
+        resolve(year, month, day, hour, minute),
+      AllDay(:final year, :final month, :final day) => resolve(
+        year,
+        month,
+        day,
+        0,
+        0,
+      ),
+    };
+  }
+
+  /// The shown occurrence's key and start: the opened occurrence, or the
+  /// event's own start for a one-off. Null for a series opened without one.
+  static OccurrenceKey? _occurrenceKey(CalendarEvent e, OccurrenceRef? o) {
+    if (o != null) {
+      return (
+        eventId: e.id,
+        wireKey: o.originalStart.wireKey,
+        around: o.occurrence?.start ?? _instant(o.effectiveStart),
+      );
+    }
+    if (isRepeating(e)) return null;
+    return (eventId: e.id, wireKey: e.start.wireKey, around: _instant(e.start));
+  }
+
+  /// One "Logged: Walk · 30 min" row per activity logged against the shown
+  /// occurrence; none when Activity is unavailable.
+  List<Widget> _logged(
+    BuildContext context,
+    WidgetRef ref,
+    CalendarEvent e,
+    OccurrenceRef? o,
+  ) {
+    final key = _occurrenceKey(e, o);
+    if (key == null) return const [];
+    final activities =
+        ref.watch(activitiesForOccurrenceProvider(key)).value ?? const [];
+    if (activities.isEmpty) return const [];
+    final l = AppLocalizations.of(context);
+    final kinds = ref.watch(activityKindRegistryProvider);
+    return [
+      for (final a in activities)
+        ListTile(
+          key: ValueKey('calendar-logged-${a.id}'),
+          leading: const Icon(Icons.directions_run),
+          title: Text(l.activityLoggedLine(activitySummary(a, kinds, l))),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.pushNamed(
+            RouterNames.activityEdit.name,
+            pathParameters: {'id': a.id},
+          ),
+        ),
+    ];
+  }
+
   Widget _message(String title, [String? hint]) => Center(
     child: Padding(
       padding: const EdgeInsets.all(24),
@@ -473,6 +544,7 @@ class EventDetailScreen extends ConsumerWidget {
           ),
         if (notes != null && notes.trim().isNotEmpty)
           ListTile(leading: const Icon(Icons.notes), title: Text(notes)),
+        ..._logged(context, ref, e, o),
         if (o != null && status != OccurrenceStatus.cancelled)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),

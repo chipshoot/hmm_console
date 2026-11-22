@@ -1484,5 +1484,13 @@
   "helpActivityEditLinkTitle": "关联笔记",
   "helpActivityEditLinkBody": "关联一条笔记，例如读的书或做的项目。如果该笔记之后被删除，记录会显示“笔记已删除”，关联仍会保留。",
   "activityDurationMinutes": "分钟",
-  "activitySaveFailed": "无法保存活动"
+  "activitySaveFailed": "无法保存活动",
+  "activityPlannedLabel": "计划的日程",
+  "activityPlannedNone": "无",
+  "activityPlannedMarkFailed": "已保存，但未能将日历中的日程标记为完成",
+  "activityLoggedLine": "已记录：{summary}",
+  "helpActivityEditPlannedTitle": "计划的日程",
+  "helpActivityEditPlannedBody": "选择这次活动对应的日历日程（昨天至未来 12 小时内）。开始时间会移到该日程的时间，保存后该日程会标记为完成。之后移除关联不会撤销标记。",
+  "helpCalendarEventLoggedTitle": "已记录",
+  "helpCalendarEventLoggedBody": "显示为此日程记录的活动。点按可打开该活动。"
 }

@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/help/help_registry.dart';
+import 'package:hmm_console/core/navigation/route_names.dart';
+import 'package:hmm_console/features/activity/domain/activity.dart';
+import 'package:hmm_console/features/activity/domain/offset_date_time.dart';
+import 'package:hmm_console/features/activity/states/activity_providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/features/calendar/contract/dated_note.dart';
 import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
@@ -15,6 +19,7 @@ import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../activity/support/fake_activity_repository.dart';
 import '../support/fake_calendar_repository.dart';
 
 class _Mode extends DataModeNotifier {
@@ -56,6 +61,7 @@ Future<void> _mount(
   String? at = _at,
   DataMode mode = DataMode.local,
   TargetPlatform platform = TargetPlatform.android,
+  List<Activity> activities = const [],
 }) async {
   tester.view.physicalSize = const Size(390, 1200);
   tester.view.devicePixelRatio = 1;
@@ -64,6 +70,9 @@ Future<void> _mount(
     overrides: [
       dataModeProvider.overrideWith(() => _Mode(mode)),
       localCalendarRepositoryProvider.overrideWithValue(repo),
+      localActivityRepositoryProvider.overrideWithValue(
+        FakeActivityRepository(activities),
+      ),
     ],
   );
   addTearDown(c.dispose);
@@ -419,5 +428,115 @@ void main() {
       expect(h.title, isNotEmpty);
       expect(h.entries, isNotEmpty);
     }
+  });
+
+  group('Logged', () {
+    Activity walk(String id, String eventId, String occurrence, DateTime at) =>
+        Activity(
+          id: id,
+          kind: 'health.walk',
+          start: OffsetDateTime.fromLocal(at),
+          durationMinutes: 30,
+          intensity: ActivityIntensity.moderate,
+          plannedEvent: PlannedEventRef(
+            eventId: eventId,
+            occurrence: occurrence,
+          ),
+          updatedAt: DateTime.utc(2030),
+        );
+
+    testWidgets('an activity linked to the shown occurrence is listed', (
+      tester,
+    ) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository()..seed(_ev('r')),
+        activities: [walk('a', 'r', _at, DateTime(2030, 1, 15, 19, 5))],
+      );
+      expect(find.text('Logged: Walk · 30 min · moderate'), findsOneWidget);
+    });
+
+    testWidgets('no linked activity, or one on another occurrence: no row', (
+      tester,
+    ) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository()..seed(_ev('r')),
+        activities: [
+          walk(
+            'a',
+            'r',
+            'floating:2030-01-14T19:00',
+            DateTime(2030, 1, 14, 19, 5),
+          ),
+        ],
+      );
+      expect(find.textContaining('Logged:'), findsNothing);
+    });
+
+    testWidgets('a one-off matches its own start', (tester) async {
+      await _mount(
+        tester,
+        FakeCalendarRepository()..seed(_ev('o', rrule: null)),
+        id: 'o',
+        at: null,
+        activities: [
+          walk(
+            'a',
+            'o',
+            'floating:2030-01-13T19:00',
+            DateTime(2030, 1, 13, 19),
+          ),
+        ],
+      );
+      expect(find.text('Logged: Walk · 30 min · moderate'), findsOneWidget);
+    });
+
+    testWidgets('tapping the row opens the activity', (tester) async {
+      tester.view.physicalSize = const Size(390, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final c = ProviderContainer(
+        overrides: [
+          dataModeProvider.overrideWith(() => _Mode(DataMode.local)),
+          localCalendarRepositoryProvider.overrideWithValue(
+            FakeCalendarRepository()..seed(_ev('r')),
+          ),
+          localActivityRepositoryProvider.overrideWithValue(
+            FakeActivityRepository([
+              walk('a', 'r', _at, DateTime(2030, 1, 15, 19)),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, _) => const EventDetailScreen(eventId: 'r', at: _at),
+          ),
+          GoRoute(
+            path: '/activity/:id',
+            name: RouterNames.activityEdit.name,
+            builder: (_, s) => Text('activity ${s.pathParameters['id']}'),
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: c,
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Logged:'));
+      await tester.pumpAndSettle();
+      expect(find.text('activity a'), findsOneWidget);
+    });
   });
 }

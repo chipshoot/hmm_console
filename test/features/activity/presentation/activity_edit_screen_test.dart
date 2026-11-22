@@ -13,10 +13,14 @@ import 'package:hmm_console/features/activity/presentation/screens/activity_edit
 import 'package:hmm_console/features/activity/states/activity_edit_state.dart';
 import 'package:hmm_console/features/activity/states/activity_list_state.dart';
 import 'package:hmm_console/features/activity/states/activity_providers.dart';
+import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/calendar/domain/event_time.dart';
+import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../calendar/support/fake_calendar_repository.dart';
 import '../support/fake_activity_repository.dart';
 
 class _Mode extends DataModeNotifier {
@@ -67,9 +71,12 @@ Future<void> _mount(
   Map<String, HmmNote> notes = const {},
   HmmNote? pick,
   TargetPlatform platform = TargetPlatform.android,
+  FakeCalendarRepository? calendar,
 }) async {
   final container = ProviderContainer(
     overrides: [
+      if (calendar != null)
+        localCalendarRepositoryProvider.overrideWithValue(calendar),
       dataModeProvider.overrideWith(() => _Mode(mode)),
       if (repo != null) localActivityRepositoryProvider.overrideWithValue(repo),
       localHmmNoteRepositoryProvider.overrideWithValue(_Notes(notes)),
@@ -109,6 +116,29 @@ Future<void> _mount(
 
 Future<void> _tapSave(WidgetTester t) async {
   await t.tap(find.byKey(const Key('activity-save')));
+  await t.pumpAndSettle();
+}
+
+/// A calendar whose `setOccurrence` always fails.
+class _FailingCalendar extends FakeCalendarRepository {
+  @override
+  Future<CalendarEvent> setOccurrence(String eventId, OccurrenceOverride o) =>
+      throw StateError('disk full');
+}
+
+CalendarEvent _session(String id, String title, EventTime start) =>
+    CalendarEvent(
+      id: id,
+      title: title,
+      start: start,
+      updatedAt: DateTime.utc(2026),
+    );
+
+Future<void> _openPlanned(WidgetTester t) async {
+  final row = find.byKey(const Key('activity-planned'));
+  await t.ensureVisible(row);
+  await t.pumpAndSettle();
+  await t.tap(row);
   await t.pumpAndSettle();
 }
 
@@ -302,5 +332,96 @@ void main() {
     await _mount(t, id: null, repo: FakeActivityRepository());
     final help = t.widget<HelpButton>(find.byType(HelpButton));
     expect(help.helpId, HelpId.activityEdit);
+  });
+
+  group('planned session', () {
+    const nine = FloatingTime(2026, 11, 21, 9, 0);
+
+    testWidgets('the row is hidden when the calendar is unavailable', (
+      t,
+    ) async {
+      await _mount(t, id: null, repo: FakeActivityRepository());
+      expect(find.byKey(const Key('activity-planned')), findsNothing);
+    });
+
+    testWidgets('picking a session links it and save marks it done', (t) async {
+      final cal = FakeCalendarRepository()
+        ..seed(_session('w', 'Morning walk', nine));
+      final repo = FakeActivityRepository();
+      await _mount(t, id: null, repo: repo, calendar: cal);
+      await t.tap(find.text('30 min'));
+      await t.pump();
+      await _openPlanned(t);
+      expect(find.text('None'), findsWidgets);
+      await t.tap(find.textContaining('Morning walk').last);
+      await t.pumpAndSettle();
+      expect(find.textContaining('Morning walk'), findsOneWidget);
+
+      await _tapSave(t);
+      final saved = (await repo.activitiesBetween(
+        DateTime.utc(2000),
+        DateTime.utc(9999),
+      )).single;
+      expect(saved.plannedEvent!.occurrence, nine.wireKey);
+      expect(saved.start, OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 9)));
+      expect(cal.log, ['occ:w:done']);
+    });
+
+    testWidgets('iOS: the sessions come in a Cupertino action sheet', (
+      t,
+    ) async {
+      final cal = FakeCalendarRepository()
+        ..seed(_session('w', 'Morning walk', nine));
+      await _mount(
+        t,
+        id: null,
+        repo: FakeActivityRepository(),
+        calendar: cal,
+        platform: TargetPlatform.iOS,
+      );
+      await _openPlanned(t);
+      expect(find.byType(CupertinoActionSheet), findsOneWidget);
+    });
+
+    testWidgets('a failed mark keeps the save and says so', (t) async {
+      final cal = _FailingCalendar()..seed(_session('w', 'Morning walk', nine));
+      final repo = FakeActivityRepository();
+      await _mount(t, id: null, repo: repo, calendar: cal);
+      await t.tap(find.text('30 min'));
+      await t.pump();
+      await _openPlanned(t);
+      await t.tap(find.textContaining('Morning walk').last);
+      await t.pumpAndSettle();
+      await _tapSave(t);
+      expect(
+        await repo.activitiesBetween(DateTime.utc(2000), DateTime.utc(9999)),
+        hasLength(1),
+      );
+      expect(
+        find.text("Saved, but the calendar session couldn't be marked done"),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('deleting a linked activity leaves the calendar alone', (
+      t,
+    ) async {
+      final cal = FakeCalendarRepository()
+        ..seed(_session('w', 'Morning walk', nine));
+      final a = Activity(
+        id: 'x',
+        kind: 'health.walk',
+        start: OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 9)),
+        durationMinutes: 30,
+        plannedEvent: PlannedEventRef(eventId: 'w', occurrence: nine.wireKey),
+        updatedAt: DateTime.utc(2026, 11, 21),
+      );
+      final repo = FakeActivityRepository([a]);
+      await _mount(t, id: 'x', repo: repo, calendar: cal);
+      await t.tap(find.byTooltip('Delete activity'));
+      await t.pumpAndSettle();
+      expect(await repo.getActivity('x'), isNull);
+      expect(cal.log, isEmpty);
+    });
   });
 }

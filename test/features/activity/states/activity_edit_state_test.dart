@@ -11,9 +11,15 @@ import 'package:hmm_console/features/activity/presentation/distance_unit.dart';
 import 'package:hmm_console/features/activity/states/activity_edit_state.dart';
 import 'package:hmm_console/features/activity/states/activity_list_state.dart';
 import 'package:hmm_console/features/activity/states/activity_providers.dart';
+import 'package:hmm_console/features/activity/states/planned_sessions.dart';
+import 'package:hmm_console/features/calendar/domain/calendar_event.dart';
+import 'package:hmm_console/features/calendar/domain/event_time.dart';
+import 'package:hmm_console/features/calendar/domain/occurrence.dart';
+import 'package:hmm_console/features/calendar/states/calendar_providers.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../calendar/support/fake_calendar_repository.dart';
 import '../support/fake_activity_repository.dart';
 
 class _Mode extends DataModeNotifier {
@@ -31,14 +37,26 @@ class _Notes implements IHmmNoteRepository {
 
 final _now = DateTime(2026, 11, 21, 10, 0);
 
+/// A calendar whose `setOccurrence` always fails.
+class _FailingCalendar extends FakeCalendarRepository {
+  @override
+  Future<CalendarEvent> setOccurrence(String eventId, OccurrenceOverride o) {
+    log.add('occ-failed:$eventId');
+    throw StateError('disk full');
+  }
+}
+
 Future<(ProviderContainer, FakeActivityRepository)> _setUp({
   List<Activity> seed = const [],
+  FakeCalendarRepository? calendar,
 }) async {
   final repo = FakeActivityRepository(seed);
   final container = ProviderContainer(
     overrides: [
       dataModeProvider.overrideWith(_Mode.new),
       localActivityRepositoryProvider.overrideWithValue(repo),
+      if (calendar != null)
+        localCalendarRepositoryProvider.overrideWithValue(calendar),
       localHmmNoteRepositoryProvider.overrideWithValue(_Notes()),
       activityClockProvider.overrideWithValue(() => _now),
     ],
@@ -241,7 +259,7 @@ void main() {
   });
 
   test('the planned event can be set and is saved', () async {
-    final (c, repo) = await _setUp();
+    final (c, repo) = await _setUp(calendar: FakeCalendarRepository());
     await _load(c, null);
     final n = c.read(activityEditProvider(null).notifier);
     n.setDuration(30);
@@ -250,5 +268,135 @@ void main() {
     expect(c.read(activityEditProvider(null)).requireValue.planned, ref);
     final saved = await n.save();
     expect((await repo.getActivity(saved.id))!.plannedEvent, ref);
+  });
+
+  group('planned session', () {
+    const seven = FloatingTime(2026, 11, 21, 7, 0);
+    final daily = CalendarEvent(
+      id: 'daily',
+      title: 'Morning walk',
+      start: const FloatingTime(2026, 11, 1, 7, 0),
+      rrule: 'FREQ=DAILY',
+      updatedAt: DateTime.utc(2026),
+    );
+    final session = PlannedSession(
+      event: daily,
+      occurrence: Occurrence(
+        eventId: 'daily',
+        originalStart: seven,
+        start: DateTime(2026, 11, 21, 7).toUtc(),
+      ),
+    );
+
+    int occCalls(FakeCalendarRepository cal) =>
+        cal.log.where((e) => e.startsWith('occ')).length;
+
+    test('picking keeps the duration and starts at the occurrence', () async {
+      final (c, _) = await _setUp();
+      await _load(c, null);
+      final n = c.read(activityEditProvider(null).notifier);
+      n.setDuration(30);
+      n.pickPlannedSession(session);
+      final s = c.read(activityEditProvider(null)).requireValue;
+      expect(s.planned!.occurrence, 'floating:2026-11-21T07:00');
+      expect(s.planned!.eventId, 'daily');
+      expect(
+        s.planned!.at,
+        OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 7)),
+      );
+      expect(s.start, OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 7)));
+      expect(s.ended, DateTime(2026, 11, 21, 7, 30));
+      expect(s.durationMinutes, 30);
+    });
+
+    test('picking without a duration ends at the occurrence start', () async {
+      final (c, _) = await _setUp();
+      await _load(c, null);
+      final n = c.read(activityEditProvider(null).notifier);
+      n.pickPlannedSession(session);
+      final s = c.read(activityEditProvider(null)).requireValue;
+      expect(s.ended, DateTime(2026, 11, 21, 7));
+      expect(s.durationMinutes, isNull);
+    });
+
+    test('picking on an existing entry moves its start', () async {
+      final a = Activity(
+        id: 'x',
+        kind: 'health.walk',
+        start: OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 8)),
+        durationMinutes: 45,
+        updatedAt: DateTime.utc(2026, 11, 21),
+      );
+      final cal = FakeCalendarRepository()..seed(daily);
+      final (c, repo) = await _setUp(seed: [a], calendar: cal);
+      await _load(c, 'x');
+      final n = c.read(activityEditProvider('x').notifier);
+      n.pickPlannedSession(session);
+      await n.save();
+      final saved = (await repo.getActivity('x'))!;
+      expect(saved.start, OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 7)));
+      expect(saved.durationMinutes, 45);
+      expect(occCalls(cal), 1);
+    });
+
+    test('save marks the occurrence done once', () async {
+      final cal = FakeCalendarRepository()..seed(daily);
+      final (c, repo) = await _setUp(calendar: cal);
+      await _load(c, null);
+      final n = c.read(activityEditProvider(null).notifier);
+      n.setDuration(30);
+      n.pickPlannedSession(session);
+      final saved = await n.save();
+      expect(await repo.getActivity(saved.id), isNotNull);
+      expect(occCalls(cal), 1);
+      final o = cal.events['daily']!.occurrences.single;
+      expect(o.status, OccurrenceStatus.done);
+      expect(o.originalStart, seven);
+      expect(
+        c.read(activityEditProvider(null)).requireValue.plannedMarkFailed,
+        isFalse,
+      );
+    });
+
+    test('a failed mark keeps the activity saved and sets the flag', () async {
+      final cal = _FailingCalendar()..seed(daily);
+      final (c, repo) = await _setUp(calendar: cal);
+      await _load(c, null);
+      final n = c.read(activityEditProvider(null).notifier);
+      n.setDuration(30);
+      n.pickPlannedSession(session);
+      final saved = await n.save();
+      expect((await repo.getActivity(saved.id))!.plannedEvent, isNotNull);
+      expect(cal.log, ['occ-failed:daily']);
+      expect(
+        c.read(activityEditProvider(null)).requireValue.plannedMarkFailed,
+        isTrue,
+      );
+    });
+
+    test('an unchanged or cleared link never marks the calendar', () async {
+      final a = Activity(
+        id: 'x',
+        kind: 'health.walk',
+        start: OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 7)),
+        durationMinutes: 30,
+        plannedEvent: const PlannedEventRef(
+          eventId: 'daily',
+          occurrence: 'floating:2026-11-21T07:00',
+        ),
+        updatedAt: DateTime.utc(2026, 11, 21),
+      );
+      final cal = FakeCalendarRepository()..seed(daily);
+      final (c, repo) = await _setUp(seed: [a], calendar: cal);
+      await _load(c, 'x');
+      final n = c.read(activityEditProvider('x').notifier);
+      n.setDuration(40);
+      await n.save();
+      expect(occCalls(cal), 0);
+      n.setPlanned(null);
+      await n.save();
+      expect(occCalls(cal), 0);
+      expect((await repo.getActivity('x'))!.plannedEvent, isNull);
+    });
   });
 }
