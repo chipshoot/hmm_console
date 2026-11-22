@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/features/activity/domain/offset_date_time.dart';
@@ -10,6 +12,23 @@ import 'package:hmm_console/features/glucose/states/glucose_providers.dart';
 import '../support/fake_glucose_repository.dart';
 
 final _now = DateTime(2026, 11, 22, 10);
+
+/// Counts reads; while [gate] is set, each read waits for it.
+class _GatedRepo extends FakeGlucoseRepository {
+  int reads = 0;
+  Completer<void>? gate;
+
+  @override
+  Future<List<GlucoseReading>> readingsBetween(
+    DateTime from,
+    DateTime to,
+  ) async {
+    reads++;
+    final g = gate;
+    if (g != null) await g.future;
+    return super.readingsBetween(from, to);
+  }
+}
 
 GlucoseReading _r(String id, OffsetDateTime at) => GlucoseReading(
   id: id,
@@ -67,6 +86,30 @@ void main() {
     );
     final data = await c.read(glucoseListProvider.future);
     expect([for (final d in data.days) ...d.readings.map((r) => r.id)], ['in']);
+  });
+
+  test('a burst of changes during a reload costs one more read', () async {
+    final repo = _GatedRepo();
+    final c = _container(repo);
+    final sub = c.listen(glucoseListProvider, (_, _) {});
+    addTearDown(sub.close);
+    await c.read(glucoseListProvider.future);
+    final before = repo.reads;
+
+    repo.gate = Completer<void>();
+    for (var i = 0; i < 50; i++) {
+      await repo.saveReading(_r('r$i', _local(11, 22, 8)));
+    }
+    await Future<void>.delayed(Duration.zero);
+    repo.gate!.complete();
+    repo.gate = null;
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    expect(repo.reads - before, 2);
+    expect(
+      c.read(glucoseListProvider).requireValue.days.single.readings,
+      hasLength(50),
+    );
   });
 
   test('refreshes when the repository changes', () async {

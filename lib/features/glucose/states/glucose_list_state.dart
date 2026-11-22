@@ -63,13 +63,31 @@ class GlucoseListNotifier extends AsyncNotifier<GlucoseListData> {
     return data;
   }
 
+  bool _reloading = false;
+  bool _reloadAgain = false;
+
+  /// Reloads after a change. Changes that arrive while a reload runs are
+  /// folded into one more reload after it, so a burst of writes (an import)
+  /// costs at most two reads instead of one per write.
   Future<void> _reload() async {
-    if (!ref.mounted) return;
-    final repo = ref.read(glucoseRepositoryProvider);
-    final gen = ++_generation;
-    final next = await AsyncValue.guard(() => _load(repo));
-    if (!ref.mounted || gen != _generation) return;
-    state = next;
+    if (_reloading) {
+      _reloadAgain = true;
+      return;
+    }
+    _reloading = true;
+    try {
+      do {
+        _reloadAgain = false;
+        if (!ref.mounted) return;
+        final repo = ref.read(glucoseRepositoryProvider);
+        final gen = ++_generation;
+        final next = await AsyncValue.guard(() => _load(repo));
+        if (!ref.mounted) return;
+        if (gen == _generation) state = next;
+      } while (_reloadAgain);
+    } finally {
+      _reloading = false;
+    }
   }
 
   Future<GlucoseListData> _load(IGlucoseRepository repo) async {
