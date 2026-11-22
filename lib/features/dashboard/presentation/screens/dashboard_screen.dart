@@ -342,7 +342,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final minutes = ref.watch(healthMinutesTodayProvider);
     final text = minutes.when(
       data: (m) => switch (m) {
-        null => l.activityCloudApiUnavailable,
+        null => l.activityNotAvailableShort,
         0 => l.activityNoneToday,
         _ => l.activityActiveToday(activityDurationText(m, l)),
       },

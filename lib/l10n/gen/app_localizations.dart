@@ -8498,6 +8498,12 @@ abstract class AppLocalizations {
   /// **'The activity log isn\'t available in Cloud API mode yet. Switch to Local or Cloud Storage in Settings to use it.'**
   String get activityCloudApiUnavailable;
 
+  /// No description provided for @activityNotAvailableShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get activityNotAvailableShort;
+
   /// No description provided for @activityLoadFailed.
   ///
   /// In en, this message translates to:

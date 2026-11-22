@@ -2122,6 +2122,7 @@
   "activityUndoFailed": "Couldn't undo",
   "activityDraftLabel": "Draft",
   "activityCloudApiUnavailable": "The activity log isn't available in Cloud API mode yet. Switch to Local or Cloud Storage in Settings to use it.",
+  "activityNotAvailableShort": "Not available",
   "activityLoadFailed": "Couldn't load activities.",
   "activityMinutes": "{minutes} min",
   "@activityMinutes": {"placeholders": {"minutes": {"type": "int"}}},

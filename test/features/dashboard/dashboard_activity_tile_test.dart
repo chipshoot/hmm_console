@@ -120,9 +120,10 @@ void main() {
   ) async {
     await _pump(tester, const [], mode: DataMode.cloudApi);
     expect(find.text('Activity'), findsOneWidget);
+    expect(find.text('Not available'), findsOneWidget);
     expect(
       find.textContaining("isn't available in Cloud API mode"),
-      findsOneWidget,
+      findsNothing,
     );
   });
 }

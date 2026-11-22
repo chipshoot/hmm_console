@@ -4907,6 +4907,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'The activity log isn\'t available in Cloud API mode yet. Switch to Local or Cloud Storage in Settings to use it.';
 
   @override
+  String get activityNotAvailableShort => 'Not available';
+
+  @override
   String get activityLoadFailed => 'Couldn\'t load activities.';
 
   @override

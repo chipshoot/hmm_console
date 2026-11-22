@@ -1444,6 +1444,7 @@
   "activityUndoFailed": "无法撤销",
   "activityDraftLabel": "草稿",
   "activityCloudApiUnavailable": "云端 API 模式暂不支持活动记录。请在设置中切换到本地或云存储模式后使用。",
+  "activityNotAvailableShort": "暂不可用",
   "activityLoadFailed": "无法加载活动。",
   "activityMinutes": "{minutes} 分钟",
   "activityHours": "{hours} 小时",

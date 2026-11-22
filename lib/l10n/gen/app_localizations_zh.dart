@@ -4691,6 +4691,9 @@ class AppLocalizationsZh extends AppLocalizations {
       '云端 API 模式暂不支持活动记录。请在设置中切换到本地或云存储模式后使用。';
 
   @override
+  String get activityNotAvailableShort => '暂不可用';
+
+  @override
   String get activityLoadFailed => '无法加载活动。';
 
   @override
