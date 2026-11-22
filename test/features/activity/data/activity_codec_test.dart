@@ -90,6 +90,20 @@ void main() {
     }
   });
 
+  test('an integral number duration reads as an int (ruling R5)', () {
+    final j = _example()..['durationMinutes'] = 30.0;
+    expect(ActivityCodec.decode('x', j).durationMinutes, 30);
+    expect(_rt(j)['durationMinutes'], 30);
+  });
+
+  test('a non-integral duration is unreadable', () {
+    final j = _example()..['durationMinutes'] = 30.5;
+    expect(
+      () => ActivityCodec.decode('abc', j),
+      throwsA(isA<ActivityUnreadable>()),
+    );
+  });
+
   test('details round-trip untouched and area comes from kind', () {
     final j = _example()
       ..['details'] = {

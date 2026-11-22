@@ -64,7 +64,13 @@ class ActivityCodec {
     final start = startJson is String
         ? OffsetDateTime.tryParse(startJson)
         : null;
-    if (start == null || duration is! int) throw ActivityUnreadable(id);
+    // An integral number (30.0, from another writer) reads as an int.
+    final int? minutes = switch (duration) {
+      int d => d,
+      double d when d.isFinite && d == d.truncateToDouble() => d.toInt(),
+      _ => null,
+    };
+    if (start == null || minutes == null) throw ActivityUnreadable(id);
 
     T? enumOf<T extends Enum>(String key, List<T> values) {
       final s = read<String>(key);
@@ -146,7 +152,7 @@ class ActivityCodec {
       schemaVersion: read<num>('schemaVersion')?.toInt() ?? 1,
       kind: kind,
       start: start,
-      durationMinutes: duration,
+      durationMinutes: minutes,
       intensity: enumOf('intensity', ActivityIntensity.values),
       measurements: measurements,
       links: links,
