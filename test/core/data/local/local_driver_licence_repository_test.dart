@@ -153,9 +153,12 @@ void main() {
         '{"note":{"content":{"DriverLicence":{"number":"$n"}}}}';
     final a = await notes.createNote(HmmNoteCreate(
         subject: 'DriverLicence:self', catalogId: catalogId, content: body('A')));
-    await notes.createNote(HmmNoteCreate(
+    final b = await notes.createNote(HmmNoteCreate(
         subject: 'DriverLicence:self', catalogId: catalogId, content: body('B')));
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+    // Drift stores whole seconds: give B a clearly older stamp so A's update
+    // wins on time, not on the uuid tie-break.
+    await (db.update(db.notes)..where((n) => n.id.equals(b.id))).write(
+        NotesCompanion(lastModifiedDate: Value(DateTime.utc(2026, 1, 1))));
     await notes.updateNote(
         a.id, HmmNoteUpdate(subject: 'DriverLicence:self', content: body('A2')));
 
