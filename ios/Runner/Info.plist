@@ -58,6 +58,8 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Hmm reads your blood glucose readings so they appear in your glucose log.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app uses your location to find nearby gas stations.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

@@ -15,6 +15,7 @@ import 'package:hmm_console/features/calendar/notifications/notification_gateway
 import 'package:hmm_console/features/calendar/notifications/notification_tap.dart';
 import 'package:hmm_console/features/calendar/notifications/reminder_sync.dart';
 import 'package:hmm_console/features/calendar/states/remind_on_device_provider.dart';
+import 'package:hmm_console/features/glucose/import/glucose_import_runner.dart';
 import 'package:hmm_console/features/settings/providers/appearance_provider.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 import 'firebase_options.dart';
@@ -75,6 +76,11 @@ class _MainAppState extends ConsumerState<MainApp> {
     // Linked dates (licence, vehicle, insurance, service, birthday events).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(linkedDatesSyncProvider).start();
+    });
+    // Apple Health glucose import (iOS). Automatic runs start only after the
+    // owner's first "Import from Apple Health"; nothing is asked here.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(glucoseImportRunnerProvider).start();
     });
   }
 
@@ -144,6 +150,8 @@ class _MainAppState extends ConsumerState<MainApp> {
     // Linked dates matcher: a rebuilt instance (sync controller or data mode
     // change) starts itself.
     ref.listen<LinkedDatesSync>(linkedDatesSyncProvider, (previous, next) => next.start());
+    // Glucose import runner: a rebuilt instance starts itself.
+    ref.listen<GlucoseImportRunner>(glucoseImportRunnerProvider, (previous, next) => next.start());
     // Keep the reminder sync alive; a rebuilt instance starts itself.
     if (calendarRemindersSupported) {
       ref.listen<ReminderSync>(reminderSyncProvider, (previous, next) => next.start());

@@ -99,6 +99,7 @@ dependencies:
   flutter_local_notifications: ^22.3.3
   flutter_timezone: ^5.1.1
   lunar: 1.7.8
+  health: 13.3.1
 
 dev_dependencies:
   flutter_test:
