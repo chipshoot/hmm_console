@@ -179,6 +179,30 @@ void main() {
     expect(find.byType(ActivityEditScreen), findsNothing);
   });
 
+  testWidgets('a link to a deleted note shows removed; saving keeps it', (
+    t,
+  ) async {
+    const link = ActivityLink(noteUuid: 'trashed', role: 'book');
+    final repo = FakeActivityRepository([
+      _act('r1', 'reading.reading', links: const [link]),
+    ]);
+    final deleted = HmmNote(
+      id: 2,
+      uuid: 'trashed',
+      subject: 'Dune',
+      authorId: 1,
+      createDate: DateTime.utc(2026),
+      deletedAt: DateTime.utc(2026, 11, 20),
+    );
+    await _mount(t, id: 'r1', repo: repo, notes: {'trashed': deleted});
+    expect(find.text('Note removed'), findsOneWidget);
+    expect(find.text('Dune'), findsNothing);
+
+    await _tapSave(t);
+    expect((await repo.getActivity('r1'))!.links, const [link]);
+    expect(find.byType(ActivityEditScreen), findsNothing);
+  });
+
   testWidgets('a linked note shows its title', (t) async {
     await _mount(
       t,
