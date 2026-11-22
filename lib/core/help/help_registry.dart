@@ -27,9 +27,43 @@ enum HelpId {
   notesRecentlyDeleted,
   manageTags,
   videoStorage,
+  activity,
+  activityEdit,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
+  HelpId.activity => ScreenHelp(
+    title: l.helpActivityTitle,
+    summary: l.helpActivitySummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.add,
+        title: l.helpActivityAddTitle,
+        body: l.helpActivityAddBody,
+      ),
+      HelpEntry(
+        icon: Icons.filter_list,
+        title: l.helpActivityFilterTitle,
+        body: l.helpActivityFilterBody,
+      ),
+      HelpEntry(
+        icon: Icons.delete_outline,
+        title: l.helpActivityDeleteTitle,
+        body: l.helpActivityDeleteBody,
+      ),
+    ],
+  ),
+  HelpId.activityEdit => ScreenHelp(
+    title: l.helpActivityEditTitle,
+    summary: l.helpActivityEditSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.directions_walk,
+        title: l.helpActivityEditKindTitle,
+        body: l.helpActivityEditKindBody,
+      ),
+    ],
+  ),
   HelpId.automobileHub => ScreenHelp(
     title: l.helpAutomobileHubTitle,
     summary: l.helpAutomobileHubSummary,

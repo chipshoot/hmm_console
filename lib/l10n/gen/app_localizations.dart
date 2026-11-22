@@ -8419,6 +8419,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vigorous'**
   String get activityIntensityVigorous;
+
+  /// No description provided for @activityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get activityTitle;
+
+  /// No description provided for @activityLogAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log activity'**
+  String get activityLogAction;
+
+  /// No description provided for @activityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No activities in this period.'**
+  String get activityEmpty;
+
+  /// No description provided for @activityFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get activityFilterAll;
+
+  /// No description provided for @activityToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get activityToday;
+
+  /// No description provided for @activityYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get activityYesterday;
+
+  /// No description provided for @activityLoadEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier'**
+  String get activityLoadEarlier;
+
+  /// No description provided for @activityDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity deleted'**
+  String get activityDeleted;
+
+  /// No description provided for @activityDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the activity'**
+  String get activityDeleteFailed;
+
+  /// No description provided for @activityDeleteUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity restored'**
+  String get activityDeleteUndone;
+
+  /// No description provided for @activityUndoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo'**
+  String get activityUndoFailed;
+
+  /// No description provided for @activityDraftLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get activityDraftLabel;
+
+  /// No description provided for @activityCloudApiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The activity log isn\'t available in Cloud API mode yet. Switch to Local or Cloud Storage in Settings to use it.'**
+  String get activityCloudApiUnavailable;
+
+  /// No description provided for @activityLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load activities.'**
+  String get activityLoadFailed;
+
+  /// No description provided for @activityMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String activityMinutes(int minutes);
+
+  /// No description provided for @activityHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h'**
+  String activityHours(int hours);
+
+  /// No description provided for @activityHoursMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h {minutes} min'**
+  String activityHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @helpActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get helpActivityTitle;
+
+  /// No description provided for @helpActivitySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'A log of what you did: walks, workouts, reading and coding sessions, grouped by the day each one happened.'**
+  String get helpActivitySummary;
+
+  /// No description provided for @helpActivityAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log an activity'**
+  String get helpActivityAddTitle;
+
+  /// No description provided for @helpActivityAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds a new entry: pick what you did, how long it took and when it ended. Tap an entry to change it.'**
+  String get helpActivityAddBody;
+
+  /// No description provided for @helpActivityFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by area'**
+  String get helpActivityFilterTitle;
+
+  /// No description provided for @helpActivityFilterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The chips at the top show only Health, Reading or Development entries. All shows everything.'**
+  String get helpActivityFilterBody;
+
+  /// No description provided for @helpActivityDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete an entry'**
+  String get helpActivityDeleteTitle;
+
+  /// No description provided for @helpActivityDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch and hold an entry, or swipe it left, to delete it. Tap Undo in the message to bring it back.'**
+  String get helpActivityDeleteBody;
+
+  /// No description provided for @helpActivityEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log activity'**
+  String get helpActivityEditTitle;
+
+  /// No description provided for @helpActivityEditSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Record one activity: what you did, for how long and when.'**
+  String get helpActivityEditSummary;
+
+  /// No description provided for @helpActivityEditKindTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kind'**
+  String get helpActivityEditKindTitle;
+
+  /// No description provided for @helpActivityEditKindBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what you did, such as Walk, Gym or Reading. The kind decides which other fields are offered.'**
+  String get helpActivityEditKindBody;
 }
 
 class _AppLocalizationsDelegate

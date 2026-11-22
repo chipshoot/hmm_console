@@ -4865,4 +4865,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get activityIntensityVigorous => 'Vigorous';
+
+  @override
+  String get activityTitle => 'Activity';
+
+  @override
+  String get activityLogAction => 'Log activity';
+
+  @override
+  String get activityEmpty => 'No activities in this period.';
+
+  @override
+  String get activityFilterAll => 'All';
+
+  @override
+  String get activityToday => 'Today';
+
+  @override
+  String get activityYesterday => 'Yesterday';
+
+  @override
+  String get activityLoadEarlier => 'Load earlier';
+
+  @override
+  String get activityDeleted => 'Activity deleted';
+
+  @override
+  String get activityDeleteFailed => 'Couldn\'t delete the activity';
+
+  @override
+  String get activityDeleteUndone => 'Activity restored';
+
+  @override
+  String get activityUndoFailed => 'Couldn\'t undo';
+
+  @override
+  String get activityDraftLabel => 'Draft';
+
+  @override
+  String get activityCloudApiUnavailable =>
+      'The activity log isn\'t available in Cloud API mode yet. Switch to Local or Cloud Storage in Settings to use it.';
+
+  @override
+  String get activityLoadFailed => 'Couldn\'t load activities.';
+
+  @override
+  String activityMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String activityHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String activityHoursMinutes(int hours, int minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String get helpActivityTitle => 'Activity';
+
+  @override
+  String get helpActivitySummary =>
+      'A log of what you did: walks, workouts, reading and coding sessions, grouped by the day each one happened.';
+
+  @override
+  String get helpActivityAddTitle => 'Log an activity';
+
+  @override
+  String get helpActivityAddBody =>
+      'Adds a new entry: pick what you did, how long it took and when it ended. Tap an entry to change it.';
+
+  @override
+  String get helpActivityFilterTitle => 'Filter by area';
+
+  @override
+  String get helpActivityFilterBody =>
+      'The chips at the top show only Health, Reading or Development entries. All shows everything.';
+
+  @override
+  String get helpActivityDeleteTitle => 'Delete an entry';
+
+  @override
+  String get helpActivityDeleteBody =>
+      'Touch and hold an entry, or swipe it left, to delete it. Tap Undo in the message to bring it back.';
+
+  @override
+  String get helpActivityEditTitle => 'Log activity';
+
+  @override
+  String get helpActivityEditSummary =>
+      'Record one activity: what you did, for how long and when.';
+
+  @override
+  String get helpActivityEditKindTitle => 'Kind';
+
+  @override
+  String get helpActivityEditKindBody =>
+      'Choose what you did, such as Walk, Gym or Reading. The kind decides which other fields are offered.';
 }

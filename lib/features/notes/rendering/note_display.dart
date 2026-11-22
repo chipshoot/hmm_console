@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/data/repository_providers.dart';
 import '../../../core/navigation/route_names.dart';
 import '../../../l10n/gen/app_localizations.dart';
+import '../../activity/presentation/activity_note_display.dart';
 import '../../calendar/presentation/calendar_note_display.dart';
 import '../../cheatsheet/presentation/cheatsheet_note_display.dart';
 import '../../contacts/presentation/contact_note_display.dart';
@@ -77,6 +78,7 @@ final noteDisplayRegistryProvider = Provider<NoteDisplayRegistry>((ref) {
     ContactNoteDisplay.catalogName: ContactNoteDisplay(),
     CheatsheetNoteDisplay.catalogName: CheatsheetNoteDisplay(),
     CalendarNoteDisplay.catalogName: CalendarNoteDisplay(),
+    ActivityNoteDisplay.catalogName: ActivityNoteDisplay(),
   });
 });
 

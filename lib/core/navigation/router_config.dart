@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/navigation/auth_change_provider.dart';
 import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
+import 'package:hmm_console/core/navigation/activity_routes.dart';
 import 'package:hmm_console/core/navigation/calendar_routes.dart';
 import 'package:hmm_console/core/navigation/contact_routes.dart';
 import 'package:hmm_console/core/navigation/onboarding_redirect.dart';
@@ -292,6 +293,7 @@ final routerConfig = Provider<GoRouter>(
       ...cheatsheetRoutes,
       ...contactRoutes,
       ...calendarRoutes,
+      ...activityRoutes,
       ...driverLicenceRoutes,
       GoRoute(
         path: '/notes',

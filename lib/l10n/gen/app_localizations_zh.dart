@@ -4649,4 +4649,98 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get activityIntensityVigorous => '剧烈';
+
+  @override
+  String get activityTitle => '活动';
+
+  @override
+  String get activityLogAction => '记录活动';
+
+  @override
+  String get activityEmpty => '这段时间没有活动。';
+
+  @override
+  String get activityFilterAll => '全部';
+
+  @override
+  String get activityToday => '今天';
+
+  @override
+  String get activityYesterday => '昨天';
+
+  @override
+  String get activityLoadEarlier => '加载更早的';
+
+  @override
+  String get activityDeleted => '活动已删除';
+
+  @override
+  String get activityDeleteFailed => '无法删除活动';
+
+  @override
+  String get activityDeleteUndone => '活动已恢复';
+
+  @override
+  String get activityUndoFailed => '无法撤销';
+
+  @override
+  String get activityDraftLabel => '草稿';
+
+  @override
+  String get activityCloudApiUnavailable =>
+      '云端 API 模式暂不支持活动记录。请在设置中切换到本地或云存储模式后使用。';
+
+  @override
+  String get activityLoadFailed => '无法加载活动。';
+
+  @override
+  String activityMinutes(int minutes) {
+    return '$minutes 分钟';
+  }
+
+  @override
+  String activityHours(int hours) {
+    return '$hours 小时';
+  }
+
+  @override
+  String activityHoursMinutes(int hours, int minutes) {
+    return '$hours 小时 $minutes 分钟';
+  }
+
+  @override
+  String get helpActivityTitle => '活动';
+
+  @override
+  String get helpActivitySummary => '记录你做过的事：散步、锻炼、阅读和编程，按每项活动发生的日期分组。';
+
+  @override
+  String get helpActivityAddTitle => '记录活动';
+
+  @override
+  String get helpActivityAddBody => '新增一条记录：选择做了什么、用了多久、何时结束。点按记录可修改。';
+
+  @override
+  String get helpActivityFilterTitle => '按领域筛选';
+
+  @override
+  String get helpActivityFilterBody => '顶部的标签只显示健康、阅读或开发类记录。“全部”显示所有记录。';
+
+  @override
+  String get helpActivityDeleteTitle => '删除记录';
+
+  @override
+  String get helpActivityDeleteBody => '按住记录或向左轻扫即可删除。点按提示中的“撤销”可恢复。';
+
+  @override
+  String get helpActivityEditTitle => '记录活动';
+
+  @override
+  String get helpActivityEditSummary => '记录一项活动：做了什么、多长时间、什么时候。';
+
+  @override
+  String get helpActivityEditKindTitle => '类型';
+
+  @override
+  String get helpActivityEditKindBody => '选择你做的事，例如散步、健身或阅读。类型决定显示哪些其他字段。';
 }

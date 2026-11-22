@@ -49,6 +49,9 @@ enum RouterNames {
   calendarReminders,
   calendarHolidays,
   calendarMyHolidays,
+  activity,
+  activityCreate,
+  activityEdit,
   driverLicence,
   driverLicenceShow,
 }
