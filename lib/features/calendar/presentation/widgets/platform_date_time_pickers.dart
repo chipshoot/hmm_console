@@ -58,7 +58,10 @@ Future<DateTime?> showPlatformDatePicker(
   DateTime initial,
 ) async {
   if (_isApple(context)) {
-    return _cupertino(context, initial, CupertinoDatePickerMode.date);
+    // Date mode emits midnight of the picked day; put the time back.
+    final d = await _cupertino(context, initial, CupertinoDatePickerMode.date);
+    if (d == null) return null;
+    return DateTime(d.year, d.month, d.day, initial.hour, initial.minute);
   }
   final d = await showDatePicker(
     context: context,

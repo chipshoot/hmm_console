@@ -262,6 +262,34 @@ void main() {
     expect(find.text('Yoga'), findsOneWidget);
   });
 
+  testWidgets('iOS: changing the ended date keeps the time of day', (t) async {
+    // Ended 18:40 on 20 Nov (start 18:10, 30 min).
+    final repo = FakeActivityRepository([
+      Activity(
+        id: 'w1',
+        kind: 'health.walk',
+        start: OffsetDateTime.fromLocal(DateTime(2026, 11, 20, 18, 10)),
+        durationMinutes: 30,
+        updatedAt: DateTime.utc(2026, 11, 20),
+      ),
+    ]);
+    await _mount(t, id: 'w1', repo: repo, platform: TargetPlatform.iOS);
+    await t.tap(find.byKey(const Key('activity-ended-date')));
+    await t.pumpAndSettle();
+    // The wheel in date mode emits midnight of the picked day.
+    t
+        .widget<CupertinoDatePicker>(find.byType(CupertinoDatePicker))
+        .onDateTimeChanged(DateTime(2026, 11, 19));
+    await t.tap(find.text('Done'));
+    await t.pumpAndSettle();
+    await _tapSave(t);
+    final saved = (await repo.getActivity('w1'))!;
+    expect(
+      saved.start,
+      OffsetDateTime.fromLocal(DateTime(2026, 11, 19, 18, 10)),
+    );
+  });
+
   testWidgets('Cloud API mode shows the unavailable message', (t) async {
     await _mount(t, id: null, mode: DataMode.cloudApi);
     expect(
