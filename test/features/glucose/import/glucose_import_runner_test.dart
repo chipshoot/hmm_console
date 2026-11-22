@@ -26,7 +26,10 @@ void main() {
   bool syncing = false;
   late ChangeNotifier syncEvents;
 
-  Future<T?> exclusive<T>(Future<T> Function() body) async => body();
+  bool lockHeld = false;
+
+  Future<T?> exclusive<T>(Future<T> Function() body) async =>
+      lockHeld ? null : body();
 
   GlucoseImportRunner make() {
     final runner = GlucoseImportRunner(
@@ -55,9 +58,7 @@ void main() {
   }
 
   /// Lets the start/resume run (async, not awaited) finish.
-  Future<void> settle() => Future<void>.delayed(
-    Duration.zero,
-  ).then((_) => Future<void>.delayed(const Duration(milliseconds: 10)));
+  Future<void> settle() => pumpEventQueue();
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -77,6 +78,7 @@ void main() {
     onDevice = true;
     waiting = false;
     syncing = false;
+    lockHeld = false;
     syncEvents = ChangeNotifier();
   });
 
@@ -150,6 +152,30 @@ void main() {
     syncEvents.notifyListeners();
     await settle();
     expect(source.windows, hasLength(1));
+  });
+
+  test('a run that finds the lock held is retried, not shown', () async {
+    await prefs.markImportedOnce();
+    lockHeld = true;
+    final runner = make()..start();
+    await settle();
+    expect(source.windows, hasLength(1));
+    expect(runner.lastResult.value, isNull);
+    expect(await repo.readingsBetween(DateTime.utc(2000), clock), isEmpty);
+
+    // The throttle stamp was rolled back: a resume at once runs again.
+    runner.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await settle();
+    expect(source.windows, hasLength(2));
+    expect(runner.lastResult.value, isNull);
+
+    // A finished sync retries; the lock is free now.
+    lockHeld = false;
+    syncEvents.notifyListeners();
+    await settle();
+    expect(source.windows, hasLength(3));
+    expect(runner.lastResult.value?.added, 1);
+    expect(runner.lastResult.value?.error, isNull);
   });
 
   test('importNow runs before the first import and asks for access', () async {
