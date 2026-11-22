@@ -50,7 +50,8 @@ class SyncableSettingsRepository {
   static const calendarShowLunarKey = 'calendar.show_lunar';
 
   /// Public: the glucose notifiers own these keys. The range keys are written
-  /// together (low/high as doubles, unit as `mg/dL`/`mmol/L`).
+  /// together (low/high as doubles, unit as `mg/dL`/`mmol/L`). A cleared range
+  /// is stored as an empty unit with no low/high, so the clear syncs.
   static const glucoseRangeLowKey = 'glucose.rangeLow';
   static const glucoseRangeHighKey = 'glucose.rangeHigh';
   static const glucoseRangeUnitKey = 'glucose.rangeUnit';
@@ -212,7 +213,13 @@ class SyncableSettingsRepository {
     final low = settings.glucoseRangeLow;
     final high = settings.glucoseRangeHigh;
     final rangeUnit = settings.glucoseRangeUnit;
-    if (low != null && high != null && rangeUnit != null) {
+    if (rangeUnit == '') {
+      // Explicit clear marker: remove the range, keep the marker so it
+      // propagates onward.
+      await prefs.remove(glucoseRangeLowKey);
+      await prefs.remove(glucoseRangeHighKey);
+      await prefs.setString(glucoseRangeUnitKey, '');
+    } else if (low != null && high != null && rangeUnit != null) {
       await prefs.setDouble(glucoseRangeLowKey, low.toDouble());
       await prefs.setDouble(glucoseRangeHighKey, high.toDouble());
       await prefs.setString(glucoseRangeUnitKey, rangeUnit);

@@ -1,4 +1,6 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/features/glucose/states/glucose_settings_providers.dart';
 import 'package:hmm_console/features/settings/data/syncable_settings_repository.dart';
 import 'package:hmm_console/features/settings/domain/syncable_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,5 +63,48 @@ void main() {
     final back = await repo.read();
     expect(back.glucoseRangeLow, 70.0);
     expect(back.glucoseDisplayUnit, 'mg/dL');
+  });
+
+  test(
+    'clear() then read gives the empty-unit marker with no low/high',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'glucose.rangeLow': 70.0,
+        'glucose.rangeHigh': 140.0,
+        'glucose.rangeUnit': 'mg/dL',
+      });
+      final c = ProviderContainer();
+      addTearDown(c.dispose);
+      c.listen(glucoseRangeProvider, (_, _) {});
+      await c.read(glucoseRangeProvider.notifier).clear();
+      final back = await SyncableSettingsRepository().read();
+      expect(back.glucoseRangeUnit, '');
+      expect(back.glucoseRangeLow, isNull);
+      expect(back.glucoseRangeHigh, isNull);
+      final json = SyncableSettings.fromJson(back.toJson());
+      expect(json.glucoseRangeUnit, '');
+    },
+  );
+
+  test('apply with the empty-unit marker clears a local range', () async {
+    SharedPreferences.setMockInitialValues({
+      'glucose.rangeLow': 70.0,
+      'glucose.rangeHigh': 140.0,
+      'glucose.rangeUnit': 'mg/dL',
+    });
+    final repo = SyncableSettingsRepository();
+    await repo.apply(
+      SyncableSettings.defaults().copyWith(glucoseRangeUnit: ''),
+    );
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey('glucose.rangeLow'), isFalse);
+    expect(prefs.containsKey('glucose.rangeHigh'), isFalse);
+    expect(prefs.getString('glucose.rangeUnit'), '');
+    final c = ProviderContainer();
+    addTearDown(c.dispose);
+    c.listen(glucoseRangeProvider, (_, _) {});
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(c.read(glucoseRangeProvider), isNull);
   });
 }

@@ -73,7 +73,8 @@ class GlucoseRangeNotifier extends Notifier<GlucoseRange?> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(SyncableSettingsRepository.glucoseRangeLowKey);
     await prefs.remove(SyncableSettingsRepository.glucoseRangeHighKey);
-    await prefs.remove(SyncableSettingsRepository.glucoseRangeUnitKey);
+    // An empty unit is the clear marker that syncs to other devices.
+    await prefs.setString(SyncableSettingsRepository.glucoseRangeUnitKey, '');
     await ref.read(syncableSettingsRepositoryProvider).bumpLastModified();
   }
 }
@@ -157,10 +158,16 @@ class GlucoseImportOnDeviceNotifier extends Notifier<bool> {
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!ref.mounted || _userValue != null) return;
-    final stored = prefs.getBool(prefsKey);
-    if (stored != null) state = stored;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!ref.mounted || _userValue != null) return;
+      final stored = prefs.getBool(prefsKey);
+      if (stored != null) state = stored;
+    } catch (e) {
+      debugPrint(
+        'GlucoseImportOnDevice: setting unreadable (${e.runtimeType})',
+      );
+    }
   }
 
   Future<void> set(bool value) async {

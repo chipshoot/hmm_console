@@ -95,7 +95,30 @@ void main() {
       expect(c.read(glucoseRangeProvider), isNull);
       expect(prefs.containsKey('glucose.rangeLow'), isFalse);
       expect(prefs.containsKey('glucose.rangeHigh'), isFalse);
-      expect(prefs.containsKey('glucose.rangeUnit'), isFalse);
+      // The empty unit is the clear marker that syncs.
+      expect(prefs.getString('glucose.rangeUnit'), '');
+    });
+
+    test('a set before hydration is not overwritten by stale prefs', () async {
+      SharedPreferences.setMockInitialValues({
+        'glucose.rangeLow': 70.0,
+        'glucose.rangeHigh': 140.0,
+        'glucose.rangeUnit': 'mg/dL',
+      });
+      final c = mount();
+      c.listen(glucoseRangeProvider, (_, _) {});
+      const r = GlucoseRange(low: 4, high: 7, unit: GlucoseUnit.mmoll);
+      await c.read(glucoseRangeProvider.notifier).set(r);
+      await settle();
+      expect(c.read(glucoseRangeProvider), r);
+    });
+
+    test('an empty stored unit reads as no range', () async {
+      SharedPreferences.setMockInitialValues({'glucose.rangeUnit': ''});
+      final c = mount();
+      c.listen(glucoseRangeProvider, (_, _) {});
+      await settle();
+      expect(c.read(glucoseRangeProvider), isNull);
     });
 
     test('hydrates from prefs when all three are present', () async {
