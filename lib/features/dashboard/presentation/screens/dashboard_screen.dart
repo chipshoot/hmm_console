@@ -24,6 +24,8 @@ import '../../../calendar/contract/calendar_errors.dart';
 import '../../../calendar/notifications/notification_gateway.dart';
 import '../../../calendar/states/remind_on_device_provider.dart';
 import '../../../calendar/states/reminders_inbox_state.dart';
+import '../../../activity/presentation/activity_summary.dart';
+import '../../../activity/states/health_minutes_today.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -105,6 +107,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       title: "Calendar",
       description: "Schedule events",
       route: "calendar",
+    ),
+    AppFunction(
+      icon: "\uD83D\uDEB6",
+      title: "Activity",
+      description: "Log activity",
+      route: "activity",
     ),
   ];
 
@@ -309,6 +317,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 'contacts' => AppLocalizations.of(context).contactsTitle,
                 'calendar' =>
                   AppLocalizations.of(context).dashboardCalendarTitle,
+                'activity' =>
+                  AppLocalizations.of(context).dashboardActivityTitle,
                 _ => function.title,
               },
               style: TextStyle(
@@ -318,9 +328,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
             ),
+            if (function.route == 'activity') _buildActivitySubtitle(colorScheme),
           ],
         ),
       ),
+    );
+  }
+
+  /// Today's health minutes under the Activity tile. In Cloud API mode the
+  /// tile stays (like Calendar's) and says the log is unavailable.
+  Widget _buildActivitySubtitle(ColorScheme colorScheme) {
+    final l = AppLocalizations.of(context);
+    final minutes = ref.watch(healthMinutesTodayProvider);
+    final text = minutes.when(
+      data: (m) => switch (m) {
+        null => l.activityCloudApiUnavailable,
+        0 => l.activityNoneToday,
+        _ => l.activityActiveToday(activityDurationText(m, l)),
+      },
+      loading: () => null,
+      error: (_, _) => null,
+    );
+    if (text == null) return const SizedBox.shrink();
+    return Text(
+      text,
+      style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant),
+      textAlign: TextAlign.center,
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
@@ -497,6 +532,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         context.pushNamed(RouterNames.contacts.name);
       case 'calendar':
         context.pushNamed(RouterNames.calendar.name);
+      case 'activity':
+        context.pushNamed(RouterNames.activity.name);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -4709,6 +4709,17 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get dashboardActivityTitle => '活动';
+
+  @override
+  String activityActiveToday(String duration) {
+    return '今日活动：$duration';
+  }
+
+  @override
+  String get activityNoneToday => '今天还没有活动';
+
+  @override
   String get helpActivityTitle => '活动';
 
   @override

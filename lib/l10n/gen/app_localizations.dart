@@ -8522,6 +8522,24 @@ abstract class AppLocalizations {
   /// **'{hours} h {minutes} min'**
   String activityHoursMinutes(int hours, int minutes);
 
+  /// No description provided for @dashboardActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get dashboardActivityTitle;
+
+  /// No description provided for @activityActiveToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Active today: {duration}'**
+  String activityActiveToday(String duration);
+
+  /// No description provided for @activityNoneToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity yet today'**
+  String get activityNoneToday;
+
   /// No description provided for @helpActivityTitle.
   ///
   /// In en, this message translates to:

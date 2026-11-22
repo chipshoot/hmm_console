@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import 'launcher_destination.dart';
 import '../../../core/data/data_mode.dart';
+import '../../../core/navigation/route_names.dart';
 
 /// Single source of truth for launcher destinations. Seeded from the
 /// existing GoRouter named routes.
@@ -31,7 +32,11 @@ import '../../../core/data/data_mode.dart';
 /// Offering one in cloudApi is not a cosmetic problem: the provider throws, so
 /// the screen opens, reports nothing saved, and silently discards whatever the
 /// user enters.
-const _localOnlyDestinationIds = <String>{'driverLicence'};
+const _localOnlyDestinationIds = <String>{
+  'driverLicence',
+  'activity',
+  'activityLog',
+};
 
 /// [mode] filters out destinations that cannot work in it. Defaults to showing
 /// everything so existing callers and tests are unaffected.
@@ -177,6 +182,29 @@ List<LauncherDestination> _allLauncherDestinations(AppLocalizations l) => [
         ],
         icon: Icons.calendar_month_outlined,
         routeName: 'calendar',
+      ),
+      LauncherDestination(
+        id: 'activity',
+        title: l.activityTitle,
+        synonyms: const [
+          'Activity',
+          'exercise',
+          'workout',
+          'walk',
+          'log',
+          '活动',
+          '运动',
+          '锻炼',
+        ],
+        icon: Icons.directions_walk,
+        routeName: RouterNames.activity.name,
+      ),
+      LauncherDestination(
+        id: 'activityLog',
+        title: l.activityLogAction,
+        synonyms: const ['log activity', '记录活动'],
+        icon: Icons.add_circle_outline,
+        routeName: RouterNames.activityCreate.name,
       ),
       LauncherDestination(
         id: 'contacts',

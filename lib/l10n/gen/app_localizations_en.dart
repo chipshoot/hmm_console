@@ -4925,6 +4925,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get dashboardActivityTitle => 'Activity';
+
+  @override
+  String activityActiveToday(String duration) {
+    return 'Active today: $duration';
+  }
+
+  @override
+  String get activityNoneToday => 'No activity yet today';
+
+  @override
   String get helpActivityTitle => 'Activity';
 
   @override
