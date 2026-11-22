@@ -8593,6 +8593,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose what you did, such as Walk, Gym or Reading. The kind decides which other fields are offered.'**
   String get helpActivityEditKindBody;
+
+  /// No description provided for @activityNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log activity'**
+  String get activityNewTitle;
+
+  /// No description provided for @activityEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit activity'**
+  String get activityEditTitle;
+
+  /// No description provided for @activityKindLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Kind'**
+  String get activityKindLabel;
+
+  /// No description provided for @activityDurationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get activityDurationLabel;
+
+  /// No description provided for @activityDurationCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get activityDurationCustom;
+
+  /// No description provided for @activityEndedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended'**
+  String get activityEndedLabel;
+
+  /// No description provided for @activityEndedInFuture.
+  ///
+  /// In en, this message translates to:
+  /// **'The end time can\'t be in the future.'**
+  String get activityEndedInFuture;
+
+  /// No description provided for @activityIntensityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Intensity'**
+  String get activityIntensityLabel;
+
+  /// No description provided for @activityDistanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get activityDistanceLabel;
+
+  /// No description provided for @activityLinkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked note'**
+  String get activityLinkLabel;
+
+  /// No description provided for @activityLinkNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get activityLinkNone;
+
+  /// No description provided for @activityLinkRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Note removed'**
+  String get activityLinkRemoved;
+
+  /// No description provided for @activityLinkClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove link'**
+  String get activityLinkClear;
+
+  /// No description provided for @activityNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get activityNotesLabel;
+
+  /// No description provided for @activitySave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get activitySave;
+
+  /// No description provided for @activityDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete activity'**
+  String get activityDelete;
+
+  /// No description provided for @activityUnknownKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown kind'**
+  String get activityUnknownKind;
+
+  /// No description provided for @helpActivityEditDurationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get helpActivityEditDurationTitle;
+
+  /// No description provided for @helpActivityEditDurationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap 15, 30, 45 or 60 minutes, or Custom to type any length up to 24 hours. Save is available once a kind and a duration are set.'**
+  String get helpActivityEditDurationBody;
+
+  /// No description provided for @helpActivityEditEndedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended'**
+  String get helpActivityEditEndedTitle;
+
+  /// No description provided for @helpActivityEditEndedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When you finished. It starts at now; the start time is worked out as the end time minus the duration. It can\'t be in the future.'**
+  String get helpActivityEditEndedBody;
+
+  /// No description provided for @helpActivityEditLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked note'**
+  String get helpActivityEditLinkTitle;
+
+  /// No description provided for @helpActivityEditLinkBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a note, such as the book you read or the project you worked on. If that note is deleted later, the entry shows Note removed and keeps the link.'**
+  String get helpActivityEditLinkBody;
+
+  /// No description provided for @activityDurationMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes'**
+  String get activityDurationMinutes;
+
+  /// No description provided for @activitySaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the activity'**
+  String get activitySaveFailed;
 }
 
 class _AppLocalizationsDelegate

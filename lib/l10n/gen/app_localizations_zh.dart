@@ -4743,4 +4743,81 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpActivityEditKindBody => '选择你做的事，例如散步、健身或阅读。类型决定显示哪些其他字段。';
+
+  @override
+  String get activityNewTitle => '记录活动';
+
+  @override
+  String get activityEditTitle => '编辑活动';
+
+  @override
+  String get activityKindLabel => '类型';
+
+  @override
+  String get activityDurationLabel => '时长';
+
+  @override
+  String get activityDurationCustom => '自定义';
+
+  @override
+  String get activityEndedLabel => '结束时间';
+
+  @override
+  String get activityEndedInFuture => '结束时间不能晚于现在。';
+
+  @override
+  String get activityIntensityLabel => '强度';
+
+  @override
+  String get activityDistanceLabel => '距离';
+
+  @override
+  String get activityLinkLabel => '关联笔记';
+
+  @override
+  String get activityLinkNone => '无';
+
+  @override
+  String get activityLinkRemoved => '笔记已删除';
+
+  @override
+  String get activityLinkClear => '移除关联';
+
+  @override
+  String get activityNotesLabel => '备注';
+
+  @override
+  String get activitySave => '保存';
+
+  @override
+  String get activityDelete => '删除活动';
+
+  @override
+  String get activityUnknownKind => '未知类型';
+
+  @override
+  String get helpActivityEditDurationTitle => '时长';
+
+  @override
+  String get helpActivityEditDurationBody =>
+      '点按 15、30、45 或 60 分钟，或点按自定义输入最长 24 小时的时长。设置类型和时长后即可保存。';
+
+  @override
+  String get helpActivityEditEndedTitle => '结束时间';
+
+  @override
+  String get helpActivityEditEndedBody => '你完成的时间，默认为现在；开始时间等于结束时间减去时长。不能晚于现在。';
+
+  @override
+  String get helpActivityEditLinkTitle => '关联笔记';
+
+  @override
+  String get helpActivityEditLinkBody =>
+      '关联一条笔记，例如读的书或做的项目。如果该笔记之后被删除，记录会显示“笔记已删除”，关联仍会保留。';
+
+  @override
+  String get activityDurationMinutes => '分钟';
+
+  @override
+  String get activitySaveFailed => '无法保存活动';
 }

@@ -4965,4 +4965,82 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpActivityEditKindBody =>
       'Choose what you did, such as Walk, Gym or Reading. The kind decides which other fields are offered.';
+
+  @override
+  String get activityNewTitle => 'Log activity';
+
+  @override
+  String get activityEditTitle => 'Edit activity';
+
+  @override
+  String get activityKindLabel => 'Kind';
+
+  @override
+  String get activityDurationLabel => 'Duration';
+
+  @override
+  String get activityDurationCustom => 'Custom';
+
+  @override
+  String get activityEndedLabel => 'Ended';
+
+  @override
+  String get activityEndedInFuture => 'The end time can\'t be in the future.';
+
+  @override
+  String get activityIntensityLabel => 'Intensity';
+
+  @override
+  String get activityDistanceLabel => 'Distance';
+
+  @override
+  String get activityLinkLabel => 'Linked note';
+
+  @override
+  String get activityLinkNone => 'None';
+
+  @override
+  String get activityLinkRemoved => 'Note removed';
+
+  @override
+  String get activityLinkClear => 'Remove link';
+
+  @override
+  String get activityNotesLabel => 'Notes';
+
+  @override
+  String get activitySave => 'Save';
+
+  @override
+  String get activityDelete => 'Delete activity';
+
+  @override
+  String get activityUnknownKind => 'Unknown kind';
+
+  @override
+  String get helpActivityEditDurationTitle => 'Duration';
+
+  @override
+  String get helpActivityEditDurationBody =>
+      'Tap 15, 30, 45 or 60 minutes, or Custom to type any length up to 24 hours. Save is available once a kind and a duration are set.';
+
+  @override
+  String get helpActivityEditEndedTitle => 'Ended';
+
+  @override
+  String get helpActivityEditEndedBody =>
+      'When you finished. It starts at now; the start time is worked out as the end time minus the duration. It can\'t be in the future.';
+
+  @override
+  String get helpActivityEditLinkTitle => 'Linked note';
+
+  @override
+  String get helpActivityEditLinkBody =>
+      'Link a note, such as the book you read or the project you worked on. If that note is deleted later, the entry shows Note removed and keeps the link.';
+
+  @override
+  String get activityDurationMinutes => 'Minutes';
+
+  @override
+  String get activitySaveFailed => 'Couldn\'t save the activity';
 }

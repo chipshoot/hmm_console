@@ -62,6 +62,21 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         title: l.helpActivityEditKindTitle,
         body: l.helpActivityEditKindBody,
       ),
+      HelpEntry(
+        icon: Icons.timer_outlined,
+        title: l.helpActivityEditDurationTitle,
+        body: l.helpActivityEditDurationBody,
+      ),
+      HelpEntry(
+        icon: Icons.schedule,
+        title: l.helpActivityEditEndedTitle,
+        body: l.helpActivityEditEndedBody,
+      ),
+      HelpEntry(
+        icon: Icons.link,
+        title: l.helpActivityEditLinkTitle,
+        body: l.helpActivityEditLinkBody,
+      ),
     ],
   ),
   HelpId.automobileHub => ScreenHelp(
