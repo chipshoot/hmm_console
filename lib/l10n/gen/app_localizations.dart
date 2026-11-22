@@ -8815,6 +8815,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shows the activity logged for this session. Tap it to open the activity.'**
   String get helpCalendarEventLoggedBody;
+
+  /// No description provided for @glucoseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Glucose'**
+  String get glucoseTitle;
+
+  /// No description provided for @glucoseLogAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a reading'**
+  String get glucoseLogAction;
+
+  /// No description provided for @glucoseImportNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Import now'**
+  String get glucoseImportNow;
+
+  /// No description provided for @glucoseImportFromHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Apple Health'**
+  String get glucoseImportFromHealth;
+
+  /// No description provided for @glucoseEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No readings in the last 90 days.'**
+  String get glucoseEmpty;
+
+  /// No description provided for @glucoseToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get glucoseToday;
+
+  /// No description provided for @glucoseYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get glucoseYesterday;
+
+  /// No description provided for @glucoseDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading deleted'**
+  String get glucoseDeleted;
+
+  /// No description provided for @glucoseDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the reading'**
+  String get glucoseDeleteFailed;
+
+  /// No description provided for @glucoseDeleteUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading restored'**
+  String get glucoseDeleteUndone;
+
+  /// No description provided for @glucoseUndoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t undo'**
+  String get glucoseUndoFailed;
+
+  /// No description provided for @glucoseCloudApiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The glucose log isn\'t available in Cloud API mode yet. Switch to Local or Cloud Storage in Settings to use it.'**
+  String get glucoseCloudApiUnavailable;
+
+  /// No description provided for @glucoseLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load readings.'**
+  String get glucoseLoadFailed;
+
+  /// No description provided for @glucoseSetRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your target range'**
+  String get glucoseSetRange;
+
+  /// No description provided for @glucoseTargetRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Target {low}–{high} {unit}'**
+  String glucoseTargetRange(String low, String high, String unit);
+
+  /// No description provided for @glucoseNothingFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No readings found. If you use a meter app, check Health → Sharing → Apps → Hmm.'**
+  String get glucoseNothingFound;
+
+  /// No description provided for @glucoseImported.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Imported 1 reading} other{Imported {count} readings}}'**
+  String glucoseImported(int count);
+
+  /// No description provided for @glucoseImportBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync in progress. Try again in a moment.'**
+  String get glucoseImportBusy;
+
+  /// No description provided for @glucoseImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import readings.'**
+  String get glucoseImportFailed;
+
+  /// No description provided for @glucoseContextFasting.
+  ///
+  /// In en, this message translates to:
+  /// **'Fasting'**
+  String get glucoseContextFasting;
+
+  /// No description provided for @glucoseContextBeforeMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Before meal'**
+  String get glucoseContextBeforeMeal;
+
+  /// No description provided for @glucoseContextAfterMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'After meal'**
+  String get glucoseContextAfterMeal;
+
+  /// No description provided for @glucoseContextBedtime.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime'**
+  String get glucoseContextBedtime;
+
+  /// No description provided for @glucoseContextOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get glucoseContextOther;
+
+  /// No description provided for @glucoseBandBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Below'**
+  String get glucoseBandBelow;
+
+  /// No description provided for @glucoseBandIn.
+  ///
+  /// In en, this message translates to:
+  /// **'In range'**
+  String get glucoseBandIn;
+
+  /// No description provided for @glucoseBandAbove.
+  ///
+  /// In en, this message translates to:
+  /// **'Above'**
+  String get glucoseBandAbove;
+
+  /// No description provided for @glucoseFromHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'From Apple Health'**
+  String get glucoseFromHealth;
+
+  /// No description provided for @glucoseTyped.
+  ///
+  /// In en, this message translates to:
+  /// **'Typed'**
+  String get glucoseTyped;
+
+  /// No description provided for @glucoseNoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Glucose {value}'**
+  String glucoseNoteTitle(String value);
+
+  /// No description provided for @helpGlucoseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Glucose'**
+  String get helpGlucoseTitle;
+
+  /// No description provided for @helpGlucoseSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your blood glucose readings, grouped by the day each was taken. Readings can be typed in or imported from Apple Health.'**
+  String get helpGlucoseSummary;
+
+  /// No description provided for @helpGlucoseAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a reading'**
+  String get helpGlucoseAddTitle;
+
+  /// No description provided for @helpGlucoseAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds a reading by hand: the value, the time and an optional tag. Tap a reading to change it.'**
+  String get helpGlucoseAddBody;
+
+  /// No description provided for @helpGlucoseImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import now'**
+  String get helpGlucoseImportTitle;
+
+  /// No description provided for @helpGlucoseImportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'On iPhone, copies new blood glucose readings from Apple Health. Readings you deleted stay deleted.'**
+  String get helpGlucoseImportBody;
+
+  /// No description provided for @helpGlucoseRangeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Target range'**
+  String get helpGlucoseRangeTitle;
+
+  /// No description provided for @helpGlucoseRangeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your own low and high so each reading shows whether it is below, in or above your range. Hmm suggests no range.'**
+  String get helpGlucoseRangeBody;
+
+  /// No description provided for @helpGlucoseDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete a reading'**
+  String get helpGlucoseDeleteTitle;
+
+  /// No description provided for @helpGlucoseDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Touch and hold a reading, or swipe it left, to delete it. Tap Undo in the message to bring it back.'**
+  String get helpGlucoseDeleteBody;
 }
 
 class _AppLocalizationsDelegate

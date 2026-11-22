@@ -29,9 +29,36 @@ enum HelpId {
   videoStorage,
   activity,
   activityEdit,
+  glucose,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
+  HelpId.glucose => ScreenHelp(
+    title: l.helpGlucoseTitle,
+    summary: l.helpGlucoseSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.add,
+        title: l.helpGlucoseAddTitle,
+        body: l.helpGlucoseAddBody,
+      ),
+      HelpEntry(
+        icon: Icons.sync,
+        title: l.helpGlucoseImportTitle,
+        body: l.helpGlucoseImportBody,
+      ),
+      HelpEntry(
+        icon: Icons.track_changes,
+        title: l.helpGlucoseRangeTitle,
+        body: l.helpGlucoseRangeBody,
+      ),
+      HelpEntry(
+        icon: Icons.delete_outline,
+        title: l.helpGlucoseDeleteTitle,
+        body: l.helpGlucoseDeleteBody,
+      ),
+    ],
+  ),
   HelpId.activity => ScreenHelp(
     title: l.helpActivityTitle,
     summary: l.helpActivitySummary,

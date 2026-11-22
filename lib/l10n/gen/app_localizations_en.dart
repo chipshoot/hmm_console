@@ -5086,4 +5086,143 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpCalendarEventLoggedBody =>
       'Shows the activity logged for this session. Tap it to open the activity.';
+
+  @override
+  String get glucoseTitle => 'Glucose';
+
+  @override
+  String get glucoseLogAction => 'Log a reading';
+
+  @override
+  String get glucoseImportNow => 'Import now';
+
+  @override
+  String get glucoseImportFromHealth => 'Import from Apple Health';
+
+  @override
+  String get glucoseEmpty => 'No readings in the last 90 days.';
+
+  @override
+  String get glucoseToday => 'Today';
+
+  @override
+  String get glucoseYesterday => 'Yesterday';
+
+  @override
+  String get glucoseDeleted => 'Reading deleted';
+
+  @override
+  String get glucoseDeleteFailed => 'Couldn\'t delete the reading';
+
+  @override
+  String get glucoseDeleteUndone => 'Reading restored';
+
+  @override
+  String get glucoseUndoFailed => 'Couldn\'t undo';
+
+  @override
+  String get glucoseCloudApiUnavailable =>
+      'The glucose log isn\'t available in Cloud API mode yet. Switch to Local or Cloud Storage in Settings to use it.';
+
+  @override
+  String get glucoseLoadFailed => 'Couldn\'t load readings.';
+
+  @override
+  String get glucoseSetRange => 'Set your target range';
+
+  @override
+  String glucoseTargetRange(String low, String high, String unit) {
+    return 'Target $low–$high $unit';
+  }
+
+  @override
+  String get glucoseNothingFound =>
+      'No readings found. If you use a meter app, check Health → Sharing → Apps → Hmm.';
+
+  @override
+  String glucoseImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Imported $count readings',
+      one: 'Imported 1 reading',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glucoseImportBusy => 'Sync in progress. Try again in a moment.';
+
+  @override
+  String get glucoseImportFailed => 'Couldn\'t import readings.';
+
+  @override
+  String get glucoseContextFasting => 'Fasting';
+
+  @override
+  String get glucoseContextBeforeMeal => 'Before meal';
+
+  @override
+  String get glucoseContextAfterMeal => 'After meal';
+
+  @override
+  String get glucoseContextBedtime => 'Bedtime';
+
+  @override
+  String get glucoseContextOther => 'Other';
+
+  @override
+  String get glucoseBandBelow => 'Below';
+
+  @override
+  String get glucoseBandIn => 'In range';
+
+  @override
+  String get glucoseBandAbove => 'Above';
+
+  @override
+  String get glucoseFromHealth => 'From Apple Health';
+
+  @override
+  String get glucoseTyped => 'Typed';
+
+  @override
+  String glucoseNoteTitle(String value) {
+    return 'Glucose $value';
+  }
+
+  @override
+  String get helpGlucoseTitle => 'Glucose';
+
+  @override
+  String get helpGlucoseSummary =>
+      'Your blood glucose readings, grouped by the day each was taken. Readings can be typed in or imported from Apple Health.';
+
+  @override
+  String get helpGlucoseAddTitle => 'Log a reading';
+
+  @override
+  String get helpGlucoseAddBody =>
+      'Adds a reading by hand: the value, the time and an optional tag. Tap a reading to change it.';
+
+  @override
+  String get helpGlucoseImportTitle => 'Import now';
+
+  @override
+  String get helpGlucoseImportBody =>
+      'On iPhone, copies new blood glucose readings from Apple Health. Readings you deleted stay deleted.';
+
+  @override
+  String get helpGlucoseRangeTitle => 'Target range';
+
+  @override
+  String get helpGlucoseRangeBody =>
+      'Set your own low and high so each reading shows whether it is below, in or above your range. Hmm suggests no range.';
+
+  @override
+  String get helpGlucoseDeleteTitle => 'Delete a reading';
+
+  @override
+  String get helpGlucoseDeleteBody =>
+      'Touch and hold a reading, or swipe it left, to delete it. Tap Undo in the message to bring it back.';
 }

@@ -52,6 +52,10 @@ enum RouterNames {
   activity,
   activityCreate,
   activityEdit,
+  glucose,
+  glucoseCreate,
+  glucoseEdit,
+  glucoseRange,
   driverLicence,
   driverLicenceShow,
 }

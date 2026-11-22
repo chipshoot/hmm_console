@@ -4861,4 +4861,133 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpCalendarEventLoggedBody => '显示为此日程记录的活动。点按可打开该活动。';
+
+  @override
+  String get glucoseTitle => '血糖';
+
+  @override
+  String get glucoseLogAction => '记录读数';
+
+  @override
+  String get glucoseImportNow => '立即导入';
+
+  @override
+  String get glucoseImportFromHealth => '从“健康”导入';
+
+  @override
+  String get glucoseEmpty => '最近 90 天没有读数。';
+
+  @override
+  String get glucoseToday => '今天';
+
+  @override
+  String get glucoseYesterday => '昨天';
+
+  @override
+  String get glucoseDeleted => '读数已删除';
+
+  @override
+  String get glucoseDeleteFailed => '无法删除读数';
+
+  @override
+  String get glucoseDeleteUndone => '读数已恢复';
+
+  @override
+  String get glucoseUndoFailed => '无法撤销';
+
+  @override
+  String get glucoseCloudApiUnavailable =>
+      '血糖记录暂不支持云 API 模式。请在设置中切换到本地或云存储后使用。';
+
+  @override
+  String get glucoseLoadFailed => '无法加载读数。';
+
+  @override
+  String get glucoseSetRange => '设置目标范围';
+
+  @override
+  String glucoseTargetRange(String low, String high, String unit) {
+    return '目标 $low–$high $unit';
+  }
+
+  @override
+  String get glucoseNothingFound =>
+      '未找到读数。如果你使用血糖仪应用，请检查“健康”→“共享”→“App”→“Hmm”。';
+
+  @override
+  String glucoseImported(int count) {
+    return '已导入 $count 条读数';
+  }
+
+  @override
+  String get glucoseImportBusy => '正在同步，请稍后再试。';
+
+  @override
+  String get glucoseImportFailed => '无法导入读数。';
+
+  @override
+  String get glucoseContextFasting => '空腹';
+
+  @override
+  String get glucoseContextBeforeMeal => '餐前';
+
+  @override
+  String get glucoseContextAfterMeal => '餐后';
+
+  @override
+  String get glucoseContextBedtime => '睡前';
+
+  @override
+  String get glucoseContextOther => '其他';
+
+  @override
+  String get glucoseBandBelow => '偏低';
+
+  @override
+  String get glucoseBandIn => '达标';
+
+  @override
+  String get glucoseBandAbove => '偏高';
+
+  @override
+  String get glucoseFromHealth => '来自“健康”';
+
+  @override
+  String get glucoseTyped => '手动输入';
+
+  @override
+  String glucoseNoteTitle(String value) {
+    return '血糖 $value';
+  }
+
+  @override
+  String get helpGlucoseTitle => '血糖';
+
+  @override
+  String get helpGlucoseSummary => '你的血糖读数，按每次测量的日期分组。可以手动输入，也可以从“健康”导入。';
+
+  @override
+  String get helpGlucoseAddTitle => '记录读数';
+
+  @override
+  String get helpGlucoseAddBody => '手动添加一条读数：数值、时间和可选的标签。点按读数可修改。';
+
+  @override
+  String get helpGlucoseImportTitle => '立即导入';
+
+  @override
+  String get helpGlucoseImportBody => '在 iPhone 上，从“健康”复制新的血糖读数。你删除过的读数不会再回来。';
+
+  @override
+  String get helpGlucoseRangeTitle => '目标范围';
+
+  @override
+  String get helpGlucoseRangeBody =>
+      '设置你自己的下限和上限，每条读数会显示偏低、达标或偏高。Hmm 不会建议任何范围。';
+
+  @override
+  String get helpGlucoseDeleteTitle => '删除读数';
+
+  @override
+  String get helpGlucoseDeleteBody => '按住读数或向左轻扫即可删除。点按提示中的“撤销”可恢复。';
 }

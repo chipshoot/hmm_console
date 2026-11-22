@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/navigation/auth_change_provider.dart';
 import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
 import 'package:hmm_console/core/navigation/activity_routes.dart';
+import 'package:hmm_console/core/navigation/glucose_routes.dart';
 import 'package:hmm_console/core/navigation/calendar_routes.dart';
 import 'package:hmm_console/core/navigation/contact_routes.dart';
 import 'package:hmm_console/core/navigation/onboarding_redirect.dart';
@@ -294,6 +295,7 @@ final routerConfig = Provider<GoRouter>(
       ...contactRoutes,
       ...calendarRoutes,
       ...activityRoutes,
+      ...glucoseRoutes,
       ...driverLicenceRoutes,
       GoRoute(
         path: '/notes',
