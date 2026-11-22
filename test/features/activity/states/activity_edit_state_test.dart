@@ -319,6 +319,29 @@ void main() {
       expect(s.durationMinutes, isNull);
     });
 
+    test('a duration set after picking keeps the occurrence start', () async {
+      final (c, _) = await _setUp();
+      await _load(c, null);
+      final n = c.read(activityEditProvider(null).notifier);
+      n.pickPlannedSession(session);
+      n.setDuration(30);
+      final s = c.read(activityEditProvider(null)).requireValue;
+      expect(s.start, OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 7)));
+      expect(s.ended, DateTime(2026, 11, 21, 7, 30));
+    });
+
+    test('moving ended after picking lets the start follow again', () async {
+      final (c, _) = await _setUp();
+      await _load(c, null);
+      final n = c.read(activityEditProvider(null).notifier);
+      n.pickPlannedSession(session);
+      n.setEnded(DateTime(2026, 11, 21, 9));
+      n.setDuration(30);
+      final s = c.read(activityEditProvider(null)).requireValue;
+      expect(s.ended, DateTime(2026, 11, 21, 9));
+      expect(s.start, OffsetDateTime.fromLocal(DateTime(2026, 11, 21, 8, 30)));
+    });
+
     test('picking on an existing entry moves its start', () async {
       final a = Activity(
         id: 'x',
@@ -398,5 +421,87 @@ void main() {
       expect(occCalls(cal), 0);
       expect((await repo.getActivity('x'))!.plannedEvent, isNull);
     });
+  });
+  group('recorded offset (ruling R4)', () {
+    // Two offsets so at least one differs from the machine's zone.
+    for (final hours in [-5, 8]) {
+      final offset = Duration(hours: hours);
+      // 2026-11-19 18:40 wall time at [offset].
+      final startUtc = DateTime.utc(2026, 11, 19, 18, 40).subtract(offset);
+      final a = Activity(
+        id: 'tz',
+        kind: 'health.walk',
+        start: OffsetDateTime(startUtc, offset),
+        durationMinutes: 30,
+        updatedAt: DateTime.utc(2026, 11, 20),
+      );
+
+      test('UTC$hours: ended shows the recorded wall time', () async {
+        final (c, _) = await _setUp(seed: [a]);
+        final s = await _load(c, 'tz');
+        expect(s.ended, DateTime(2026, 11, 19, 19, 10));
+        expect(s.start, a.start);
+      });
+
+      test('UTC$hours: a duration-only edit keeps start', () async {
+        final (c, repo) = await _setUp(seed: [a]);
+        await _load(c, 'tz');
+        final n = c.read(activityEditProvider('tz').notifier);
+        n.setDuration(45);
+        expect(
+          c.read(activityEditProvider('tz')).requireValue.ended,
+          DateTime(2026, 11, 19, 19, 25),
+        );
+        await n.save();
+        final saved = (await repo.getActivity('tz'))!;
+        expect(saved.start, a.start);
+        expect(saved.durationMinutes, 45);
+      });
+
+      test('UTC$hours: changing ended keeps the recorded offset', () async {
+        final (c, repo) = await _setUp(seed: [a]);
+        await _load(c, 'tz');
+        final n = c.read(activityEditProvider('tz').notifier);
+        n.setEnded(DateTime(2026, 11, 19, 19, 30));
+        await n.save();
+        final saved = (await repo.getActivity('tz'))!;
+        expect(saved.start.offset, offset);
+        expect(saved.start.wall, DateTime.utc(2026, 11, 19, 19));
+      });
+    }
+  });
+
+  test(
+    'a link picked on Reading then switched to Coding saves as project',
+    () async {
+      final (c, repo) = await _setUp();
+      await _load(c, null);
+      final n = c.read(activityEditProvider(null).notifier);
+      n.setKind('reading.reading');
+      n.setLink('note-1', 'Dune');
+      n.setKind('development.coding');
+      n.setDuration(30);
+      final saved = await n.save();
+      final link = (await repo.getActivity(saved.id))!.links.single;
+      expect(link.noteUuid, 'note-1');
+      expect(link.role, 'project');
+    },
+  );
+
+  test('an untouched existing link keeps its stored role', () async {
+    final a = Activity(
+      id: 'r1',
+      kind: 'reading.reading',
+      start: OffsetDateTime.fromLocal(DateTime(2026, 11, 20, 8)),
+      durationMinutes: 30,
+      links: const [ActivityLink(noteUuid: 'n1', role: 'spot')],
+      updatedAt: DateTime.utc(2026, 11, 20),
+    );
+    final (c, repo) = await _setUp(seed: [a]);
+    await _load(c, 'r1');
+    final n = c.read(activityEditProvider('r1').notifier);
+    n.setKind('development.coding');
+    await n.save();
+    expect((await repo.getActivity('r1'))!.links.single.role, 'spot');
   });
 }

@@ -79,6 +79,7 @@ class ActivityEditState {
     required this.now,
     required this.touched,
     this.plannedMarkFailed = false,
+    this.startFromPlanned = false,
   });
 
   final Activity? original;
@@ -89,7 +90,9 @@ class ActivityEditState {
   final bool isUnknownKind;
   final int? durationMinutes;
 
-  /// When the activity ended, device-local.
+  /// When the activity ended, as wall-clock fields: device-local for a new
+  /// entry; for an existing one, the wall time at the entry's recorded
+  /// offset (`original.start.offset`), the time its list row shows.
   final DateTime ended;
   final ActivityIntensity? intensity;
   final double? distance;
@@ -120,9 +123,43 @@ class ActivityEditState {
   /// occurrence done in the calendar.
   final bool plannedMarkFailed;
 
+  /// "Ended" was last set by picking a planned session, so a duration
+  /// change keeps the session's start and moves "ended".
+  final bool startFromPlanned;
+
   bool get isNew => original == null;
 
-  bool get endedInFuture => ended.isAfter(now);
+  bool get endedInFuture => _instantOf(ended).isAfter(now.toUtc());
+
+  /// The UTC instant of the wall-clock fields [wall] (see [ended]).
+  DateTime _instantOf(DateTime wall) {
+    final o = original;
+    if (o == null) return wall.toUtc();
+    return DateTime.utc(
+      wall.year,
+      wall.month,
+      wall.day,
+      wall.hour,
+      wall.minute,
+      wall.second,
+    ).subtract(o.start.offset);
+  }
+
+  /// The wall-clock fields of [instant] (see [ended]).
+  DateTime _wallOf(DateTime instant) {
+    final o = original;
+    if (o == null) return instant.toLocal();
+    final w = instant.toUtc().add(o.start.offset);
+    return DateTime(w.year, w.month, w.day, w.hour, w.minute, w.second);
+  }
+
+  /// [instant] with the form's offset: the device's for a new entry, the
+  /// recorded one for an existing entry.
+  OffsetDateTime _at(DateTime instant) {
+    final o = original;
+    if (o == null) return OffsetDateTime.fromLocal(instant.toLocal());
+    return OffsetDateTime(instant.toUtc(), o.start.offset);
+  }
 
   bool get durationValid {
     final d = durationMinutes;
@@ -136,12 +173,12 @@ class ActivityEditState {
   /// start, with its recorded offset, is kept).
   bool get _endedAnchors => isNew || touched.contains(ActivityField.ended);
 
-  /// `ended − duration` (device offset), or the stored start (see
-  /// [_endedAnchors]).
+  /// `ended − duration` (in the form's offset, see [_at]), or the stored
+  /// start (see [_endedAnchors]).
   OffsetDateTime get start {
     if (!_endedAnchors) return original!.start;
-    return OffsetDateTime.fromLocal(
-      ended.subtract(Duration(minutes: durationMinutes ?? 0)),
+    return _at(
+      _instantOf(ended).subtract(Duration(minutes: durationMinutes ?? 0)),
     );
   }
 
@@ -165,6 +202,7 @@ class ActivityEditState {
     required DateTime now,
     ActivityField? touch,
     bool? plannedMarkFailed,
+    bool? startFromPlanned,
   }) => ActivityEditState(
     original: original,
     id: id,
@@ -186,6 +224,7 @@ class ActivityEditState {
     now: now,
     touched: touch == null ? touched : {...touched, touch},
     plannedMarkFailed: plannedMarkFailed ?? this.plannedMarkFailed,
+    startFromPlanned: startFromPlanned ?? this.startFromPlanned,
   );
 }
 
@@ -266,7 +305,7 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
       kindId: a.kind,
       isUnknownKind: kinds.byId(a.kind) == null,
       durationMinutes: a.durationMinutes,
-      ended: a.start.utc.add(Duration(minutes: a.durationMinutes)).toLocal(),
+      ended: _wallFields(a.start.wall, a.durationMinutes),
       intensity: a.intensity,
       distance: dist?.value,
       distanceUnit: dist?.unit,
@@ -324,16 +363,28 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
             now: now,
             touch: ActivityField.duration,
           );
+    // A picked session's start stays; the end moves.
+    if (s.startFromPlanned) {
+      return next._copy(
+        ended: s._wallOf(s.start.utc.add(Duration(minutes: minutes ?? 0))),
+        now: now,
+      );
+    }
     // While the stored start anchors an existing entry, the end moves.
     if (next._endedAnchors || minutes == null) return next;
     return next._copy(
-      ended: s.original!.start.utc.add(Duration(minutes: minutes)).toLocal(),
+      ended: _wallFields(s.original!.start.wall, minutes),
       now: now,
     );
   });
 
   void setEnded(DateTime ended) => _update(
-    (s, now) => s._copy(ended: ended, now: now, touch: ActivityField.ended),
+    (s, now) => s._copy(
+      ended: ended,
+      now: now,
+      touch: ActivityField.ended,
+      startFromPlanned: false,
+    ),
   );
 
   void setIntensity(ActivityIntensity? intensity) => _update(
@@ -399,10 +450,13 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
   /// yet, ended = the occurrence's start.
   void pickPlannedSession(PlannedSession p) => _update((s, now) {
     final start = p.occurrence.start.toLocal();
-    final ended = start.add(Duration(minutes: s.durationMinutes ?? 0));
+    final ended = s._wallOf(
+      p.occurrence.start.add(Duration(minutes: s.durationMinutes ?? 0)),
+    );
     return s
         ._copy(
           ended: ended,
+          startFromPlanned: true,
           planned: PlannedEventRef(
             eventId: p.event.id,
             occurrence: p.occurrence.originalStart.wireKey,
@@ -413,6 +467,13 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
         )
         ._copy(now: now, touch: ActivityField.planned);
   });
+
+  /// [wall] (UTC-flagged wall fields) plus [minutes], as local-flagged
+  /// wall fields (see [ActivityEditState.ended]).
+  static DateTime _wallFields(DateTime wall, int minutes) {
+    final w = wall.add(Duration(minutes: minutes));
+    return DateTime(w.year, w.month, w.day, w.hour, w.minute, w.second);
+  }
 
   static String _areaOf(String kindId) {
     final i = kindId.indexOf('.');
@@ -494,7 +555,7 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
               unit: s.distanceUnit!,
             ),
         ],
-        links: [?s.link],
+        links: [?_linkForSave(s)],
         plannedEvent: s.planned,
         notes: notes == null || notes.isEmpty ? null : notes,
         source: ActivitySource.manual,
@@ -539,7 +600,7 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
     List<ActivityLink>? links;
     if (t(ActivityField.link)) {
       final rest = original.links.skip(1);
-      links = [?s.link, ...rest];
+      links = [?_linkForSave(s), ...rest];
     }
 
     return original.copyWith(
@@ -560,6 +621,18 @@ class ActivityEditNotifier extends AsyncNotifier<ActivityEditState> {
           ? notes
           : null,
       clearNotes: t(ActivityField.notes) && (notes == null || notes.isEmpty),
+    );
+  }
+
+  /// The form's link with its role recomputed from the final kind's area:
+  /// the link is new or was touched, so the role follows what was saved.
+  ActivityLink? _linkForSave(ActivityEditState s) {
+    final link = s.link;
+    if (link == null) return null;
+    return ActivityLink(
+      noteUuid: link.noteUuid,
+      role: activityLinkRole(_areaOf(s.kindId!)),
+      extraFields: link.extraFields,
     );
   }
 
