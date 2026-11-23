@@ -162,7 +162,7 @@ class SyncOrchestrator {
         // to re-import legacy data manually; the live sync still works.
         errors.add(
           SyncError(
-            recordType: 'manifest',
+            recordType: 'migration',
             recordId: 'legacy-migration',
             message: 'Legacy OneDrive migration failed (continuing): $e',
           ),
@@ -399,8 +399,16 @@ class SyncOrchestrator {
     // their errors must not hold the note cursor back.
     // A failed remote purge is retried from the pending store next sync, so
     // it must not hold the note cursor back either. Tag definitions sync
-    // whole every run, independent of the note cursor.
-    const nonBlocking = {'attachment', 'noteStates', 'purge', 'tags'};
+    // whole every run, independent of the note cursor. The legacy-layout
+    // migration is retried every sync until its marker is written and says
+    // nothing about whether the notes themselves synced.
+    const nonBlocking = {
+      'attachment',
+      'migration',
+      'noteStates',
+      'purge',
+      'tags',
+    };
     final metadataClean = errors.every(
       (e) => nonBlocking.contains(e.recordType),
     );
