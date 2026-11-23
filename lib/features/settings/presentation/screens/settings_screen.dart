@@ -374,6 +374,19 @@ class SettingsScreen extends ConsumerWidget {
               const Divider(),
               GapWidgets.h24,
             ],
+            ListTile(
+              key: const Key('settings-home-screen'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.grid_view_outlined),
+              title: Text(l.settingsHomeScreen),
+              subtitle: Text(l.settingsHomeScreenSubtitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () =>
+                  context.pushNamed(RouterNames.homeScreenSettings.name),
+            ),
+            GapWidgets.h24,
+            const Divider(),
+            GapWidgets.h24,
             if (dataMode != DataMode.cloudApi) ...[
               ListTile(
                 key: const Key('settings-glucose'),

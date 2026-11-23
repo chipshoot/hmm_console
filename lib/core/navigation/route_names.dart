@@ -21,6 +21,7 @@ enum RouterNames {
   gasStationManagement,
   settings,
   videoStorage,
+  homeScreenSettings,
   onboarding,
   notesList,
   notesRecentlyDeleted,

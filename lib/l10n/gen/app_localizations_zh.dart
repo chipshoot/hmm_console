@@ -5115,4 +5115,35 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get glucoseTileNone => '暂无读数';
+
+  @override
+  String get settingsHomeScreen => '主屏幕';
+
+  @override
+  String get settingsHomeScreenSubtitle => '选择主屏幕上显示哪些图标';
+
+  @override
+  String get homeScreenSettingsHint => '隐藏的功能仍可在主屏幕搜索中输入 / 打开。这些选择在你的所有设备上一致。';
+
+  @override
+  String get homeScreenSettingsLastVisible => '至少要保留一个图标。';
+
+  @override
+  String get helpHomeScreenSettingsTitle => '主屏幕';
+
+  @override
+  String get helpHomeScreenSettingsSummary => '选择主屏幕上显示哪些图标。该选择会在你的各台设备间同步。';
+
+  @override
+  String get helpHomeScreenSettingsSwitchTitle => '图标开关';
+
+  @override
+  String get helpHomeScreenSettingsSwitchBody =>
+      '关闭开关会把图标从主屏幕隐藏，打开则重新显示。隐藏的功能仍可在主屏幕搜索中输入 / 打开。';
+
+  @override
+  String get helpHomeScreenSettingsLastTitle => '最后一个图标';
+
+  @override
+  String get helpHomeScreenSettingsLastBody => '唯一可见的图标无法关闭，因此主屏幕不会变空。';
 }

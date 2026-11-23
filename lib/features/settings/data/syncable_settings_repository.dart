@@ -22,6 +22,7 @@ import '../domain/syncable_settings.dart';
 ///   - `app_locale`           → language code string ('en', 'zh', …)
 ///   - `contacts.sort_by`     → `ContactSortBy` enum name
 ///   - `calendar.show_lunar`  → bool
+///   - `home.hiddenTiles`     → string list of hidden home-tile ids
 ///   - `settings.last_modified` → ISO8601 UTC, bumped by every setter
 ///
 /// The cloud sync layer goes through THIS repo to get a coherent
@@ -45,6 +46,9 @@ class SyncableSettingsRepository {
 
   /// Public: `SavedSearchesNotifier` owns the same key (a JSON string).
   static const notesSavedSearchesKey = 'notes.saved_searches';
+
+  /// Public: `HomeHiddenTilesNotifier` owns the same key (a string list).
+  static const homeHiddenTilesKey = 'home.hiddenTiles';
 
   /// Public: `ShowLunarNotifier` owns the same key (a bool).
   static const calendarShowLunarKey = 'calendar.show_lunar';
@@ -161,6 +165,7 @@ class SyncableSettingsRepository {
       glucoseRangeHigh: prefs.getDouble(glucoseRangeHighKey),
       glucoseRangeUnit: prefs.getString(glucoseRangeUnitKey),
       glucoseDisplayUnit: prefs.getString(glucoseDisplayUnitKey),
+      homeHiddenTiles: prefs.getStringList(homeHiddenTilesKey),
     );
   }
 
@@ -227,6 +232,11 @@ class SyncableSettingsRepository {
     final displayUnit = settings.glucoseDisplayUnit;
     if (displayUnit != null) {
       await prefs.setString(glucoseDisplayUnitKey, displayUnit);
+    }
+    // Null = the bundle predates this field: keep this device's value.
+    final hiddenTiles = settings.homeHiddenTiles;
+    if (hiddenTiles != null) {
+      await prefs.setStringList(homeHiddenTilesKey, hiddenTiles);
     }
     await prefs.setString(
       _lastModifiedKey,

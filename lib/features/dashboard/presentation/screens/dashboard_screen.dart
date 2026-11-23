@@ -11,7 +11,9 @@ import '../../../../domain/entities/app_function.dart';
 import '../../../auth/data/models/current_user.dart';
 import '../../../auth/providers/current_user_provider.dart';
 import '../../../auth/usecases/signout_usecase.dart';
+import '../../domain/home_tiles.dart';
 import '../../providers/intro_card_provider.dart';
+import '../../../settings/providers/home_hidden_tiles_provider.dart';
 import '../widgets/defaults_intro_card.dart';
 import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/sync/sync_controller.dart';
@@ -67,57 +69,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
     }
   }
-
-  static final _allFunctions = [
-    AppFunction(
-      icon: "\uD83D\uDE97",
-      title: "Automobile",
-      description: "Licence, vehicles, gas log",
-      route: "automobile",
-    ),
-    AppFunction(
-      icon: "\uD83D\uDCB0",
-      title: "Expenses",
-      description: "Track spending",
-      route: "expenses",
-    ),
-    AppFunction(
-      icon: "\uD83D\uDCDD",
-      title: "Notes",
-      description: "Quick notes",
-      route: "notes",
-    ),
-    AppFunction(
-      icon: "\uD83C\uDCCF",
-      title: "Cheatsheets",
-      description: "Quick-reference cards",
-      route: "cheatsheets",
-    ),
-    AppFunction(
-      icon: "\uD83D\uDCC7",
-      title: "Contacts",
-      description: "People and places",
-      route: "contacts",
-    ),
-    AppFunction(
-      icon: "\uD83D\uDCC5",
-      title: "Calendar",
-      description: "Schedule events",
-      route: "calendar",
-    ),
-    AppFunction(
-      icon: "\uD83D\uDEB6",
-      title: "Activity",
-      description: "Log activity",
-      route: "activity",
-    ),
-    AppFunction(
-      icon: "\uD83E\uDE78",
-      title: "Glucose",
-      description: "Blood sugar",
-      route: "glucose",
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -291,11 +242,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildShortcuts(ColorScheme colorScheme) {
+    final hidden = ref.watch(homeHiddenTilesProvider);
     return Wrap(
       spacing: 24,
       runSpacing: 20,
       alignment: WrapAlignment.center,
-      children: _allFunctions
+      children: homeTiles
+          .where((f) => !hidden.contains(f.route))
           .map((f) => _buildShortcutItem(f, colorScheme))
           .toList(),
     );
@@ -317,17 +270,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              switch (function.route) {
-                'contacts' => AppLocalizations.of(context).contactsTitle,
-                'calendar' => AppLocalizations.of(
-                  context,
-                ).dashboardCalendarTitle,
-                'activity' => AppLocalizations.of(
-                  context,
-                ).dashboardActivityTitle,
-                'glucose' => AppLocalizations.of(context).glucoseTitle,
-                _ => function.title,
-              },
+              homeTileTitle(function, AppLocalizations.of(context)),
               style: TextStyle(fontSize: 12, color: colorScheme.onSurface),
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,

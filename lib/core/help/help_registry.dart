@@ -33,6 +33,7 @@ enum HelpId {
   glucose,
   glucoseEdit,
   glucoseRange,
+  homeScreenSettings,
 }
 
 ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
@@ -664,6 +665,22 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.delete_outline,
         title: l.helpManageTagsDeleteTitle,
         body: l.helpManageTagsDeleteBody,
+      ),
+    ],
+  ),
+  HelpId.homeScreenSettings => ScreenHelp(
+    title: l.helpHomeScreenSettingsTitle,
+    summary: l.helpHomeScreenSettingsSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.visibility_outlined,
+        title: l.helpHomeScreenSettingsSwitchTitle,
+        body: l.helpHomeScreenSettingsSwitchBody,
+      ),
+      HelpEntry(
+        icon: Icons.lock_outline,
+        title: l.helpHomeScreenSettingsLastTitle,
+        body: l.helpHomeScreenSettingsLastBody,
       ),
     ],
   ),

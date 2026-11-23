@@ -47,6 +47,7 @@ class SyncableSettings {
     this.glucoseRangeHigh,
     this.glucoseRangeUnit,
     this.glucoseDisplayUnit,
+    this.homeHiddenTiles,
   });
 
   final GasLogSettings gasLog;
@@ -82,6 +83,11 @@ class SyncableSettings {
   final num? glucoseRangeHigh;
   final String? glucoseRangeUnit;
   final String? glucoseDisplayUnit;
+
+  /// Route ids of home-screen tiles the user hid. Null = the bundle did not
+  /// carry the key (an older client), so applying it leaves this device's
+  /// value alone; an explicit empty list shows every tile.
+  final List<String>? homeHiddenTiles;
 
   /// User-selected UI locale code (e.g. 'en', 'zh'). Null = follow
   /// system. Stored as the raw language code rather than a `Locale`
@@ -123,6 +129,7 @@ class SyncableSettings {
         if (glucoseRangeUnit != null) 'glucoseRangeUnit': glucoseRangeUnit,
         if (glucoseDisplayUnit != null)
           'glucoseDisplayUnit': glucoseDisplayUnit,
+        if (homeHiddenTiles != null) 'homeHiddenTiles': homeHiddenTiles,
         'lastModified': lastModified.toUtc().toIso8601String(),
         '_v': 1,
       };
@@ -176,6 +183,12 @@ class SyncableSettings {
       glucoseDisplayUnit: json['glucoseDisplayUnit'] is String
           ? json['glucoseDisplayUnit'] as String
           : null,
+      homeHiddenTiles: json['homeHiddenTiles'] is List
+          ? [
+              for (final e in json['homeHiddenTiles'] as List)
+                if (e is String) e,
+            ]
+          : null,
       lastModified: () {
         final raw = json['lastModified'] as String?;
         if (raw == null) return epochZero;
@@ -212,6 +225,7 @@ class SyncableSettings {
     num? glucoseRangeHigh,
     String? glucoseRangeUnit,
     String? glucoseDisplayUnit,
+    List<String>? homeHiddenTiles,
   }) {
     return SyncableSettings(
       gasLog: gasLog ?? this.gasLog,
@@ -230,6 +244,7 @@ class SyncableSettings {
       glucoseRangeHigh: glucoseRangeHigh ?? this.glucoseRangeHigh,
       glucoseRangeUnit: glucoseRangeUnit ?? this.glucoseRangeUnit,
       glucoseDisplayUnit: glucoseDisplayUnit ?? this.glucoseDisplayUnit,
+      homeHiddenTiles: homeHiddenTiles ?? this.homeHiddenTiles,
     );
   }
 }

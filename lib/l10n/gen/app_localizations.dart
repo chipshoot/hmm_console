@@ -9283,6 +9283,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No readings yet'**
   String get glucoseTileNone;
+
+  /// No description provided for @settingsHomeScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Home screen'**
+  String get settingsHomeScreen;
+
+  /// No description provided for @settingsHomeScreenSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which tiles show on the home screen'**
+  String get settingsHomeScreenSubtitle;
+
+  /// No description provided for @homeScreenSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden features stay reachable by typing / in the home search. These choices are the same on all your devices.'**
+  String get homeScreenSettingsHint;
+
+  /// No description provided for @homeScreenSettingsLastVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'At least one tile must stay visible.'**
+  String get homeScreenSettingsLastVisible;
+
+  /// No description provided for @helpHomeScreenSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home screen'**
+  String get helpHomeScreenSettingsTitle;
+
+  /// No description provided for @helpHomeScreenSettingsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which tiles appear on the home screen. The choice is shared across your devices.'**
+  String get helpHomeScreenSettingsSummary;
+
+  /// No description provided for @helpHomeScreenSettingsSwitchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tile switch'**
+  String get helpHomeScreenSettingsSwitchTitle;
+
+  /// No description provided for @helpHomeScreenSettingsSwitchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn a tile off to hide it from the home screen, or on to show it again. Hidden features can still be opened from the home search by typing /.'**
+  String get helpHomeScreenSettingsSwitchBody;
+
+  /// No description provided for @helpHomeScreenSettingsLastTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The last tile'**
+  String get helpHomeScreenSettingsLastTitle;
+
+  /// No description provided for @helpHomeScreenSettingsLastBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The only visible tile cannot be turned off, so the home screen is never empty.'**
+  String get helpHomeScreenSettingsLastBody;
 }
 
 class _AppLocalizationsDelegate

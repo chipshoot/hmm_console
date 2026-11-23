@@ -5355,4 +5355,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glucoseTileNone => 'No readings yet';
+
+  @override
+  String get settingsHomeScreen => 'Home screen';
+
+  @override
+  String get settingsHomeScreenSubtitle =>
+      'Choose which tiles show on the home screen';
+
+  @override
+  String get homeScreenSettingsHint =>
+      'Hidden features stay reachable by typing / in the home search. These choices are the same on all your devices.';
+
+  @override
+  String get homeScreenSettingsLastVisible =>
+      'At least one tile must stay visible.';
+
+  @override
+  String get helpHomeScreenSettingsTitle => 'Home screen';
+
+  @override
+  String get helpHomeScreenSettingsSummary =>
+      'Choose which tiles appear on the home screen. The choice is shared across your devices.';
+
+  @override
+  String get helpHomeScreenSettingsSwitchTitle => 'Tile switch';
+
+  @override
+  String get helpHomeScreenSettingsSwitchBody =>
+      'Turn a tile off to hide it from the home screen, or on to show it again. Hidden features can still be opened from the home search by typing /.';
+
+  @override
+  String get helpHomeScreenSettingsLastTitle => 'The last tile';
+
+  @override
+  String get helpHomeScreenSettingsLastBody =>
+      'The only visible tile cannot be turned off, so the home screen is never empty.';
 }

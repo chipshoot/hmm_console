@@ -2269,5 +2269,15 @@
   "helpGlucoseRangeImportBody": "Turns the automatic Apple Health import on or off for this device only.",
   "glucoseTileLast": "Last: {value} · {when}",
   "@glucoseTileLast": {"placeholders": {"value": {"type": "String"}, "when": {"type": "String"}}},
-  "glucoseTileNone": "No readings yet"
+  "glucoseTileNone": "No readings yet",
+  "settingsHomeScreen": "Home screen",
+  "settingsHomeScreenSubtitle": "Choose which tiles show on the home screen",
+  "homeScreenSettingsHint": "Hidden features stay reachable by typing / in the home search. These choices are the same on all your devices.",
+  "homeScreenSettingsLastVisible": "At least one tile must stay visible.",
+  "helpHomeScreenSettingsTitle": "Home screen",
+  "helpHomeScreenSettingsSummary": "Choose which tiles appear on the home screen. The choice is shared across your devices.",
+  "helpHomeScreenSettingsSwitchTitle": "Tile switch",
+  "helpHomeScreenSettingsSwitchBody": "Turn a tile off to hide it from the home screen, or on to show it again. Hidden features can still be opened from the home search by typing /.",
+  "helpHomeScreenSettingsLastTitle": "The last tile",
+  "helpHomeScreenSettingsLastBody": "The only visible tile cannot be turned off, so the home screen is never empty."
 }

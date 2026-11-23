@@ -39,6 +39,7 @@ import 'package:hmm_console/features/notes/presentation/screens/subsystem_notes_
 import 'package:hmm_console/features/launcher/presentation/launcher_search_screen.dart';
 import 'package:hmm_console/features/launcher/presentation/launcher_manage_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/settings_screen.dart';
+import 'package:hmm_console/features/settings/presentation/screens/home_screen_settings_screen.dart';
 import 'package:hmm_console/features/settings/presentation/screens/video_storage_screen.dart';
 import 'driver_licence_routes.dart';
 
@@ -259,6 +260,11 @@ final routerConfig = Provider<GoRouter>(
             path: 'videos',
             name: RouterNames.videoStorage.name,
             builder: (context, state) => const VideoStorageScreen(),
+          ),
+          GoRoute(
+            path: 'home-screen',
+            name: RouterNames.homeScreenSettings.name,
+            builder: (context, state) => const HomeScreenSettingsScreen(),
           ),
         ],
       ),
