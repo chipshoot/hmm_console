@@ -76,4 +76,17 @@ void main() {
     final b = t.widget<HelpButton>(find.byType(HelpButton));
     expect(b.helpId, HelpId.homeScreenSettings);
   });
+
+  testWidgets('all stored hidden: one switch on and disabled', (t) async {
+    SharedPreferences.setMockInitialValues({
+      'home.hiddenTiles': [for (final x in homeTiles) x.route],
+    });
+    await _pump(t);
+    final switches = t
+        .widgetList<Switch>(find.byType(Switch))
+        .where((s) => s.value)
+        .toList();
+    expect(switches.length, 1);
+    expect(switches.single.onChanged, isNull);
+  });
 }

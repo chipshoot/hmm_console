@@ -4,6 +4,7 @@ import 'package:hmm_console/features/dashboard/domain/home_tiles.dart';
 import 'package:hmm_console/features/settings/data/syncable_settings_repository.dart';
 import 'package:hmm_console/features/settings/domain/syncable_settings.dart';
 import 'package:hmm_console/features/settings/providers/home_hidden_tiles_provider.dart';
+import 'package:hmm_console/features/settings/providers/settings_bus_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _key = 'home.hiddenTiles';
@@ -116,4 +117,56 @@ void main() {
       expect(c.read(homeHiddenTilesProvider), isNot(contains(ids.first)));
     });
   });
+
+  test('apply with [] clears a locally hidden tile', () async {
+    SharedPreferences.setMockInitialValues({
+      _key: ['glucose'],
+    });
+    await SyncableSettingsRepository().apply(_bundle([]));
+    expect(
+      (await SharedPreferences.getInstance()).getStringList(_key),
+      isEmpty,
+    );
+    final c = await _container();
+    expect(c.read(homeHiddenTilesProvider), isEmpty);
+  });
+
+  test('a settings-bus bump re-hydrates from prefs', () async {
+    final c = await _container();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_key, ['notes']);
+    c.read(settingsBusProvider.notifier).bump();
+    c.read(homeHiddenTilesProvider);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(c.read(homeHiddenTilesProvider), {'notes'});
+  });
+
+  test('setVisible before the load finishes keeps the stored set', () async {
+    SharedPreferences.setMockInitialValues({
+      _key: ['glucose'],
+    });
+    final c = ProviderContainer();
+    addTearDown(c.dispose);
+    await c.read(homeHiddenTilesProvider.notifier).setVisible('notes', false);
+    expect(c.read(homeHiddenTilesProvider), {'glucose', 'notes'});
+    expect((await SharedPreferences.getInstance()).getStringList(_key), [
+      'glucose',
+      'notes',
+    ]);
+  });
+
+  test(
+    'all tiles stored hidden: the first one is effectively visible',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        _key: [for (final t in homeTiles) t.route],
+      });
+      final c = await _container();
+      expect(c.read(homeHiddenTilesProvider).length, homeTiles.length);
+      final eff = c.read(effectiveHiddenTilesProvider);
+      expect(eff, isNot(contains(homeTiles.first.route)));
+      expect(eff.length, homeTiles.length - 1);
+    },
+  );
 }

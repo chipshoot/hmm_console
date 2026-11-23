@@ -38,7 +38,13 @@ class HomeHiddenTilesNotifier extends Notifier<Set<String>> {
 
   /// Shows or hides tile [id]. Hiding the last visible tile is refused.
   Future<void> setVisible(String id, bool visible) async {
-    final next = {...state};
+    // Read the stored set first: a call made before the initial load finishes
+    // must not start from the empty default and drop it.
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList(
+      SyncableSettingsRepository.homeHiddenTilesKey,
+    );
+    final next = {...(stored?.toSet() ?? state)};
     if (visible) {
       next.remove(id);
     } else {
@@ -46,9 +52,13 @@ class HomeHiddenTilesNotifier extends Notifier<Set<String>> {
       final anyVisible = homeTiles.any((t) => !next.contains(t.route));
       if (!anyVisible) return;
     }
-    if (next.length == state.length && next.containsAll(state)) return;
+    if (stored != null &&
+        next.length == stored.toSet().length &&
+        next.containsAll(stored)) {
+      state = next;
+      return;
+    }
     state = next;
-    final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(
       SyncableSettingsRepository.homeHiddenTilesKey,
       next.toList()..sort(),
@@ -61,3 +71,14 @@ final homeHiddenTilesProvider =
     NotifierProvider<HomeHiddenTilesNotifier, Set<String>>(
       HomeHiddenTilesNotifier.new,
     );
+
+/// The hidden set the screens use: the stored set, except that when it would
+/// hide every known tile (a pulled bundle, say) the first tile stays visible.
+/// Read-side only: the stored set is left alone so devices don't fight sync.
+final effectiveHiddenTilesProvider = Provider<Set<String>>((ref) {
+  final hidden = ref.watch(homeHiddenTilesProvider);
+  if (homeTiles.every((t) => hidden.contains(t.route))) {
+    return {...hidden}..remove(homeTiles.first.route);
+  }
+  return hidden;
+});

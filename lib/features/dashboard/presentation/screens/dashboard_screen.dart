@@ -242,7 +242,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildShortcuts(ColorScheme colorScheme) {
-    final hidden = ref.watch(homeHiddenTilesProvider);
+    final hidden = ref.watch(effectiveHiddenTilesProvider);
     return Wrap(
       spacing: 24,
       runSpacing: 20,

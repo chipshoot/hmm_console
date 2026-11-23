@@ -21,7 +21,7 @@ class HomeScreenSettingsScreen extends ConsumerWidget {
     final isApple =
         theme.platform == TargetPlatform.iOS ||
         theme.platform == TargetPlatform.macOS;
-    final hidden = ref.watch(homeHiddenTilesProvider);
+    final hidden = ref.watch(effectiveHiddenTilesProvider);
     final visibleCount = homeTiles
         .where((t) => !hidden.contains(t.route))
         .length;
