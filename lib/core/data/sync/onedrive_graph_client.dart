@@ -1,3 +1,4 @@
+import 'dart:io' show HandshakeException, HttpException, SocketException;
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -65,17 +66,18 @@ class OneDriveGraphClient {
     this._currentUserSub, {
     Dio? dio,
     Dio? uploadDio,
-  }) : _uploadDio =
-           uploadDio ?? Dio(BaseOptions(validateStatus: (_) => true)),
+    Duration transportRetryDelay = const Duration(milliseconds: 400),
+  }) : _uploadDio = uploadDio ?? Dio(BaseOptions(validateStatus: (_) => true)),
        _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: 'https://graph.microsoft.com/v1.0',
-              responseType: ResponseType.json,
-              validateStatus: (_) => true, // Let us branch on status ourselves.
-            ),
-          ) {
+           dio ??
+           Dio(
+             BaseOptions(
+               baseUrl: 'https://graph.microsoft.com/v1.0',
+               responseType: ResponseType.json,
+               // Let us branch on status ourselves.
+               validateStatus: (_) => true,
+             ),
+           ) {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -97,6 +99,9 @@ class OneDriveGraphClient {
           handler.next(options);
         },
       ),
+    );
+    _dio.interceptors.add(
+      _TransportRetryInterceptor(_dio, transportRetryDelay),
     );
   }
 
@@ -600,3 +605,57 @@ final oneDriveGraphClientProvider = Provider<OneDriveGraphClient>((ref) {
     () async => (await tokenService.getStoredClaims())?['sub'] as String?,
   );
 });
+
+/// Retries a Graph request once when it failed at the transport level with
+/// no HTTP response at all — a connection dropped when the app was
+/// interrupted, or resumed on a stale keep-alive socket ("read failed",
+/// "Connection closed before full header was received", "Connection
+/// terminated during handshake"). One quick retry
+/// opens a fresh connection; without it a single drop failed the whole
+/// sync step.
+///
+/// Never retries an HTTP status (4xx/5xx keep their own handling), a
+/// cancellation, or a streamed request body (a stream cannot be replayed).
+/// Only on the main Graph Dio: upload-session chunks need offset handling.
+class _TransportRetryInterceptor extends Interceptor {
+  _TransportRetryInterceptor(this._dio, this._delay);
+
+  final Dio _dio;
+  final Duration _delay;
+
+  static const _retriedKey = 'hmm.transportRetried';
+
+  static bool _isTransportFailure(DioException e) {
+    if (e.response != null) return false;
+    return switch (e.type) {
+      DioExceptionType.connectionError => true,
+      DioExceptionType.unknown =>
+        e.error is HttpException ||
+            e.error is SocketException ||
+            e.error is HandshakeException,
+      _ => false,
+    };
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final options = err.requestOptions;
+    if (!_isTransportFailure(err) ||
+        options.extra[_retriedKey] == true ||
+        options.data is Stream ||
+        (options.cancelToken?.isCancelled ?? false)) {
+      handler.next(err);
+      return;
+    }
+    options.extra[_retriedKey] = true;
+    await Future<void>.delayed(_delay);
+    try {
+      handler.resolve(await _dio.fetch<dynamic>(options));
+    } on DioException catch (e) {
+      handler.next(e);
+    }
+  }
+}
