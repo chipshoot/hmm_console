@@ -70,14 +70,22 @@ Widget _app(
   return container != null
       ? UncontrolledProviderScope(container: container, child: app)
       : ProviderScope(
-          overrides: [notesListStateProvider.overrideWith(_State.new)],
+          overrides: [
+            notesInitialQueryProvider.overrideWithValue(
+              const NoteQuery.initial(),
+            ),
+            notesListStateProvider.overrideWith(_State.new),
+          ],
           child: app,
         );
 }
 
 ProviderContainer _container() {
   final c = ProviderContainer(
-    overrides: [notesListStateProvider.overrideWith(_State.new)],
+    overrides: [
+      notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
+      notesListStateProvider.overrideWith(_State.new),
+    ],
   );
   addTearDown(c.dispose);
   return c;
@@ -108,6 +116,7 @@ class _Saved extends SavedSearchesNotifier {
 Future<void> _openSaved(WidgetTester tester, NoteQuery saved) async {
   final c = ProviderContainer(
     overrides: [
+      notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
       notesListStateProvider.overrideWith(_State.new),
       savedSearchesProvider.overrideWith(
         () => _Saved([

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/navigation/route_names.dart';
@@ -41,6 +42,7 @@ class _ListState extends NotesListState {
 }
 
 final _overrides = [
+  notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
   notesListStateProvider.overrideWith(_ListState.new),
   noteCatalogNamesProvider.overrideWith(
     (ref) async => {
@@ -77,11 +79,12 @@ Widget _app(
   );
   return ProviderScope(
     overrides: [
+      notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
       if (listState == null)
-        _overrides[0]
+        _overrides[1]
       else
         notesListStateProvider.overrideWith(listState),
-      _overrides[1],
+      _overrides[2],
       ...overrides,
     ],
     child: MaterialApp.router(
@@ -123,32 +126,26 @@ void main() {
     _noRawSubjects();
   });
 
-  testWidgets(
-    'notes list search matches the display title',
-    (t) async {
-      narrow(t);
-      await t.pumpWidget(_app(const NotesListScreen()));
-      await t.pumpAndSettle();
-      await t.enterText(find.byType(TextField), '张伟');
-      await t.pump(const Duration(milliseconds: 200)); // search debounce
-      await t.pumpAndSettle();
-      expect(find.byType(NoteRow), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(NoteRow),
-          matching: find.text('张伟'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('Civic'), findsNothing);
-      expect(find.text('Grocery list'), findsNothing);
-      await t.enterText(find.byType(TextField), 'c-1');
-      await t.pump(const Duration(milliseconds: 200)); // search debounce
-      await t.pumpAndSettle();
-      expect(find.text('张伟'), findsNothing);
-      _noRawSubjects();
-    },
-  );
+  testWidgets('notes list search matches the display title', (t) async {
+    narrow(t);
+    await t.pumpWidget(_app(const NotesListScreen()));
+    await t.pumpAndSettle();
+    await t.enterText(find.byType(TextField), '张伟');
+    await t.pump(const Duration(milliseconds: 200)); // search debounce
+    await t.pumpAndSettle();
+    expect(find.byType(NoteRow), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(NoteRow), matching: find.text('张伟')),
+      findsOneWidget,
+    );
+    expect(find.text('Civic'), findsNothing);
+    expect(find.text('Grocery list'), findsNothing);
+    await t.enterText(find.byType(TextField), 'c-1');
+    await t.pump(const Duration(milliseconds: 200)); // search debounce
+    await t.pumpAndSettle();
+    expect(find.text('张伟'), findsNothing);
+    _noRawSubjects();
+  });
 
   testWidgets('tapping a contact row opens contact detail', (t) async {
     narrow(t);

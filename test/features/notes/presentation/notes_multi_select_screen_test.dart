@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_contact_repository.dart'
     show contactCatalogName;
@@ -164,6 +165,7 @@ Widget _app(
   bool docked = false,
 }) => ProviderScope(
   overrides: [
+    notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
     notesListStateProvider.overrideWith(() => state ?? _ListState()),
     noteBulkActionsProvider.overrideWithValue(bulk),
     ...extra,

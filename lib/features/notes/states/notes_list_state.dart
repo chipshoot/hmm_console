@@ -25,6 +25,17 @@ String _normalizeDomainKey(String key) =>
 /// that note belongs to, and what to call it on screen.
 typedef AttachTarget = ({String domain, String subject});
 
+/// What the Notes list shows when it opens: General notes, not every
+/// subsystem's records. The side panel's All still shows everything.
+const kDefaultNotesQuery = NoteQuery(
+  source: DomainSource(key: kGeneralCatalogName),
+);
+
+/// The query the Notes list starts with. A seam so tests can open on All.
+final notesInitialQueryProvider = Provider<NoteQuery>(
+  (ref) => kDefaultNotesQuery,
+);
+
 class NotesListData {
   const NotesListData({
     required this.all,
@@ -182,7 +193,8 @@ final _liveTagNamesStreamProvider =
 class NotesListState extends AsyncNotifier<NotesListData> {
   // View criteria live on the notifier so they survive reactive data
   // emissions (which refresh the data, not the user's filter/sort/search).
-  NoteQuery _query = const NoteQuery.initial();
+  // Read once, on first use (late), so rebuilds never reset it.
+  late NoteQuery _query = ref.read(notesInitialQueryProvider);
 
   @override
   Future<NotesListData> build() async {

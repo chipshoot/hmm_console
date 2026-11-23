@@ -4,7 +4,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
+import 'package:hmm_console/core/data/local/local_note_catalog_repository.dart';
+import 'package:hmm_console/core/notes/catalog_palette.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
@@ -119,7 +124,11 @@ Widget _app({
   List<Override> extra = const [],
   TargetPlatform? platform,
 }) => ProviderScope(
-  overrides: [notesListStateProvider.overrideWith(state), ...extra],
+  overrides: [
+    notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
+    notesListStateProvider.overrideWith(state),
+    ...extra,
+  ],
   child: MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
@@ -163,7 +172,10 @@ void main() {
     // create a fresh notifier and reset the query, which is exactly what the
     // app does NOT do.
     final container = ProviderContainer(
-      overrides: [notesListStateProvider.overrideWith(_StubListState.new)],
+      overrides: [
+        notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
+        notesListStateProvider.overrideWith(_StubListState.new),
+      ],
     );
     addTearDown(container.dispose);
 
@@ -382,6 +394,91 @@ void main() {
     await tester.tap(find.widgetWithText(ListTile, 'All'));
     await tester.pumpAndSettle();
     expect(find.byType(NoteRow), findsNWidgets(3));
+  });
+
+  testWidgets('opens on General; All in the side panel shows everything', (
+    tester,
+  ) async {
+    final db = HmmDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final authorId = await db
+        .into(db.authors)
+        .insert(AuthorsCompanion.insert(accountName: 'tester'));
+    final author = await (db.select(
+      db.authors,
+    )..where((a) => a.id.equals(authorId))).getSingle();
+    final generalCat = await db
+        .into(db.noteCatalogs)
+        .insert(
+          NoteCatalogsCompanion.insert(name: kGeneralCatalogName, schema: '{}'),
+        );
+    final contactCat = await db
+        .into(db.noteCatalogs)
+        .insert(
+          NoteCatalogsCompanion.insert(
+            name: 'Hmm.ContactMan.Contact',
+            schema: '{}',
+          ),
+        );
+    await db
+        .into(db.notes)
+        .insert(
+          NotesCompanion.insert(
+            subject: 'Grocery list',
+            authorId: authorId,
+            catalogId: Value(generalCat),
+          ),
+        );
+    await db
+        .into(db.notes)
+        .insert(
+          NotesCompanion.insert(
+            subject: 'Zhang Wei',
+            authorId: authorId,
+            catalogId: Value(contactCat),
+          ),
+        );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          hmmDatabaseProvider.overrideWithValue(db),
+          localHmmNoteRepositoryProvider.overrideWithValue(
+            LocalHmmNoteRepository(db, () async => author),
+          ),
+          localNoteCatalogRepositoryProvider.overrideWithValue(
+            LocalNoteCatalogRepository(db),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(extensions: const [AppColors.light]),
+          home: const NotesListScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Grocery list'), findsOneWidget);
+    expect(find.byType(NoteRow), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Filters and lists'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<ListTile>(find.widgetWithText(ListTile, 'General'))
+          .selected,
+      isTrue,
+    );
+    await tester.tap(find.widgetWithText(ListTile, 'All'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NoteRow), findsNWidgets(2));
+
+    // Let drift's stream-cancel timers run before the test ends.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('help button opens Notes list help', (tester) async {

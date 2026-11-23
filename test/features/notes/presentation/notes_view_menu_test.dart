@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/core/settings/app_settings.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
@@ -38,7 +39,10 @@ class _List extends NotesListState {
 
 Future<ProviderContainer> _pump(WidgetTester t, TargetPlatform platform) async {
   final container = ProviderContainer(
-    overrides: [notesListStateProvider.overrideWith(_List.new)],
+    overrides: [
+      notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
+      notesListStateProvider.overrideWith(_List.new),
+    ],
   );
   addTearDown(container.dispose);
   await t.pumpWidget(

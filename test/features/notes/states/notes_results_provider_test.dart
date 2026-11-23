@@ -86,6 +86,7 @@ ProviderContainer _container(
   );
   final c = ProviderContainer(
     overrides: [
+      notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
       notesListStateProvider.overrideWith(() => _FakeList(data)),
       pinyinTranscriberProvider.overrideWithValue(_Pinyin()),
       savedSearchesProvider.overrideWith(() => _FakeSaved(saved)),

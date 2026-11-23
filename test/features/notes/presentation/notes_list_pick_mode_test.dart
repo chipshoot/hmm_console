@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/features/notes/query/note_query.dart';
 import 'package:hmm_console/core/theme/app_colors.dart';
 import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'package:hmm_console/features/notes/presentation/screens/note_picker.dart';
@@ -37,7 +38,10 @@ class _Loading extends NotesListState {
 
 Widget _app(Widget home, {NotesListState Function() list = _List.new}) =>
     ProviderScope(
-      overrides: [notesListStateProvider.overrideWith(list)],
+      overrides: [
+        notesInitialQueryProvider.overrideWithValue(const NoteQuery.initial()),
+        notesListStateProvider.overrideWith(list),
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
