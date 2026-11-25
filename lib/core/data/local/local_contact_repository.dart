@@ -10,6 +10,7 @@ import '../../../features/contacts/domain/contact_sort_by.dart';
 import '../../../features/contacts/domain/entities/contact.dart';
 import '../../../features/notes/data/models/hmm_note.dart';
 import '../../util/uuid.dart';
+import '../attachments/attachment_ref.dart';
 import '../hmm_note_input.dart';
 import 'local_hmm_note_repository.dart';
 import 'local_note_catalog_repository.dart';
@@ -34,10 +35,10 @@ class LocalContactRepository implements IContactRepository {
   static const _pageSize = 100;
 
   String _serialize(Contact c) => jsonEncode({
-        'note': {
-          'content': {'Contact': ContactCodec.toMap(c)},
-        },
-      });
+    'note': {
+      'content': {'Contact': ContactCodec.toMap(c)},
+    },
+  });
 
   /// Replaces only `note.content.Contact` inside [existing]'s content, keeping
   /// every sibling: other entities under `note.content`, other keys under
@@ -48,13 +49,17 @@ class LocalContactRepository implements IContactRepository {
     try {
       decoded = jsonDecode(existing.content ?? '');
     } on FormatException {
-      debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
-          'content is not JSON; writing a fresh envelope.');
+      debugPrint(
+        'LocalContactRepository: note ${existing.id}/${existing.uuid} '
+        'content is not JSON; writing a fresh envelope.',
+      );
       return _serialize(c);
     }
     if (decoded is! Map) {
-      debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
-          'content is not a JSON object; writing a fresh envelope.');
+      debugPrint(
+        'LocalContactRepository: note ${existing.id}/${existing.uuid} '
+        'content is not a JSON object; writing a fresh envelope.',
+      );
       return _serialize(c);
     }
     final root = Map<String, dynamic>.from(decoded);
@@ -69,8 +74,10 @@ class LocalContactRepository implements IContactRepository {
     if (noteRaw is! Map || contentRaw is! Map) {
       // A non-object `note` / `note.content` cannot hold the contact; it is
       // the only value replaced. Logged so the replacement is diagnosable.
-      debugPrint('LocalContactRepository: note ${existing.id}/${existing.uuid} '
-          'had no note.content object; rebuilt it, kept top-level keys.');
+      debugPrint(
+        'LocalContactRepository: note ${existing.id}/${existing.uuid} '
+        'had no note.content object; rebuilt it, kept top-level keys.',
+      );
     }
     content['Contact'] = ContactCodec.toMap(c);
     note['content'] = content;
@@ -84,16 +91,23 @@ class LocalContactRepository implements IContactRepository {
     try {
       final data = (jsonDecode(content) as Map)['note']?['content']?['Contact'];
       if (data is! Map) {
-        debugPrint('LocalContactRepository: note ${note!.id}/${note.uuid} has '
-            'no Contact payload; omitted from the address book.');
+        debugPrint(
+          'LocalContactRepository: note ${note!.id}/${note.uuid} has '
+          'no Contact payload; omitted from the address book.',
+        );
         return null;
       }
-      final contact = ContactCodec.fromMap(data.cast<String, dynamic>());
+      // The photo lives in the note's attachments, never in content JSON.
+      final contact = ContactCodec.fromMap(
+        data.cast<String, dynamic>(),
+      ).copyWith(photo: note!.effectiveAttachments.primaryImage);
       if (contact.id.isEmpty) {
         // A blank id is not an identity: it would collide on the subject
         // `Contact:` with every other blank-id contact.
-        debugPrint('LocalContactRepository: note ${note!.id}/${note.uuid} has '
-            'a contact with no id; omitted from the address book.');
+        debugPrint(
+          'LocalContactRepository: note ${note.id}/${note.uuid} has '
+          'a contact with no id; omitted from the address book.',
+        );
         return null;
       }
       return contact;
@@ -102,9 +116,11 @@ class LocalContactRepository implements IContactRepository {
       // it, so name the note - otherwise this is undiagnosable without
       // reproducing it locally.
       // Type only: a FormatException message quotes the source JSON.
-      debugPrint('LocalContactRepository: note ${note!.id}/${note.uuid} has '
-          'unreadable contact JSON (${e.runtimeType}); omitted from the '
-          'address book.');
+      debugPrint(
+        'LocalContactRepository: note ${note!.id}/${note.uuid} has '
+        'unreadable contact JSON (${e.runtimeType}); omitted from the '
+        'address book.',
+      );
       return null;
     }
   }
@@ -136,8 +152,9 @@ class LocalContactRepository implements IContactRepository {
   @override
   Future<List<Contact>> getContacts({bool includeDeactivated = false}) async {
     final all = await _all();
-    final visible =
-        includeDeactivated ? all : all.where((c) => c.isActivated).toList();
+    final visible = includeDeactivated
+        ? all
+        : all.where((c) => c.isActivated).toList();
     // A stable default order without pinyin (the repository holds no
     // transcriber); the contacts list re-sorts with pinyin and the user's
     // setting in contactListEntriesProvider.
@@ -201,13 +218,18 @@ class LocalContactRepository implements IContactRepository {
     }
 
     if (existing == null) {
-      await _notes.createNote(HmmNoteCreate(
-        subject: subject,
-        catalogId: await _catalogId(),
-        content: _serialize(c),
-        // The note's uuid IS the contact id - see the identity constraint.
-        uuid: c.id,
-      ));
+      await _notes.createNote(
+        HmmNoteCreate(
+          subject: subject,
+          catalogId: await _catalogId(),
+          content: _serialize(c),
+          // The note's uuid IS the contact id - see the identity constraint.
+          uuid: c.id,
+          attachments: c.photo == null
+              ? NoteAttachments.empty
+              : NoteAttachments(primaryImage: c.photo),
+        ),
+      );
     } else {
       // Catalog and author are immutable after create; passing them to an
       // update throws. Only subject and content move.
@@ -216,9 +238,25 @@ class LocalContactRepository implements IContactRepository {
         HmmNoteUpdate(
           subject: subject,
           content: _serializeOver(c, existing),
+          // Passed on every update (as the licence does): omitting it would
+          // keep a removed photo's bytes alive. copyWith keeps other keys.
+          attachments: existing.effectiveAttachments.copyWith(
+            primaryImage: c.photo,
+            clearPrimaryImage: c.photo == null,
+          ),
         ),
       );
     }
+  }
+
+  @override
+  Future<int?> noteIdFor(String contactId) async {
+    if (contactId.isEmpty) return null;
+    final subject = contactSubjectFor(contactId);
+    for (final n in await _allNotes()) {
+      if (n.subject == subject) return n.id;
+    }
+    return null;
   }
 
   @override

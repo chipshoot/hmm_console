@@ -11,7 +11,7 @@ import '../domain/entities/contact.dart';
 /// of a raw stack trace.
 class ContactsCloudApiUnavailable extends UnimplementedError {
   ContactsCloudApiUnavailable()
-      : super('contacts cloudApi repo ships in the backend plan');
+    : super('contacts cloudApi repo ships in the backend plan');
 }
 
 /// True when [error] is, or is Riverpod's wrapper around, a
@@ -74,4 +74,8 @@ abstract interface class IContactRepository {
   /// (including a blank [id]) and [ContactUnreadable] when it cannot be
   /// decoded; it never returns without writing.
   Future<void> deactivateContact(String id);
+
+  /// The id of the note that stores contact [contactId], or null when none.
+  /// Photo bytes are filed in the vault under this note.
+  Future<int?> noteIdFor(String contactId);
 }

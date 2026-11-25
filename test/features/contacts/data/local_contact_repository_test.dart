@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hmm_console/core/data/attachments/attachment_ref.dart';
+import 'package:hmm_console/core/data/hmm_note_input.dart';
 import 'package:hmm_console/core/data/local/local_contact_repository.dart';
 import 'package:hmm_console/features/contacts/data/i_contact_repository.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
@@ -11,14 +13,14 @@ import 'package:hmm_console/features/notes/data/models/hmm_note.dart';
 import 'contact_repository_fakes.dart';
 
 HmmNote _rawNote(int id, String subject, String content) => HmmNote(
-      id: id,
-      uuid: 'raw$id',
-      subject: subject,
-      authorId: 1,
-      createDate: DateTime(2026),
-      catalogId: 7,
-      content: content,
-    );
+  id: id,
+  uuid: 'raw$id',
+  subject: subject,
+  authorId: 1,
+  createDate: DateTime(2026),
+  catalogId: 7,
+  content: content,
+);
 
 void main() {
   late LocalContactRepository repo;
@@ -30,11 +32,11 @@ void main() {
   });
 
   Contact person(String name, {bool isSelf = false}) => Contact(
-        id: '',
-        contactType: ContactType.person,
-        firstName: name,
-        isSelf: isSelf,
-      );
+    id: '',
+    contactType: ContactType.person,
+    firstName: name,
+    isSelf: isSelf,
+  );
 
   test('saving mints an id when the caller supplies none', () async {
     final saved = await repo.saveContact(person('Ada'));
@@ -46,13 +48,16 @@ void main() {
     expect(notes.stored.single.subject, contactSubjectFor(saved.id));
   });
 
-  test('renaming updates in place rather than creating a second note', () async {
-    final saved = await repo.saveContact(person('Ada'));
-    await repo.saveContact(saved.copyWith(firstName: 'Grace'));
+  test(
+    'renaming updates in place rather than creating a second note',
+    () async {
+      final saved = await repo.saveContact(person('Ada'));
+      await repo.saveContact(saved.copyWith(firstName: 'Grace'));
 
-    expect(notes.stored, hasLength(1));
-    expect((await repo.getContact(saved.id))!.firstName, 'Grace');
-  });
+      expect(notes.stored, hasLength(1));
+      expect((await repo.getContact(saved.id))!.firstName, 'Grace');
+    },
+  );
 
   test('getContacts hides deactivated contacts by default', () async {
     final saved = await repo.saveContact(person('Ada'));
@@ -62,14 +67,17 @@ void main() {
     expect(await repo.getContacts(includeDeactivated: true), hasLength(1));
   });
 
-  test('a deactivated contact still resolves by id, so references degrade', () async {
-    final saved = await repo.saveContact(person('Ada'));
-    await repo.deactivateContact(saved.id);
+  test(
+    'a deactivated contact still resolves by id, so references degrade',
+    () async {
+      final saved = await repo.saveContact(person('Ada'));
+      await repo.deactivateContact(saved.id);
 
-    final found = await repo.getContact(saved.id);
-    expect(found, isNotNull);
-    expect(found!.isActivated, isFalse);
-  });
+      final found = await repo.getContact(saved.id);
+      expect(found, isNotNull);
+      expect(found!.isActivated, isFalse);
+    },
+  );
 
   test('setting isSelf clears it from every other contact', () async {
     final ada = await repo.saveContact(person('Ada', isSelf: true));
@@ -93,38 +101,45 @@ void main() {
     expect(await repo.getContacts(), hasLength(1));
   });
 
-  test('a decoded contact with a blank id is skipped, never an identity', () async {
-    notes.stored.add(_rawNote(
-      50,
-      'Contact:',
-      jsonEncode({
-        'note': {
-          'content': {
-            'Contact': {'id': '', 'contactType': 'person', 'firstName': 'X'},
-          },
-        },
-      }),
-    ));
+  test(
+    'a decoded contact with a blank id is skipped, never an identity',
+    () async {
+      notes.stored.add(
+        _rawNote(
+          50,
+          'Contact:',
+          jsonEncode({
+            'note': {
+              'content': {
+                'Contact': {
+                  'id': '',
+                  'contactType': 'person',
+                  'firstName': 'X',
+                },
+              },
+            },
+          }),
+        ),
+      );
 
-    expect(await repo.getContacts(includeDeactivated: true), isEmpty);
-    expect(await repo.getContact(''), isNull);
-    // Blank id is never an identity: deactivating it is "not found", and it
-    // writes nothing.
-    await expectLater(
-      repo.deactivateContact(''),
-      throwsA(isA<ContactNotFound>()),
-    );
-    expect(notes.stored, hasLength(1));
-    expect(notes.stored.single.content, contains('"firstName":"X"'));
-  });
+      expect(await repo.getContacts(includeDeactivated: true), isEmpty);
+      expect(await repo.getContact(''), isNull);
+      // Blank id is never an identity: deactivating it is "not found", and it
+      // writes nothing.
+      await expectLater(
+        repo.deactivateContact(''),
+        throwsA(isA<ContactNotFound>()),
+      );
+      expect(notes.stored, hasLength(1));
+      expect(notes.stored.single.content, contains('"firstName":"X"'));
+    },
+  );
 
   test('saving over an unreadable note updates it, not a duplicate', () async {
     notes.stored.add(_rawNote(60, contactSubjectFor('abc'), 'not json'));
-    await repo.saveContact(Contact(
-      id: 'abc',
-      contactType: ContactType.person,
-      firstName: 'Ada',
-    ));
+    await repo.saveContact(
+      Contact(id: 'abc', contactType: ContactType.person, firstName: 'Ada'),
+    );
 
     expect(notes.stored, hasLength(1));
     expect((await repo.getContact('abc'))!.firstName, 'Ada');
@@ -165,20 +180,26 @@ void main() {
   );
 
   test('an update keeps every other key in the note envelope', () async {
-    notes.stored.add(_rawNote(
-      80,
-      contactSubjectFor('e1'),
-      jsonEncode({
-        'note': {
-          'content': {
-            'Contact': {'id': 'e1', 'contactType': 'person', 'firstName': 'A'},
-            'ContactPhoto': {'x': 1},
+    notes.stored.add(
+      _rawNote(
+        80,
+        contactSubjectFor('e1'),
+        jsonEncode({
+          'note': {
+            'content': {
+              'Contact': {
+                'id': 'e1',
+                'contactType': 'person',
+                'firstName': 'A',
+              },
+              'ContactPhoto': {'x': 1},
+            },
+            'schemaVersion': 2,
           },
-          'schemaVersion': 2,
-        },
-        'top': true,
-      }),
-    ));
+          'top': true,
+        }),
+      ),
+    );
 
     final existing = (await repo.getContact('e1'))!;
     await repo.saveContact(existing.copyWith(firstName: 'B'));
@@ -192,11 +213,9 @@ void main() {
 
   test('an update over unparsable content writes a fresh envelope', () async {
     notes.stored.add(_rawNote(81, contactSubjectFor('e2'), '{broken'));
-    await repo.saveContact(const Contact(
-      id: 'e2',
-      contactType: ContactType.person,
-      firstName: 'C',
-    ));
+    await repo.saveContact(
+      const Contact(id: 'e2', contactType: ContactType.person, firstName: 'C'),
+    );
     final json = jsonDecode(notes.stored.single.content!) as Map;
     expect(json['note']['content']['Contact']['firstName'], 'C');
   });
@@ -218,25 +237,40 @@ void main() {
       );
     });
 
-    test('getContact on a note with no Contact payload throws unreadable',
-        () async {
-      notes.stored.add(_rawNote(
-          91, contactSubjectFor('u2'), jsonEncode({'note': {'content': {}}})));
-      await expectLater(
-          repo.getContact('u2'), throwsA(isA<ContactUnreadable>()));
-    });
+    test(
+      'getContact on a note with no Contact payload throws unreadable',
+      () async {
+        notes.stored.add(
+          _rawNote(
+            91,
+            contactSubjectFor('u2'),
+            jsonEncode({
+              'note': {'content': {}},
+            }),
+          ),
+        );
+        await expectLater(
+          repo.getContact('u2'),
+          throwsA(isA<ContactUnreadable>()),
+        );
+      },
+    );
 
     test('getContact on an absent id still returns null', () async {
       expect(await repo.getContact('absent'), isNull);
     });
 
-    test('deactivating an unreadable contact throws and writes nothing',
-        () async {
-      notes.stored.add(_rawNote(92, contactSubjectFor('u3'), 'not json'));
-      await expectLater(
-          repo.deactivateContact('u3'), throwsA(isA<ContactUnreadable>()));
-      expect(notes.stored.single.content, 'not json');
-    });
+    test(
+      'deactivating an unreadable contact throws and writes nothing',
+      () async {
+        notes.stored.add(_rawNote(92, contactSubjectFor('u3'), 'not json'));
+        await expectLater(
+          repo.deactivateContact('u3'),
+          throwsA(isA<ContactUnreadable>()),
+        );
+        expect(notes.stored.single.content, 'not json');
+      },
+    );
   });
 
   test('an unreadable note is logged by id, never by its JSON', () async {
@@ -246,7 +280,8 @@ void main() {
     addTearDown(() => debugPrint = saved);
 
     notes.stored.add(
-        _rawNote(95, contactSubjectFor('p1'), '{"phone":"555-SECRET"'));
+      _rawNote(95, contactSubjectFor('p1'), '{"phone":"555-SECRET"'),
+    );
     await repo.getContacts();
 
     expect(logs.join('\n'), contains('95'));
@@ -256,33 +291,99 @@ void main() {
   test('a routine update logs nothing', () async {
     final saved = await repo.saveContact(person('Ada'));
     final logs = await _captureLogs(
-        () => repo.saveContact(saved.copyWith(firstName: 'Grace')));
+      () => repo.saveContact(saved.copyWith(firstName: 'Grace')),
+    );
     expect(logs, isEmpty);
   });
 
   test('getContacts orders by family name, part-wise', () async {
-    await repo.saveContact(const Contact(
-      id: 'lin',
-      contactType: ContactType.person,
-      firstName: 'Amy',
-      lastName: 'Lin',
-    ));
-    await repo.saveContact(const Contact(
-      id: 'li',
-      contactType: ContactType.person,
-      firstName: 'Zoe',
-      lastName: 'Li',
-    ));
-    await repo.saveContact(const Contact(
-      id: 'adams',
-      contactType: ContactType.person,
-      firstName: 'Zed',
-      lastName: 'Adams',
-    ));
+    await repo.saveContact(
+      const Contact(
+        id: 'lin',
+        contactType: ContactType.person,
+        firstName: 'Amy',
+        lastName: 'Lin',
+      ),
+    );
+    await repo.saveContact(
+      const Contact(
+        id: 'li',
+        contactType: ContactType.person,
+        firstName: 'Zoe',
+        lastName: 'Li',
+      ),
+    );
+    await repo.saveContact(
+      const Contact(
+        id: 'adams',
+        contactType: ContactType.person,
+        firstName: 'Zed',
+        lastName: 'Adams',
+      ),
+    );
     expect(
       [for (final c in await repo.getContacts()) c.id],
       ['adams', 'li', 'lin'],
     );
+  });
+  group('photo', () {
+    const ref = VaultRef(
+      path: 'n/1/a.jpg',
+      contentType: 'image/jpeg',
+      byteSize: 10,
+    );
+
+    test('save with a photo, read it back', () async {
+      final saved = await repo.saveContact(person('Jane').copyWith(photo: ref));
+      expect((await repo.getContact(saved.id))!.photo, ref);
+    });
+
+    test('saving without photo change keeps the photo', () async {
+      final saved = await repo.saveContact(person('Jane').copyWith(photo: ref));
+      final read = (await repo.getContact(saved.id))!;
+      await repo.saveContact(read.copyWith(firstName: 'Janet'));
+      final again = (await repo.getContact(saved.id))!;
+      expect(again.firstName, 'Janet');
+      expect(again.photo, ref);
+    });
+
+    test('photo: null removes it and keeps other attachment keys', () async {
+      final saved = await repo.saveContact(person('Jane'));
+      final noteId = notes.stored.single.id;
+      await notes.updateNote(
+        noteId,
+        HmmNoteUpdate(
+          attachments: NoteAttachments(
+            primaryImage: ref,
+            extra: const {'future': 1},
+          ),
+        ),
+      );
+      final read = (await repo.getContact(saved.id))!;
+      expect(read.photo, ref);
+
+      await repo.saveContact(read.copyWith(photo: null));
+      final att = notes.stored.single.effectiveAttachments;
+      expect(att.primaryImage, isNull);
+      expect(att.extra['future'], 1);
+      expect((await repo.getContact(saved.id))!.photo, isNull);
+    });
+
+    test("another contact taking isSelf keeps the first one's photo", () async {
+      final ada = await repo.saveContact(
+        person('Ada', isSelf: true).copyWith(photo: ref),
+      );
+      await repo.saveContact(person('Grace', isSelf: true));
+      final read = (await repo.getContact(ada.id))!;
+      expect(read.isSelf, isFalse);
+      expect(read.photo, ref);
+    });
+
+    test('noteIdFor returns the note id, null for unknown', () async {
+      final saved = await repo.saveContact(person('Jane'));
+      expect(await repo.noteIdFor(saved.id), notes.stored.single.id);
+      expect(await repo.noteIdFor('nope'), isNull);
+    });
   });
 }
 

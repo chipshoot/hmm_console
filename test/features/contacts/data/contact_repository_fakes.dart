@@ -47,6 +47,7 @@ class FakeNoteRepository implements IHmmNoteRepository {
       createDate: DateTime(2026),
       catalogId: input.catalogId,
       content: input.content,
+      attachments: input.attachments,
     );
     stored.add(note);
     return note;
@@ -64,6 +65,7 @@ class FakeNoteRepository implements IHmmNoteRepository {
       createDate: old.createDate,
       catalogId: old.catalogId,
       content: patch.content ?? old.content,
+      attachments: patch.attachments ?? old.attachments,
     );
     stored[i] = updated;
     return updated;
@@ -133,6 +135,13 @@ class InMemoryContactRepository implements IContactRepository {
     _byId[saved.id] = saved;
     if (throwAfterSave != null) throw throwAfterSave!;
     return saved;
+  }
+
+  /// Stable fake note id per stored contact; null when absent.
+  @override
+  Future<int?> noteIdFor(String contactId) async {
+    if (!_byId.containsKey(contactId)) return null;
+    return _byId.keys.toList().indexOf(contactId) + 1;
   }
 
   @override
