@@ -42,6 +42,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isApple = Theme.of(context).platform == TargetPlatform.iOS;
     final keepLocal = await showAdaptiveDialog<bool>(
       context: context,
+      // The person must pick one of the two actions.
+      barrierDismissible: false,
       builder: (ctx) {
         final title = Text(l.loginOtherAccountTitle);
         final body = Text(l.loginOtherAccountBody(account));

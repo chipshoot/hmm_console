@@ -204,4 +204,41 @@ void main() {
     expect(c.read(dataModeProvider), DataMode.local);
     expect(find.text('HOME'), findsOneWidget);
   });
+
+  testWidgets('the other-account dialog cannot be dismissed by tapping '
+      'outside', (tester) async {
+    final (c, _, store) = await _setup(linkSub: 'sub-z', linkEmail: 'z@x.com');
+    final router = GoRouter(
+      initialLocation: '/auth',
+      routes: [
+        GoRoute(path: '/', builder: (_, _) => const Text('HOME')),
+        GoRoute(path: '/auth', builder: (_, _) => const LoginScreen()),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: c,
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'a@x.com');
+    await tester.enterText(fields.at(1), 'secret123');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(HighlightButton, 'Login'));
+    await tester.pumpAndSettle();
+    expect(find.text('Different Hmm account'), findsOneWidget);
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Different Hmm account'), findsOneWidget);
+    expect(store.linkedHmmSub, 'sub-z');
+  });
 }
