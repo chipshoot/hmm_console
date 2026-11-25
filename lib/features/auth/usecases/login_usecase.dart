@@ -5,6 +5,7 @@ abstract interface class LoginUseCase {
   Future<CurrentUserDataModel> loginWithEmailPassword({
     required String email,
     required String password,
+    Future<void> Function(CurrentUserDataModel user)? beforeAccept,
   });
 }
 
@@ -17,16 +18,16 @@ class _LoginUseCase implements LoginUseCase {
   Future<CurrentUserDataModel> loginWithEmailPassword({
     required String email,
     required String password,
+    Future<void> Function(CurrentUserDataModel user)? beforeAccept,
   }) {
     return _authRepository.loginWithEmailPassword(
       email: email,
       password: password,
+      beforeAccept: beforeAccept,
     );
   }
 }
 
 final loginUserCaseProvider = Provider<_LoginUseCase>(
-  (ref) => _LoginUseCase(
-    ref.watch(authRepositoryProvider),
-  ),
+  (ref) => _LoginUseCase(ref.watch(authRepositoryProvider)),
 );

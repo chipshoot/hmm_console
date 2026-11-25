@@ -21,7 +21,14 @@ class IdpTokenService {
 
   /// Authenticate with email/password using ROPC grant.
   /// Returns decoded JWT claims from the access token.
-  Future<Map<String, dynamic>> authorize(String email, String password) async {
+  ///
+  /// [beforeStore] runs with the decoded claims before any token is saved; if
+  /// it throws, nothing is stored and the error propagates.
+  Future<Map<String, dynamic>> authorize(
+    String email,
+    String password, {
+    Future<void> Function(Map<String, dynamic> claims)? beforeStore,
+  }) async {
     try {
       final response = await _dio.post(
         _config.tokenEndpoint,
@@ -38,9 +45,11 @@ class IdpTokenService {
         ),
       );
 
-      await _storeTokens(response.data);
       final accessToken = response.data['access_token'] as String;
-      return decodeJwtPayload(accessToken);
+      final claims = decodeJwtPayload(accessToken);
+      if (beforeStore != null) await beforeStore(claims);
+      await _storeTokens(response.data);
+      return claims;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout) {

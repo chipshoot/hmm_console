@@ -18,16 +18,24 @@ class _AuthRemoteDataSource implements AuthRepository {
   Future<CurrentUserDataModel> loginWithEmailPassword({
     required String email,
     required String password,
+    Future<void> Function(CurrentUserDataModel user)? beforeAccept,
   }) async {
-    final claims = await _idpTokenService.authorize(email, password);
-    _authStateController.add(true);
-
-    return CurrentUserDataModel(
-      uid: claims['sub'] as String? ?? '',
-      email: claims['email'] as String?,
-      displayName: claims['name'] as String?,
-      photoUrl: claims['picture'] as String?,
+    CurrentUserDataModel toUser(Map<String, dynamic> claims) =>
+        CurrentUserDataModel(
+          uid: claims['sub'] as String? ?? '',
+          email: claims['email'] as String?,
+          displayName: claims['name'] as String?,
+          photoUrl: claims['picture'] as String?,
+        );
+    final claims = await _idpTokenService.authorize(
+      email,
+      password,
+      beforeStore: beforeAccept == null
+          ? null
+          : (claims) => beforeAccept(toUser(claims)),
     );
+    _authStateController.add(true);
+    return toUser(claims);
   }
 
   @override

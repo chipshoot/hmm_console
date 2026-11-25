@@ -21,7 +21,11 @@ class _FakeAuth implements AuthRepository {
   Future<CurrentUserDataModel> loginWithEmailPassword({
     required String email,
     required String password,
-  }) async => user;
+    Future<void> Function(CurrentUserDataModel user)? beforeAccept,
+  }) async {
+    await beforeAccept?.call(user);
+    return user;
+  }
 
   @override
   Future<void> signOut() async => signOuts++;
@@ -88,25 +92,30 @@ void main() {
     expect(auth.signOuts, 0);
   });
 
-  test(
-    'different account is refused, tokens cleared, link unchanged',
-    () async {
-      final (c, auth, store) = await _setup(
-        linkSub: 'sub-z',
-        linkEmail: 'z@x.com',
-      );
-      await c
-          .read(loginStateProvider.notifier)
-          .loginWithEmailPassword('a', 'b');
-      final err = c.read(loginStateProvider).error;
-      expect(err, isA<OtherHmmAccountException>());
-      expect((err as OtherHmmAccountException).linkedAccount, 'z@x.com');
-      expect(auth.signOuts, 1);
-      expect(c.read(currentUserProvider), isNull);
-      expect(store.linkedHmmSub, 'sub-z');
-      expect(store.linkedHmmEmail, 'z@x.com');
-    },
-  );
+  test('different account is refused, link unchanged', () async {
+    final (c, auth, store) = await _setup(
+      linkSub: 'sub-z',
+      linkEmail: 'z@x.com',
+    );
+    await c.read(loginStateProvider.notifier).loginWithEmailPassword('a', 'b');
+    final err = c.read(loginStateProvider).error;
+    expect(err, isA<OtherHmmAccountException>());
+    expect((err as OtherHmmAccountException).linkedAccount, 'z@x.com');
+    expect(c.read(currentUserProvider), isNull);
+    expect(store.linkedHmmSub, 'sub-z');
+    expect(store.linkedHmmEmail, 'z@x.com');
+  });
+
+  test('a token without a sub is never linked', () async {
+    final (c, _, store) = await _setup(uid: '');
+    await c.read(loginStateProvider.notifier).loginWithEmailPassword('a', 'b');
+    expect(c.read(loginStateProvider).value, isTrue);
+    expect(store.linkedHmmSub, isNull);
+    // A real account can still link afterwards.
+    final (c2, _, store2) = await _setup(uid: 'sub-a');
+    await c2.read(loginStateProvider.notifier).loginWithEmailPassword('a', 'b');
+    expect(store2.linkedHmmSub, 'sub-a');
+  });
 
   testWidgets('dialog shows the linked email; Keep data local in cloudApi '
       'switches to local', (tester) async {

@@ -12,10 +12,12 @@ class _AuthRepository implements AuthRepository {
   Future<CurrentUserDataModel> loginWithEmailPassword({
     required String email,
     required String password,
+    Future<void> Function(CurrentUserDataModel user)? beforeAccept,
   }) {
     return authDataSource.loginWithEmailPassword(
       email: email,
       password: password,
+      beforeAccept: beforeAccept,
     );
   }
 
