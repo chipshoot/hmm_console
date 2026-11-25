@@ -63,7 +63,7 @@ class OneDriveOwnerFolder {
     if (folders.isEmpty) return _found(ownerId);
     if (folders.length == 1) {
       final name = folders.single.name;
-      await _adopt(name, known: folders.single);
+      await _adopt(name);
       return _found(name);
     }
     throw OneDriveFolderChoiceRequired(folders);
@@ -74,23 +74,17 @@ class OneDriveOwnerFolder {
     return id;
   }
 
-  Future<void> _adopt(String name, {OneDriveUserFolder? known}) async {
+  /// Makes [name] the owner id. The owner's `Authors` row is renamed so its
+  /// id (and every note's author id) stays. When a row named [name] already
+  /// exists it belongs to that folder's owner: no rename; the sync's orphan
+  /// step then moves the old owner's notes onto it.
+  Future<void> _adopt(String name) async {
     final store = await _ref.read(ownerIdStoreProvider.future);
     final current = await _ref.read(ownerIdProvider.future);
     if (current.toLowerCase() != name.toLowerCase()) {
       final authors = _ref.read(localAuthorRepositoryProvider);
-      if (await authors.getAuthorByAccountName(name) != null) {
-        final folder =
-            known ??
-            _ref
-                .read(oneDriveFolderChoiceProvider)
-                ?.where((f) => f.name == name)
-                .firstOrNull ??
-            (name: name, modified: null);
-        throw OneDriveFolderChoiceRequired([folder]);
-      }
       final own = await authors.getAuthorByAccountName(current);
-      if (own != null) {
+      if (own != null && await authors.getAuthorByAccountName(name) == null) {
         await authors.updateAuthor(
           own.id,
           AuthorsCompanion(accountName: Value(name)),

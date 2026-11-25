@@ -131,6 +131,30 @@ class SyncOrchestrator {
     int pushedNotes = 0;
     final timer = _PhaseTimer();
 
+    // -------- 00. Resolve the OneDrive owner folder --------
+    // First, because resolving can adopt another folder's owner id, which
+    // changes the current author; step 0 then moves the old owner's notes
+    // onto it in this same sync.
+    if (p is OneDriveSyncProvider) {
+      // Several owner folders and none is ours: nothing can be synced until
+      // the person picks one in Settings. Other failures here are left to
+      // the steps below, which report them.
+      try {
+        await p.ownerFolderId();
+      } on OneDriveFolderChoiceRequired {
+        return SyncResult.failed(
+          at: startedAt,
+          error: const SyncError(
+            // Not 'auth': that offers "Sign in again", which cannot fix it.
+            recordType: 'manifest',
+            recordId: 'onedrive-folder',
+            message: OneDriveFolderChoiceRequired.syncMessage,
+          ),
+          timing: timer.finish(),
+        );
+      } catch (_) {}
+    }
+
     // -------- 0. Adopt notes stranded on another author --------
     // Repair for rows written before the pull attached notes to the
     // signed-in author. Those rows are unreachable: every read filters
@@ -155,23 +179,6 @@ class SyncOrchestrator {
     // (cheap). Cast is honest: this is a OneDrive-specific concern that
     // doesn't belong on the abstract CloudSyncProvider interface.
     if (p is OneDriveSyncProvider) {
-      // Several owner folders and none is ours: nothing can be synced until
-      // the person picks one in Settings. Other failures here are left to
-      // the steps below, which report them.
-      try {
-        await p.ownerFolderId();
-      } on OneDriveFolderChoiceRequired {
-        return SyncResult.failed(
-          at: startedAt,
-          error: const SyncError(
-            // Not 'auth': that offers "Sign in again", which cannot fix it.
-            recordType: 'manifest',
-            recordId: 'onedrive-folder',
-            message: OneDriveFolderChoiceRequired.syncMessage,
-          ),
-          timing: timer.finish(),
-        );
-      } catch (_) {}
       try {
         await timer.run(SyncPhase.migrateLegacy, p.migrateLegacyIfNeeded);
       } catch (e) {

@@ -9,6 +9,10 @@ import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/sync/onedrive_graph_client.dart';
 import 'package:hmm_console/core/data/sync/onedrive_owner_folder.dart';
+import 'package:hmm_console/core/data/sync/onedrive_sync_provider.dart';
+import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
+import 'package:hmm_console/core/data/sync/sync_models.dart';
+import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -197,23 +201,77 @@ void main() {
     expect(await container.read(ownerIdProvider.future), 'IPAD');
   });
 
-  test('choose a folder whose author row already exists → asks', () async {
+  test('choose a folder whose author row already exists → adopted, '
+      'no rename, choice cleared', () async {
     await setUpWith(ownerId: 'NEW');
-    await insertAuthor('NEW');
-    await insertAuthor('IPAD');
+    final newId = await insertAuthor('NEW');
+    final ipadId = await insertAuthor('IPAD');
+    ownFolder('NEW', exists: false);
+    listing([_folder('IPHONE'), _folder('IPAD')]);
 
     final folder = container.read(oneDriveOwnerFolderProvider);
     await expectLater(
-      folder.choose('IPAD'),
-      throwsA(
-        isA<OneDriveFolderChoiceRequired>().having(
-          (e) => e.folders.map((f) => f.name),
-          'folders',
-          ['IPAD'],
-        ),
-      ),
+      folder.resolve(),
+      throwsA(isA<OneDriveFolderChoiceRequired>()),
     );
-    expect(store.ownerId, 'NEW');
+
+    await folder.choose('IPAD');
+
+    expect(container.read(oneDriveFolderChoiceProvider), isNull);
+    expect(store.ownerId, 'IPAD');
+    final rows = {
+      for (final a in await db.select(db.authors).get()) a.id: a.accountName,
+    };
+    expect(rows, {newId: 'NEW', ipadId: 'IPAD'});
+    expect((await container.read(currentAuthorProvider.future)).id, ipadId);
+  });
+
+  test('clash in the automatic path → adopted without rename; the orphan '
+      'step moves the old owner\'s notes onto the adopted row', () async {
+    await setUpWith(ownerId: 'OLD');
+    final oldId = await insertAuthor('OLD');
+    final iphoneId = await insertAuthor('IPHONE');
+    final catalogId = await db
+        .into(db.noteCatalogs)
+        .insert(NoteCatalogsCompanion.insert(name: 'Cat', schema: '{}'));
+    for (var i = 0; i < 2; i++) {
+      await db
+          .into(db.notes)
+          .insert(
+            NotesCompanion.insert(
+              subject: 'n$i',
+              catalogId: Value(catalogId),
+              authorId: oldId,
+            ),
+          );
+    }
+    ownFolder('OLD', exists: false);
+    listing([_folder('IPHONE')]);
+
+    final result = await SyncOrchestrator(
+      provider: _EmptyRemoteOneDrive(
+        container.read(oneDriveGraphClientProvider),
+      ),
+      db: db,
+      meta: SyncMetaRepository(),
+      vaultStore: noopVaultStore,
+      currentAuthorId: () async =>
+          (await container.read(currentAuthorProvider.future)).id,
+    ).syncNow();
+
+    expect(result.errors, isEmpty);
+    expect(store.ownerId, 'IPHONE');
+    final rows = {
+      for (final a in await db.select(db.authors).get()) a.id: a.accountName,
+    };
+    expect(rows, {oldId: 'OLD', iphoneId: 'IPHONE'}, reason: 'no rename');
+    final author = await container.read(currentAuthorProvider.future);
+    expect(author.id, iphoneId);
+    final notes = await LocalHmmNoteRepository(
+      db,
+      () => container.read(currentAuthorProvider.future),
+    ).getNotes(catalogId: catalogId);
+    expect(notes.items, hasLength(2));
   });
 
   test('.legacy_migrated.json is not counted as a folder', () async {
@@ -257,4 +315,43 @@ void main() {
     final folders = await graph.listUserFolders();
     expect(folders.map((f) => f.name), ['A', 'B']);
   });
+}
+
+/// OneDrive with the real owner-folder resolution but an empty, healthy
+/// remote for everything else.
+class _EmptyRemoteOneDrive extends OneDriveSyncProvider {
+  _EmptyRemoteOneDrive(OneDriveGraphClient graph)
+    : super(FakeOneDriveAuth(), graph);
+
+  @override
+  Future<int> migrateLegacyIfNeeded() async => 0;
+  @override
+  Future<bool> isAuthenticated() async => true;
+  @override
+  Future<SyncManifest?> pullManifest() async => null;
+  @override
+  Future<void> pushManifest(SyncManifest manifest) async {}
+  @override
+  Future<Map<String, dynamic>?> pullNoteBody(String id) async => null;
+  @override
+  Future<void> pushNoteBody(String id, Map<String, dynamic> body) async {}
+  @override
+  Future<Map<String, dynamic>?> pullSettings() async => null;
+  @override
+  Future<void> pushSettings(Map<String, dynamic> body) async {}
+  @override
+  Future<Map<String, dynamic>?> pullTags() async => null;
+  @override
+  Future<void> pushTags(Map<String, dynamic> doc) async {}
+  @override
+  Future<Map<String, dynamic>?> pullNoteStates() async => null;
+  @override
+  Future<void> pushNoteStates(
+    Map<String, dynamic> doc, {
+    required Set<String> changed,
+  }) async {}
+  @override
+  bool get supportsAttachments => false;
+  @override
+  bool get supportsLargeFiles => false;
 }
