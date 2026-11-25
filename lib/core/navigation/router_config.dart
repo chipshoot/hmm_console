@@ -1,12 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hmm_console/core/navigation/auth_change_provider.dart';
 import 'package:hmm_console/core/navigation/cheatsheet_routes.dart';
 import 'package:hmm_console/core/navigation/activity_routes.dart';
 import 'package:hmm_console/core/navigation/glucose_routes.dart';
 import 'package:hmm_console/core/navigation/calendar_routes.dart';
 import 'package:hmm_console/core/navigation/contact_routes.dart';
+import 'package:hmm_console/core/navigation/login_gate.dart';
 import 'package:hmm_console/core/navigation/onboarding_redirect.dart';
 import 'package:hmm_console/core/navigation/route_names.dart';
 import 'package:hmm_console/core/settings/settings_controller.dart';
@@ -54,19 +54,22 @@ final routerConfig = Provider<GoRouter>(
   (ref) => GoRouter(
     navigatorKey: rootNavigatorKey,
     redirect: (context, state) {
-      final userState = ref.watch(routerAuthStateProvider);
-
-      final isAuthenticated = userState.value != null && userState.value!;
-
+      // Mode-aware login gate: only cloudApi needs a Hmm sign-in. Watch the
+      // single bool, never the auth stream or the data mode directly — a
+      // sign-in in local / cloudStorage must not rebuild the router (see
+      // the settings note below for why a rebuild is harmful). In cloudApi
+      // the bool flips on sign-in, the router rebuilds at initialLocation,
+      // and that is what takes the user home.
       final isAuthPath = state.fullPath?.startsWith('/auth') ?? false;
-      if (!isAuthenticated && !isAuthPath) {
-        return '/auth';
-      }
-      // Phase E onboarding gate: authenticated user who hasn't picked
-      // a path yet (new install / migrating from another device) gets
-      // routed to the onboarding screen before they can reach the
-      // dashboard. The screen marks the flag itself and goes home on
-      // either branch.
+      final gate = authGateRedirect(
+        loginRequired: ref.watch(loginRequiredProvider),
+        isAuthPath: isAuthPath,
+      );
+      if (gate != null) return gate;
+      // Phase E onboarding gate: a user who hasn't picked a path yet (new
+      // install / migrating from another device) gets routed to the
+      // onboarding screen before they can reach the dashboard. The screen
+      // marks the flag itself and goes home on either branch.
       //
       // The settingsLoaded gate is load-bearing: the flag is read
       // asynchronously from SharedPreferences, and deciding before it
@@ -80,10 +83,10 @@ final routerConfig = Provider<GoRouter>(
       // notes filter recording its usage) into a brand-new GoRouter, which
       // starts at initialLocation and threw the user back to the dashboard.
       return onboardingRedirect(
-        isAuthenticated: isAuthenticated,
         settingsLoaded: ref.watch(settingsProvider.select((s) => s.hasValue)),
         onboardingCompleted: ref.watch(onboardingCompletedProvider),
         isOnboardingPath: state.fullPath == '/onboarding',
+        isAuthPath: isAuthPath,
       );
     },
     initialLocation: '/',

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/core.dart';
+import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/exceptions/app_exceptions.dart';
 import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:hmm_console/features/auth/presentation/widges/user_pass_form.dart';
@@ -41,6 +43,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(loginStateProvider, (prev, next) {
       if (next.isLoading || next.hasValue) {
         messenger.hideCurrentSnackBar();
+      }
+      // Keyed on the loading -> true edge, not on the value alone: a loading
+      // state keeps the previous value, so a second sign-in starts at true.
+      final signedIn =
+          (prev?.isLoading ?? false) &&
+          !next.isLoading &&
+          !next.hasError &&
+          next.value == true;
+      if (signedIn) {
+        // Signed in. A pushed login (e.g. from onboarding or settings) hands
+        // the result back. An unpushed one in local / cloudStorage goes home
+        // itself: the router does not move there, so the user would be
+        // stranded. In cloudApi the login gate flips and the rebuilt router
+        // takes over.
+        if (context.canPop()) {
+          context.pop(true);
+        } else if (ref.read(dataModeProvider) != DataMode.cloudApi) {
+          context.go('/');
+        }
       }
       if (next.hasError) {
         final error = next.error;

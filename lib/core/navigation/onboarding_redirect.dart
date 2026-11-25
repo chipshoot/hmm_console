@@ -1,5 +1,9 @@
-/// Where the router should send an authenticated user with respect to the
-/// one-shot onboarding flow, or null to leave them where they are.
+/// Where the router should send the user with respect to the one-shot
+/// onboarding flow, or null to leave them where they are.
+///
+/// A sign-in is not a precondition: local and cloud-storage data need no Hmm
+/// login, so a signed-out new install goes straight to setup. The login
+/// gate (login_gate.dart) runs first and owns cloudApi sign-in.
 ///
 /// Extracted from the router's redirect closure so the rule can be tested
 /// without standing up auth, settings and a GoRouter.
@@ -11,12 +15,14 @@
 /// launch. Until the persisted value has actually arrived, this declines to
 /// decide.
 String? onboardingRedirect({
-  required bool isAuthenticated,
   required bool settingsLoaded,
   required bool onboardingCompleted,
   required bool isOnboardingPath,
+  required bool isAuthPath,
 }) {
-  if (!isAuthenticated) return null;
+  // Never pull the user off the login: onboarding's Hmm cloud option pushes
+  // /auth before onboarding is marked done.
+  if (isAuthPath) return null;
   if (!settingsLoaded) return null;
 
   if (!onboardingCompleted && !isOnboardingPath) return '/onboarding';

@@ -10,10 +10,10 @@ void main() {
     // launch, which looked exactly like their data had been wiped.
     expect(
       onboardingRedirect(
-        isAuthenticated: true,
         settingsLoaded: false,
         onboardingCompleted: false, // the misleading not-yet-loaded default
         isOnboardingPath: false,
+        isAuthPath: false,
       ),
       isNull,
       reason: 'hold position until the persisted flag actually arrives',
@@ -23,10 +23,10 @@ void main() {
   test('sends a genuinely new user to setup once settings have loaded', () {
     expect(
       onboardingRedirect(
-        isAuthenticated: true,
         settingsLoaded: true,
         onboardingCompleted: false,
         isOnboardingPath: false,
+        isAuthPath: false,
       ),
       '/onboarding',
     );
@@ -35,10 +35,10 @@ void main() {
   test('leaves an onboarded user where they are', () {
     expect(
       onboardingRedirect(
-        isAuthenticated: true,
         settingsLoaded: true,
         onboardingCompleted: true,
         isOnboardingPath: false,
+        isAuthPath: false,
       ),
       isNull,
     );
@@ -47,10 +47,10 @@ void main() {
   test('bounces an onboarded user off the onboarding route', () {
     expect(
       onboardingRedirect(
-        isAuthenticated: true,
         settingsLoaded: true,
         onboardingCompleted: true,
         isOnboardingPath: true,
+        isAuthPath: false,
       ),
       '/',
     );
@@ -59,24 +59,37 @@ void main() {
   test('does not loop a new user already on the onboarding route', () {
     expect(
       onboardingRedirect(
-        isAuthenticated: true,
         settingsLoaded: true,
         onboardingCompleted: false,
         isOnboardingPath: true,
+        isAuthPath: false,
       ),
       isNull,
     );
   });
 
-  test('never redirects an unauthenticated user — auth owns that', () {
+  test('a signed-out new install goes to setup (login is not a gate)', () {
+    // Login-free tiers: onboarding no longer waits for a sign-in.
+    expect(
+      onboardingRedirect(
+        settingsLoaded: true,
+        onboardingCompleted: false,
+        isOnboardingPath: false,
+        isAuthPath: false,
+      ),
+      '/onboarding',
+    );
+  });
+
+  test('never redirects off /auth, so onboarding can push the login', () {
     for (final loaded in [true, false]) {
       for (final done in [true, false]) {
         expect(
           onboardingRedirect(
-            isAuthenticated: false,
             settingsLoaded: loaded,
             onboardingCompleted: done,
             isOnboardingPath: false,
+            isAuthPath: true,
           ),
           isNull,
         );
