@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:hmm_console/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:hmm_console/features/onboarding/providers/onboarding_provider.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -23,7 +24,21 @@ class _FakeCompleted extends OnboardingCompletedNotifier {
   Future<void> markCompleted() async => state = true;
 }
 
-Future<ProviderContainer> _pump(WidgetTester tester, bool? authResult) async {
+class _FakeIdp implements IdpTokenService {
+  _FakeIdp(this.session);
+  final bool session;
+
+  @override
+  Future<bool> hasHmmSession() async => session;
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+Future<ProviderContainer> _pump(
+  WidgetTester tester,
+  bool? authResult, {
+  bool hmmSession = false,
+}) async {
   final router = GoRouter(
     routes: [
       GoRoute(path: '/', builder: (_, _) => const Text('HOME')),
@@ -44,6 +59,7 @@ Future<ProviderContainer> _pump(WidgetTester tester, bool? authResult) async {
     overrides: [
       dataModeProvider.overrideWith(_FakeMode.new),
       onboardingCompletedProvider.overrideWith(_FakeCompleted.new),
+      idpTokenServiceProvider.overrideWithValue(_FakeIdp(hmmSession)),
     ],
   );
   addTearDown(container.dispose);
@@ -96,5 +112,35 @@ void main() {
     expect(c.read(onboardingCompletedProvider), isFalse);
     expect(find.text('Hmm cloud (server)'), findsOneWidget);
     expect(find.text('HOME'), findsNothing);
+  });
+
+  testWidgets('Hmm cloud with a Hmm session already stored skips the login', (
+    tester,
+  ) async {
+    final c = await _pump(tester, true, hmmSession: true);
+    await tester.tap(find.text('Hmm cloud (server)'));
+    await tester.pump();
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+    expect(find.text('STUB-AUTH'), findsNothing);
+    expect(c.read(dataModeProvider), DataMode.cloudApi);
+    expect(c.read(onboardingCompletedProvider), isTrue);
+    expect(find.text('HOME'), findsOneWidget);
+  });
+
+  testWidgets('Hmm cloud: a double tap pushes the login only once', (
+    tester,
+  ) async {
+    await _pump(tester, null);
+    await tester.tap(find.text('Hmm cloud (server)'));
+    await tester.pump();
+    // Both taps land on the same frame's (still enabled) button.
+    await tester.tap(find.byType(FilledButton));
+    await tester.tap(find.byType(FilledButton), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('STUB-AUTH'));
+    await tester.pumpAndSettle();
+    expect(find.text('STUB-AUTH'), findsNothing);
+    expect(find.text('Hmm cloud (server)'), findsOneWidget);
   });
 }

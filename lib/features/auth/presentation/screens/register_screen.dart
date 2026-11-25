@@ -40,12 +40,15 @@ class RegisterScreen extends ConsumerWidget with EmailPassValidator {
             duration: Duration(seconds: 6),
           ),
         );
-        // Use go_router's go() to land on /auth deterministically, regardless
-        // of how the user reached this screen (push from login, deep-link,
-        // hot-restart, etc.). Navigator.pop() is unreliable across nested
-        // GoRoute hierarchies — silently no-ops if the imperative stack is
-        // empty even though GoRouter still has /auth/register as the location.
-        context.go('/auth');
+        // Back to the login that pushed this screen, keeping whatever pushed
+        // the login (a form with unsaved input, onboarding awaiting its
+        // result). go('/auth') only when there is nothing to pop (deep link,
+        // hot restart): go() replaces the whole stack.
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/auth');
+        }
       }
     });
 

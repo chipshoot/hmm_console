@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/data/data_mode.dart';
 import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/sync_controller.dart';
+import '../../../../core/network/idp_token_service.dart';
 import '../../providers/onboarding_provider.dart';
 
 /// Single-screen post-sign-in onboarding (Phase E):
@@ -166,15 +167,31 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finishAsHmmCloud() async {
-    // Push the login first; switch the mode only once it succeeded.
-    // Switching while signed out would flip the login gate, rebuild the
-    // router and the pushed route's result would never come back.
-    final ok = await context.push<bool>('/auth');
-    if (ok != true || !mounted) return;
-    await ref.read(dataModeProvider.notifier).setMode(DataMode.cloudApi);
-    await ref.read(onboardingCompletedProvider.notifier).markCompleted();
-    if (!mounted) return;
-    context.go('/');
+    // Two taps in one frame both reach here: push /auth only once.
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      // Already signed in to Hmm: no login needed.
+      final signedIn = await ref.read(idpTokenServiceProvider).hasHmmSession();
+      if (!mounted) return;
+      if (!signedIn) {
+        // Push the login first; switch the mode only once it succeeded.
+        // Switching while signed out would flip the login gate, rebuild the
+        // router and the pushed route's result would never come back.
+        final ok = await context.push<bool>('/auth');
+        if (ok != true || !mounted) return;
+      }
+      // Both notifiers read up front: switching the mode can rebuild the
+      // router, and onboarding must still be marked complete.
+      final mode = ref.read(dataModeProvider.notifier);
+      final completed = ref.read(onboardingCompletedProvider.notifier);
+      await mode.setMode(DataMode.cloudApi);
+      await completed.markCompleted();
+      if (!mounted) return;
+      context.go('/');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _finishAsMigrating() async {
