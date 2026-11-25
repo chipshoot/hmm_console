@@ -47,96 +47,121 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.onboardingWelcome)),
+      // Scrolls when the content is taller than the screen (error box and
+      // Skip on a phone, large text); otherwise fills it, and spaceBetween
+      // keeps Continue at the bottom.
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Get started',
-                style: theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pick the option that matches your situation. You can '
-                'change this any time in Settings.',
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              // Two-radio group via the modern RadioGroup ancestor —
-              // same pattern as the WiFi-only toggle in Settings.
-              RadioGroup<_Choice>(
-                groupValue: _choice,
-                // RadioGroup requires a non-null onChanged. We can't
-                // skip it during sync, so we no-op the change while
-                // _busy and let the Continue button's disabled state
-                // tell the user the form is locked.
-                onChanged: (v) {
-                  if (_busy) return;
-                  setState(() => _choice = v);
-                },
-                child: Column(
-                  children: [
-                    _ChoiceTile(
-                      value: _Choice.newUser,
-                      title: l.onboardingNewUser,
-                      subtitle: l.onboardingNewUserSubtitle,
-                    ),
-                    const SizedBox(height: 8),
-                    _ChoiceTile(
-                      value: _Choice.migrating,
-                      title: l.onboardingMigrating,
-                      subtitle: l.onboardingMigratingSubtitle,
-                    ),
-                    const SizedBox(height: 8),
-                    _ChoiceTile(
-                      value: _Choice.hmmCloud,
-                      title: l.onboardingHmmCloud,
-                      subtitle: l.onboardingHmmCloudSubtitle,
-                    ),
-                  ],
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: (constraints.maxHeight - 40).clamp(
+                  0.0,
+                  double.infinity,
                 ),
               ),
-              const Spacer(),
-              if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: theme.colorScheme.onErrorContainer),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              FilledButton(
-                onPressed: (_choice == null || _busy) ? null : _onContinue,
-                child: _busy
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('Get started', style: theme.textTheme.headlineSmall),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Pick the option that matches your situation. You can '
+                        'change this any time in Settings.',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      // Two-radio group via the modern RadioGroup ancestor —
+                      // same pattern as the WiFi-only toggle in Settings.
+                      RadioGroup<_Choice>(
+                        groupValue: _choice,
+                        // RadioGroup requires a non-null onChanged. We can't
+                        // skip it during sync, so we no-op the change while
+                        // _busy and let the Continue button's disabled state
+                        // tell the user the form is locked.
+                        onChanged: (v) {
+                          if (_busy) return;
+                          setState(() => _choice = v);
+                        },
+                        child: Column(
+                          children: [
+                            _ChoiceTile(
+                              value: _Choice.newUser,
+                              title: l.onboardingNewUser,
+                              subtitle: l.onboardingNewUserSubtitle,
+                            ),
+                            const SizedBox(height: 8),
+                            _ChoiceTile(
+                              value: _Choice.migrating,
+                              title: l.onboardingMigrating,
+                              subtitle: l.onboardingMigratingSubtitle,
+                            ),
+                            const SizedBox(height: 8),
+                            _ChoiceTile(
+                              value: _Choice.hmmCloud,
+                              title: l.onboardingHmmCloud,
+                              subtitle: l.onboardingHmmCloudSubtitle,
+                            ),
+                          ],
                         ),
-                      )
-                    : Text(l.onboardingContinue),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_errorMessage != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.errorContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: TextStyle(
+                              color: theme.colorScheme.onErrorContainer,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      FilledButton(
+                        onPressed: (_choice == null || _busy)
+                            ? null
+                            : _onContinue,
+                        child: _busy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(l.onboardingContinue),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 8),
+                        // Escape hatch — if migration keeps failing for reasons
+                        // outside our control (e.g., Microsoft outage), let the
+                        // user finish onboarding anyway. They can wire up cloud
+                        // sync from Settings whenever.
+                        TextButton(
+                          onPressed: _busy ? null : _skipAndFinish,
+                          child: Text(l.onboardingSkip),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 8),
-                // Escape hatch — if migration keeps failing for reasons
-                // outside our control (e.g., Microsoft outage), let the
-                // user finish onboarding anyway. They can wire up cloud
-                // sync from Settings whenever.
-                TextButton(
-                  onPressed: _busy ? null : _skipAndFinish,
-                  child: Text(l.onboardingSkip),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),

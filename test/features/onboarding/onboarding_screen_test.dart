@@ -181,6 +181,8 @@ void main() {
     expect(c.read(onboardingCompletedProvider), isFalse);
     expect(find.text("Couldn't finish setting up. Try again."), findsOneWidget);
     expect(find.text('HOME'), findsNothing);
+    await tester.ensureVisible(find.text('Skip for now'));
+    expect(find.text('Skip for now').hitTestable(), findsOneWidget);
   });
 
   testWidgets('Hmm cloud: setMode fails → error shown, mode and onboarding '
@@ -204,10 +206,10 @@ void main() {
   });
 }
 
-/// A tall surface: the screen does not scroll, and with the test font (every
-/// glyph a full square) the error box and Skip overflow 800×600.
+/// An iPhone-sized surface (390×844 pt): the error box and Skip must fit
+/// without overflow (the body scrolls).
 void _phoneSize(WidgetTester tester) {
-  tester.view.physicalSize = const Size(800, 1200);
-  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = const Size(1170, 2532);
+  tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
 }
