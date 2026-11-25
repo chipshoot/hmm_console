@@ -1,3 +1,4 @@
+import '../../../../core/data/attachments/attachment_ref.dart';
 import 'contact_birthday.dart';
 import 'contact_field.dart';
 import '../contact_name.dart';
@@ -113,6 +114,7 @@ class Contact {
     this.rawKnownValues = const {},
     this.unreadableEntries = const {},
     this.storedDisplayName,
+    this.photo,
     String? rawContactType,
   }) : _rawContactType = rawContactType;
 
@@ -185,6 +187,10 @@ class Contact {
   /// untouched save is byte-identical. [copyWith] drops it on any change.
   final Object? storedDisplayName;
 
+  /// Optional photo. Lives in the note's `attachments.primaryImage`, never in
+  /// the content JSON, so it is not part of the stored-name rule in [copyWith].
+  final AttachmentRef? photo;
+
   /// Raw enum string from storage (to preserve unknown values).
   final String? _rawContactType;
 
@@ -218,13 +224,17 @@ class Contact {
     Object? notes = _kSentinel,
     bool? isActivated,
     Map<String, dynamic>? extraFields,
+    Object? photo = _kSentinel,
   }) {
     final next = Contact(
       id: id ?? this.id,
       contactType: contactType ?? this.contactType,
-      firstName:
-          identical(firstName, _kSentinel) ? this.firstName : firstName as String?,
-      lastName: identical(lastName, _kSentinel) ? this.lastName : lastName as String?,
+      firstName: identical(firstName, _kSentinel)
+          ? this.firstName
+          : firstName as String?,
+      lastName: identical(lastName, _kSentinel)
+          ? this.lastName
+          : lastName as String?,
       organizationName: identical(organizationName, _kSentinel)
           ? this.organizationName
           : organizationName as String?,
@@ -254,8 +264,11 @@ class Contact {
       rawKnownValues: rawKnownValues,
       unreadableEntries: unreadableEntries,
       rawContactType: contactType != null ? null : _rawContactType,
+      photo: identical(photo, _kSentinel)
+          ? this.photo
+          : photo as AttachmentRef?,
     );
-    if (storedDisplayName == null || next != this) return next;
+    if (storedDisplayName == null || !_sameContent(next)) return next;
     return Contact(
       id: next.id,
       contactType: next.contactType,
@@ -281,6 +294,7 @@ class Contact {
       unreadableEntries: next.unreadableEntries,
       storedDisplayName: storedDisplayName,
       rawContactType: next._rawContactType,
+      photo: next.photo,
     );
   }
 
@@ -295,45 +309,49 @@ class Contact {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Contact &&
-          other.id == id &&
-          other.contactType == contactType &&
-          other.firstName == firstName &&
-          other.lastName == lastName &&
-          other.organizationName == organizationName &&
-          other.nameOrder == nameOrder &&
-          other.phoneticFamily == phoneticFamily &&
-          other.phoneticGiven == phoneticGiven &&
-          other.englishName == englishName &&
-          _sameList(other.phones, phones) &&
-          _sameList(other.emails, emails) &&
-          _sameList(other.addresses, addresses) &&
-          other.relationship == relationship &&
-          other.isSelf == isSelf &&
-          other.birthday == birthday &&
-          other.remindBirthday == remindBirthday &&
-          other.notes == notes &&
-          other.isActivated == isActivated;
+      other is Contact && _sameContent(other) && other.photo == photo;
+
+  /// Equality of everything stored in the content JSON (all but [photo]).
+  bool _sameContent(Contact other) =>
+      other.id == id &&
+      other.contactType == contactType &&
+      other.firstName == firstName &&
+      other.lastName == lastName &&
+      other.organizationName == organizationName &&
+      other.nameOrder == nameOrder &&
+      other.phoneticFamily == phoneticFamily &&
+      other.phoneticGiven == phoneticGiven &&
+      other.englishName == englishName &&
+      _sameList(other.phones, phones) &&
+      _sameList(other.emails, emails) &&
+      _sameList(other.addresses, addresses) &&
+      other.relationship == relationship &&
+      other.isSelf == isSelf &&
+      other.birthday == birthday &&
+      other.remindBirthday == remindBirthday &&
+      other.notes == notes &&
+      other.isActivated == isActivated;
 
   @override
   int get hashCode => Object.hash(
-        id,
-        contactType,
-        firstName,
-        lastName,
-        organizationName,
-        nameOrder,
-        phoneticFamily,
-        phoneticGiven,
-        englishName,
-        Object.hashAll(phones),
-        Object.hashAll(emails),
-        Object.hashAll(addresses),
-        relationship,
-        isSelf,
-        birthday,
-        remindBirthday,
-        notes,
-        isActivated,
-      );
+    id,
+    contactType,
+    firstName,
+    lastName,
+    organizationName,
+    nameOrder,
+    phoneticFamily,
+    phoneticGiven,
+    englishName,
+    Object.hashAll(phones),
+    Object.hashAll(emails),
+    Object.hashAll(addresses),
+    relationship,
+    isSelf,
+    birthday,
+    remindBirthday,
+    notes,
+    isActivated,
+    photo,
+  );
 }
