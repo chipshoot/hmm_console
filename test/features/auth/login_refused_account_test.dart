@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/network/idp_config.dart';
 import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:hmm_console/core/network/token_storage.dart';
@@ -69,8 +71,11 @@ Future<(MockTokenStorage, List<bool>, ProviderContainer)> _login(
     ),
     dio: dio,
   );
+  final db = HmmDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
   final c = ProviderContainer(
     overrides: [
+      hmmDatabaseProvider.overrideWithValue(db),
       idpTokenServiceProvider.overrideWithValue(service),
       tokenStorageProvider.overrideWithValue(storage),
       dataModeProvider.overrideWith(() => _FixedMode()),

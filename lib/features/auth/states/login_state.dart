@@ -30,6 +30,12 @@ class LoginState extends AsyncNotifier<bool> {
             // Runs before tokens are stored and before auth state emits, so a
             // refused account never reaches the API or the router.
             beforeAccept: (user) async {
+              // Resolve the owner id first: it links the account the local
+              // data belongs to (a stored, possibly expired, session's sub or
+              // the Authors row) before this login is compared. In cloudApi
+              // nothing else resolves it before /auth, and once this login's
+              // tokens are stored it would resolve to — and link — this one.
+              await ref.read(ownerIdProvider.future);
               // A token without a sub cannot identify an account: never link
               // it, never compare it.
               if (user.uid.isEmpty) return;

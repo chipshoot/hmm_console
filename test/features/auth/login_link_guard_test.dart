@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/auth/owner_id.dart';
 import 'package:hmm_console/core/core.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
+import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:hmm_console/features/auth/data/data.dart';
 import 'package:hmm_console/features/auth/presentation/screens/login_screen.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
@@ -42,6 +46,20 @@ class _FakeAuth implements AuthRepository {
   Stream<bool> isUserAuthenticated() => const Stream.empty();
 }
 
+/// Only the stored-token peeks are used (by owner id resolution).
+class _FakeIdp implements IdpTokenService {
+  _FakeIdp(this.sub, this.email);
+  final String? sub;
+  final String? email;
+
+  @override
+  Future<String?> peekStoredSub() async => sub;
+  @override
+  Future<String?> peekStoredEmail() async => email;
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _FixedMode extends DataModeNotifier {
   _FixedMode(this._mode);
   final DataMode _mode;
@@ -56,15 +74,21 @@ Future<(ProviderContainer, _FakeAuth, OwnerIdStore)> _setup({
   String? linkEmail,
   String uid = 'sub-a',
   DataMode mode = DataMode.local,
+  String? peekSub,
+  String? peekEmail,
 }) async {
   SharedPreferences.setMockInitialValues({
     'hmm.linkedHmmSub': ?linkSub,
     'hmm.linkedHmmEmail': ?linkEmail,
   });
   final auth = _FakeAuth(CurrentUserDataModel(uid: uid, email: '$uid@x.com'));
+  final db = HmmDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
   final container = ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(auth),
+      hmmDatabaseProvider.overrideWithValue(db),
+      idpTokenServiceProvider.overrideWithValue(_FakeIdp(peekSub, peekEmail)),
       dataModeProvider.overrideWith(() => _FixedMode(mode)),
     ],
   );
@@ -74,6 +98,7 @@ Future<(ProviderContainer, _FakeAuth, OwnerIdStore)> _setup({
 }
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   test('first sign-in sets the link', () async {
     final (c, auth, store) = await _setup();
     await c.read(loginStateProvider.notifier).loginWithEmailPassword('a', 'b');
@@ -104,6 +129,27 @@ void main() {
     expect(c.read(currentUserProvider), isNull);
     expect(store.linkedHmmSub, 'sub-z');
     expect(store.linkedHmmEmail, 'z@x.com');
+  });
+
+  test('expired session of account A (cloudApi, owner id not yet resolved): '
+      'signing in as B is refused and the owner id stays A', () async {
+    final (c, _, store) = await _setup(
+      uid: 'B',
+      mode: DataMode.cloudApi,
+      peekSub: 'A',
+      peekEmail: 'a@x.com',
+    );
+    expect(store.ownerId, isNull);
+    expect(store.linkedHmmSub, isNull);
+
+    await c.read(loginStateProvider.notifier).loginWithEmailPassword('b', 'p');
+
+    final err = c.read(loginStateProvider).error;
+    expect(err, isA<OtherHmmAccountException>());
+    expect((err as OtherHmmAccountException).linkedAccount, 'a@x.com');
+    expect(c.read(currentUserProvider), isNull);
+    expect(await c.read(ownerIdProvider.future), 'A');
+    expect(store.linkedHmmSub, 'A');
   });
 
   test('a token without a sub is never linked', () async {
