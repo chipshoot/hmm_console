@@ -329,6 +329,8 @@
   "onboardingNewUserSubtitle": "在这台设备上从零开始。在你于设置中开启云同步之前，数据只保存在本机。",
   "onboardingMigrating": "我已在其他设备上使用 Hmm",
   "onboardingMigratingSubtitle": "登录 OneDrive，把已有的数据和设置同步到这台设备。",
+  "onboardingHmmCloud": "Hmm 云（服务器）",
+  "onboardingHmmCloudSubtitle": "登录或注册 Hmm 账户；数据保存在 Hmm 服务器上。",
   "onboardingContinue": "继续",
   "onboardingSkip": "暂时跳过",
   "receiptCloudAiTitle": "使用云端 AI 识别收据？",

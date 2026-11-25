@@ -2066,6 +2066,18 @@ abstract class AppLocalizations {
   /// **'Sign in to OneDrive and pull your existing data + settings down to this device.'**
   String get onboardingMigratingSubtitle;
 
+  /// No description provided for @onboardingHmmCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Hmm cloud (server)'**
+  String get onboardingHmmCloud;
+
+  /// No description provided for @onboardingHmmCloudSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in or register a Hmm account; your data lives on the Hmm server.'**
+  String get onboardingHmmCloudSubtitle;
+
   /// No description provided for @onboardingContinue.
   ///
   /// In en, this message translates to:

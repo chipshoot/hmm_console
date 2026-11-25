@@ -1081,6 +1081,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingMigratingSubtitle => '登录 OneDrive，把已有的数据和设置同步到这台设备。';
 
   @override
+  String get onboardingHmmCloud => 'Hmm 云（服务器）';
+
+  @override
+  String get onboardingHmmCloudSubtitle => '登录或注册 Hmm 账户；数据保存在 Hmm 服务器上。';
+
+  @override
   String get onboardingContinue => '继续';
 
   @override

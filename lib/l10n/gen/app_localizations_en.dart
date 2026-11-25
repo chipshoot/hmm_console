@@ -1121,6 +1121,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign in to OneDrive and pull your existing data + settings down to this device.';
 
   @override
+  String get onboardingHmmCloud => 'Hmm cloud (server)';
+
+  @override
+  String get onboardingHmmCloudSubtitle =>
+      'Sign in or register a Hmm account; your data lives on the Hmm server.';
+
+  @override
   String get onboardingContinue => 'Continue';
 
   @override

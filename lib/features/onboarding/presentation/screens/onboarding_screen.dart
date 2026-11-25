@@ -32,7 +32,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-enum _Choice { newUser, migrating }
+enum _Choice { newUser, migrating, hmmCloud }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   _Choice? _choice;
@@ -87,6 +87,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       value: _Choice.migrating,
                       title: l.onboardingMigrating,
                       subtitle: l.onboardingMigratingSubtitle,
+                    ),
+                    const SizedBox(height: 8),
+                    _ChoiceTile(
+                      value: _Choice.hmmCloud,
+                      title: l.onboardingHmmCloud,
+                      subtitle: l.onboardingHmmCloudSubtitle,
                     ),
                   ],
                 ),
@@ -145,12 +151,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case _Choice.migrating:
         await _finishAsMigrating();
         break;
+      case _Choice.hmmCloud:
+        await _finishAsHmmCloud();
+        break;
     }
   }
 
   Future<void> _finishAsNewUser() async {
     // No cloud setup; just flag onboarding done and bounce home. The
     // app stays on DataMode.local (the default).
+    await ref.read(onboardingCompletedProvider.notifier).markCompleted();
+    if (!mounted) return;
+    context.go('/');
+  }
+
+  Future<void> _finishAsHmmCloud() async {
+    // Push the login first; switch the mode only once it succeeded.
+    // Switching while signed out would flip the login gate, rebuild the
+    // router and the pushed route's result would never come back.
+    final ok = await context.push<bool>('/auth');
+    if (ok != true || !mounted) return;
+    await ref.read(dataModeProvider.notifier).setMode(DataMode.cloudApi);
     await ref.read(onboardingCompletedProvider.notifier).markCompleted();
     if (!mounted) return;
     context.go('/');

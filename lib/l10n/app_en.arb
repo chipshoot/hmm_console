@@ -562,6 +562,8 @@
   "onboardingNewUserSubtitle": "Start fresh on this device. Your data stays local until you turn on cloud sync in Settings.",
   "onboardingMigrating": "I already use Hmm on another device",
   "onboardingMigratingSubtitle": "Sign in to OneDrive and pull your existing data + settings down to this device.",
+  "onboardingHmmCloud": "Hmm cloud (server)",
+  "onboardingHmmCloudSubtitle": "Sign in or register a Hmm account; your data lives on the Hmm server.",
   "onboardingContinue": "Continue",
   "onboardingSkip": "Skip for now",
   "receiptCloudAiTitle": "Use Cloud AI for receipts?",
