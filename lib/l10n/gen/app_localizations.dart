@@ -9494,6 +9494,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t sign out. Try again.'**
   String get settingsHmmSignOutFailed;
 
+  /// No description provided for @onboardingHmmCloudFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t finish setting up. Try again.'**
+  String get onboardingHmmCloudFailed;
+
   /// No description provided for @loginOtherAccountTitle.
   ///
   /// In en, this message translates to:

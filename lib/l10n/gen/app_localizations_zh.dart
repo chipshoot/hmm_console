@@ -5230,6 +5230,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsHmmSignOutFailed => '未能退出登录，请重试。';
 
   @override
+  String get onboardingHmmCloudFailed => '未能完成设置，请重试。';
+
+  @override
   String get loginOtherAccountTitle => '不同的 Hmm 账户';
 
   @override

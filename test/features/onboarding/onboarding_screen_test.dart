@@ -9,19 +9,33 @@ import 'package:hmm_console/features/onboarding/providers/onboarding_provider.da
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
 
 class _FakeMode extends DataModeNotifier {
+  _FakeMode({this.failTo});
+
+  /// setMode to this mode throws.
+  final DataMode? failTo;
+
   @override
   DataMode build() => DataMode.local;
 
   @override
-  Future<void> setMode(DataMode mode) async => state = mode;
+  Future<void> setMode(DataMode mode) async {
+    if (mode == failTo) throw Exception('prefs');
+    state = mode;
+  }
 }
 
 class _FakeCompleted extends OnboardingCompletedNotifier {
+  _FakeCompleted({this.fail = false});
+  final bool fail;
+
   @override
   bool build() => false;
 
   @override
-  Future<void> markCompleted() async => state = true;
+  Future<void> markCompleted() async {
+    if (fail) throw Exception('prefs');
+    state = true;
+  }
 }
 
 class _FakeIdp implements IdpTokenService {
@@ -38,6 +52,8 @@ Future<ProviderContainer> _pump(
   WidgetTester tester,
   bool? authResult, {
   bool hmmSession = false,
+  DataMode? failSetModeTo,
+  bool failMarkCompleted = false,
 }) async {
   final router = GoRouter(
     routes: [
@@ -57,8 +73,10 @@ Future<ProviderContainer> _pump(
   );
   final container = ProviderContainer(
     overrides: [
-      dataModeProvider.overrideWith(_FakeMode.new),
-      onboardingCompletedProvider.overrideWith(_FakeCompleted.new),
+      dataModeProvider.overrideWith(() => _FakeMode(failTo: failSetModeTo)),
+      onboardingCompletedProvider.overrideWith(
+        () => _FakeCompleted(fail: failMarkCompleted),
+      ),
       idpTokenServiceProvider.overrideWithValue(_FakeIdp(hmmSession)),
     ],
   );
@@ -143,4 +161,53 @@ void main() {
     expect(find.text('STUB-AUTH'), findsNothing);
     expect(find.text('Hmm cloud (server)'), findsOneWidget);
   });
+
+  testWidgets('Hmm cloud: markCompleted fails → mode rolled back to local, '
+      'error shown, still on onboarding', (tester) async {
+    _phoneSize(tester);
+    final c = await _pump(
+      tester,
+      true,
+      hmmSession: true,
+      failMarkCompleted: true,
+    );
+    await tester.tap(find.text('Hmm cloud (server)'));
+    await tester.pump();
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(c.read(dataModeProvider), DataMode.local);
+    expect(c.read(onboardingCompletedProvider), isFalse);
+    expect(find.text("Couldn't finish setting up. Try again."), findsOneWidget);
+    expect(find.text('HOME'), findsNothing);
+  });
+
+  testWidgets('Hmm cloud: setMode fails → error shown, mode and onboarding '
+      'unchanged', (tester) async {
+    _phoneSize(tester);
+    final c = await _pump(
+      tester,
+      true,
+      hmmSession: true,
+      failSetModeTo: DataMode.cloudApi,
+    );
+    await tester.tap(find.text('Hmm cloud (server)'));
+    await tester.pump();
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(c.read(dataModeProvider), DataMode.local);
+    expect(c.read(onboardingCompletedProvider), isFalse);
+    expect(find.text("Couldn't finish setting up. Try again."), findsOneWidget);
+  });
+}
+
+/// A tall surface: the screen does not scroll, and with the test font (every
+/// glyph a full square) the error box and Skip overflow 800×600.
+void _phoneSize(WidgetTester tester) {
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
 }

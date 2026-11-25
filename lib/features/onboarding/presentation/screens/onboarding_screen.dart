@@ -185,8 +185,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       // router, and onboarding must still be marked complete.
       final mode = ref.read(dataModeProvider.notifier);
       final completed = ref.read(onboardingCompletedProvider.notifier);
-      await mode.setMode(DataMode.cloudApi);
-      await completed.markCompleted();
+      final previous = ref.read(dataModeProvider);
+      final failed = AppLocalizations.of(context).onboardingHmmCloudFailed;
+      try {
+        await mode.setMode(DataMode.cloudApi);
+      } catch (_) {
+        if (mounted) setState(() => _errorMessage = failed);
+        return;
+      }
+      try {
+        await completed.markCompleted();
+      } catch (_) {
+        // Never leave the app in cloudApi with onboarding unfinished.
+        try {
+          await mode.setMode(previous);
+        } catch (_) {}
+        if (mounted) setState(() => _errorMessage = failed);
+        return;
+      }
       if (!mounted) return;
       context.go('/');
     } finally {

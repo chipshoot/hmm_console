@@ -5479,6 +5479,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsHmmSignOutFailed => 'Couldn\'t sign out. Try again.';
 
   @override
+  String get onboardingHmmCloudFailed =>
+      'Couldn\'t finish setting up. Try again.';
+
+  @override
   String get loginOtherAccountTitle => 'Different Hmm account';
 
   @override
