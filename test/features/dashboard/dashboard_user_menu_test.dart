@@ -50,8 +50,13 @@ class _FakeSync extends SyncController {
 
 class _FakeOneDrive implements OneDriveAuth {
   int signIns = 0;
+  Object? throwOnSignIn;
   @override
-  Future<void> signIn() async => signIns++;
+  Future<void> signIn() async {
+    signIns++;
+    if (throwOnSignIn != null) throw throwOnSignIn!;
+  }
+
   @override
   Future<bool> hasToken() async => false;
   @override
@@ -123,5 +128,23 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(od.signIns, 1);
+  });
+
+  testWidgets('OneDrive sign-in failure shows a snackbar and does not throw', (
+    tester,
+  ) async {
+    final od = _FakeOneDrive()
+      ..throwOnSignIn = const OneDriveAuthException('Client ID missing');
+    await _open(
+      tester,
+      mode: DataMode.cloudStorage,
+      status: _failedAuth,
+      oneDrive: od,
+    );
+    await tester.tap(find.text('Sign in again'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Client ID missing'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

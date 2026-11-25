@@ -363,6 +363,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Future<void> _showUserMenu() async {
     final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final isApple =
         Theme.of(context).platform == TargetPlatform.iOS ||
         Theme.of(context).platform == TargetPlatform.macOS;
@@ -388,8 +389,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ? () async {
             // cloudStorage failures are OneDrive sign-ins, not the Hmm one.
             if (ref.read(dataModeProvider) == DataMode.cloudStorage) {
-              await ref.read(oneDriveAuthProvider).signIn();
-              ref.invalidate(oneDriveAuthStateProvider);
+              try {
+                await ref.read(oneDriveAuthProvider).signIn();
+                if (!mounted) return;
+                ref.invalidate(oneDriveAuthStateProvider);
+                // Clears the failure banner now that sign-in succeeded.
+                await controller.triggerManualSync();
+              } on OneDriveAuthException catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(e.message),
+                    duration: const Duration(seconds: 6),
+                  ),
+                );
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(l.settingsSignInOneDriveFailed('$e')),
+                    duration: const Duration(seconds: 6),
+                  ),
+                );
+              }
             } else {
               await ref.read(signOutUseCaseProvider).signOut();
             }

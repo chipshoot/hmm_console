@@ -1,7 +1,11 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hmm_console/core/auth/current_author_account_name_provider.dart';
+import 'package:hmm_console/core/auth/owner_id.dart';
+import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
 import 'package:hmm_console/core/network/idp_token_service.dart';
@@ -40,8 +44,12 @@ Future<ProviderContainer> _pump(
       ),
     ],
   );
+  final db = HmmDatabase(NativeDatabase.memory());
+  addTearDown(db.close);
   final container = ProviderContainer(
     overrides: [
+      hmmDatabaseProvider.overrideWithValue(db),
+      ownerIdProvider.overrideWith((ref) async => 'OWNER'),
       if (signedIn) currentUserProvider.overrideWith(_User.new),
       idpTokenServiceProvider.overrideWithValue(signOut),
     ],
@@ -82,8 +90,13 @@ void main() {
   ) async {
     final so = _FakeSignOut();
     final c = await _pump(tester, signedIn: true, signOut: so);
+    final before = await c.read(currentAuthorProvider.future);
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
+    c.invalidate(currentAuthorProvider);
+    final after = await c.read(currentAuthorProvider.future);
+    expect(after.id, before.id);
+    expect(after.accountName, before.accountName);
     expect(so.calls, 1);
     expect(c.read(currentUserProvider), isNull);
     expect(find.text('login-screen'), findsNothing);
