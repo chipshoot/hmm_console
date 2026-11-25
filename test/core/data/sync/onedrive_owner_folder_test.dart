@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/auth/current_author_account_name_provider.dart';
 import 'package:hmm_console/core/auth/owner_id.dart';
 import 'package:hmm_console/core/data/local/database.dart';
+import 'package:hmm_console/core/data/local/local_author_repository.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
 import 'package:hmm_console/core/data/sync/onedrive_auth.dart';
 import 'package:hmm_console/core/data/sync/onedrive_graph_client.dart';
@@ -35,12 +36,22 @@ void main() {
   late ProviderContainer container;
   late OwnerIdStore store;
 
-  Future<void> setUpWith({required String ownerId}) async {
-    SharedPreferences.setMockInitialValues({'hmm.ownerId': ownerId});
-    store = OwnerIdStore(await SharedPreferences.getInstance());
+  Future<void> setUpWith({
+    required String ownerId,
+    Map<String, Object> prefs = const {},
+    OwnerIdStore Function(SharedPreferences)? makeStore,
+    bool renameThrows = false,
+  }) async {
+    SharedPreferences.setMockInitialValues({'hmm.ownerId': ownerId, ...prefs});
+    final sp = await SharedPreferences.getInstance();
+    store = makeStore?.call(sp) ?? OwnerIdStore(sp);
     container = ProviderContainer(
       overrides: [
         hmmDatabaseProvider.overrideWithValue(db),
+        if (renameThrows)
+          localAuthorRepositoryProvider.overrideWith(
+            (ref) => _RenameThrowsAuthors(LocalAuthorRepository(db)),
+          ),
         ownerIdStoreProvider.overrideWith((ref) async => store),
         ownerIdProvider.overrideWith(
           (ref) async =>
@@ -61,6 +72,33 @@ void main() {
   Future<int> insertAuthor(String accountName) => db
       .into(db.authors)
       .insert(AuthorsCompanion.insert(accountName: accountName));
+
+  Future<int> addNotes(int authorId, int n, {bool deleted = false}) async {
+    final catalogId = await db
+        .into(db.noteCatalogs)
+        .insert(NoteCatalogsCompanion.insert(name: 'Cat', schema: '{}'));
+    for (var i = 0; i < n; i++) {
+      await db
+          .into(db.notes)
+          .insert(
+            NotesCompanion.insert(
+              subject: 'n$i',
+              catalogId: Value(catalogId),
+              authorId: authorId,
+              deletedAt: deleted
+                  ? Value(DateTime.utc(2026))
+                  : const Value.absent(),
+            ),
+          );
+    }
+    return catalogId;
+  }
+
+  Future<int> visibleNotes(int catalogId) async =>
+      (await LocalHmmNoteRepository(
+        db,
+        () => container.read(currentAuthorProvider.future),
+      ).getNotes(catalogId: catalogId)).items.length;
 
   void ownFolder(String id, {required bool exists}) {
     adapter.onGet(
@@ -99,44 +137,132 @@ void main() {
     expect(rows.single.accountName, 'NEW');
   });
 
-  test('no own folder, one other folder → adopted', () async {
-    await setUpWith(ownerId: 'NEW');
+  test('no own folder, one other folder, device has no notes → adopted '
+      'silently, link cleared', () async {
+    await setUpWith(
+      ownerId: 'NEW',
+      prefs: {'hmm.linkedHmmSub': 'SUB', 'hmm.linkedHmmEmail': 'a@b.c'},
+    );
     final authorId = await insertAuthor('NEW');
-    final catalogId = await db
-        .into(db.noteCatalogs)
-        .insert(NoteCatalogsCompanion.insert(name: 'Cat', schema: '{}'));
-    for (var i = 0; i < 3; i++) {
-      await db
-          .into(db.notes)
-          .insert(
-            NotesCompanion.insert(
-              subject: 'n$i',
-              catalogId: Value(catalogId),
-              authorId: authorId,
-            ),
-          );
-    }
     ownFolder('NEW', exists: false);
     listing([_folder('IPHONE')]);
 
     final folder = container.read(oneDriveOwnerFolderProvider);
     expect(await folder.resolve(), 'IPHONE');
     expect(store.ownerId, 'IPHONE');
+    expect(store.linkedHmmSub, isNull);
+    expect(store.linkedHmmEmail, isNull);
 
     final row = await (db.select(
       db.authors,
     )..where((a) => a.id.equals(authorId))).getSingle();
     expect(row.accountName, 'IPHONE');
     expect(await db.select(db.authors).get(), hasLength(1));
-
     expect(await container.read(ownerIdProvider.future), 'IPHONE');
-    final author = await container.read(currentAuthorProvider.future);
-    expect(author.id, authorId);
-    final notes = await LocalHmmNoteRepository(
-      db,
-      () => container.read(currentAuthorProvider.future),
-    ).getNotes(catalogId: catalogId);
-    expect(notes.items, hasLength(3));
+    expect(container.read(oneDriveFolderChoiceProvider), isNull);
+  });
+
+  test('only deleted notes on the device still counts as no notes → '
+      'adopted', () async {
+    await setUpWith(ownerId: 'NEW');
+    final authorId = await insertAuthor('NEW');
+    await addNotes(authorId, 2, deleted: true);
+    ownFolder('NEW', exists: false);
+    listing([_folder('IPHONE')]);
+
+    final folder = container.read(oneDriveOwnerFolderProvider);
+    expect(await folder.resolve(), 'IPHONE');
+    expect(store.ownerId, 'IPHONE');
+  });
+
+  test('one other folder but the device has notes → choice required with '
+      'that folder; choose() adopts and the notes stay visible', () async {
+    await setUpWith(
+      ownerId: 'NEW',
+      prefs: {'hmm.linkedHmmSub': 'SUB', 'hmm.linkedHmmEmail': 'a@b.c'},
+    );
+    final authorId = await insertAuthor('NEW');
+    final catalogId = await addNotes(authorId, 3);
+    ownFolder('NEW', exists: false);
+    listing([_folder('IPHONE')]);
+
+    final folder = container.read(oneDriveOwnerFolderProvider);
+    await expectLater(
+      folder.resolve(),
+      throwsA(
+        isA<OneDriveFolderChoiceRequired>().having(
+          (e) => e.folders.map((f) => f.name),
+          'folders',
+          ['IPHONE'],
+        ),
+      ),
+    );
+    expect(store.ownerId, 'NEW');
+    expect(store.linkedHmmSub, 'SUB', reason: 'nothing adopted yet');
+    expect(container.read(oneDriveFolderChoiceProvider)!.map((f) => f.name), [
+      'IPHONE',
+    ]);
+
+    await folder.choose('IPHONE');
+
+    expect(store.ownerId, 'IPHONE');
+    expect(store.linkedHmmSub, isNull);
+    expect(store.linkedHmmEmail, isNull);
+    final row = await (db.select(
+      db.authors,
+    )..where((a) => a.id.equals(authorId))).getSingle();
+    expect(row.accountName, 'IPHONE');
+    expect((await container.read(currentAuthorProvider.future)).id, authorId);
+    expect(await visibleNotes(catalogId), 3);
+  });
+
+  test(
+    'rename throws → owner id and author row unchanged, notes visible',
+    () async {
+      await setUpWith(ownerId: 'NEW', renameThrows: true);
+      final authorId = await insertAuthor('NEW');
+      final catalogId = await addNotes(authorId, 2);
+      final folder = container.read(oneDriveOwnerFolderProvider);
+
+      await expectLater(folder.choose('IPHONE'), throwsA(isA<StateError>()));
+
+      expect(store.ownerId, 'NEW');
+      expect((await db.select(db.authors).get()).single.accountName, 'NEW');
+      expect((await container.read(currentAuthorProvider.future)).id, authorId);
+      expect(await visibleNotes(catalogId), 2);
+    },
+  );
+
+  test('storing the owner id throws → the rename is rolled back, notes '
+      'visible', () async {
+    await setUpWith(ownerId: 'NEW', makeStore: _AdoptThrowsStore.new);
+    final authorId = await insertAuthor('NEW');
+    final catalogId = await addNotes(authorId, 2);
+    final folder = container.read(oneDriveOwnerFolderProvider);
+
+    await expectLater(folder.choose('IPHONE'), throwsA(isA<StateError>()));
+
+    expect(store.ownerId, 'NEW');
+    expect((await db.select(db.authors).get()).single.accountName, 'NEW');
+    container.invalidate(ownerIdProvider);
+    expect((await container.read(currentAuthorProvider.future)).id, authorId);
+    expect(await visibleNotes(catalogId), 2);
+  });
+
+  test('folder name differing only by case → row renamed to the exact '
+      'casing, notes visible', () async {
+    await setUpWith(ownerId: 'iphone');
+    final authorId = await insertAuthor('iphone');
+    final catalogId = await addNotes(authorId, 2);
+    final folder = container.read(oneDriveOwnerFolderProvider);
+
+    await folder.choose('IPHONE');
+
+    expect(store.ownerId, 'IPHONE');
+    final rows = await db.select(db.authors).get();
+    expect(rows.single.accountName, 'IPHONE');
+    expect((await container.read(currentAuthorProvider.future)).id, authorId);
+    expect(await visibleNotes(catalogId), 2);
   });
 
   test('no folders → own id, nothing renamed', () async {
@@ -290,8 +416,9 @@ void main() {
     expect((await container.read(currentAuthorProvider.future)).id, ipadId);
   });
 
-  test('clash in the automatic path → adopted without rename; the orphan '
-      'step moves the old owner\'s notes onto the adopted row', () async {
+  test('clash: the device has notes, so the single folder needs a choice; '
+      'once chosen it is adopted without rename and the orphan step moves '
+      'the old owner\'s notes onto the adopted row', () async {
     await setUpWith(ownerId: 'OLD');
     final oldId = await insertAuthor('OLD');
     final iphoneId = await insertAuthor('IPHONE');
@@ -311,8 +438,9 @@ void main() {
     }
     ownFolder('OLD', exists: false);
     listing([_folder('IPHONE')]);
+    await store.setLink('SUB', 'a@b.c');
 
-    final result = await SyncOrchestrator(
+    SyncOrchestrator orchestrator() => SyncOrchestrator(
       provider: _EmptyRemoteOneDrive(
         container.read(oneDriveGraphClientProvider),
       ),
@@ -321,10 +449,20 @@ void main() {
       vaultStore: noopVaultStore,
       currentAuthorId: () async =>
           (await container.read(currentAuthorProvider.future)).id,
-    ).syncNow();
+    );
+
+    // The device has notes: joining is the person's choice.
+    final first = await orchestrator().syncNow();
+    expect(first.errors.single.recordId, 'onedrive-folder');
+    expect(store.ownerId, 'OLD');
+    expect(await db.select(db.authors).get(), hasLength(2));
+
+    await container.read(oneDriveOwnerFolderProvider).choose('IPHONE');
+    final result = await orchestrator().syncNow();
 
     expect(result.errors, isEmpty);
     expect(store.ownerId, 'IPHONE');
+    expect(store.linkedHmmSub, isNull, reason: 'joining clears the link');
     final rows = {
       for (final a in await db.select(db.authors).get()) a.id: a.accountName,
     };
@@ -418,4 +556,34 @@ class _EmptyRemoteOneDrive extends OneDriveSyncProvider {
   bool get supportsAttachments => false;
   @override
   bool get supportsLargeFiles => false;
+}
+
+class _RenameThrowsAuthors implements IAuthorRepository {
+  _RenameThrowsAuthors(this._inner);
+  final IAuthorRepository _inner;
+
+  @override
+  Future<Author> updateAuthor(int id, AuthorsCompanion author) =>
+      throw StateError('disk full');
+
+  @override
+  Future<Author?> getAuthorByAccountName(String accountName) =>
+      _inner.getAuthorByAccountName(accountName);
+
+  @override
+  Future<Author> getOrCreateDefaultAuthor(
+    String accountName, {
+    String? description,
+    String? avatarUrl,
+  }) => _inner.getOrCreateDefaultAuthor(accountName);
+
+  @override
+  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+class _AdoptThrowsStore extends OwnerIdStore {
+  _AdoptThrowsStore(super.prefs);
+
+  @override
+  Future<void> adoptOwnerId(String id) async => throw StateError('prefs');
 }

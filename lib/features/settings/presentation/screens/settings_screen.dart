@@ -911,8 +911,9 @@ class _AppearanceRow extends StatelessWidget {
   }
 }
 
-/// Shown when OneDrive holds several Hmm data folders and none is this
-/// device's: pick one, then sync.
+/// Shown when OneDrive holds Hmm data folders, none is this device's, and
+/// the app will not join one by itself (several, or one while this device
+/// already has notes): pick one, then sync.
 class _OneDriveFolderChoiceRow extends ConsumerWidget {
   const _OneDriveFolderChoiceRow();
 

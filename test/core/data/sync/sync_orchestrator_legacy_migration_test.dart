@@ -134,7 +134,7 @@ void main() {
     ).syncNow();
 
     expect(result.errors.map((e) => e.message), [
-      'Several Hmm data folders found in OneDrive. Choose one in Settings.',
+      'Hmm data found in OneDrive. Choose a folder in Settings.',
     ]);
     expect(provider.migrationCalls, 0);
     expect(result.errors.single.recordType, isNot('auth'));
