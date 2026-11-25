@@ -18,7 +18,7 @@ import '../../../../core/widgets/gaps.dart';
 import '../../../../core/widgets/numeric_input.dart';
 import '../../../../core/widgets/screen_scaffold.dart';
 import '../../../../core/widgets/text_field.dart';
-import '../../../auth/providers/current_user_provider.dart';
+import '../../../../core/auth/owner_id.dart';
 import '../../../automobile_records/presentation/widgets/automobile_records_summary.dart';
 import '../../domain/entities/automobile.dart';
 import '../../../settings/providers/gas_log_settings_provider.dart';
@@ -1149,7 +1149,7 @@ class _AutomobileEditScreenState extends ConsumerState<AutomobileEditScreen>
   /// before/after columns are comparable.
   List<AutomobileAuditEntry> _diffIdentity(
       Automobile orig, Map<String, Object?> newVals) {
-    final actor = ref.read(currentUserProvider)?.uid;
+    final actor = ref.read(ownerIdProvider).value;
     final now = DateTime.now().toUtc();
 
     String? str(Object? v) {

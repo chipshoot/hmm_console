@@ -4,7 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hmm_console/core/auth/current_author_account_name_provider.dart';
+import 'package:hmm_console/core/auth/owner_id.dart';
 import 'package:hmm_console/core/data/hmm_note_input.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/repository_providers.dart';
@@ -80,12 +80,12 @@ void main() {
       hmmDatabaseProvider.overrideWithValue(db),
       syncOrchestratorProvider.overrideWithValue(orchestrator),
       syncControllerProvider.overrideWithValue(controller),
-      // currentAuthorAccountNameProvider normally reads the signed-in
+      // currentAuthorProvider normally resolves the signed-in
       // Firebase user via currentUserProvider; this container has no auth
       // context, so pin it directly to the 'tester' account seeded above
       // (same fix Task 2's local_hmm_note_repository_provider_wiring_test
       // uses for the same reason).
-      currentAuthorAccountNameProvider.overrideWithValue('tester'),
+      ownerIdProvider.overrideWith((ref) async => 'tester'),
     ]);
     addTearDown(container.dispose);
 
@@ -207,7 +207,7 @@ void main() {
       hmmDatabaseProvider.overrideWithValue(db),
       syncOrchestratorProvider.overrideWithValue(orchestrator),
       syncControllerProvider.overrideWithValue(controller),
-      currentAuthorAccountNameProvider.overrideWithValue('tester'),
+      ownerIdProvider.overrideWith((ref) async => 'tester'),
     ]);
 
     final zoneErrors = <Object>[];
