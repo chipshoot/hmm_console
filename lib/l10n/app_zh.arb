@@ -1612,6 +1612,7 @@
   "settingsHmmNotSignedIn": "未登录。仅 Hmm 云和服务器功能需要登录。",
   "settingsHmmSignOut": "退出登录",
   "settingsHmmSignedOut": "已退出 Hmm。你的数据仍保存在本设备上。",
+  "settingsHmmSignOutFailed": "未能退出登录，请重试。",
   "loginOtherAccountTitle": "不同的 Hmm 账户",
   "loginOtherAccountBody": "本设备的数据属于 {account}。请用该账户登录，或将本设备数据保留在本地。",
   "loginOtherAccountSignInAs": "用该账户登录",

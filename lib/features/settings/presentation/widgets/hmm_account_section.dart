@@ -18,6 +18,9 @@ Future<bool> switchDataMode(
   WidgetRef ref,
   DataMode to,
 ) async {
+  // Taken before any await: signing in can rebuild the router and dispose
+  // the caller, after which its ref must not be used.
+  final dataMode = ref.read(dataModeProvider.notifier);
   if (to == DataMode.cloudApi) {
     final l = AppLocalizations.of(context);
     final ok = await ensureHmmSignedIn(
@@ -27,7 +30,7 @@ Future<bool> switchDataMode(
     );
     if (!ok) return false;
   }
-  await ref.read(dataModeProvider.notifier).setMode(to);
+  await dataMode.setMode(to);
   return true;
 }
 
@@ -36,11 +39,22 @@ Future<bool> switchDataMode(
 class HmmAccountSection extends ConsumerWidget {
   const HmmAccountSection({super.key});
 
+  /// Everything is read before the await: in cloudApi, signing out flips
+  /// the login gate and the router disposes Settings before it returns.
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    await ref.read(signOutUseCaseProvider).signOut();
-    ref.read(currentUserProvider.notifier).setUser(null);
+    final signOut = ref.read(signOutUseCaseProvider);
+    final currentUser = ref.read(currentUserProvider.notifier);
+    try {
+      await signOut.signOut();
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.settingsHmmSignOutFailed)),
+      );
+      return;
+    }
+    currentUser.setUser(null);
     messenger.showSnackBar(SnackBar(content: Text(l.settingsHmmSignedOut)));
   }
 

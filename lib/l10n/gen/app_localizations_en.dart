@@ -5476,6 +5476,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Signed out of Hmm. Your data stays on this device.';
 
   @override
+  String get settingsHmmSignOutFailed => 'Couldn\'t sign out. Try again.';
+
+  @override
   String get loginOtherAccountTitle => 'Different Hmm account';
 
   @override

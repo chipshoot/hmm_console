@@ -2319,6 +2319,7 @@
   "settingsHmmNotSignedIn": "Not signed in. Only needed for Hmm cloud and server features.",
   "settingsHmmSignOut": "Sign out",
   "settingsHmmSignedOut": "Signed out of Hmm. Your data stays on this device.",
+  "settingsHmmSignOutFailed": "Couldn't sign out. Try again.",
   "loginOtherAccountTitle": "Different Hmm account",
   "loginOtherAccountBody": "This device's data belongs to {account}. Sign in as that account, or keep this device's data local.",
   "@loginOtherAccountBody": { "placeholders": { "account": { "type": "String" } } },

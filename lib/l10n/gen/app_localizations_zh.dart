@@ -5227,6 +5227,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsHmmSignedOut => '已退出 Hmm。你的数据仍保存在本设备上。';
 
   @override
+  String get settingsHmmSignOutFailed => '未能退出登录，请重试。';
+
+  @override
   String get loginOtherAccountTitle => '不同的 Hmm 账户';
 
   @override

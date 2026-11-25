@@ -9488,6 +9488,12 @@ abstract class AppLocalizations {
   /// **'Signed out of Hmm. Your data stays on this device.'**
   String get settingsHmmSignedOut;
 
+  /// No description provided for @settingsHmmSignOutFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t sign out. Try again.'**
+  String get settingsHmmSignOutFailed;
+
   /// No description provided for @loginOtherAccountTitle.
   ///
   /// In en, this message translates to:
