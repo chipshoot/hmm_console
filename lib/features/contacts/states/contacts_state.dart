@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/data_mode.dart';
 import '../../../core/data/repository_providers.dart';
 import '../data/i_contact_repository.dart';
 import '../domain/entities/contact.dart';
@@ -67,3 +68,16 @@ class ContactsState extends AsyncNotifier<List<Contact>> {
 
 final contactsStateProvider =
     AsyncNotifierProvider<ContactsState, List<Contact>>(ContactsState.new);
+
+/// The device owner's own card ("Me"), or null: none yet, still loading,
+/// failed to load, or cloudApi mode (no contacts there, so the address book
+/// is never opened).
+final selfContactProvider = Provider<Contact?>((ref) {
+  if (ref.watch(dataModeProvider) == DataMode.cloudApi) return null;
+  final contacts = ref.watch(contactsStateProvider).value;
+  if (contacts == null) return null;
+  for (final c in contacts) {
+    if (c.isSelf) return c;
+  }
+  return null;
+});

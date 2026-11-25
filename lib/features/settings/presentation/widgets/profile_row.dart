@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/data/data_mode.dart';
 import '../../../../l10n/gen/app_localizations.dart';
-import '../../../contacts/domain/entities/contact.dart';
 import '../../../contacts/presentation/widgets/contact_photo.dart';
 import '../../../contacts/states/contacts_state.dart';
 
@@ -23,14 +22,7 @@ class ProfileRow extends ConsumerWidget {
     // While loading or on error, show nothing rather than a wrong prompt to
     // create a second card.
     if (!contacts.hasValue) return const SizedBox.shrink();
-    Contact? me;
-    for (final c in contacts.requireValue) {
-      if (c.isSelf) {
-        me = c;
-        break;
-      }
-    }
-    final self = me;
+    final self = ref.watch(selfContactProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

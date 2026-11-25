@@ -11,6 +11,8 @@ import '../../../../domain/entities/app_function.dart';
 import '../../../auth/data/models/current_user.dart';
 import '../../../auth/providers/current_user_provider.dart';
 import '../../../auth/usecases/signout_usecase.dart';
+import '../../../contacts/presentation/widgets/contact_photo.dart';
+import '../../../contacts/states/contacts_state.dart';
 import '../../domain/home_tiles.dart';
 import '../../providers/intro_card_provider.dart';
 import '../../../settings/providers/home_hidden_tiles_provider.dart';
@@ -162,31 +164,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  /// The owner's "Me" contact card first (its photo or initials; works with
+  /// no login), then the Hmm login, else a person icon — never a bare '?'.
   Widget _buildAvatar(CurrentUserDataModel? user, ColorScheme colorScheme) {
+    return KeyedSubtree(
+      key: const Key('dashboardAvatar'),
+      child: _avatarContent(user, colorScheme),
+    );
+  }
+
+  Widget _avatarContent(CurrentUserDataModel? user, ColorScheme colorScheme) {
+    final me = ref.watch(selfContactProvider);
+    if (me != null) return ContactPhoto(contact: me, size: 36);
+
     final photoUrl = user?.photoUrl;
     final name = user?.displayName ?? user?.email?.split('@').first;
     final initials = _getInitials(name);
+    final Widget label = initials == null
+        ? Icon(
+            Icons.person_outline,
+            size: 18,
+            color: colorScheme.onPrimaryContainer,
+          )
+        : Text(
+            initials,
+            style: TextStyle(
+              fontSize: 14,
+              color: colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          );
 
     if (photoUrl != null) {
       return CircleAvatar(
         radius: 18,
+        backgroundColor: colorScheme.primaryContainer,
         backgroundImage: NetworkImage(photoUrl),
         onBackgroundImageError: (_, _) {},
-        child: Text(initials, style: const TextStyle(fontSize: 14)),
+        child: label,
       );
     }
 
     return CircleAvatar(
       radius: 18,
       backgroundColor: colorScheme.primaryContainer,
-      child: Text(
-        initials,
-        style: TextStyle(
-          fontSize: 14,
-          color: colorScheme.onPrimaryContainer,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      child: label,
     );
   }
 
@@ -528,8 +550,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return 'Good evening';
   }
 
-  String _getInitials(String? name) {
-    if (name == null || name.isEmpty) return '?';
+  /// Null when there is no usable name (the avatar shows a person icon).
+  String? _getInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return null;
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length >= 2) {
       return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
