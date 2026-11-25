@@ -106,14 +106,33 @@ changes:
 
 1. This device's owner id has a folder → use it (existing installs).
 2. Otherwise list `approot/users/`:
-   - exactly one folder → adopt its name as this device's owner id;
+   - exactly one folder and **no notes on this device yet** (no non-deleted
+     note in the local database, any author) → adopt its name as this
+     device's owner id, silently;
+   - exactly one folder but this device already has notes → ask (the same
+     Settings chooser as below, listing that one folder); choosing it adopts;
    - none → create one with this device's owner id;
    - several (unlikely) → ask which to use.
 
-Adoption happens before the first pull and before any local note is written
-on that device, so a new iPad joins the iPhone's data. (The 2026-09-17 design
-read the id from the remote manifest; listing the folder works the same and
-needs no manifest change.)
+Adoption happens before the first pull, so a new iPad joins the iPhone's
+data. (The 2026-09-17 design read the id from the remote manifest; listing
+the folder works the same and needs no manifest change.)
+
+**Owner decisions, 2026-11-25:**
+
+- **D-A. Silent join only on an empty device.** A device that already holds
+  notes never joins a foreign folder on its own: its notes would move onto
+  that folder's owner. The person decides in Settings.
+- **D-B. Joining clears the account link.** Any adoption (automatic, chosen
+  in Settings, or onto an existing `Authors` row of that name) clears
+  `linkedHmmSub` and `linkedHmmEmail`, so the next Hmm sign-in sets the link
+  afresh (§4.10).
+
+Adopting renames the owner's `Authors` row to the folder name (exact case)
+so every note keeps its author id; the row is renamed first and the rename
+undone if storing the owner id fails, so the two never disagree. A folder
+lookup that fails for any other reason stops the sync before orphan-note
+adoption runs.
 
 ### 4.5 Server features (D5)
 
@@ -164,8 +183,15 @@ are joined by a link record on the device, not by sharing an id (the
   "This device's data belongs to <linked account>. Sign in as that account,
   or keep this device's data local." It never merges two accounts' data
   under one owner.
-- **Existing installs:** the owner id already *is* the `sub`, so
-  `linkedHmmSub` is set to it at upgrade.
+- **Existing installs:** when the owner id comes from a token `sub` (the
+  signed-in user's, or the stored, possibly expired, token's),
+  `linkedHmmSub` is set to it at upgrade. An owner id taken from an
+  `Authors` row or a new UUID sets no link: an `accountName` (`local-user`,
+  an adopted folder name) is not a `sub`, and linking it would refuse every
+  real sign-in. If the stored token cannot be read or decoded, nothing is
+  stored and resolution is retried later.
+- **Joining a OneDrive folder clears the link** (owner decision D-B,
+  2026-11-25, §4.4); the next Hmm sign-in sets it fresh.
 - **Signing in only for server features** (D5, while staying in
   `local`/`cloudStorage`) also sets the link, so the guard applies there too.
 
