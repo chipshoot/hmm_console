@@ -188,8 +188,9 @@ are joined by a link record on the device, not by sharing an id (the
   `linkedHmmSub` is set to it at upgrade. An owner id taken from an
   `Authors` row or a new UUID sets no link: an `accountName` (`local-user`,
   an adopted folder name) is not a `sub`, and linking it would refuse every
-  real sign-in. If the stored token cannot be read or decoded, nothing is
-  stored and resolution is retried later.
+  real sign-in. If secure storage cannot be read, nothing is stored and
+  resolution is retried later; a stored token that cannot be decoded counts
+  as no token (it never becomes decodable).
 - **Joining a OneDrive folder clears the link** (owner decision D-B,
   2026-11-25, §4.4); the next Hmm sign-in sets it fresh.
 - **Signing in only for server features** (D5, while staying in
