@@ -1,5 +1,8 @@
+import 'package:drift/native.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/auth/owner_id.dart';
+import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_author_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,6 +66,19 @@ void main() {
     expect(store.linkedHmmEmail, 'o@b.c');
   });
 
+  test('author-row link uses the peeked email', () async {
+    expect(await resolve(peekEmail: 'p@b.c', rows: [_author(1, 'ROW')]), 'ROW');
+    expect(store.linkedHmmEmail, 'p@b.c');
+  });
+
+  test('plan prefs keys are used', () async {
+    await resolve(signedInSub: 'S', signedInEmail: 'e@x.y');
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('hmm.ownerId'), 'S');
+    expect(prefs.getString('hmm.linkedHmmSub'), 'S');
+    expect(prefs.getString('hmm.linkedHmmEmail'), 'e@x.y');
+  });
+
   test('single author row', () async {
     expect(await resolve(rows: [_author(1, 'ROW')]), 'ROW');
     expect(store.linkedHmmSub, 'ROW');
@@ -95,4 +111,23 @@ void main() {
     await store.adoptOwnerId('B');
     expect(store.ownerId, 'B');
   });
+
+  test('ownerIdProvider returns the stored id in cloudApi mode', () async {
+    SharedPreferences.setMockInitialValues({'hmm.ownerId': 'STORED'});
+    final db = HmmDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final container = ProviderContainer(
+      overrides: [
+        hmmDatabaseProvider.overrideWithValue(db),
+        dataModeProvider.overrideWith(() => _CloudApiMode()),
+      ],
+    );
+    addTearDown(container.dispose);
+    expect(await container.read(ownerIdProvider.future), 'STORED');
+  });
+}
+
+class _CloudApiMode extends DataModeNotifier {
+  @override
+  DataMode build() => DataMode.cloudApi;
 }

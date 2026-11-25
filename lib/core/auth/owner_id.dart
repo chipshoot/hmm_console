@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/auth/providers/current_user_provider.dart';
 import '../data/local/database.dart';
 import '../data/local/local_author_repository.dart';
-import '../data/repository_providers.dart';
 import '../network/idp_token_service.dart';
 import '../util/uuid.dart';
 
@@ -17,9 +16,9 @@ class OwnerIdStore {
 
   final SharedPreferences _prefs;
 
-  static const _ownerKey = 'owner_id';
-  static const _linkSubKey = 'owner_linked_hmm_sub';
-  static const _linkEmailKey = 'owner_linked_hmm_email';
+  static const _ownerKey = 'hmm.ownerId';
+  static const _linkSubKey = 'hmm.linkedHmmSub';
+  static const _linkEmailKey = 'hmm.linkedHmmEmail';
 
   String? get ownerId => _prefs.getString(_ownerKey);
 
@@ -64,18 +63,15 @@ Future<String> resolveOwnerId({
   if (stored != null) return stored;
 
   String? id;
-  String? email;
   var linked = false;
 
   if (signedInSub != null) {
     id = signedInSub;
-    email = signedInEmail;
     linked = true;
   } else {
     final peeked = await peekStoredSub();
     if (peeked != null) {
       id = peeked;
-      email = await peekStoredEmail();
       linked = true;
     }
   }
@@ -98,7 +94,7 @@ Future<String> resolveOwnerId({
 
   id ??= newId();
   await store.setOwnerIdOnce(id);
-  if (linked) await store.setLink(id, email);
+  if (linked) await store.setLink(id, signedInEmail ?? await peekStoredEmail());
   return id;
 }
 
@@ -119,7 +115,7 @@ final ownerIdProvider = FutureProvider<String>((ref) async {
     signedInEmail: user?.email,
     peekStoredSub: idp.peekStoredSub,
     peekStoredEmail: idp.peekStoredEmail,
-    authors: ref.read(authorRepositoryProvider),
+    authors: ref.read(localAuthorRepositoryProvider),
     noteCountsByAuthor: () => noteCountsByAuthor(db),
     newId: generateUuid,
   );
