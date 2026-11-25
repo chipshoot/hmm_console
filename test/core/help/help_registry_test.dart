@@ -196,4 +196,14 @@ void main() {
     );
     debugDefaultTargetPlatformOverride = null;
   });
+
+  test('contact edit help explains the photo control', () {
+    final l = lookupAppLocalizations(const Locale('en'));
+    final photo = helpFor(
+      HelpId.contactEdit,
+      l,
+    ).entries.where((e) => e.title == l.helpContactEditPhotoTitle);
+    expect(photo, hasLength(1));
+    expect(photo.single.icon, Icons.add_a_photo_outlined);
+  });
 }

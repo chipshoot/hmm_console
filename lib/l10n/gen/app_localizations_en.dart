@@ -2592,6 +2592,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose whether this is a person or an organization. This decides which name fields you see.';
 
   @override
+  String get contactPhotoChoose => 'Choose photo';
+
+  @override
+  String get contactPhotoTake => 'Take photo';
+
+  @override
+  String get contactPhotoRemove => 'Remove photo';
+
+  @override
+  String get contactPhotoChange => 'Change photo';
+
+  @override
+  String get contactPhotoPickFailed => 'Couldn\'t add the photo';
+
+  @override
+  String get helpContactEditPhotoTitle => 'Photo';
+
+  @override
+  String get helpContactEditPhotoBody =>
+      'Tap the circle at the top to choose a photo, take one, or remove it. It shows on the contact and in the list.';
+
+  @override
   String get helpContactEditFieldsTitle => 'Phones, emails and addresses';
 
   @override

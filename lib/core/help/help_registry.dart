@@ -441,6 +441,11 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
     summary: l.helpContactEditSummary,
     entries: [
       HelpEntry(
+        icon: Icons.add_a_photo_outlined,
+        title: l.helpContactEditPhotoTitle,
+        body: l.helpContactEditPhotoBody,
+      ),
+      HelpEntry(
         icon: Icons.person_outline,
         title: l.helpContactEditTypeTitle,
         body: l.helpContactEditTypeBody,

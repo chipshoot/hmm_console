@@ -4736,6 +4736,48 @@ abstract class AppLocalizations {
   /// **'Choose whether this is a person or an organization. This decides which name fields you see.'**
   String get helpContactEditTypeBody;
 
+  /// No description provided for @contactPhotoChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose photo'**
+  String get contactPhotoChoose;
+
+  /// No description provided for @contactPhotoTake.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get contactPhotoTake;
+
+  /// No description provided for @contactPhotoRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove photo'**
+  String get contactPhotoRemove;
+
+  /// No description provided for @contactPhotoChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change photo'**
+  String get contactPhotoChange;
+
+  /// No description provided for @contactPhotoPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add the photo'**
+  String get contactPhotoPickFailed;
+
+  /// No description provided for @helpContactEditPhotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get helpContactEditPhotoTitle;
+
+  /// No description provided for @helpContactEditPhotoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the circle at the top to choose a photo, take one, or remove it. It shows on the contact and in the list.'**
+  String get helpContactEditPhotoBody;
+
   /// No description provided for @helpContactEditFieldsTitle.
   ///
   /// In en, this message translates to:

@@ -16,6 +16,7 @@ import '../../domain/entities/contact.dart';
 import '../../states/contacts_state.dart';
 import '../birthday_text.dart';
 import '../contact_labels.dart';
+import '../widgets/contact_photo.dart';
 
 /// Opens the edit screen for a contact. Overridable so tests can assert the
 /// navigation.
@@ -105,12 +106,11 @@ class ContactDetailScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Center(child: ContactPhoto(contact: contact, size: 120)),
+          ),
           ListTile(
-            leading: Icon(
-              contact.contactType == ContactType.organization
-                  ? Icons.business
-                  : Icons.person_outline,
-            ),
             title: Text(contact.displayName, style: theme.textTheme.titleLarge),
             subtitle: Text(
               contact.relationship.category == RelationshipCategory.other &&

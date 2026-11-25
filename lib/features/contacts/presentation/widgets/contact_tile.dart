@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../domain/entities/contact.dart';
 import '../contact_labels.dart';
+import 'contact_photo.dart';
 
 /// One row of the address book: the name, with the relationship under it.
 class ContactTile extends StatelessWidget {
@@ -22,11 +23,7 @@ class ContactTile extends StatelessWidget {
         ? custom
         : relationshipLabel(contact.relationship.category, l);
     return ListTile(
-      leading: Icon(
-        contact.contactType == ContactType.organization
-            ? Icons.business_outlined
-            : Icons.person_outline,
-      ),
+      leading: ContactPhoto(contact: contact, size: 40),
       title: Text(contact.displayName),
       subtitle: Text(label),
       trailing: contact.isSelf

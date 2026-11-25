@@ -99,6 +99,8 @@ void main() {
     expect(find.text('Work'), findsNWidgets(2));
     expect(find.text('dana@clinic.example'), findsOneWidget);
     expect(find.text('1 Main St, Vancouver'), findsOneWidget);
+    // The photo header pushes the notes row below the test surface.
+    await tester.scrollUntilVisible(find.text('Family doctor'), 200);
     expect(find.text('Family doctor'), findsOneWidget);
   });
 

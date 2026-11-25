@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/attachments/picker/image_attachment_picker.dart';
 import '../../../../core/help/help_button.dart';
 import '../../../../core/help/help_registry.dart';
 import '../../../../core/widgets/hmm_icon_button.dart';
@@ -18,6 +19,7 @@ import '../birthday_text.dart';
 import '../contact_labels.dart';
 import '../widgets/birthday_picker.dart';
 import '../widgets/address_editor.dart';
+import '../widgets/contact_photo.dart';
 import '../widgets/labeled_field_editor.dart';
 import 'contact_detail_screen.dart' show contactByIdProvider;
 
@@ -176,6 +178,85 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
     });
   }
 
+  /// Choose / Take / Remove photo: a Cupertino action sheet on iOS, a bottom
+  /// sheet elsewhere. Picker errors become a snackbar; the form stays open.
+  Future<void> _photoMenu() async {
+    final l = AppLocalizations.of(context);
+    final notifier = ref.read(
+      contactEditStateProvider(widget.initial).notifier,
+    );
+    final messenger = ScaffoldMessenger.of(context);
+    final canRemove = notifier.hasPhoto;
+    final isIos = Theme.of(context).platform == TargetPlatform.iOS;
+    final options = <(_PhotoAction, String)>[
+      (_PhotoAction.choose, l.contactPhotoChoose),
+      (_PhotoAction.take, l.contactPhotoTake),
+      if (canRemove) (_PhotoAction.remove, l.contactPhotoRemove),
+    ];
+    final _PhotoAction? action;
+    if (isIos) {
+      action = await showCupertinoModalPopup<_PhotoAction>(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          actions: [
+            for (final (a, label) in options)
+              CupertinoActionSheetAction(
+                isDestructiveAction: a == _PhotoAction.remove,
+                onPressed: () => Navigator.of(ctx).pop(a),
+                child: Text(label),
+              ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l.commonCancel),
+          ),
+        ),
+      );
+    } else {
+      action = await showModalBottomSheet<_PhotoAction>(
+        context: context,
+        showDragHandle: true,
+        builder: (ctx) => SafeArea(
+          child: Wrap(
+            children: [
+              for (final (a, label) in options)
+                ListTile(
+                  leading: Icon(switch (a) {
+                    _PhotoAction.choose => Icons.photo_library_outlined,
+                    _PhotoAction.take => Icons.photo_camera_outlined,
+                    _PhotoAction.remove => Icons.delete_outline,
+                  }),
+                  title: Text(label),
+                  onTap: () => Navigator.of(ctx).pop(a),
+                ),
+              ListTile(
+                title: Text(l.commonCancel),
+                onTap: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (action == null) return;
+    if (action == _PhotoAction.remove) {
+      notifier.removePhoto();
+      return;
+    }
+    try {
+      await notifier.pickPhoto(
+        action == _PhotoAction.take
+            ? AttachmentPickSource.camera
+            : AttachmentPickSource.gallery,
+      );
+    } on AttachmentPickerException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      debugPrint('ContactEdit: photo pick failed (${e.runtimeType})');
+      messenger.showSnackBar(SnackBar(content: Text(l.contactPhotoPickFailed)));
+    }
+  }
+
   Future<void> _save() async {
     final l = AppLocalizations.of(context);
     // Captured before the await: nothing below touches context or ref after it.
@@ -281,6 +362,26 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Center(
+                  child: Semantics(
+                    button: true,
+                    label: l.contactPhotoChange,
+                    child: InkWell(
+                      key: const Key('contact-photo-button'),
+                      customBorder: const CircleBorder(),
+                      onTap: _photoMenu,
+                      child: ContactPhoto(
+                        contact: c,
+                        size: 120,
+                        pending: data.pendingPhoto,
+                        removed: data.photoRemoved,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: _TypeToggle(
@@ -547,6 +648,8 @@ class _ContactFormState extends ConsumerState<_ContactForm> {
 
 /// Person / organization toggle: Cupertino sliding control on iOS, Material
 /// segmented button elsewhere.
+enum _PhotoAction { choose, take, remove }
+
 class _TypeToggle extends StatelessWidget {
   const _TypeToggle({
     required this.isIos,

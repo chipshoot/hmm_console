@@ -2518,6 +2518,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpContactEditTypeBody => '选择这是个人还是机构，这会决定显示哪些名称栏。';
 
   @override
+  String get contactPhotoChoose => '选择照片';
+
+  @override
+  String get contactPhotoTake => '拍照';
+
+  @override
+  String get contactPhotoRemove => '移除照片';
+
+  @override
+  String get contactPhotoChange => '更换照片';
+
+  @override
+  String get contactPhotoPickFailed => '无法添加照片';
+
+  @override
+  String get helpContactEditPhotoTitle => '照片';
+
+  @override
+  String get helpContactEditPhotoBody =>
+      '点按顶部的圆圈，可选择照片、拍照或移除照片。照片会显示在联系人页面和列表中。';
+
+  @override
   String get helpContactEditFieldsTitle => '电话、邮箱和地址';
 
   @override
