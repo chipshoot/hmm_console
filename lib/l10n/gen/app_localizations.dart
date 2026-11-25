@@ -9511,6 +9511,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep data local'**
   String get loginOtherAccountKeepLocal;
+
+  /// No description provided for @settingsProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get settingsProfile;
+
+  /// No description provided for @settingsProfileCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create my card'**
+  String get settingsProfileCreate;
 }
 
 class _AppLocalizationsDelegate

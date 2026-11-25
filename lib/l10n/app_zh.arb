@@ -1615,5 +1615,7 @@
   "loginOtherAccountTitle": "不同的 Hmm 账户",
   "loginOtherAccountBody": "本设备的数据属于 {account}。请用该账户登录，或将本设备数据保留在本地。",
   "loginOtherAccountSignInAs": "用该账户登录",
-  "loginOtherAccountKeepLocal": "保留在本地"
+  "loginOtherAccountKeepLocal": "保留在本地",
+  "settingsProfile": "个人资料",
+  "settingsProfileCreate": "创建我的名片"
 }

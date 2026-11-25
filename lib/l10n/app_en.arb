@@ -2323,5 +2323,7 @@
   "loginOtherAccountBody": "This device's data belongs to {account}. Sign in as that account, or keep this device's data local.",
   "@loginOtherAccountBody": { "placeholders": { "account": { "type": "String" } } },
   "loginOtherAccountSignInAs": "Sign in as that account",
-  "loginOtherAccountKeepLocal": "Keep data local"
+  "loginOtherAccountKeepLocal": "Keep data local",
+  "settingsProfile": "Profile",
+  "settingsProfileCreate": "Create my card"
 }

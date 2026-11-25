@@ -5488,4 +5488,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginOtherAccountKeepLocal => 'Keep data local';
+
+  @override
+  String get settingsProfile => 'Profile';
+
+  @override
+  String get settingsProfileCreate => 'Create my card';
 }

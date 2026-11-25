@@ -5239,4 +5239,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get loginOtherAccountKeepLocal => '保留在本地';
+
+  @override
+  String get settingsProfile => '个人资料';
+
+  @override
+  String get settingsProfileCreate => '创建我的名片';
 }

@@ -30,6 +30,7 @@ import '../../../receipt_scan/presentation/receipt_extraction_settings_section.d
 import '../widgets/calendar_settings_section.dart';
 import '../widgets/data_mode_dropdown.dart';
 import '../widgets/hmm_account_section.dart';
+import '../widgets/profile_row.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../widgets/secure_vault_section.dart';
 import '../widgets/sync_status_card.dart';
@@ -281,6 +282,7 @@ class SettingsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const ProfileRow(),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.apps),

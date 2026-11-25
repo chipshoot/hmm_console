@@ -22,7 +22,9 @@ final contactRoutes = <RouteBase>[
       GoRoute(
         path: 'new',
         name: RouterNames.contactCreate.name,
-        builder: (context, state) => const ContactEditScreen(),
+        builder: (context, state) => ContactEditScreen(
+          selfCard: state.uri.queryParameters['self'] == '1',
+        ),
       ),
       GoRoute(
         path: ':id',

@@ -26,9 +26,12 @@ import 'contact_detail_screen.dart' show contactByIdProvider;
 /// Create ([contactId] null) or edit one contact. After a successful save it
 /// pops: to the list when creating, to the detail screen when editing.
 class ContactEditScreen extends ConsumerStatefulWidget {
-  const ContactEditScreen({super.key, this.contactId});
+  const ContactEditScreen({super.key, this.contactId, this.selfCard = false});
 
   final String? contactId;
+
+  /// A new contact starts with "This is me" on (Settings -> Profile).
+  final bool selfCard;
 
   @override
   ConsumerState<ContactEditScreen> createState() => _ContactEditScreenState();
@@ -44,8 +47,12 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
   Widget build(BuildContext context) {
     final id = widget.contactId;
     if (id == null) {
-      return const _ContactForm(
-        initial: Contact(id: '', contactType: ContactType.person),
+      return _ContactForm(
+        initial: Contact(
+          id: '',
+          contactType: ContactType.person,
+          isSelf: widget.selfCard,
+        ),
         isCreate: true,
       );
     }
