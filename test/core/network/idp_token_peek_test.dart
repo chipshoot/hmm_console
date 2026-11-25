@@ -67,21 +67,28 @@ void main() {
     expect(await service.peekStoredSub(), isNull);
   });
 
-  test('an undecodable token throws TokenPeekException', () async {
+  test('an undecodable token reads as no token (it never becomes '
+      'decodable)', () async {
     await storage.saveTokens(
       accessToken: 'garbage',
       refreshToken: 'r',
       expiry: DateTime.now(),
     );
-    await expectLater(
-      service.peekStoredSub(),
-      throwsA(isA<TokenPeekException>()),
-    );
-    await expectLater(
-      service.peekStoredEmail(),
-      throwsA(isA<TokenPeekException>()),
-    );
+    expect(await service.peekStoredSub(), isNull);
+    expect(await service.peekStoredEmail(), isNull);
   });
+
+  test(
+    'a token whose payload is not a JSON object reads as no token',
+    () async {
+      await storage.saveTokens(
+        accessToken: 'a.${base64Url.encode(utf8.encode('[1]'))}.c',
+        refreshToken: 'r',
+        expiry: DateTime.now(),
+      );
+      expect(await service.peekStoredSub(), isNull);
+    },
+  );
 
   test('a storage read failure throws TokenPeekException', () async {
     final broken = IdpTokenService(

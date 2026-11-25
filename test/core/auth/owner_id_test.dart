@@ -5,8 +5,11 @@ import 'package:hmm_console/core/auth/owner_id.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_author_repository.dart';
+import 'package:hmm_console/core/network/idp_config.dart';
 import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../helpers/mock_token_storage.dart';
 
 class _FakeAuthors implements IAuthorRepository {
   _FakeAuthors(this.rows);
@@ -94,6 +97,31 @@ void main() {
     expect(store.linkedHmmSub, isNull);
   });
 
+  test('an undecodable stored token falls through to the author row and '
+      'persists', () async {
+    final idp = IdpTokenService(
+      tokenStorage: _GarbageTokenStorage(),
+      config: const IdpConfig(
+        authority: 'https://idp.test',
+        clientId: 'c',
+        clientSecret: '',
+        scopes: 'openid',
+      ),
+    );
+    final id = await resolveOwnerId(
+      store: store,
+      signedInSub: null,
+      peekStoredSub: idp.peekStoredSub,
+      peekStoredEmail: idp.peekStoredEmail,
+      authors: _FakeAuthors([_author(1, 'ROW')]),
+      noteCountsByAuthor: () async => const {},
+      newId: () => 'NEW',
+    );
+    expect(id, 'ROW');
+    expect(store.ownerId, 'ROW');
+    expect(store.linkedHmmSub, isNull);
+  });
+
   test('an absent token falls through to the author row', () async {
     expect(await resolve(rows: [_author(1, 'ROW')]), 'ROW');
     expect(store.ownerId, 'ROW');
@@ -165,4 +193,9 @@ void main() {
 class _CloudApiMode extends DataModeNotifier {
   @override
   DataMode build() => DataMode.cloudApi;
+}
+
+class _GarbageTokenStorage extends MockTokenStorage {
+  @override
+  Future<String?> getAccessToken() async => 'not-a-jwt';
 }

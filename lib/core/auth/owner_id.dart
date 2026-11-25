@@ -55,9 +55,10 @@ class OwnerIdStore {
 /// Resolves the device owner id, storing it on first use. Order: stored id,
 /// signed-in sub, sub of the stored (possibly expired) token, the active
 /// author row (most notes wins, ties to the lowest id), else a new UUID.
-/// Only a token sub links the device to a Hmm account. A failed token peek
-/// ([TokenPeekException]) propagates and nothing is stored, so the next read
-/// tries again instead of persisting a fallback id.
+/// Only a token sub links the device to a Hmm account. A secure-storage
+/// read failure ([TokenPeekException]) propagates and nothing is stored, so
+/// the next read tries again instead of persisting a fallback id; an
+/// undecodable token counts as no token.
 Future<String> resolveOwnerId({
   required OwnerIdStore store,
   required String? signedInSub,

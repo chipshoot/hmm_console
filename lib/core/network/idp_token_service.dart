@@ -6,8 +6,9 @@ import 'idp_config.dart';
 import 'jwt_utils.dart';
 import 'token_storage.dart';
 
-/// Reading or decoding the stored access token failed (not: no token).
-/// Callers that persist something derived from the token must not fall back.
+/// Reading the stored access token from secure storage failed (not: no
+/// token, nor an undecodable one). It may succeed later, so callers that
+/// persist something derived from the token must not fall back.
 class TokenPeekException implements Exception {
   const TokenPeekException(this.cause);
   final Object cause;
@@ -251,8 +252,8 @@ class IdpTokenService {
   }
 
   /// `sub` of the stored access token, expired or not. Never refreshes and
-  /// never touches the network; null when no token is stored. Throws
-  /// [TokenPeekException] when the token cannot be read or decoded.
+  /// never touches the network; null when no decodable token is stored.
+  /// Throws [TokenPeekException] when secure storage cannot be read.
   Future<String?> peekStoredSub() => _peekClaim('sub');
 
   /// `email` of the stored access token, same rules as [peekStoredSub].
@@ -263,9 +264,10 @@ class IdpTokenService {
   Future<bool> hasHmmSession() async =>
       await _tokenStorage.getRefreshToken() != null;
 
-  /// Null when no token is stored or it lacks the claim. Throws
-  /// [TokenPeekException] when the token cannot be read or decoded, so a
-  /// caller never mistakes a failure for "signed out".
+  /// Null when no token is stored, it lacks the claim, or it cannot be
+  /// decoded (a corrupt token never becomes decodable, so it counts as no
+  /// token). Throws [TokenPeekException] only when reading secure storage
+  /// fails, which may succeed later: callers must not persist a fallback.
   Future<String?> _peekClaim(String name) async {
     final String? token;
     try {
@@ -277,8 +279,8 @@ class IdpTokenService {
     final Object? value;
     try {
       value = decodeJwtPayload(token)[name];
-    } catch (e) {
-      throw TokenPeekException(e);
+    } catch (_) {
+      return null;
     }
     return value is String && value.isNotEmpty ? value : null;
   }
