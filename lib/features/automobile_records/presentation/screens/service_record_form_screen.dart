@@ -19,6 +19,7 @@ import '../../../../core/data/attachments/picker/image_byte_source.dart';
 import '../../../../core/data/attachments/resolver/attachment_resolver.dart';
 import '../../../../core/data/attachments/widgets/attachments_section.dart';
 import '../../../../core/data/data_mode.dart';
+import '../../../auth/presentation/hmm_sign_in_sheet.dart';
 import '../../../receipt_scan/domain/apply_draft.dart';
 import '../../../receipt_scan/domain/receipt_draft.dart';
 import '../../../receipt_scan/presentation/scan_receipt_flow.dart';
@@ -442,6 +443,12 @@ class _ServiceRecordFormScreenState
   }
 
   Future<void> _scanReceipt(_ScanSource source) async {
+    if (ref.read(receiptExtractorModeProvider) ==
+        ReceiptExtractorMode.cloudAi) {
+      final ok = await ensureHmmSignedIn(context, ref,
+          feature: AppLocalizations.of(context).hmmFeatureReceiptScan);
+      if (!ok || !mounted) return;
+    }
     final Uint8List bytes;
     final String contentType;
     if (source == _ScanSource.pdf) {

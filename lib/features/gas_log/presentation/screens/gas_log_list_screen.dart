@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/screen_scaffold.dart';
+import '../../../auth/presentation/hmm_sign_in_sheet.dart';
 import '../../domain/entities/gas_log.dart';
 import '../../domain/services/gas_log_converter.dart';
 import '../../../settings/providers/gas_log_settings_provider.dart';
@@ -57,7 +58,30 @@ class GasLogListScreen extends ConsumerWidget {
               ref.read(gasLogsStateProvider.notifier).refresh(),
         ),
       ],
-      child: Stack(
+      child: Column(
+        children: [
+          if (rateAsync.error is HmmSignInRequired)
+            Material(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: InkWell(
+                onTap: () async {
+                  final ok = await ensureHmmSignedIn(context, ref,
+                      feature: l.hmmFeatureExchangeRates);
+                  if (ok) ref.invalidate(exchangeRateProvider);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.currency_exchange, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(l.gasLogRatesNeedSignIn)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Expanded(child: Stack(
         children: [
           gasLogsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator.adaptive()),
@@ -142,6 +166,8 @@ class GasLogListScreen extends ConsumerWidget {
           ),
           // No FAB: creating a gas log now lives in the Quick Access Panel,
           // which surfaces "New Gas Log" while you're on this screen.
+        ],
+      )),
         ],
       ),
     );

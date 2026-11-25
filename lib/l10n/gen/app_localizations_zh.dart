@@ -5182,4 +5182,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get helpHomeScreenSettingsLastBody => '唯一可见的图标无法关闭，因此主屏幕不会变空。';
+
+  @override
+  String hmmSignInSheetTitle(String feature) {
+    return '登录 Hmm 以使用$feature';
+  }
+
+  @override
+  String get hmmSignInSheetBody => '你的数据仍保存在本设备上。登录只用于开启此功能。';
+
+  @override
+  String get hmmSignInAction => '登录';
+
+  @override
+  String get hmmFeatureReceiptScan => '云端 AI 扫描收据';
+
+  @override
+  String get hmmFeatureAddressLookup => '地址查询';
+
+  @override
+  String get hmmFeatureExchangeRates => '汇率';
+
+  @override
+  String get hmmFeatureCloud => 'Hmm 云';
+
+  @override
+  String get gasLogRatesNeedSignIn => '登录 Hmm 以换算货币';
 }

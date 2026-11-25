@@ -5428,4 +5428,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get helpHomeScreenSettingsLastBody =>
       'The only visible tile cannot be turned off, so the home screen is never empty.';
+
+  @override
+  String hmmSignInSheetTitle(String feature) {
+    return 'Sign in to Hmm to use $feature';
+  }
+
+  @override
+  String get hmmSignInSheetBody =>
+      'Your data stays on this device. Signing in only unlocks this feature.';
+
+  @override
+  String get hmmSignInAction => 'Sign in';
+
+  @override
+  String get hmmFeatureReceiptScan => 'Cloud AI receipt scan';
+
+  @override
+  String get hmmFeatureAddressLookup => 'address lookup';
+
+  @override
+  String get hmmFeatureExchangeRates => 'exchange rates';
+
+  @override
+  String get hmmFeatureCloud => 'Hmm cloud';
+
+  @override
+  String get gasLogRatesNeedSignIn => 'Sign in to Hmm to convert currencies';
 }

@@ -1597,5 +1597,13 @@
   "helpHomeScreenSettingsSwitchTitle": "图标开关",
   "helpHomeScreenSettingsSwitchBody": "关闭开关会把图标从主屏幕隐藏，打开则重新显示。隐藏的功能仍可在主屏幕搜索中输入 / 打开。",
   "helpHomeScreenSettingsLastTitle": "最后一个图标",
-  "helpHomeScreenSettingsLastBody": "唯一可见的图标无法关闭，因此主屏幕不会变空。"
+  "helpHomeScreenSettingsLastBody": "唯一可见的图标无法关闭，因此主屏幕不会变空。",
+  "hmmSignInSheetTitle": "登录 Hmm 以使用{feature}",
+  "hmmSignInSheetBody": "你的数据仍保存在本设备上。登录只用于开启此功能。",
+  "hmmSignInAction": "登录",
+  "hmmFeatureReceiptScan": "云端 AI 扫描收据",
+  "hmmFeatureAddressLookup": "地址查询",
+  "hmmFeatureExchangeRates": "汇率",
+  "hmmFeatureCloud": "Hmm 云",
+  "gasLogRatesNeedSignIn": "登录 Hmm 以换算货币"
 }

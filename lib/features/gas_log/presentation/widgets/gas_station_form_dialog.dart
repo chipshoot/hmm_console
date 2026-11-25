@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../auth/presentation/hmm_sign_in_sheet.dart';
 import '../../../geocoding/data/repositories/geocoding_repository.dart';
 import '../../domain/entities/gas_station.dart';
 import '../../providers/location_provider.dart';
@@ -80,7 +81,18 @@ class _GasStationFormDialogState extends ConsumerState<GasStationFormDialog> {
           _longitude = position.longitude;
         });
 
-        // Reverse geocode to auto-fill address fields
+        // Reverse geocode to auto-fill address fields (needs a Hmm session)
+        final signedIn = await ensureHmmSignedIn(context, ref,
+            feature: l.hmmFeatureAddressLookup);
+        if (!signedIn) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l.stationLocationNoAddress)),
+            );
+          }
+          return;
+        }
+        if (!mounted) return;
         try {
           final geocoding = ref.read(geocodingRepositoryProvider);
           final address = await geocoding.reverseGeocode(

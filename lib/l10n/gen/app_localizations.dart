@@ -9409,6 +9409,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The only visible tile cannot be turned off, so the home screen is never empty.'**
   String get helpHomeScreenSettingsLastBody;
+
+  /// No description provided for @hmmSignInSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to Hmm to use {feature}'**
+  String hmmSignInSheetTitle(String feature);
+
+  /// No description provided for @hmmSignInSheetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data stays on this device. Signing in only unlocks this feature.'**
+  String get hmmSignInSheetBody;
+
+  /// No description provided for @hmmSignInAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get hmmSignInAction;
+
+  /// No description provided for @hmmFeatureReceiptScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud AI receipt scan'**
+  String get hmmFeatureReceiptScan;
+
+  /// No description provided for @hmmFeatureAddressLookup.
+  ///
+  /// In en, this message translates to:
+  /// **'address lookup'**
+  String get hmmFeatureAddressLookup;
+
+  /// No description provided for @hmmFeatureExchangeRates.
+  ///
+  /// In en, this message translates to:
+  /// **'exchange rates'**
+  String get hmmFeatureExchangeRates;
+
+  /// No description provided for @hmmFeatureCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Hmm cloud'**
+  String get hmmFeatureCloud;
+
+  /// No description provided for @gasLogRatesNeedSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to Hmm to convert currencies'**
+  String get gasLogRatesNeedSignIn;
 }
 
 class _AppLocalizationsDelegate

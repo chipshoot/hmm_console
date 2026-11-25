@@ -2297,5 +2297,20 @@
   "helpHomeScreenSettingsSwitchTitle": "Tile switch",
   "helpHomeScreenSettingsSwitchBody": "Turn a tile off to hide it from the home screen, or on to show it again. Hidden features can still be opened from the home search by typing /.",
   "helpHomeScreenSettingsLastTitle": "The last tile",
-  "helpHomeScreenSettingsLastBody": "The only visible tile cannot be turned off, so the home screen is never empty."
+  "helpHomeScreenSettingsLastBody": "The only visible tile cannot be turned off, so the home screen is never empty.",
+  "hmmSignInSheetTitle": "Sign in to Hmm to use {feature}",
+  "@hmmSignInSheetTitle": {
+    "placeholders": {
+      "feature": {
+        "type": "String"
+      }
+    }
+  },
+  "hmmSignInSheetBody": "Your data stays on this device. Signing in only unlocks this feature.",
+  "hmmSignInAction": "Sign in",
+  "hmmFeatureReceiptScan": "Cloud AI receipt scan",
+  "hmmFeatureAddressLookup": "address lookup",
+  "hmmFeatureExchangeRates": "exchange rates",
+  "hmmFeatureCloud": "Hmm cloud",
+  "gasLogRatesNeedSignIn": "Sign in to Hmm to convert currencies"
 }
