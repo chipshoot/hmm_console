@@ -2,11 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/auth/current_author_account_name_provider.dart';
 import 'package:hmm_console/core/auth/owner_id.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_hmm_note_repository.dart';
+import 'package:hmm_console/core/data/sync/onedrive_auth.dart';
 import 'package:hmm_console/core/data/sync/onedrive_graph_client.dart';
 import 'package:hmm_console/core/data/sync/onedrive_owner_folder.dart';
 import 'package:hmm_console/core/data/sync/onedrive_sync_provider.dart';
@@ -173,6 +175,68 @@ void main() {
     expect(choice!.map((f) => f.name), ['IPHONE', 'IPAD']);
     expect(choice.first.modified, DateTime.utc(2026, 11, 1, 10));
     expect(store.ownerId, 'NEW');
+  });
+
+  test('after reset(), a single foreign folder on a newly signed-in '
+      'account is adopted', () async {
+    await setUpWith(ownerId: 'NEW');
+    final authorId = await insertAuthor('NEW');
+    // First (wrong) Microsoft account: no folders → the owner id.
+    ownFolder('NEW', exists: false);
+    listing([]);
+    final folder = container.read(oneDriveOwnerFolderProvider);
+    expect(await folder.resolve(), 'NEW');
+
+    // Signed out and in to the right account, which holds the iPhone's
+    // folder (a fresh mock adapter stands in for the other account).
+    adapter = DioAdapter(dio: dio);
+    ownFolder('NEW', exists: false);
+    listing([_folder('IPHONE')]);
+    container.read(oneDriveFolderChoiceProvider.notifier).set([]);
+    folder.reset();
+
+    expect(await folder.resolve(), 'IPHONE');
+    expect(store.ownerId, 'IPHONE');
+    final row = await (db.select(
+      db.authors,
+    )..where((a) => a.id.equals(authorId))).getSingle();
+    expect(row.accountName, 'IPHONE');
+    expect(container.read(oneDriveFolderChoiceProvider), isNull);
+  });
+
+  test('OneDrive sign-out through oneDriveAuthProvider resets the folder, '
+      'so the next account\'s single folder is adopted', () async {
+    FlutterSecureStorage.setMockInitialValues({});
+    await setUpWith(ownerId: 'NEW');
+    await insertAuthor('NEW');
+    ownFolder('NEW', exists: false);
+    listing([]);
+    final folder = container.read(oneDriveOwnerFolderProvider);
+    expect(await folder.resolve(), 'NEW');
+
+    await container.read(oneDriveAuthProvider).signOut();
+    adapter = DioAdapter(dio: dio);
+    ownFolder('NEW', exists: false);
+    listing([_folder('IPHONE')]);
+
+    expect(await folder.resolve(), 'IPHONE');
+  });
+
+  test('reset() clears a pending folder choice', () async {
+    await setUpWith(ownerId: 'NEW');
+    await insertAuthor('NEW');
+    ownFolder('NEW', exists: false);
+    listing([_folder('IPHONE'), _folder('IPAD')]);
+    final folder = container.read(oneDriveOwnerFolderProvider);
+    await expectLater(
+      folder.resolve(),
+      throwsA(isA<OneDriveFolderChoiceRequired>()),
+    );
+    expect(container.read(oneDriveFolderChoiceProvider), isNotNull);
+
+    folder.reset();
+
+    expect(container.read(oneDriveFolderChoiceProvider), isNull);
   });
 
   test('choose(name) adopts and clears the choice', () async {

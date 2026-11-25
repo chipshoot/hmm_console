@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import 'onedrive_config.dart';
+import 'onedrive_owner_folder.dart';
 
 class OneDriveAuthException implements Exception {
   const OneDriveAuthException(this.message);
@@ -47,13 +48,20 @@ class OneDriveAuth {
     Dio? dio,
     FlutterSecureStorage? storage,
     WebAuthRunner? webAuthRunner,
+    void Function()? onAccountChanged,
   })  : _dio = dio ?? Dio(),
         _storage = storage ?? const FlutterSecureStorage(),
-        _runWebAuth = webAuthRunner ?? _defaultWebAuthRunner;
+        _runWebAuth = webAuthRunner ?? _defaultWebAuthRunner,
+        _onAccountChanged = onAccountChanged;
 
   final Dio _dio;
   final FlutterSecureStorage _storage;
   final WebAuthRunner _runWebAuth;
+
+  /// Called after every successful sign-in and every sign-out (including the
+  /// one a failed refresh does): the Microsoft account may have changed, so
+  /// anything resolved against the old one must be forgotten.
+  final void Function()? _onAccountChanged;
 
   /// Production runner — thin proxy to `FlutterWebAuth2.authenticate`. Kept
   /// as a `static` so unit tests don't have to construct it.
@@ -165,6 +173,7 @@ class OneDriveAuth {
       print('[OneDrive] step2=token done');
 
       await _persistTokenResponse(response.data);
+      _onAccountChanged?.call();
     } on OneDriveAuthException {
       rethrow;
     } on PlatformException catch (e) {
@@ -195,6 +204,7 @@ class OneDriveAuth {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _expiryKey);
+    _onAccountChanged?.call();
   }
 
   /// Returns a valid access token, refreshing if needed. Null when the user
@@ -294,7 +304,13 @@ class OneDriveAuth {
   }
 }
 
-final oneDriveAuthProvider = Provider<OneDriveAuth>((ref) => OneDriveAuth());
+final oneDriveAuthProvider = Provider<OneDriveAuth>(
+  (ref) => OneDriveAuth(
+    // Another Microsoft account holds other owner folders: a folder resolved
+    // on the old account must not be reused on the new one.
+    onAccountChanged: () => ref.read(oneDriveOwnerFolderProvider).reset(),
+  ),
+);
 
 /// Reactive "is the user signed in to OneDrive?" signal for the UI.
 /// Invalidate this after calling `signIn`/`signOut` to refresh consumers.

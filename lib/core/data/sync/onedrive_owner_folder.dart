@@ -48,6 +48,15 @@ class OneDriveOwnerFolder {
     });
   }
 
+  /// Forgets the resolved folder and any pending folder choice. Call on
+  /// every OneDrive sign-in and sign-out: another Microsoft account holds
+  /// other folders, and a folder resolved on the old account must not be
+  /// reused on the new one.
+  void reset() {
+    _resolved = null;
+    _ref.read(oneDriveFolderChoiceProvider.notifier).clear();
+  }
+
   /// Uses the folder [name] from now on.
   Future<void> choose(String name) async {
     await _adopt(name);

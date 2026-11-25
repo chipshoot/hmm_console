@@ -188,6 +188,69 @@ void main() {
   });
 
   // =========================================================================
+  // onAccountChanged — fired on every sign-in and sign-out
+  // =========================================================================
+  group('onAccountChanged', () {
+    test('fires after a successful signIn', () async {
+      var calls = 0;
+      final auth = OneDriveAuth(
+        dio: dio,
+        storage: storage,
+        webAuthRunner: _replayRunnerWithStubCode(),
+        onAccountChanged: () => calls++,
+      );
+      _stubTokenSuccess(adapter);
+
+      await auth.signIn();
+
+      expect(calls, 1);
+    });
+
+    test('does not fire when signIn fails', () async {
+      var calls = 0;
+      final auth = OneDriveAuth(
+        dio: dio,
+        storage: storage,
+        webAuthRunner: ({required url, required callbackUrlScheme}) =>
+            throw PlatformException(code: 'CANCELED'),
+        onAccountChanged: () => calls++,
+      );
+
+      await expectLater(auth.signIn(), throwsA(isA<OneDriveAuthException>()));
+
+      expect(calls, 0);
+    });
+
+    test('fires on signOut, including the one a failed refresh does',
+        () async {
+      var calls = 0;
+      final auth = OneDriveAuth(
+        dio: dio,
+        storage: storage,
+        webAuthRunner: ({required url, required callbackUrlScheme}) =>
+            throw StateError('runner must not be called'),
+        onAccountChanged: () => calls++,
+      );
+      await auth.signOut();
+      expect(calls, 1);
+
+      await _seedTokens(
+        storage,
+        access: 'OLD-AT',
+        refresh: 'REVOKED-RT',
+        expiry: DateTime.now().toUtc().subtract(const Duration(minutes: 1)),
+      );
+      adapter.onPost(
+        tokenEndpoint,
+        (server) => server.reply(400, {'error': 'invalid_grant'}),
+        data: Matchers.any,
+      );
+      expect(await auth.getAccessToken(), isNull);
+      expect(calls, 2);
+    });
+  });
+
+  // =========================================================================
   // signIn — callback validation errors
   // =========================================================================
   group('signIn callback validation', () {
