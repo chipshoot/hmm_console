@@ -2312,5 +2312,11 @@
   "hmmFeatureAddressLookup": "address lookup",
   "hmmFeatureExchangeRates": "exchange rates",
   "hmmFeatureCloud": "Hmm cloud",
-  "gasLogRatesNeedSignIn": "Sign in to Hmm to convert currencies"
+  "gasLogRatesNeedSignIn": "Sign in to Hmm to convert currencies",
+  "settingsHmmAccount": "Hmm account",
+  "settingsHmmSignedInAs": "Signed in as {email}",
+  "@settingsHmmSignedInAs": { "placeholders": { "email": { "type": "String" } } },
+  "settingsHmmNotSignedIn": "Not signed in. Only needed for Hmm cloud and server features.",
+  "settingsHmmSignOut": "Sign out",
+  "settingsHmmSignedOut": "Signed out of Hmm. Your data stays on this device."
 }

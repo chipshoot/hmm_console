@@ -9457,6 +9457,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign in to Hmm to convert currencies'**
   String get gasLogRatesNeedSignIn;
+
+  /// No description provided for @settingsHmmAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Hmm account'**
+  String get settingsHmmAccount;
+
+  /// No description provided for @settingsHmmSignedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {email}'**
+  String settingsHmmSignedInAs(String email);
+
+  /// No description provided for @settingsHmmNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in. Only needed for Hmm cloud and server features.'**
+  String get settingsHmmNotSignedIn;
+
+  /// No description provided for @settingsHmmSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get settingsHmmSignOut;
+
+  /// No description provided for @settingsHmmSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed out of Hmm. Your data stays on this device.'**
+  String get settingsHmmSignedOut;
 }
 
 class _AppLocalizationsDelegate

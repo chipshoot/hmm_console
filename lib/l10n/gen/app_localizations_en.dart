@@ -5455,4 +5455,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gasLogRatesNeedSignIn => 'Sign in to Hmm to convert currencies';
+
+  @override
+  String get settingsHmmAccount => 'Hmm account';
+
+  @override
+  String settingsHmmSignedInAs(String email) {
+    return 'Signed in as $email';
+  }
+
+  @override
+  String get settingsHmmNotSignedIn =>
+      'Not signed in. Only needed for Hmm cloud and server features.';
+
+  @override
+  String get settingsHmmSignOut => 'Sign out';
+
+  @override
+  String get settingsHmmSignedOut =>
+      'Signed out of Hmm. Your data stays on this device.';
 }

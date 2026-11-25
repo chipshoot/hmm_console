@@ -5208,4 +5208,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gasLogRatesNeedSignIn => '登录 Hmm 以换算货币';
+
+  @override
+  String get settingsHmmAccount => 'Hmm 账户';
+
+  @override
+  String settingsHmmSignedInAs(String email) {
+    return '已登录：$email';
+  }
+
+  @override
+  String get settingsHmmNotSignedIn => '未登录。仅 Hmm 云和服务器功能需要登录。';
+
+  @override
+  String get settingsHmmSignOut => '退出登录';
+
+  @override
+  String get settingsHmmSignedOut => '已退出 Hmm。你的数据仍保存在本设备上。';
 }

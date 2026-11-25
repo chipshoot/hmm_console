@@ -16,6 +16,7 @@ import '../../providers/intro_card_provider.dart';
 import '../../../settings/providers/home_hidden_tiles_provider.dart';
 import '../widgets/defaults_intro_card.dart';
 import '../../../../core/data/data_mode.dart';
+import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/data/sync/sync_indicator_state.dart';
 import '../../../../core/data/sync/widgets/sync_status_dot.dart';
@@ -370,7 +371,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final status = controller.status;
     final state = syncIndicatorStateFor(status, ref.read(dataModeProvider));
     final auth = isAuthFailure(status);
-    final email = ref.read(currentUserProvider)?.email ?? '';
+    final email = ref.read(currentUserProvider)?.email;
+    final title = email == null ? null : l.syncSheetSignedInAs(email);
     // No cloud, no sync line and no sync action — the sheet is just Settings
     // and Sign out, as before.
     final hasCloud = state != SyncIndicatorState.none;
@@ -383,7 +385,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // retry: an expired sign-in gets "Sign in again", because a retry would
     // fail exactly the same way.
     final Future<void> Function() firstAction = auth
-        ? () async => ref.read(signOutUseCaseProvider).signOut()
+        ? () async {
+            // cloudStorage failures are OneDrive sign-ins, not the Hmm one.
+            if (ref.read(dataModeProvider) == DataMode.cloudStorage) {
+              await ref.read(oneDriveAuthProvider).signIn();
+              ref.invalidate(oneDriveAuthStateProvider);
+            } else {
+              await ref.read(signOutUseCaseProvider).signOut();
+            }
+          }
         : () async {
             final proceed = await confirmManualSyncIfOnCellular(context, ref);
             if (!proceed) return;
@@ -395,7 +405,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       showCupertinoModalPopup(
         context: context,
         builder: (ctx) => CupertinoActionSheet(
-          title: Text(l.syncSheetSignedInAs(email)),
+          title: title == null ? null : Text(title),
           message: hasCloud ? Text(statusLine) : null,
           actions: [
             if (hasCloud)
@@ -413,14 +423,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 context.push('/settings');
               },
               child: Text(l.dashboardSettings),
-            ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.pop(ctx);
-                ref.read(signOutUseCaseProvider).signOut();
-              },
-              child: Text(l.dashboardSignOut),
             ),
           ],
           cancelButton: CupertinoActionSheetAction(
@@ -453,10 +455,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  l.syncSheetSignedInAs(email),
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
+                if (title != null)
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
                 if (hasCloud)
                   Text(
                     statusLine,
@@ -487,16 +490,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
-          PopupMenuItem(
-            value: 'sign_out',
-            child: Row(
-              children: [
-                Icon(Icons.logout, size: 20),
-                SizedBox(width: 12),
-                Text(l.dashboardSignOut),
-              ],
-            ),
-          ),
         ],
       );
       if (!mounted) return;
@@ -504,8 +497,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         await firstAction();
       } else if (value == 'settings') {
         context.push('/settings');
-      } else if (value == 'sign_out') {
-        ref.read(signOutUseCaseProvider).signOut();
       }
     }
   }

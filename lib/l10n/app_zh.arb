@@ -1605,5 +1605,11 @@
   "hmmFeatureAddressLookup": "地址查询",
   "hmmFeatureExchangeRates": "汇率",
   "hmmFeatureCloud": "Hmm 云",
-  "gasLogRatesNeedSignIn": "登录 Hmm 以换算货币"
+  "gasLogRatesNeedSignIn": "登录 Hmm 以换算货币",
+  "settingsHmmAccount": "Hmm 账户",
+  "settingsHmmSignedInAs": "已登录：{email}",
+  "@settingsHmmSignedInAs": { "placeholders": { "email": { "type": "String" } } },
+  "settingsHmmNotSignedIn": "未登录。仅 Hmm 云和服务器功能需要登录。",
+  "settingsHmmSignOut": "退出登录",
+  "settingsHmmSignedOut": "已退出 Hmm。你的数据仍保存在本设备上。"
 }

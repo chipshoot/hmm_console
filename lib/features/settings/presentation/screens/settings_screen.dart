@@ -28,6 +28,8 @@ import '../../../../core/widgets/quick_panel/quick_panel_settings.dart';
 import '../../../calendar/notifications/notification_gateway.dart';
 import '../../../receipt_scan/presentation/receipt_extraction_settings_section.dart';
 import '../widgets/calendar_settings_section.dart';
+import '../widgets/data_mode_dropdown.dart';
+import '../widgets/hmm_account_section.dart';
 import '../../../../core/widgets/gaps.dart';
 import '../widgets/secure_vault_section.dart';
 import '../widgets/sync_status_card.dart';
@@ -404,6 +406,7 @@ class SettingsScreen extends ConsumerWidget {
               const Divider(),
               GapWidgets.h24,
             ],
+            const HmmAccountSection(),
             Text(
               l.settingsDataStorage,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -411,29 +414,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
             ),
             GapWidgets.h16,
-            DropdownButtonFormField<DataMode>(
-              initialValue: dataMode,
-              decoration: InputDecoration(
-                labelText: l.settingsStorageMode,
-                border: const OutlineInputBorder(),
-              ),
-              items: DataMode.values
-                  .map((m) => DropdownMenuItem(
-                        value: m,
-                        child: Text(m.displayName(l)),
-                      ))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) {
-                  ref.read(dataModeProvider.notifier).setMode(v);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(l.settingsSwitchedToMode(v.displayName(l))),
-                    ),
-                  );
-                }
-              },
-            ),
+            const DataModeDropdown(),
             GapWidgets.h8,
             Text(
               dataMode.describe(l),
