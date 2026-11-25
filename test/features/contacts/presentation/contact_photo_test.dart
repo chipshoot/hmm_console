@@ -276,12 +276,23 @@ void main() {
     ) async {
       await mount(
         tester,
-        bytes: _Bytes(error: const AttachmentPickerException('too big')),
+        // A real pick never throws; the size check at pick refuses it.
+        bytes: _Bytes(
+          result: PickedImageBytes(
+            bytes: Uint8List(kMaxAttachmentBytes + 1),
+            originalName: 'big.jpg',
+            contentType: 'image/jpeg',
+          ),
+        ),
       );
       await openSheet(tester);
       await tester.tap(find.text(_l.contactPhotoChoose));
       await tester.pumpAndSettle();
-      expect(find.text('too big'), findsOneWidget);
+      expect(
+        find.textContaining('max is $kMaxAttachmentBytes'),
+        findsOneWidget,
+      );
+      expect(_photoOfSize(tester, 120).pending, isNull);
       expect(find.byType(ContactEditScreen), findsOneWidget);
     });
 

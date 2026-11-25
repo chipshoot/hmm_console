@@ -37,10 +37,53 @@ const Set<String> _allowedContentTypes = {
 };
 
 /// Non-image file types accepted by [persistFileToVault] (Phase 3a).
-const Set<String> _allowedFileContentTypes = {
-  'application/pdf',
-  'audio/mp4',
-};
+const Set<String> _allowedFileContentTypes = {'application/pdf', 'audio/mp4'};
+
+/// The checks [IImageAttachmentPicker.persistToVault] applies to image
+/// bytes (not empty, at most [kMaxAttachmentBytes], an allowed type), run
+/// on their own so a form that holds a pick until save can refuse it at
+/// pick time. Returns the resolved content type; throws
+/// [AttachmentPickerException].
+String checkImageForVault({
+  required Uint8List bytes,
+  required String originalName,
+  String? contentTypeHint,
+}) {
+  if (bytes.lengthInBytes == 0) {
+    throw const AttachmentPickerException('empty file');
+  }
+  if (bytes.lengthInBytes > kMaxAttachmentBytes) {
+    throw AttachmentPickerException(
+      'file is ${bytes.lengthInBytes} bytes; max is $kMaxAttachmentBytes',
+    );
+  }
+  final contentType = _resolveContentType(originalName, contentTypeHint);
+  if (!_allowedContentTypes.contains(contentType)) {
+    throw AttachmentPickerException(
+      'content type "$contentType" not allowed; expected one of '
+      '$_allowedContentTypes',
+    );
+  }
+  return contentType;
+}
+
+String _resolveContentType(String originalName, String? hint) {
+  // Trust the hint if it's in the allow-list; otherwise infer from
+  // the file extension. Hint can be wrong (image_picker on Android
+  // has been known to claim "image/*"); the extension is the more
+  // reliable fallback.
+  if (hint != null && _allowedContentTypes.contains(hint)) return hint;
+  final ext = originalName.contains('.')
+      ? originalName.split('.').last.toLowerCase()
+      : '';
+  return switch (ext) {
+    'jpg' || 'jpeg' => 'image/jpeg',
+    'png' => 'image/png',
+    'heic' || 'heif' => 'image/heic',
+    'webp' => 'image/webp',
+    _ => hint ?? '',
+  };
+}
 
 abstract interface class IImageAttachmentPicker {
   /// Open the platform picker. Returns null if the user cancels.
@@ -98,8 +141,8 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
     required this.vaultStore,
     ImagePicker? picker,
     ImageDownsizer downsizer = const NoopImageDownsizer(),
-  })  : _picker = picker ?? ImagePicker(),
-        _downsizer = downsizer;
+  }) : _picker = picker ?? ImagePicker(),
+       _downsizer = downsizer;
 
   final IVaultStore vaultStore;
   final ImagePicker _picker;
@@ -140,28 +183,19 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
     String? contentTypeHint,
     bool sensitive = false,
   }) async {
-    if (bytes.lengthInBytes == 0) {
-      throw const AttachmentPickerException('empty file');
-    }
-    if (bytes.lengthInBytes > kMaxAttachmentBytes) {
-      throw AttachmentPickerException(
-        'file is ${bytes.lengthInBytes} bytes; max is $kMaxAttachmentBytes',
-      );
-    }
-
-    final inputContentType = _resolveContentType(originalName, contentTypeHint);
-    if (!_allowedContentTypes.contains(inputContentType)) {
-      throw AttachmentPickerException(
-        'content type "$inputContentType" not allowed; expected one of '
-        '$_allowedContentTypes',
-      );
-    }
+    final inputContentType = checkImageForVault(
+      bytes: bytes,
+      originalName: originalName,
+      contentTypeHint: contentTypeHint,
+    );
 
     // Downsize-on-copy: shrink before we persist. The downsizer may
     // transcode to JPEG, so the STORED bytes, content type, and
     // byteSize all come from its result — not the original pick.
-    final downsized =
-        await _downsizer.downsize(bytes, contentType: inputContentType);
+    final downsized = await _downsizer.downsize(
+      bytes,
+      contentType: inputContentType,
+    );
     final storedBytes = downsized.bytes;
     final storedContentType = downsized.contentType;
 
@@ -173,8 +207,11 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
             'note-$noteId',
             '${generateUuid()}.$ext',
           ]);
-    await vaultStore.putBytes(path, storedBytes,
-        contentType: storedContentType);
+    await vaultStore.putBytes(
+      path,
+      storedBytes,
+      contentType: storedContentType,
+    );
 
     return VaultRef(
       path: path,
@@ -228,31 +265,13 @@ class VaultImageAttachmentPicker implements IImageAttachmentPicker {
     );
   }
 
-  String _resolveContentType(String originalName, String? hint) {
-    // Trust the hint if it's in the allow-list; otherwise infer from
-    // the file extension. Hint can be wrong (image_picker on Android
-    // has been known to claim "image/*"); the extension is the more
-    // reliable fallback.
-    if (hint != null && _allowedContentTypes.contains(hint)) return hint;
-    final ext = originalName.contains('.')
-        ? originalName.split('.').last.toLowerCase()
-        : '';
-    return switch (ext) {
-      'jpg' || 'jpeg' => 'image/jpeg',
-      'png' => 'image/png',
-      'heic' || 'heif' => 'image/heic',
-      'webp' => 'image/webp',
-      _ => hint ?? '',
-    };
-  }
-
   String _extFor(String contentType) => switch (contentType) {
-        'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/heic' => 'heic',
-        'image/webp' => 'webp',
-        'application/pdf' => 'pdf',
-        'audio/mp4' => 'm4a',
-        _ => 'bin',
-      };
+    'image/jpeg' => 'jpg',
+    'image/png' => 'png',
+    'image/heic' => 'heic',
+    'image/webp' => 'webp',
+    'application/pdf' => 'pdf',
+    'audio/mp4' => 'm4a',
+    _ => 'bin',
+  };
 }

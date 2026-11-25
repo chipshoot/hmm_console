@@ -172,4 +172,41 @@ void main() {
       expect(all.single.photo, isNotNull);
     },
   );
+
+  test('a photo the picker refuses is rejected at pick, not at save', () async {
+    final repo = InMemoryContactRepository();
+    final picker = _FakePicker();
+    final huge = PickedImageBytes(
+      bytes: Uint8List(kMaxAttachmentBytes + 1),
+      originalName: 'big.jpg',
+      contentType: 'image/jpeg',
+    );
+    final c = _container(repo, picker, pick: huge);
+    final n = c.read(contactEditStateProvider(_new).notifier);
+
+    await expectLater(
+      n.pickPhoto(AttachmentPickSource.gallery),
+      throwsA(isA<AttachmentPickerException>()),
+    );
+    expect(c.read(contactEditStateProvider(_new)).pendingPhoto, isNull);
+    expect(await n.save(), isTrue);
+    expect(picker.calls, isEmpty);
+  });
+
+  test('an unsupported type is rejected at pick', () async {
+    final c = _container(
+      InMemoryContactRepository(),
+      _FakePicker(),
+      pick: PickedImageBytes(
+        bytes: Uint8List.fromList([1]),
+        originalName: 'anim.gif',
+        contentType: 'image/gif',
+      ),
+    );
+    final n = c.read(contactEditStateProvider(_new).notifier);
+    await expectLater(
+      n.pickPhoto(AttachmentPickSource.gallery),
+      throwsA(isA<AttachmentPickerException>()),
+    );
+  });
 }

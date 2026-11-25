@@ -86,6 +86,13 @@ class ContactEditState extends Notifier<ContactEditData> {
   Future<void> pickPhoto(AttachmentPickSource source) async {
     final picked = await ref.read(imageByteSourceProvider).pick(source);
     if (picked == null) return;
+    // Refuse now what persistToVault would refuse at save, so the user hears
+    // about the photo instead of a contact-save failure on every retry.
+    checkImageForVault(
+      bytes: picked.bytes,
+      originalName: picked.originalName,
+      contentTypeHint: picked.contentType,
+    );
     state = ContactEditData(
       contact: state.contact,
       nameError: state.nameError,
