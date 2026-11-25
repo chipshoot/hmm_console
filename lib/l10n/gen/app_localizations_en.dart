@@ -5474,4 +5474,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsHmmSignedOut =>
       'Signed out of Hmm. Your data stays on this device.';
+
+  @override
+  String get loginOtherAccountTitle => 'Different Hmm account';
+
+  @override
+  String loginOtherAccountBody(String account) {
+    return 'This device\'s data belongs to $account. Sign in as that account, or keep this device\'s data local.';
+  }
+
+  @override
+  String get loginOtherAccountSignInAs => 'Sign in as that account';
+
+  @override
+  String get loginOtherAccountKeepLocal => 'Keep data local';
 }

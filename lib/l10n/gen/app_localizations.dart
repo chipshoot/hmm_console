@@ -9487,6 +9487,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Signed out of Hmm. Your data stays on this device.'**
   String get settingsHmmSignedOut;
+
+  /// No description provided for @loginOtherAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Different Hmm account'**
+  String get loginOtherAccountTitle;
+
+  /// No description provided for @loginOtherAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This device\'s data belongs to {account}. Sign in as that account, or keep this device\'s data local.'**
+  String loginOtherAccountBody(String account);
+
+  /// No description provided for @loginOtherAccountSignInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in as that account'**
+  String get loginOtherAccountSignInAs;
+
+  /// No description provided for @loginOtherAccountKeepLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep data local'**
+  String get loginOtherAccountKeepLocal;
 }
 
 class _AppLocalizationsDelegate

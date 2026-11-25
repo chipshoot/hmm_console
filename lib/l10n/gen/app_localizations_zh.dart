@@ -5225,4 +5225,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsHmmSignedOut => '已退出 Hmm。你的数据仍保存在本设备上。';
+
+  @override
+  String get loginOtherAccountTitle => '不同的 Hmm 账户';
+
+  @override
+  String loginOtherAccountBody(String account) {
+    return '本设备的数据属于 $account。请用该账户登录，或将本设备数据保留在本地。';
+  }
+
+  @override
+  String get loginOtherAccountSignInAs => '用该账户登录';
+
+  @override
+  String get loginOtherAccountKeepLocal => '保留在本地';
 }

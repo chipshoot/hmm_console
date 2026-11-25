@@ -45,6 +45,6 @@ class _AuthRepository implements AuthRepository {
   }
 }
 
-final authRepositoryProvider = Provider<_AuthRepository>(
+final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => _AuthRepository(ref.watch(authRemoteDataSource)),
 );

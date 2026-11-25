@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/gen/app_localizations.dart';
@@ -10,6 +11,7 @@ import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:hmm_console/features/auth/presentation/widges/user_pass_form.dart';
 import 'package:hmm_console/features/auth/presentation/widges/welcome_text.dart';
 import 'package:hmm_console/features/auth/states/login_state.dart';
+import 'package:hmm_console/features/settings/presentation/widgets/hmm_account_section.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -33,6 +35,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showOtherAccountDialog(String account) async {
+    final l = AppLocalizations.of(context);
+    final isApple = Theme.of(context).platform == TargetPlatform.iOS;
+    final keepLocal = await showAdaptiveDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final title = Text(l.loginOtherAccountTitle);
+        final body = Text(l.loginOtherAccountBody(account));
+        final signInAs = isApple
+            ? CupertinoDialogAction(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l.loginOtherAccountSignInAs),
+              )
+            : TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l.loginOtherAccountSignInAs),
+              );
+        final keep = isApple
+            ? CupertinoDialogAction(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(l.loginOtherAccountKeepLocal),
+              )
+            : TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(l.loginOtherAccountKeepLocal),
+              );
+        return isApple
+            ? CupertinoAlertDialog(
+                title: title,
+                content: body,
+                actions: [signInAs, keep],
+              )
+            : AlertDialog(
+                title: title,
+                content: body,
+                actions: [signInAs, keep],
+              );
+      },
+    );
+    if (keepLocal != true || !mounted) return;
+    if (ref.read(dataModeProvider) == DataMode.cloudApi) {
+      await switchDataMode(context, ref, DataMode.local);
+      if (!mounted) return;
+    }
+    if (context.canPop()) {
+      context.pop(false);
+    } else {
+      context.go('/');
+    }
   }
 
   @override
@@ -62,6 +115,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         } else if (ref.read(dataModeProvider) != DataMode.cloudApi) {
           context.go('/');
         }
+      }
+      if (next.hasError && next.error is OtherHmmAccountException) {
+        _showOtherAccountDialog(
+          (next.error as OtherHmmAccountException).linkedAccount,
+        );
+        return;
       }
       if (next.hasError) {
         final error = next.error;
