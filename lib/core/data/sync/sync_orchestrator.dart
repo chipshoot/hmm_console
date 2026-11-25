@@ -136,9 +136,9 @@ class SyncOrchestrator {
     // changes the current author; step 0 then moves the old owner's notes
     // onto it in this same sync.
     if (p is OneDriveSyncProvider) {
-      // Several owner folders and none is ours: nothing can be synced until
-      // the person picks one in Settings. Other failures here are left to
-      // the steps below, which report them.
+      // A folder needs choosing: nothing can be synced until the person
+      // picks one in Settings. Any other failure stops the sync too: step 0
+      // must not move notes onto an owner that has not been resolved yet.
       try {
         await p.ownerFolderId();
       } on OneDriveFolderChoiceRequired {
@@ -152,7 +152,17 @@ class SyncOrchestrator {
           ),
           timing: timer.finish(),
         );
-      } catch (_) {}
+      } catch (e) {
+        return SyncResult.failed(
+          at: startedAt,
+          error: SyncError(
+            recordType: 'manifest',
+            recordId: 'onedrive-folder',
+            message: 'Failed to resolve the OneDrive folder: $e',
+          ),
+          timing: timer.finish(),
+        );
+      }
     }
 
     // -------- 0. Adopt notes stranded on another author --------

@@ -476,6 +476,28 @@ void main() {
     expect(notes.items, hasLength(2));
   });
 
+  test('folder lookup fails with another error → sync fails, orphan '
+      'adoption does not run', () async {
+    await setUpWith(ownerId: 'NEW');
+    final newId = await insertAuthor('NEW');
+    final oldId = await insertAuthor('OLD');
+    await addNotes(oldId, 2);
+
+    final result = await SyncOrchestrator(
+      provider: _FolderLookupFails(container.read(oneDriveGraphClientProvider)),
+      db: db,
+      meta: SyncMetaRepository(),
+      vaultStore: noopVaultStore,
+      currentAuthorId: () async => newId,
+    ).syncNow();
+
+    expect(result.errors, hasLength(1));
+    expect(result.errors.single.recordId, 'onedrive-folder');
+    expect(result.errors.single.message, contains('graph 503'));
+    final authorIds = (await db.select(db.notes).get()).map((n) => n.authorId);
+    expect(authorIds, everyElement(oldId), reason: 'nothing adopted');
+  });
+
   test('.legacy_migrated.json is not counted as a folder', () async {
     await setUpWith(ownerId: 'NEW');
     await insertAuthor('NEW');
@@ -586,4 +608,11 @@ class _AdoptThrowsStore extends OwnerIdStore {
 
   @override
   Future<void> adoptOwnerId(String id) async => throw StateError('prefs');
+}
+
+class _FolderLookupFails extends _EmptyRemoteOneDrive {
+  _FolderLookupFails(super.graph);
+
+  @override
+  Future<String?> ownerFolderId() async => throw Exception('graph 503');
 }
