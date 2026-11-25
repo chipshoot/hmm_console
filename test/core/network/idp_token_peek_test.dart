@@ -53,15 +53,46 @@ void main() {
     expect(await service.peekStoredEmail(), 'e@x.y');
   });
 
-  test('peek returns null with no token or an undecodable one', () async {
+  test('peek returns null with no token', () async {
     expect(await service.peekStoredSub(), isNull);
+    expect(await service.peekStoredEmail(), isNull);
+  });
+
+  test('peek returns null when the claim is missing', () async {
+    await storage.saveTokens(
+      accessToken: _jwt({'name': 'x'}),
+      refreshToken: 'r',
+      expiry: DateTime.now(),
+    );
+    expect(await service.peekStoredSub(), isNull);
+  });
+
+  test('an undecodable token throws TokenPeekException', () async {
     await storage.saveTokens(
       accessToken: 'garbage',
       refreshToken: 'r',
       expiry: DateTime.now(),
     );
-    expect(await service.peekStoredSub(), isNull);
-    expect(await service.peekStoredEmail(), isNull);
+    await expectLater(
+      service.peekStoredSub(),
+      throwsA(isA<TokenPeekException>()),
+    );
+    await expectLater(
+      service.peekStoredEmail(),
+      throwsA(isA<TokenPeekException>()),
+    );
+  });
+
+  test('a storage read failure throws TokenPeekException', () async {
+    final broken = IdpTokenService(
+      tokenStorage: _ThrowingStorage(),
+      config: _config,
+      dio: Dio(),
+    );
+    await expectLater(
+      broken.peekStoredSub(),
+      throwsA(isA<TokenPeekException>()),
+    );
   });
 
   test('hasHmmSession true only with a refresh token', () async {
@@ -75,4 +106,10 @@ void main() {
     await storage.clearTokens();
     expect(await service.hasHmmSession(), isFalse);
   });
+}
+
+class _ThrowingStorage extends MockTokenStorage {
+  @override
+  Future<String?> getAccessToken() async =>
+      throw Exception('keychain unavailable');
 }

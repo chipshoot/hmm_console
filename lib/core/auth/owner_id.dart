@@ -36,6 +36,12 @@ class OwnerIdStore {
   String? get linkedHmmSub => _prefs.getString(_linkSubKey);
   String? get linkedHmmEmail => _prefs.getString(_linkEmailKey);
 
+  /// Forgets the linked Hmm account, so the next Hmm sign-in links afresh.
+  Future<void> clearLink() async {
+    await _prefs.remove(_linkSubKey);
+    await _prefs.remove(_linkEmailKey);
+  }
+
   Future<void> setLink(String sub, String? email) async {
     await _prefs.setString(_linkSubKey, sub);
     if (email == null) {
@@ -49,6 +55,9 @@ class OwnerIdStore {
 /// Resolves the device owner id, storing it on first use. Order: stored id,
 /// signed-in sub, sub of the stored (possibly expired) token, the active
 /// author row (most notes wins, ties to the lowest id), else a new UUID.
+/// Only a token sub links the device to a Hmm account. A failed token peek
+/// ([TokenPeekException]) propagates and nothing is stored, so the next read
+/// tries again instead of persisting a fallback id.
 Future<String> resolveOwnerId({
   required OwnerIdStore store,
   required String? signedInSub,
@@ -89,12 +98,15 @@ Future<String> resolveOwnerId({
         });
       id = sorted.first.accountName;
     }
-    linked = id != null;
+    // Not linked: an accountName ('local-user', an adopted folder name) is
+    // not an IdP sub, and linking it would refuse every real Hmm sign-in.
   }
 
   id ??= newId();
+  // Read before storing anything: a failed peek must leave nothing behind.
+  final email = linked ? signedInEmail ?? await peekStoredEmail() : null;
   await store.setOwnerIdOnce(id);
-  if (linked) await store.setLink(id, signedInEmail ?? await peekStoredEmail());
+  if (linked) await store.setLink(id, email);
   return id;
 }
 

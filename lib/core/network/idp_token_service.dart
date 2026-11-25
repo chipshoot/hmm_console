@@ -6,6 +6,16 @@ import 'idp_config.dart';
 import 'jwt_utils.dart';
 import 'token_storage.dart';
 
+/// Reading or decoding the stored access token failed (not: no token).
+/// Callers that persist something derived from the token must not fall back.
+class TokenPeekException implements Exception {
+  const TokenPeekException(this.cause);
+  final Object cause;
+
+  @override
+  String toString() => 'TokenPeekException($cause)';
+}
+
 class IdpTokenService {
   IdpTokenService({
     required TokenStorage tokenStorage,
@@ -241,7 +251,8 @@ class IdpTokenService {
   }
 
   /// `sub` of the stored access token, expired or not. Never refreshes and
-  /// never touches the network; null when there is no decodable token.
+  /// never touches the network; null when no token is stored. Throws
+  /// [TokenPeekException] when the token cannot be read or decoded.
   Future<String?> peekStoredSub() => _peekClaim('sub');
 
   /// `email` of the stored access token, same rules as [peekStoredSub].
@@ -252,15 +263,24 @@ class IdpTokenService {
   Future<bool> hasHmmSession() async =>
       await _tokenStorage.getRefreshToken() != null;
 
+  /// Null when no token is stored or it lacks the claim. Throws
+  /// [TokenPeekException] when the token cannot be read or decoded, so a
+  /// caller never mistakes a failure for "signed out".
   Future<String?> _peekClaim(String name) async {
+    final String? token;
     try {
-      final token = await _tokenStorage.getAccessToken();
-      if (token == null) return null;
-      final value = decodeJwtPayload(token)[name];
-      return value is String && value.isNotEmpty ? value : null;
-    } catch (_) {
-      return null;
+      token = await _tokenStorage.getAccessToken();
+    } catch (e) {
+      throw TokenPeekException(e);
     }
+    if (token == null) return null;
+    final Object? value;
+    try {
+      value = decodeJwtPayload(token)[name];
+    } catch (e) {
+      throw TokenPeekException(e);
+    }
+    return value is String && value.isNotEmpty ? value : null;
   }
 
   /// Clear all stored tokens (on sign-out).

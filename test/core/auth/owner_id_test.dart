@@ -5,6 +5,7 @@ import 'package:hmm_console/core/auth/owner_id.dart';
 import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/local/local_author_repository.dart';
+import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeAuthors implements IAuthorRepository {
@@ -66,9 +67,43 @@ void main() {
     expect(store.linkedHmmEmail, 'o@b.c');
   });
 
-  test('author-row link uses the peeked email', () async {
+  test('author-row path leaves the link empty (an accountName is not an '
+      'IdP sub)', () async {
     expect(await resolve(peekEmail: 'p@b.c', rows: [_author(1, 'ROW')]), 'ROW');
-    expect(store.linkedHmmEmail, 'p@b.c');
+    expect(store.linkedHmmSub, isNull);
+    expect(store.linkedHmmEmail, isNull);
+  });
+
+  test('local-user author row is not linked', () async {
+    expect(await resolve(rows: [_author(1, 'local-user')]), 'local-user');
+    expect(store.linkedHmmSub, isNull);
+  });
+
+  test('a failed token peek throws and stores nothing', () async {
+    final future = resolveOwnerId(
+      store: store,
+      signedInSub: null,
+      peekStoredSub: () async => throw const TokenPeekException('broken'),
+      peekStoredEmail: () async => null,
+      authors: _FakeAuthors([_author(1, 'ROW')]),
+      noteCountsByAuthor: () async => const {},
+      newId: () => 'NEW',
+    );
+    await expectLater(future, throwsA(isA<TokenPeekException>()));
+    expect(store.ownerId, isNull);
+    expect(store.linkedHmmSub, isNull);
+  });
+
+  test('an absent token falls through to the author row', () async {
+    expect(await resolve(rows: [_author(1, 'ROW')]), 'ROW');
+    expect(store.ownerId, 'ROW');
+  });
+
+  test('clearLink removes sub and email', () async {
+    await store.setLink('S', 'e@x.y');
+    await store.clearLink();
+    expect(store.linkedHmmSub, isNull);
+    expect(store.linkedHmmEmail, isNull);
   });
 
   test('plan prefs keys are used', () async {
@@ -81,7 +116,7 @@ void main() {
 
   test('single author row', () async {
     expect(await resolve(rows: [_author(1, 'ROW')]), 'ROW');
-    expect(store.linkedHmmSub, 'ROW');
+    expect(store.linkedHmmSub, isNull);
   });
 
   test('several author rows picks the one with notes', () async {
