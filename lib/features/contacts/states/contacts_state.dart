@@ -19,9 +19,10 @@ class ContactsState extends AsyncNotifier<List<Contact>> {
   // Each mutation invalidates in `finally`: a write that fails part-way (the
   // isSelf rule touches several notes) must not leave a stale list.
 
-  Future<void> save(Contact contact) async {
+  /// Returns the stored contact, carrying the id minted for a new one.
+  Future<Contact> save(Contact contact) async {
     try {
-      await ref.read(contactRepositoryModeProvider).saveContact(contact);
+      return await ref.read(contactRepositoryModeProvider).saveContact(contact);
     } finally {
       ref.invalidateSelf();
     }

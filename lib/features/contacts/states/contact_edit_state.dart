@@ -1,5 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/attachments/attachment_providers.dart';
+import '../../../core/data/attachments/picker/image_attachment_picker.dart';
+import '../../../core/data/attachments/picker/image_byte_source.dart';
+import '../../../core/data/repository_providers.dart';
+
 import '../domain/contact_name.dart';
 import '../domain/entities/contact.dart';
 import '../domain/entities/contact_birthday.dart';
@@ -9,12 +14,24 @@ import 'contacts_state.dart';
 
 /// The in-progress contact plus form-level flags.
 class ContactEditData {
-  const ContactEditData({required this.contact, this.nameError = false});
+  const ContactEditData({
+    required this.contact,
+    this.nameError = false,
+    this.pendingPhoto,
+    this.photoRemoved = false,
+  });
 
   final Contact contact;
 
   /// Set after a refused save, cleared as soon as a name is typed.
   final bool nameError;
+
+  /// A picked photo held until save (a new contact has no note to file it
+  /// under yet).
+  final PickedImageBytes? pendingPhoto;
+
+  /// The stored photo is to be removed on save.
+  final bool photoRemoved;
 }
 
 /// Form state for creating or editing one contact. Family-keyed by the
@@ -54,6 +71,32 @@ class ContactEditState extends Notifier<ContactEditData> {
   void _set(Contact c, {bool? nameError}) => state = ContactEditData(
     contact: c,
     nameError: nameError ?? state.nameError,
+    pendingPhoto: state.pendingPhoto,
+    photoRemoved: state.photoRemoved,
+  );
+
+  /// A photo will show after save: a picked one, or the stored one unless
+  /// removed.
+  bool get hasPhoto =>
+      state.pendingPhoto != null ||
+      (state.contact.photo != null && !state.photoRemoved);
+
+  /// Opens the picker. A cancelled pick changes nothing; picker errors
+  /// (e.g. `AttachmentPickerException`) propagate to the screen.
+  Future<void> pickPhoto(AttachmentPickSource source) async {
+    final picked = await ref.read(imageByteSourceProvider).pick(source);
+    if (picked == null) return;
+    state = ContactEditData(
+      contact: state.contact,
+      nameError: state.nameError,
+      pendingPhoto: picked,
+    );
+  }
+
+  void removePhoto() => state = ContactEditData(
+    contact: state.contact,
+    nameError: state.nameError,
+    photoRemoved: true,
   );
 
   void setType(ContactType t) => _set(state.contact.copyWith(contactType: t));
@@ -238,7 +281,28 @@ class ContactEditState extends Notifier<ContactEditData> {
       return false;
     }
     try {
-      await ref.read(contactsStateProvider.notifier).save(contact);
+      final contacts = ref.read(contactsStateProvider.notifier);
+      final pending = state.pendingPhoto;
+      final saved = await contacts.save(
+        state.photoRemoved ? contact.copyWith(photo: null) : contact,
+      );
+      if (pending != null) {
+        // Hold the saved contact (and its minted id) so a retry after a failed
+        // photo store updates this contact instead of creating a second one.
+        _set(saved);
+        // Filed under the contact's note, which exists only after the save.
+        final noteId = await ref
+            .read(contactRepositoryModeProvider)
+            .noteIdFor(saved.id);
+        final picker = await ref.read(imageAttachmentPickerProvider.future);
+        final photo = await picker.persistToVault(
+          noteId: noteId!,
+          bytes: pending.bytes,
+          originalName: pending.originalName,
+          contentTypeHint: pending.contentType,
+        );
+        await contacts.save(saved.copyWith(photo: photo));
+      }
       return true;
     } catch (_) {
       _inFlight = false;

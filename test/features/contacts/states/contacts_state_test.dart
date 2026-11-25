@@ -83,34 +83,54 @@ void main() {
     );
   });
 
-  test('a save that fails after a partial write still re-reads the list',
-      () async {
+  test(
+    'a save that fails after a partial write still re-reads the list',
+    () async {
+      final repo = InMemoryContactRepository();
+      final container = _container(repo);
+      expect(await container.read(contactsStateProvider.future), isEmpty);
+
+      repo.throwAfterSave = StateError('second write failed');
+      await expectLater(
+        container.read(contactsStateProvider.notifier).save(_ada),
+        throwsStateError,
+      );
+
+      expect(await container.read(contactsStateProvider.future), hasLength(1));
+    },
+  );
+
+  test(
+    'a restore that fails after a partial write still re-reads the list',
+    () async {
+      final repo = InMemoryContactRepository()
+        ..seed(_ada.copyWith(isActivated: false));
+      final container = _container(repo);
+      expect(await container.read(contactsStateProvider.future), isEmpty);
+
+      repo.throwAfterSave = StateError('second write failed');
+      await expectLater(
+        container.read(contactsStateProvider.notifier).restore('c-1'),
+        throwsStateError,
+      );
+
+      expect(await container.read(contactsStateProvider.future), hasLength(1));
+    },
+  );
+
+  test('save returns the saved contact with its id', () async {
     final repo = InMemoryContactRepository();
-    final container = _container(repo);
-    expect(await container.read(contactsStateProvider.future), isEmpty);
-
-    repo.throwAfterSave = StateError('second write failed');
-    await expectLater(
-      container.read(contactsStateProvider.notifier).save(_ada),
-      throwsStateError,
-    );
-
-    expect(await container.read(contactsStateProvider.future), hasLength(1));
-  });
-
-  test('a restore that fails after a partial write still re-reads the list',
-      () async {
-    final repo = InMemoryContactRepository()
-      ..seed(_ada.copyWith(isActivated: false));
-    final container = _container(repo);
-    expect(await container.read(contactsStateProvider.future), isEmpty);
-
-    repo.throwAfterSave = StateError('second write failed');
-    await expectLater(
-      container.read(contactsStateProvider.notifier).restore('c-1'),
-      throwsStateError,
-    );
-
-    expect(await container.read(contactsStateProvider.future), hasLength(1));
+    final c = _container(repo);
+    final saved = await c
+        .read(contactsStateProvider.notifier)
+        .save(
+          const Contact(
+            id: '',
+            contactType: ContactType.person,
+            firstName: 'Bo',
+          ),
+        );
+    expect(saved.id, isNotEmpty);
+    expect((await repo.getContact(saved.id))!.firstName, 'Bo');
   });
 }
