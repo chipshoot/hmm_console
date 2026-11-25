@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/idp_token_service.dart';
 import '../../auth/presentation/hmm_sign_in_sheet.dart';
+import '../../auth/providers/current_user_provider.dart';
 import '../data/datasources/exchange_rate_remote_datasource.dart';
 
 typedef CurrencyPair = ({String from, String to});
@@ -16,6 +17,10 @@ final exchangeRateProvider = FutureProvider.family<double, CurrencyPair>(
     ref.keepAlive();
 
     if (pair.from == pair.to) return 1.0;
+
+    // Kept alive, so a cached HmmSignInRequired would outlive a sign-in made
+    // elsewhere: recompute whenever a Hmm login or sign-out changes the user.
+    ref.watch(currentUserProvider.select((u) => u?.uid));
 
     if (!await ref.read(idpTokenServiceProvider).hasHmmSession()) {
       throw const HmmSignInRequired();
