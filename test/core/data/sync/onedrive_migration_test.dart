@@ -28,11 +28,45 @@ void main() {
       () async => tokenService.subFromClaims(),
       dio: dio,
     );
-    provider = OneDriveSyncProvider(
+    provider = OneDriveSyncProvider(_FakeOneDriveAuth(), graph);
+  });
+
+  test('marker for_sub is the resolved folder id, with no token stored',
+      () async {
+    tokenService.sub = null; // no Hmm login at all
+    graph = OneDriveGraphClient(
       _FakeOneDriveAuth(),
-      graph,
-      tokenService,
+      () async => 'FOLDER-X',
+      dio: dio,
     );
+    provider = OneDriveSyncProvider(_FakeOneDriveAuth(), graph);
+
+    Object? markerBody;
+    dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      if (options.method == 'PUT' &&
+          options.path.endsWith('.legacy_migrated.json:/content')) {
+        markerBody = options.data;
+      }
+      handler.next(options);
+    }));
+    adapter
+      ..onGet(
+        '/me/drive/special/approot:/users/.legacy_migrated.json:/content',
+        (server) => server.reply(404, null),
+      )
+      ..onGet(
+        '/me/drive/special/approot:/manifest.json:/content',
+        (server) => server.reply(404, null),
+      )
+      ..onPut(
+        '/me/drive/special/approot:/users/.legacy_migrated.json:/content',
+        (server) => server.reply(201, {'ok': true}),
+        data: Matchers.any,
+      );
+
+    final copied = await provider.migrateLegacyIfNeeded();
+    expect(copied, equals(0));
+    expect((markerBody as Map)['for_sub'], 'FOLDER-X');
   });
 
   test('returns 0 and does nothing when migration marker already exists',

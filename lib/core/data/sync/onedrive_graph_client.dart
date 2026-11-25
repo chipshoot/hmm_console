@@ -5,9 +5,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../network/idp_token_service.dart';
 import 'cloud_sync_provider.dart' show LargeUploadSessionGone;
 import 'onedrive_auth.dart';
+import 'onedrive_owner_folder.dart';
 import 'sync_models.dart';
 
 class OneDriveGraphException implements Exception {
@@ -38,19 +38,22 @@ class OneDriveGraphException implements Exception {
       '${responseBody == null ? '' : '\n$responseBody'}';
 }
 
-/// Returns the Hmm IDP `sub` claim of the currently-signed-in user, or
-/// null when nobody is signed in. Extracted as a typedef so tests can pass
-/// a fake without dragging the full `IdpTokenService` (and its token
-/// storage + JWT decoding) into the test harness.
+/// Returns the owner folder id: the name of this device owner's folder
+/// under `approot/users/` (see `OneDriveOwnerFolder`), or null when there is
+/// none. Extracted as a typedef so tests can pass a fake.
 typedef CurrentUserSubResolver = Future<String?> Function();
+
+/// A folder directly under `approot/users/`: one owner's Hmm data.
+typedef OneDriveUserFolder = ({String name, DateTime? modified});
 
 /// Thin Microsoft Graph REST client scoped to the app folder
 /// (`/drive/special/approot`). Pairs with [OneDriveAuth]; a request-time
 /// interceptor attaches a fresh bearer token.
 ///
 /// **Per-user namespacing.** All notes + manifest live under
-/// `approot/users/{sub}/`, where `{sub}` is the Hmm IDP user's `sub`
-/// claim. Two Hmm users signed in to the same Microsoft / OneDrive
+/// `approot/users/{sub}/`, where `{sub}` is the owner folder id (the
+/// device owner id, or the folder adopted by `OneDriveOwnerFolder`; no
+/// Hmm login needed). Two owners on the same Microsoft / OneDrive
 /// account therefore get separate subtrees and cannot clobber each
 /// other. The legacy single-user layout (notes at `approot/notes/`) is
 /// preserved in place; the orchestrator migrates it into the current
@@ -134,8 +137,8 @@ class OneDriveGraphClient {
       throw const OneDriveGraphException(
         statusCode: 401,
         message:
-            'Cannot sync to OneDrive: no authenticated Hmm user (sub claim '
-            'missing). Sign back in to the app and retry.',
+            'Cannot sync to OneDrive: no authenticated Hmm user and no '
+            'owner folder id for this device.',
       );
     }
     // URL-encode the sub even though current IDP issues hex-only claims —
@@ -144,6 +147,50 @@ class OneDriveGraphClient {
     final safeSub = Uri.encodeComponent(sub);
     final actionSuffix = action != null ? ':/$action' : '';
     return '$_approot:/users/$safeSub/$relative$actionSuffix';
+  }
+
+  /// The owner folder id the paths are scoped to (null when none).
+  Future<String?> ownerFolderId() => _currentUserSub();
+
+  // ---- Owner folders ----
+
+  /// Whether `approot/users/{id}` exists. Does not go through [_userPath],
+  /// so it can be called while the owner folder is being resolved.
+  Future<bool> userFolderExists(String id) async {
+    final resp = await _dio.get<dynamic>(
+      '$_approot:/users/${Uri.encodeComponent(id)}',
+    );
+    if (resp.statusCode == 404) return false;
+    _throwIfBad(resp);
+    return true;
+  }
+
+  /// The folders under `approot/users/`, one per owner. Files and names
+  /// starting with `.` (the legacy marker) are skipped; paging is followed.
+  /// Empty when `approot/users` does not exist yet.
+  Future<List<OneDriveUserFolder>> listUserFolders() async {
+    final out = <OneDriveUserFolder>[];
+    var url = '$_approot:/users:/children';
+    while (true) {
+      final resp = await _dio.get<Map<String, dynamic>>(url);
+      if (resp.statusCode == 404) break;
+      _throwIfBad(resp);
+      final value = (resp.data?['value'] as List?) ?? const [];
+      for (final raw in value) {
+        final item = raw as Map<String, dynamic>;
+        final name = item['name'] as String;
+        if (item['folder'] == null || name.startsWith('.')) continue;
+        final modified = item['lastModifiedDateTime'] as String?;
+        out.add((
+          name: name,
+          modified: modified == null ? null : DateTime.tryParse(modified),
+        ));
+      }
+      final next = resp.data?['@odata.nextLink'] as String?;
+      if (next == null) break;
+      url = next;
+    }
+    return out;
   }
 
   // ---- Manifest ----
@@ -599,10 +646,10 @@ class OneDriveGraphClient {
 }
 
 final oneDriveGraphClientProvider = Provider<OneDriveGraphClient>((ref) {
-  final tokenService = ref.watch(idpTokenServiceProvider);
   return OneDriveGraphClient(
     ref.watch(oneDriveAuthProvider),
-    () async => (await tokenService.getStoredClaims())?['sub'] as String?,
+    // Read lazily: the owner folder itself reads this client.
+    () => ref.read(oneDriveOwnerFolderProvider).resolve(),
   );
 });
 

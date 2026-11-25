@@ -54,6 +54,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSignOutOneDrive => '退出 OneDrive';
 
   @override
+  String get oneDriveChooseFolderTitle => '选择 OneDrive 中的 Hmm 数据';
+
+  @override
+  String oneDriveFolderModified(String date) {
+    return '最后修改 $date';
+  }
+
+  @override
   String get settingsSyncNow => '立即同步';
 
   @override

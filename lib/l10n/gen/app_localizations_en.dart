@@ -54,6 +54,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSignOutOneDrive => 'Sign out of OneDrive';
 
   @override
+  String get oneDriveChooseFolderTitle => 'Choose your Hmm data in OneDrive';
+
+  @override
+  String oneDriveFolderModified(String date) {
+    return 'Last changed $date';
+  }
+
+  @override
   String get settingsSyncNow => 'Sync now';
 
   @override

@@ -15,6 +15,8 @@
   "settingsCloudProvider": "云服务",
   "settingsSignInOneDrive": "登录 OneDrive",
   "settingsSignOutOneDrive": "退出 OneDrive",
+  "oneDriveChooseFolderTitle": "选择 OneDrive 中的 Hmm 数据",
+  "oneDriveFolderModified": "最后修改 {date}",
   "settingsSyncNow": "立即同步",
   "commonCancel": "取消",
   "commonSave": "保存",

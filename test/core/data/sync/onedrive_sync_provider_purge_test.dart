@@ -2,17 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/sync/onedrive_graph_client.dart';
 import 'package:hmm_console/core/data/sync/onedrive_sync_provider.dart';
-import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import 'onedrive_test_fakes.dart';
-
-class _FakeIdpTokenService implements IdpTokenService {
-  @override
-  Future<Map<String, dynamic>?> getStoredClaims() async => {'sub': 'SUB-1'};
-  @override
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
 
 void main() {
   test(
@@ -40,8 +32,7 @@ void main() {
       final provider = OneDriveSyncProvider(
         FakeOneDriveAuth(),
         graph,
-        _FakeIdpTokenService(),
-      );
+            );
 
       await provider.purgeNote('n1', releasedVaultPaths: {'note-1/a.jpg'});
 

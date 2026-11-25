@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../network/idp_token_service.dart';
 import 'cloud_sync_provider.dart';
 import 'onedrive_auth.dart';
 import 'onedrive_graph_client.dart';
@@ -13,13 +12,16 @@ import 'sync_models.dart';
 /// OneDrive implementation of [CloudSyncProvider]. Delegates I/O to
 /// [OneDriveGraphClient]; the orchestrator owns the sync algorithm.
 class OneDriveSyncProvider implements CloudSyncProvider {
-  OneDriveSyncProvider(this._auth, this._graph, this._tokenService);
+  OneDriveSyncProvider(this._auth, this._graph);
 
   final OneDriveAuth _auth;
   final OneDriveGraphClient _graph;
-  final IdpTokenService _tokenService;
 
   OneDriveAuth get auth => _auth;
+
+  /// The owner folder id every path is scoped to. May throw
+  /// `OneDriveFolderChoiceRequired`.
+  Future<String?> ownerFolderId() => _graph.ownerFolderId();
 
   @override
   String get providerId => 'onedrive';
@@ -177,18 +179,17 @@ class OneDriveSyncProvider implements CloudSyncProvider {
   /// Trade-off: only the first signing-in user gets the legacy data
   /// claimed for them. That's by design — there's no way for the client
   /// to know which Hmm user "owned" the pre-upgrade data. The marker
-  /// records WHICH sub claimed it for future debugging.
+  /// records WHICH owner folder claimed it for future debugging.
   ///
   /// Returns the number of note files copied (0 when nothing to migrate or
   /// migration was already done).
   Future<int> migrateLegacyIfNeeded() async {
     if (await _graph.hasLegacyMigrationMarker()) return 0;
 
-    final sub = (await _tokenService.getStoredClaims())?['sub'] as String?;
+    final sub = await _graph.ownerFolderId();
     if (sub == null || sub.isEmpty) {
-      // No signed-in user → can't pick a target subtree. Don't write the
-      // marker either (a later, signed-in attempt should still get to
-      // migrate).
+      // No owner folder → can't pick a target subtree. Don't write the
+      // marker either (a later attempt should still get to migrate).
       return 0;
     }
 
@@ -239,6 +240,5 @@ final oneDriveSyncProviderProvider = Provider<CloudSyncProvider>((ref) {
   return OneDriveSyncProvider(
     ref.watch(oneDriveAuthProvider),
     ref.watch(oneDriveGraphClientProvider),
-    ref.watch(idpTokenServiceProvider),
   );
 });

@@ -1,18 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:hmm_console/core/data/sync/onedrive_graph_client.dart';
 import 'package:hmm_console/core/data/sync/onedrive_sync_provider.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import 'onedrive_test_fakes.dart';
-
-class _FakeIdpTokenService implements IdpTokenService {
-  @override
-  Future<Map<String, dynamic>?> getStoredClaims() async => {'sub': 'SUB-1'};
-  @override
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
 
 void main() {
   test('supportsAttachments is true and pullAttachment delegates to Graph',
@@ -25,7 +17,7 @@ void main() {
     final graph =
         OneDriveGraphClient(FakeOneDriveAuth(), () async => 'SUB-1', dio: dio);
     final provider =
-        OneDriveSyncProvider(FakeOneDriveAuth(), graph, _FakeIdpTokenService());
+        OneDriveSyncProvider(FakeOneDriveAuth(), graph);
 
     expect(provider.supportsAttachments, isTrue);
     final bytes = await provider.pullAttachment('x.m4a');

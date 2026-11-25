@@ -17,6 +17,9 @@ import '../../../../core/data/local/database.dart';
 import '../../../../core/data/vault/vault_gc.dart';
 import '../../../../core/data/sync/onedrive_auth.dart';
 import '../../../../core/data/sync/onedrive_config.dart';
+import '../../../../core/data/sync/onedrive_graph_client.dart'
+    show OneDriveUserFolder;
+import '../../../../core/data/sync/onedrive_owner_folder.dart';
 import '../../../../core/data/sync/sync_controller.dart';
 import '../../../../core/i18n/enum_labels.dart';
 import '../../../../core/i18n/locale_provider.dart';
@@ -484,10 +487,17 @@ class SettingsScreen extends ConsumerWidget {
               else
                 ref.watch(oneDriveAuthStateProvider).when(
                       data: (signedIn) => signedIn
-                          ? OutlinedButton.icon(
-                              onPressed: () => _signOutOneDrive(context, ref),
-                              icon: const Icon(Icons.logout),
-                              label: Text(l.settingsSignOutOneDrive),
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const _OneDriveFolderChoiceRow(),
+                                OutlinedButton.icon(
+                                  onPressed: () =>
+                                      _signOutOneDrive(context, ref),
+                                  icon: const Icon(Icons.logout),
+                                  label: Text(l.settingsSignOutOneDrive),
+                                ),
+                              ],
                             )
                           : FilledButton.icon(
                               onPressed: () => _signInOneDrive(context, ref),
@@ -915,5 +925,101 @@ class _AppearanceRow extends StatelessWidget {
         SizedBox(width: double.infinity, child: control),
       ],
     );
+  }
+}
+
+/// Shown when OneDrive holds several Hmm data folders and none is this
+/// device's: pick one, then sync.
+class _OneDriveFolderChoiceRow extends ConsumerWidget {
+  const _OneDriveFolderChoiceRow();
+
+  /// Folder names are owner ids (long hex or UUIDs); 8 characters is enough
+  /// to tell them apart.
+  static String _shortName(String name) =>
+      name.length <= 8 ? name : name.substring(0, 8);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final folders = ref.watch(oneDriveFolderChoiceProvider);
+    if (folders == null) return const SizedBox.shrink();
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: const Icon(Icons.folder_open),
+        title: Text(l.oneDriveChooseFolderTitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => _choose(context, ref, folders),
+      ),
+    );
+  }
+
+  Future<void> _choose(
+    BuildContext context,
+    WidgetRef ref,
+    List<OneDriveUserFolder> folders,
+  ) async {
+    final l = AppLocalizations.of(context);
+    final localizations = MaterialLocalizations.of(context);
+    String? subtitle(OneDriveUserFolder f) => f.modified == null
+        ? null
+        : l.oneDriveFolderModified(
+            localizations.formatMediumDate(f.modified!.toLocal()),
+          );
+
+    final String? picked;
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      picked = await showCupertinoModalPopup<String>(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          title: Text(l.oneDriveChooseFolderTitle),
+          actions: [
+            for (final f in folders)
+              CupertinoActionSheetAction(
+                onPressed: () => Navigator.of(ctx).pop(f.name),
+                child: Column(
+                  children: [
+                    Text(_shortName(f.name)),
+                    if (subtitle(f) != null)
+                      Text(subtitle(f)!, style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l.commonCancel),
+          ),
+        ),
+      );
+    } else {
+      picked = await showDialog<String>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: Text(l.oneDriveChooseFolderTitle),
+          children: [
+            for (final f in folders)
+              ListTile(
+                title: Text(_shortName(f.name)),
+                subtitle: subtitle(f) == null ? null : Text(subtitle(f)!),
+                onTap: () => Navigator.of(ctx).pop(f.name),
+              ),
+          ],
+        ),
+      );
+    }
+    if (picked == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final folder = ref.read(oneDriveOwnerFolderProvider);
+    final controller = ref.read(syncControllerProvider);
+    try {
+      await folder.choose(picked);
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.settingsSyncFailed('$e'))),
+      );
+      return;
+    }
+    await controller.triggerManualSync();
   }
 }

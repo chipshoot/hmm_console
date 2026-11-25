@@ -188,6 +188,18 @@ abstract class AppLocalizations {
   /// **'Sign out of OneDrive'**
   String get settingsSignOutOneDrive;
 
+  /// No description provided for @oneDriveChooseFolderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your Hmm data in OneDrive'**
+  String get oneDriveChooseFolderTitle;
+
+  /// No description provided for @oneDriveFolderModified.
+  ///
+  /// In en, this message translates to:
+  /// **'Last changed {date}'**
+  String oneDriveFolderModified(String date);
+
   /// No description provided for @settingsSyncNow.
   ///
   /// In en, this message translates to:

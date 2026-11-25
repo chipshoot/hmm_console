@@ -5,11 +5,11 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/core/data/sync/onedrive_graph_client.dart';
+import 'package:hmm_console/core/data/sync/onedrive_owner_folder.dart';
 import 'package:hmm_console/core/data/sync/onedrive_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/sync_meta_repository.dart';
 import 'package:hmm_console/core/data/sync/sync_models.dart';
 import 'package:hmm_console/core/data/sync/sync_orchestrator.dart';
-import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'onedrive_test_fakes.dart';
@@ -25,7 +25,6 @@ class _MigrationFailsProvider extends OneDriveSyncProvider {
           () async => 'USER-A',
           dio: Dio(),
         ),
-        _NoIdp(),
       );
 
   @override
@@ -69,9 +68,22 @@ class _MigrationFailsProvider extends OneDriveSyncProvider {
   Future<Set<String>> listAttachmentPaths() async => const {};
 }
 
-class _NoIdp implements IdpTokenService {
+/// Several owner folders in OneDrive and none chosen yet.
+class _FolderChoiceProvider extends _MigrationFailsProvider {
+  var migrationCalls = 0;
+
   @override
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<String?> ownerFolderId() async =>
+      throw const OneDriveFolderChoiceRequired([
+        (name: 'IPHONE', modified: null),
+        (name: 'IPAD', modified: null),
+      ]);
+
+  @override
+  Future<int> migrateLegacyIfNeeded() async {
+    migrationCalls++;
+    return 0;
+  }
 }
 
 void main() {
@@ -111,4 +123,20 @@ void main() {
       expect(await meta.getLastPushedAt('onedrive'), result.completedAt);
     },
   );
+
+  test('several OneDrive folders → sync error asking to choose', () async {
+    final provider = _FolderChoiceProvider();
+    final result = await SyncOrchestrator(
+      provider: provider,
+      db: db,
+      meta: SyncMetaRepository(),
+      vaultStore: noopVaultStore,
+    ).syncNow();
+
+    expect(result.errors.map((e) => e.message), [
+      'Several Hmm data folders found in OneDrive. Choose one in Settings.',
+    ]);
+    expect(provider.migrationCalls, 0);
+    expect(result.errors.single.recordType, isNot('auth'));
+  });
 }

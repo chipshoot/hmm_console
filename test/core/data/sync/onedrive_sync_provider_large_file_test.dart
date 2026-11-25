@@ -4,23 +4,14 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/data/sync/cloud_sync_provider.dart';
 import 'package:hmm_console/core/data/sync/onedrive_sync_provider.dart';
-import 'package:hmm_console/core/network/idp_token_service.dart';
 
 import 'onedrive_graph_upload_session_test.dart'
     show RecordingAdapter, Reply, makeClient;
 import 'onedrive_test_fakes.dart';
 
-class _FakeIdpTokenService implements IdpTokenService {
-  @override
-  Future<Map<String, dynamic>?> getStoredClaims() async => {'sub': 'SUB-1'};
-  @override
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 OneDriveSyncProvider make(RecordingAdapter a) => OneDriveSyncProvider(
   FakeOneDriveAuth(),
   makeClient(a),
-  _FakeIdpTokenService(),
 );
 
 void main() {

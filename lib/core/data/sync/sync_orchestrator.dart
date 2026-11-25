@@ -22,6 +22,7 @@ import '../local/local_tag_repository.dart';
 import 'api_sync_provider.dart';
 import 'cloud_sync_provider.dart';
 import 'note_state_sync_service.dart';
+import 'onedrive_owner_folder.dart' show OneDriveFolderChoiceRequired;
 import 'onedrive_sync_provider.dart';
 import 'pending_remote_purge_store.dart';
 import 'sync_meta_repository.dart';
@@ -154,6 +155,23 @@ class SyncOrchestrator {
     // (cheap). Cast is honest: this is a OneDrive-specific concern that
     // doesn't belong on the abstract CloudSyncProvider interface.
     if (p is OneDriveSyncProvider) {
+      // Several owner folders and none is ours: nothing can be synced until
+      // the person picks one in Settings. Other failures here are left to
+      // the steps below, which report them.
+      try {
+        await p.ownerFolderId();
+      } on OneDriveFolderChoiceRequired {
+        return SyncResult.failed(
+          at: startedAt,
+          error: const SyncError(
+            // Not 'auth': that offers "Sign in again", which cannot fix it.
+            recordType: 'manifest',
+            recordId: 'onedrive-folder',
+            message: OneDriveFolderChoiceRequired.syncMessage,
+          ),
+          timing: timer.finish(),
+        );
+      } catch (_) {}
       try {
         await timer.run(SyncPhase.migrateLegacy, p.migrateLegacyIfNeeded);
       } catch (e) {

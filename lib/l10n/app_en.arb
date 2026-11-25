@@ -21,6 +21,15 @@
   "settingsCloudProvider": "Cloud Provider",
   "settingsSignInOneDrive": "Sign in to OneDrive",
   "settingsSignOutOneDrive": "Sign out of OneDrive",
+  "oneDriveChooseFolderTitle": "Choose your Hmm data in OneDrive",
+  "oneDriveFolderModified": "Last changed {date}",
+  "@oneDriveFolderModified": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "settingsSyncNow": "Sync now",
   "commonCancel": "Cancel",
   "commonSave": "Save",
