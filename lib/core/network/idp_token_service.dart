@@ -231,6 +231,29 @@ class IdpTokenService {
     }
   }
 
+  /// `sub` of the stored access token, expired or not. Never refreshes and
+  /// never touches the network; null when there is no decodable token.
+  Future<String?> peekStoredSub() => _peekClaim('sub');
+
+  /// `email` of the stored access token, same rules as [peekStoredSub].
+  Future<String?> peekStoredEmail() => _peekClaim('email');
+
+  /// True when a refresh token is stored (a Hmm session exists, even if its
+  /// access token has expired).
+  Future<bool> hasHmmSession() async =>
+      await _tokenStorage.getRefreshToken() != null;
+
+  Future<String?> _peekClaim(String name) async {
+    try {
+      final token = await _tokenStorage.getAccessToken();
+      if (token == null) return null;
+      final value = decodeJwtPayload(token)[name];
+      return value is String && value.isNotEmpty ? value : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Clear all stored tokens (on sign-out).
   Future<void> clearTokens() => _tokenStorage.clearTokens();
 
