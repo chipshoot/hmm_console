@@ -5251,4 +5251,219 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsProfileCreate => '创建我的名片';
+
+  @override
+  String get settingsAiProviders => 'AI 服务商';
+
+  @override
+  String get settingsAiProvidersSubtitle => '使用您自己的 AI 账户';
+
+  @override
+  String get aiProvidersTitle => 'AI 服务商';
+
+  @override
+  String get aiProvidersDefault => '默认';
+
+  @override
+  String get aiProvidersKeySaved => '密钥 ✓';
+
+  @override
+  String get aiProvidersKeyNeeded => '此设备需要密钥';
+
+  @override
+  String get aiProvidersNoKeyNeeded => '无需密钥';
+
+  @override
+  String get aiProvidersAdd => '添加服务商';
+
+  @override
+  String get aiProvidersEmpty => '还没有 AI 服务商。添加一个即可使用您自己的 AI 账户。';
+
+  @override
+  String get aiProvidersUseForReceipts => '用于收据';
+
+  @override
+  String get aiProvidersRouteDefault => '默认服务商';
+
+  @override
+  String get aiEditTitleNew => '添加服务商';
+
+  @override
+  String get aiEditTitle => '编辑服务商';
+
+  @override
+  String get aiEditKind => '服务商';
+
+  @override
+  String get aiKindCustom => '自定义（兼容 OpenAI）';
+
+  @override
+  String get aiEditLabel => '名称';
+
+  @override
+  String get aiEditBaseUrl => '基础网址';
+
+  @override
+  String get aiEditModel => '模型';
+
+  @override
+  String get aiEditFetchModels => '获取模型列表';
+
+  @override
+  String get aiEditFetchFailed => '无法获取模型列表，请直接输入模型名称。';
+
+  @override
+  String get aiEditKey => 'API 密钥';
+
+  @override
+  String get aiEditKeySaved => '已保存在此设备';
+
+  @override
+  String get aiEditKeyPaste => '粘贴';
+
+  @override
+  String get aiEditRemoveKey => '移除密钥';
+
+  @override
+  String get aiEditVision => '可读取图片';
+
+  @override
+  String get aiEditPdf => '可读取 PDF 文件';
+
+  @override
+  String get aiEditMakeDefault => '设为默认';
+
+  @override
+  String get aiEditTest => '测试连接';
+
+  @override
+  String get aiEditTestOk => '连接成功';
+
+  @override
+  String aiEditDeleteConfirm(String label) {
+    return '删除 $label？此设备上的密钥也会一并移除。';
+  }
+
+  @override
+  String get llmProviderGeneric => 'AI 服务商';
+
+  @override
+  String get llmCapVision => '图片';
+
+  @override
+  String get llmCapPdf => 'PDF 文件';
+
+  @override
+  String get llmCapStreaming => '流式回复';
+
+  @override
+  String get llmCapStructured => '结构化回复';
+
+  @override
+  String get llmCapTools => '工具';
+
+  @override
+  String llmConsentMessage(String label, String host) {
+    return '您发送的内容将发往 $host 上的 $label。敏感笔记绝不会发送。要继续吗？';
+  }
+
+  @override
+  String get llmConsentContinue => '继续';
+
+  @override
+  String llmErrKeyMissing(Object label) {
+    return '$label：此设备上没有密钥——请在“设置 → AI 服务商”中添加。';
+  }
+
+  @override
+  String llmErrInvalidKey(Object label) {
+    return '$label：密钥被拒绝——请在“设置 → AI 服务商”中检查。';
+  }
+
+  @override
+  String llmErrRateLimited(Object label) {
+    return '$label：请求过于频繁，请稍后再试。';
+  }
+
+  @override
+  String llmErrQuota(Object label) {
+    return '$label：账户额度已用完或超出限制。';
+  }
+
+  @override
+  String llmErrUnreachable(Object label) {
+    return '$label：无法连接到服务商，请检查地址和网络。';
+  }
+
+  @override
+  String llmErrTimeout(Object label) {
+    return '$label：服务商响应超时。';
+  }
+
+  @override
+  String llmErrRefused(Object label) {
+    return '$label：服务商拒绝了此请求。';
+  }
+
+  @override
+  String llmErrUnsupported(Object capability, Object label) {
+    return '$label：该服务商不支持$capability。';
+  }
+
+  @override
+  String llmErrBadResponse(Object label) {
+    return '$label：无法理解服务商的回复。';
+  }
+
+  @override
+  String llmErrSensitive(Object label) {
+    return '$label：敏感笔记绝不会发送给 AI 服务商。';
+  }
+
+  @override
+  String llmErrConsent(Object label) {
+    return '$label：此设备尚未同意向该服务商发送内容。';
+  }
+
+  @override
+  String llmErrCancelled(Object label) {
+    return '$label：已取消。';
+  }
+
+  @override
+  String get helpAiProvidersTitle => 'AI 服务商';
+
+  @override
+  String get helpAiProvidersSummary => '连接您自己的 AI 账户。密钥只保存在此设备上，不会同步。';
+
+  @override
+  String get helpAiProvidersAddTitle => '添加服务商';
+
+  @override
+  String get helpAiProvidersAddBody =>
+      '选择服务商，起个名字，选择模型并粘贴 API 密钥。自行托管的模型请选“自定义”。';
+
+  @override
+  String get helpAiProvidersKeyTitle => 'API 密钥';
+
+  @override
+  String get helpAiProvidersKeyBody => '仅保存在此设备，每台设备都需要各自的密钥。留空表示保留已保存的密钥。';
+
+  @override
+  String get helpAiProvidersTestTitle => '测试连接';
+
+  @override
+  String get helpAiProvidersTestBody => '发送一条固定的简短消息，用来检查地址、模型和密钥。';
+
+  @override
+  String get helpAiProvidersDefaultTitle => '默认';
+
+  @override
+  String get helpAiProvidersDefaultBody => '未指定其他服务商时使用的服务商。';
+
+  @override
+  String get helpAiProvidersReceiptsTitle => '用于收据';
+
+  @override
+  String get helpAiProvidersReceiptsBody => '选择由哪个服务商读取您的收据。敏感笔记绝不会发送。';
 }

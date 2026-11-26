@@ -9535,6 +9535,378 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create my card'**
   String get settingsProfileCreate;
+
+  /// No description provided for @settingsAiProviders.
+  ///
+  /// In en, this message translates to:
+  /// **'AI providers'**
+  String get settingsAiProviders;
+
+  /// No description provided for @settingsAiProvidersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your own AI account'**
+  String get settingsAiProvidersSubtitle;
+
+  /// No description provided for @aiProvidersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI providers'**
+  String get aiProvidersTitle;
+
+  /// No description provided for @aiProvidersDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get aiProvidersDefault;
+
+  /// No description provided for @aiProvidersKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Key ✓'**
+  String get aiProvidersKeySaved;
+
+  /// No description provided for @aiProvidersKeyNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Key needed on this device'**
+  String get aiProvidersKeyNeeded;
+
+  /// No description provided for @aiProvidersNoKeyNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'No key needed'**
+  String get aiProvidersNoKeyNeeded;
+
+  /// No description provided for @aiProvidersAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add provider'**
+  String get aiProvidersAdd;
+
+  /// No description provided for @aiProvidersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI providers yet. Add one to use your own AI account.'**
+  String get aiProvidersEmpty;
+
+  /// No description provided for @aiProvidersUseForReceipts.
+  ///
+  /// In en, this message translates to:
+  /// **'Use for receipts'**
+  String get aiProvidersUseForReceipts;
+
+  /// No description provided for @aiProvidersRouteDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default provider'**
+  String get aiProvidersRouteDefault;
+
+  /// No description provided for @aiEditTitleNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Add provider'**
+  String get aiEditTitleNew;
+
+  /// No description provided for @aiEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit provider'**
+  String get aiEditTitle;
+
+  /// No description provided for @aiEditKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get aiEditKind;
+
+  /// No description provided for @aiKindCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom (OpenAI-compatible)'**
+  String get aiKindCustom;
+
+  /// No description provided for @aiEditLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get aiEditLabel;
+
+  /// No description provided for @aiEditBaseUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Base URL'**
+  String get aiEditBaseUrl;
+
+  /// No description provided for @aiEditModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get aiEditModel;
+
+  /// No description provided for @aiEditFetchModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch models'**
+  String get aiEditFetchModels;
+
+  /// No description provided for @aiEditFetchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the model list. Type the model name instead.'**
+  String get aiEditFetchFailed;
+
+  /// No description provided for @aiEditKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get aiEditKey;
+
+  /// No description provided for @aiEditKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this device'**
+  String get aiEditKeySaved;
+
+  /// No description provided for @aiEditKeyPaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get aiEditKeyPaste;
+
+  /// No description provided for @aiEditRemoveKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove key'**
+  String get aiEditRemoveKey;
+
+  /// No description provided for @aiEditVision.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads images'**
+  String get aiEditVision;
+
+  /// No description provided for @aiEditPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads PDF files'**
+  String get aiEditPdf;
+
+  /// No description provided for @aiEditMakeDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Use as default'**
+  String get aiEditMakeDefault;
+
+  /// No description provided for @aiEditTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get aiEditTest;
+
+  /// No description provided for @aiEditTestOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get aiEditTestOk;
+
+  /// No description provided for @aiEditDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {label}? Its key on this device is removed too.'**
+  String aiEditDeleteConfirm(String label);
+
+  /// No description provided for @llmProviderGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'AI provider'**
+  String get llmProviderGeneric;
+
+  /// No description provided for @llmCapVision.
+  ///
+  /// In en, this message translates to:
+  /// **'images'**
+  String get llmCapVision;
+
+  /// No description provided for @llmCapPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF files'**
+  String get llmCapPdf;
+
+  /// No description provided for @llmCapStreaming.
+  ///
+  /// In en, this message translates to:
+  /// **'streaming replies'**
+  String get llmCapStreaming;
+
+  /// No description provided for @llmCapStructured.
+  ///
+  /// In en, this message translates to:
+  /// **'structured replies'**
+  String get llmCapStructured;
+
+  /// No description provided for @llmCapTools.
+  ///
+  /// In en, this message translates to:
+  /// **'tools'**
+  String get llmCapTools;
+
+  /// No description provided for @llmConsentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Content you send goes to {label} at {host}. Sensitive notes are never sent. Continue?'**
+  String llmConsentMessage(String label, String host);
+
+  /// No description provided for @llmConsentContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get llmConsentContinue;
+
+  /// No description provided for @llmErrKeyMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: no key on this device — add it in Settings → AI providers.'**
+  String llmErrKeyMissing(Object label);
+
+  /// No description provided for @llmErrInvalidKey.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: the key was rejected — check it in Settings → AI providers.'**
+  String llmErrInvalidKey(Object label);
+
+  /// No description provided for @llmErrRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: too many requests right now. Try again in a moment.'**
+  String llmErrRateLimited(Object label);
+
+  /// No description provided for @llmErrQuota.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: the account is out of credit or over its limit.'**
+  String llmErrQuota(Object label);
+
+  /// No description provided for @llmErrUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: couldn\'t reach the provider. Check the address and your connection.'**
+  String llmErrUnreachable(Object label);
+
+  /// No description provided for @llmErrTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: the provider took too long to answer.'**
+  String llmErrTimeout(Object label);
+
+  /// No description provided for @llmErrRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: the provider declined this request.'**
+  String llmErrRefused(Object label);
+
+  /// No description provided for @llmErrUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: this provider can\'t handle {capability}.'**
+  String llmErrUnsupported(Object capability, Object label);
+
+  /// No description provided for @llmErrBadResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: the provider\'s reply couldn\'t be understood.'**
+  String llmErrBadResponse(Object label);
+
+  /// No description provided for @llmErrSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: sensitive notes are never sent to an AI provider.'**
+  String llmErrSensitive(Object label);
+
+  /// No description provided for @llmErrConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: sending to this provider hasn\'t been approved on this device.'**
+  String llmErrConsent(Object label);
+
+  /// No description provided for @llmErrCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: cancelled.'**
+  String llmErrCancelled(Object label);
+
+  /// No description provided for @helpAiProvidersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI providers'**
+  String get helpAiProvidersTitle;
+
+  /// No description provided for @helpAiProvidersSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect your own AI account. Keys stay on this device and are never synced.'**
+  String get helpAiProvidersSummary;
+
+  /// No description provided for @helpAiProvidersAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add provider'**
+  String get helpAiProvidersAddTitle;
+
+  /// No description provided for @helpAiProvidersAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a provider, give it a name, choose a model and paste your API key. Use Custom for a model you host yourself.'**
+  String get helpAiProvidersAddBody;
+
+  /// No description provided for @helpAiProvidersKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get helpAiProvidersKeyTitle;
+
+  /// No description provided for @helpAiProvidersKeyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved only on this device. Each device needs its own key. Leave the field empty to keep the saved key.'**
+  String get helpAiProvidersKeyBody;
+
+  /// No description provided for @helpAiProvidersTestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get helpAiProvidersTestTitle;
+
+  /// No description provided for @helpAiProvidersTestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends one short fixed message to check the address, model and key.'**
+  String get helpAiProvidersTestBody;
+
+  /// No description provided for @helpAiProvidersDefaultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get helpAiProvidersDefaultTitle;
+
+  /// No description provided for @helpAiProvidersDefaultBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The provider used when nothing more specific is chosen.'**
+  String get helpAiProvidersDefaultBody;
+
+  /// No description provided for @helpAiProvidersReceiptsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use for receipts'**
+  String get helpAiProvidersReceiptsTitle;
+
+  /// No description provided for @helpAiProvidersReceiptsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which provider reads your receipts. Sensitive notes are never sent.'**
+  String get helpAiProvidersReceiptsBody;
 }
 
 class _AppLocalizationsDelegate

@@ -27,6 +27,7 @@ import '../../../../core/settings/settings_controller.dart';
 import '../../../../core/widgets/quick_panel/quick_panel_settings.dart';
 import '../../../calendar/notifications/notification_gateway.dart';
 import '../../../receipt_scan/presentation/receipt_extraction_settings_section.dart';
+import 'ai_providers_screen.dart' show AiProvidersSettingsSection;
 import '../widgets/calendar_settings_section.dart';
 import '../widgets/data_mode_dropdown.dart';
 import '../widgets/hmm_account_section.dart';
@@ -370,6 +371,7 @@ class SettingsScreen extends ConsumerWidget {
             GapWidgets.h8,
             const Divider(),
             GapWidgets.h24,
+            const AiProvidersSettingsSection(),
             const ReceiptExtractionSettingsSection(),
             GapWidgets.h24,
             const Divider(),

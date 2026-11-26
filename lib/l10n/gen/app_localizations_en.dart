@@ -5501,4 +5501,226 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsProfileCreate => 'Create my card';
+
+  @override
+  String get settingsAiProviders => 'AI providers';
+
+  @override
+  String get settingsAiProvidersSubtitle => 'Use your own AI account';
+
+  @override
+  String get aiProvidersTitle => 'AI providers';
+
+  @override
+  String get aiProvidersDefault => 'Default';
+
+  @override
+  String get aiProvidersKeySaved => 'Key ✓';
+
+  @override
+  String get aiProvidersKeyNeeded => 'Key needed on this device';
+
+  @override
+  String get aiProvidersNoKeyNeeded => 'No key needed';
+
+  @override
+  String get aiProvidersAdd => 'Add provider';
+
+  @override
+  String get aiProvidersEmpty =>
+      'No AI providers yet. Add one to use your own AI account.';
+
+  @override
+  String get aiProvidersUseForReceipts => 'Use for receipts';
+
+  @override
+  String get aiProvidersRouteDefault => 'Default provider';
+
+  @override
+  String get aiEditTitleNew => 'Add provider';
+
+  @override
+  String get aiEditTitle => 'Edit provider';
+
+  @override
+  String get aiEditKind => 'Provider';
+
+  @override
+  String get aiKindCustom => 'Custom (OpenAI-compatible)';
+
+  @override
+  String get aiEditLabel => 'Name';
+
+  @override
+  String get aiEditBaseUrl => 'Base URL';
+
+  @override
+  String get aiEditModel => 'Model';
+
+  @override
+  String get aiEditFetchModels => 'Fetch models';
+
+  @override
+  String get aiEditFetchFailed =>
+      'Couldn\'t load the model list. Type the model name instead.';
+
+  @override
+  String get aiEditKey => 'API key';
+
+  @override
+  String get aiEditKeySaved => 'Saved on this device';
+
+  @override
+  String get aiEditKeyPaste => 'Paste';
+
+  @override
+  String get aiEditRemoveKey => 'Remove key';
+
+  @override
+  String get aiEditVision => 'Reads images';
+
+  @override
+  String get aiEditPdf => 'Reads PDF files';
+
+  @override
+  String get aiEditMakeDefault => 'Use as default';
+
+  @override
+  String get aiEditTest => 'Test connection';
+
+  @override
+  String get aiEditTestOk => 'Connected';
+
+  @override
+  String aiEditDeleteConfirm(String label) {
+    return 'Delete $label? Its key on this device is removed too.';
+  }
+
+  @override
+  String get llmProviderGeneric => 'AI provider';
+
+  @override
+  String get llmCapVision => 'images';
+
+  @override
+  String get llmCapPdf => 'PDF files';
+
+  @override
+  String get llmCapStreaming => 'streaming replies';
+
+  @override
+  String get llmCapStructured => 'structured replies';
+
+  @override
+  String get llmCapTools => 'tools';
+
+  @override
+  String llmConsentMessage(String label, String host) {
+    return 'Content you send goes to $label at $host. Sensitive notes are never sent. Continue?';
+  }
+
+  @override
+  String get llmConsentContinue => 'Continue';
+
+  @override
+  String llmErrKeyMissing(Object label) {
+    return '$label: no key on this device — add it in Settings → AI providers.';
+  }
+
+  @override
+  String llmErrInvalidKey(Object label) {
+    return '$label: the key was rejected — check it in Settings → AI providers.';
+  }
+
+  @override
+  String llmErrRateLimited(Object label) {
+    return '$label: too many requests right now. Try again in a moment.';
+  }
+
+  @override
+  String llmErrQuota(Object label) {
+    return '$label: the account is out of credit or over its limit.';
+  }
+
+  @override
+  String llmErrUnreachable(Object label) {
+    return '$label: couldn\'t reach the provider. Check the address and your connection.';
+  }
+
+  @override
+  String llmErrTimeout(Object label) {
+    return '$label: the provider took too long to answer.';
+  }
+
+  @override
+  String llmErrRefused(Object label) {
+    return '$label: the provider declined this request.';
+  }
+
+  @override
+  String llmErrUnsupported(Object capability, Object label) {
+    return '$label: this provider can\'t handle $capability.';
+  }
+
+  @override
+  String llmErrBadResponse(Object label) {
+    return '$label: the provider\'s reply couldn\'t be understood.';
+  }
+
+  @override
+  String llmErrSensitive(Object label) {
+    return '$label: sensitive notes are never sent to an AI provider.';
+  }
+
+  @override
+  String llmErrConsent(Object label) {
+    return '$label: sending to this provider hasn\'t been approved on this device.';
+  }
+
+  @override
+  String llmErrCancelled(Object label) {
+    return '$label: cancelled.';
+  }
+
+  @override
+  String get helpAiProvidersTitle => 'AI providers';
+
+  @override
+  String get helpAiProvidersSummary =>
+      'Connect your own AI account. Keys stay on this device and are never synced.';
+
+  @override
+  String get helpAiProvidersAddTitle => 'Add provider';
+
+  @override
+  String get helpAiProvidersAddBody =>
+      'Pick a provider, give it a name, choose a model and paste your API key. Use Custom for a model you host yourself.';
+
+  @override
+  String get helpAiProvidersKeyTitle => 'API key';
+
+  @override
+  String get helpAiProvidersKeyBody =>
+      'Saved only on this device. Each device needs its own key. Leave the field empty to keep the saved key.';
+
+  @override
+  String get helpAiProvidersTestTitle => 'Test connection';
+
+  @override
+  String get helpAiProvidersTestBody =>
+      'Sends one short fixed message to check the address, model and key.';
+
+  @override
+  String get helpAiProvidersDefaultTitle => 'Default';
+
+  @override
+  String get helpAiProvidersDefaultBody =>
+      'The provider used when nothing more specific is chosen.';
+
+  @override
+  String get helpAiProvidersReceiptsTitle => 'Use for receipts';
+
+  @override
+  String get helpAiProvidersReceiptsBody =>
+      'Choose which provider reads your receipts. Sensitive notes are never sent.';
 }

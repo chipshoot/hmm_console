@@ -28,6 +28,7 @@ enum HelpId {
   notesRecentlyDeleted,
   manageTags,
   videoStorage,
+  aiProviders,
   activity,
   activityEdit,
   glucose,
@@ -686,6 +687,37 @@ ScreenHelp helpFor(HelpId id, AppLocalizations l) => switch (id) {
         icon: Icons.lock_outline,
         title: l.helpHomeScreenSettingsLastTitle,
         body: l.helpHomeScreenSettingsLastBody,
+      ),
+    ],
+  ),
+  HelpId.aiProviders => ScreenHelp(
+    title: l.helpAiProvidersTitle,
+    summary: l.helpAiProvidersSummary,
+    entries: [
+      HelpEntry(
+        icon: Icons.add,
+        title: l.helpAiProvidersAddTitle,
+        body: l.helpAiProvidersAddBody,
+      ),
+      HelpEntry(
+        icon: Icons.key_outlined,
+        title: l.helpAiProvidersKeyTitle,
+        body: l.helpAiProvidersKeyBody,
+      ),
+      HelpEntry(
+        icon: Icons.network_check,
+        title: l.helpAiProvidersTestTitle,
+        body: l.helpAiProvidersTestBody,
+      ),
+      HelpEntry(
+        icon: Icons.star_outline,
+        title: l.helpAiProvidersDefaultTitle,
+        body: l.helpAiProvidersDefaultBody,
+      ),
+      HelpEntry(
+        icon: Icons.receipt_long_outlined,
+        title: l.helpAiProvidersReceiptsTitle,
+        body: l.helpAiProvidersReceiptsBody,
       ),
     ],
   ),
