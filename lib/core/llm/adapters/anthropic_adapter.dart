@@ -160,7 +160,7 @@ class AnthropicAdapter implements LlmAdapter {
   Map<String, String> _headers(String? key) => {
     'content-type': 'application/json',
     'anthropic-version': _version,
-    if (key != null) 'x-api-key': key,
+    'x-api-key': ?key,
   };
 
   Map<String, Object?> _buildBody(
