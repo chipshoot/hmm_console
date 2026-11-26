@@ -22,6 +22,7 @@ import '../domain/syncable_settings.dart';
 ///   - `app_locale`           → language code string ('en', 'zh', …)
 ///   - `contacts.sort_by`     → `ContactSortBy` enum name
 ///   - `calendar.show_lunar`  → bool
+///   - `ai.engines` / `ai.default` / `ai.routes` → AI engine config (strings)
 ///   - `home.hiddenTiles`     → string list of hidden home-tile ids
 ///   - `settings.last_modified` → ISO8601 UTC, bumped by every setter
 ///
@@ -52,6 +53,11 @@ class SyncableSettingsRepository {
 
   /// Public: `ShowLunarNotifier` owns the same key (a bool).
   static const calendarShowLunarKey = 'calendar.show_lunar';
+
+  /// Public: `LlmEngineSettingsNotifier` owns these keys (strings).
+  static const aiEnginesKey = 'ai.engines';
+  static const aiDefaultKey = 'ai.default';
+  static const aiRoutesKey = 'ai.routes';
 
   /// Public: the glucose notifiers own these keys. The range keys are written
   /// together (low/high as doubles, unit as `mg/dL`/`mmol/L`). A cleared range
@@ -159,6 +165,9 @@ class SyncableSettingsRepository {
       contactSortBy: ContactSortBy.fromName(prefs.getString(contactSortKey)),
       notesSavedSearches: savedSearches,
       calendarShowLunar: prefs.getBool(calendarShowLunarKey),
+      aiEngines: prefs.getString(aiEnginesKey),
+      aiDefault: prefs.getString(aiDefaultKey),
+      aiRoutes: prefs.getString(aiRoutesKey),
       calendarHolidayRegions: holidayRegions,
       calendarMyHolidays: myHolidays,
       glucoseRangeLow: prefs.getDouble(glucoseRangeLowKey),
@@ -202,6 +211,12 @@ class SyncableSettingsRepository {
     final lunar = settings.calendarShowLunar;
     if (lunar != null) await prefs.setBool(calendarShowLunarKey, lunar);
     // Null = the bundle predates these fields: keep this device's values.
+    final aiEngines = settings.aiEngines;
+    if (aiEngines != null) await prefs.setString(aiEnginesKey, aiEngines);
+    final aiDefault = settings.aiDefault;
+    if (aiDefault != null) await prefs.setString(aiDefaultKey, aiDefault);
+    final aiRoutes = settings.aiRoutes;
+    if (aiRoutes != null) await prefs.setString(aiRoutesKey, aiRoutes);
     final regions = settings.calendarHolidayRegions;
     if (regions != null) {
       await prefs.setString(

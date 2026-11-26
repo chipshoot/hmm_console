@@ -48,6 +48,9 @@ class SyncableSettings {
     this.glucoseRangeUnit,
     this.glucoseDisplayUnit,
     this.homeHiddenTiles,
+    this.aiEngines,
+    this.aiDefault,
+    this.aiRoutes,
   });
 
   final GasLogSettings gasLog;
@@ -68,6 +71,12 @@ class SyncableSettings {
   /// Calendar "Show lunar calendar". Null = the bundle did not carry the key
   /// (an older client), so applying it must leave this device's value alone.
   final bool? calendarShowLunar;
+
+  /// AI engines (JSON list, never keys), default engine id and purpose routes
+  /// (JSON map). Null = the bundle did not carry the key: keep local values.
+  final String? aiEngines;
+  final String? aiDefault;
+  final String? aiRoutes;
 
   /// Subscribed public-holiday regions. Null = the bundle did not carry the
   /// key (absent is not empty), so applying it leaves local values alone.
@@ -118,6 +127,9 @@ class SyncableSettings {
             s.toJson(),
         ],
         if (calendarShowLunar != null) 'calendarShowLunar': calendarShowLunar,
+        if (aiEngines != null) 'aiEngines': aiEngines,
+        if (aiDefault != null) 'aiDefault': aiDefault,
+        if (aiRoutes != null) 'aiRoutes': aiRoutes,
         if (calendarHolidayRegions != null)
           'calendarHolidayRegions': [
             for (final r in calendarHolidayRegions!) r.toJson(),
@@ -162,6 +174,13 @@ class SyncableSettings {
       calendarShowLunar: json['calendarShowLunar'] is bool
           ? json['calendarShowLunar'] as bool
           : null,
+      aiEngines: json['aiEngines'] is String
+          ? json['aiEngines'] as String
+          : null,
+      aiDefault: json['aiDefault'] is String
+          ? json['aiDefault'] as String
+          : null,
+      aiRoutes: json['aiRoutes'] is String ? json['aiRoutes'] as String : null,
       calendarHolidayRegions: json['calendarHolidayRegions'] is List
           ? [
               for (final r in json['calendarHolidayRegions'] as List)
@@ -226,6 +245,9 @@ class SyncableSettings {
     String? glucoseRangeUnit,
     String? glucoseDisplayUnit,
     List<String>? homeHiddenTiles,
+    String? aiEngines,
+    String? aiDefault,
+    String? aiRoutes,
   }) {
     return SyncableSettings(
       gasLog: gasLog ?? this.gasLog,
@@ -237,6 +259,9 @@ class SyncableSettings {
       contactSortBy: contactSortBy ?? this.contactSortBy,
       notesSavedSearches: notesSavedSearches ?? this.notesSavedSearches,
       calendarShowLunar: calendarShowLunar ?? this.calendarShowLunar,
+      aiEngines: aiEngines ?? this.aiEngines,
+      aiDefault: aiDefault ?? this.aiDefault,
+      aiRoutes: aiRoutes ?? this.aiRoutes,
       calendarHolidayRegions:
           calendarHolidayRegions ?? this.calendarHolidayRegions,
       calendarMyHolidays: calendarMyHolidays ?? this.calendarMyHolidays,
