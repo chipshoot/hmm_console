@@ -34,11 +34,9 @@ class FakeKeys extends LlmKeyStore {
   @override
   Future<bool> hasKey(String id) async => keys[id]?.isNotEmpty ?? false;
   @override
-  Future<bool> hasConsent(String id, String host) async =>
-      consent[id] == host;
+  Future<bool> hasConsent(String id, String host) async => consent[id] == host;
   @override
-  Future<void> setConsent(String id, String host) async =>
-      consent[id] = host;
+  Future<void> setConsent(String id, String host) async => consent[id] = host;
   @override
   Future<void> deleteConsent(String id) async => consent.remove(id);
   @override

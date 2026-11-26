@@ -9704,6 +9704,42 @@ abstract class AppLocalizations {
   /// **'Reads images'**
   String get aiEditVision;
 
+  /// No description provided for @aiEditStructured.
+  ///
+  /// In en, this message translates to:
+  /// **'Structured replies'**
+  String get aiEditStructured;
+
+  /// No description provided for @aiEditStructNative.
+  ///
+  /// In en, this message translates to:
+  /// **'Native (JSON schema)'**
+  String get aiEditStructNative;
+
+  /// No description provided for @aiEditStructJsonMode.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON mode'**
+  String get aiEditStructJsonMode;
+
+  /// No description provided for @aiEditStructNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get aiEditStructNone;
+
+  /// No description provided for @aiEditStreaming.
+  ///
+  /// In en, this message translates to:
+  /// **'Streams replies'**
+  String get aiEditStreaming;
+
+  /// No description provided for @aiEditRemoveKeyConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the saved key for {label} from this device?'**
+  String aiEditRemoveKeyConfirm(Object label);
+
   /// No description provided for @aiEditPdf.
   ///
   /// In en, this message translates to:

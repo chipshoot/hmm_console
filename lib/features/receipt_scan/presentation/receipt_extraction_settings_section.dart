@@ -52,6 +52,9 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
       }
     }
     if (mode == ReceiptExtractorMode.provider) {
+      // On a cold start this may be the first read: wait for the stored
+      // engines instead of seeing the empty default.
+      await ref.read(llmEngineSettingsProvider.notifier).ready;
       final engine = selectEngine(
         ref.read(llmEngineSettingsProvider),
         purpose: 'receipts',

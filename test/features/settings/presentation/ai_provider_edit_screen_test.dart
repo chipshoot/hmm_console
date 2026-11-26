@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hmm_console/core/help/help_button.dart';
+import 'package:hmm_console/core/llm/contract/contract.dart';
 import 'package:hmm_console/core/llm/engines/engine_presets.dart';
 import 'package:hmm_console/core/llm/engines/llm_engine.dart';
 import 'package:hmm_console/core/llm/engines/llm_engine_registry.dart';
@@ -104,7 +105,63 @@ void main() {
     await t.ensureVisible(find.text('Remove key'));
     await t.tap(find.text('Remove key'));
     await t.pumpAndSettle();
+    // Cancelling keeps the key.
+    await t.tap(find.text('Cancel'));
+    await t.pumpAndSettle();
+    expect(h.keys.keys, {'a': 'saved-secret'});
+    await t.tap(find.text('Remove key'));
+    await t.pumpAndSettle();
+    await t.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Remove key'),
+      ),
+    );
+    await t.pumpAndSettle();
     expect(h.keys.keys, isEmpty);
+  });
+
+  testWidgets('custom engine: structured output and streaming are saved', (
+    t,
+  ) async {
+    final h = await pumpAi(t, const AiProviderEditScreen());
+    await pickKind(t, 'Custom (OpenAI-compatible)');
+    await t.enterText(field('Name'), 'Home');
+    await t.enterText(field('Model'), 'llama');
+    await t.enterText(field('Base URL'), 'http://192.168.1.5:11434/v1');
+    await t.pumpAndSettle();
+    // Defaults: JSON mode, streaming on.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('aiStructuredPicker')),
+        matching: find.text('JSON mode'),
+      ),
+      findsOneWidget,
+    );
+    await t.ensureVisible(find.byKey(const Key('aiStructuredPicker')));
+    await t.tap(find.byKey(const Key('aiStructuredPicker')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Native (JSON schema)').last);
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.byKey(const Key('aiStreamingSwitch')));
+    await t.tap(find.byKey(const Key('aiStreamingSwitch')));
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.byKey(const Key('aiSave')));
+    await t.tap(find.byKey(const Key('aiSave')));
+    await t.pumpAndSettle();
+    final caps = h.container
+        .read(llmEngineSettingsProvider)
+        .engines
+        .single
+        .capabilities;
+    expect(caps.structuredOutput, StructuredOutput.native);
+    expect(caps.streaming, isFalse);
+  });
+
+  testWidgets('preset engines have no structured-output picker', (t) async {
+    await pumpAi(t, const AiProviderEditScreen());
+    await pickKind(t, 'OpenAI');
+    expect(find.byKey(const Key('aiStructuredPicker')), findsNothing);
   });
 
   testWidgets('Test connection reports success', (t) async {

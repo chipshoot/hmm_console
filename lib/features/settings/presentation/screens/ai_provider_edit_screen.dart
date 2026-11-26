@@ -47,6 +47,8 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
   LlmEngineKind _kind = LlmEngineKind.openai;
   bool _vision = false;
   bool _pdf = false;
+  bool _streaming = true;
+  StructuredOutput _structured = StructuredOutput.jsonMode;
   bool _makeDefault = false;
   bool _urlUnlocked = false;
   bool _hasKey = false;
@@ -93,6 +95,8 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
     _url.text = p.baseUrl;
     _vision = p.capabilities.vision;
     _pdf = p.capabilities.pdf;
+    _streaming = p.capabilities.streaming;
+    _structured = p.capabilities.structuredOutput;
     _urlUnlocked = false;
     _fetchFailed = false;
   }
@@ -106,6 +110,8 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
     _model.text = e.defaultModel;
     _vision = e.capabilities.vision;
     _pdf = e.capabilities.pdf;
+    _streaming = e.capabilities.streaming;
+    _structured = e.capabilities.structuredOutput;
   }
 
   String _kindName(AppLocalizations l, LlmEngineKind k) => switch (k) {
@@ -114,6 +120,12 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
     LlmEngineKind.deepseek => 'DeepSeek',
     LlmEngineKind.gemini => 'Gemini',
     LlmEngineKind.custom => l.aiKindCustom,
+  };
+
+  String _structuredName(AppLocalizations l, StructuredOutput o) => switch (o) {
+    StructuredOutput.native => l.aiEditStructNative,
+    StructuredOutput.jsonMode => l.aiEditStructJsonMode,
+    StructuredOutput.none => l.aiEditStructNone,
   };
 
   LlmEngine _build() {
@@ -127,8 +139,8 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
         ? LlmCapabilities(
             vision: _vision,
             pdf: _pdf,
-            streaming: base.capabilities.streaming,
-            structuredOutput: base.capabilities.structuredOutput,
+            streaming: _streaming,
+            structuredOutput: _structured,
           )
         : base.capabilities;
     return base.copyWith(baseUrl: _url.text.trim(), capabilities: caps);
@@ -177,6 +189,12 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
   }
 
   Future<void> _removeKey() async {
+    final l = AppLocalizations.of(context);
+    final ok = await _confirm(
+      l.aiEditRemoveKeyConfirm(_label.text.trim()),
+      l.aiEditRemoveKey,
+    );
+    if (!ok || !mounted) return;
     await ref.read(llmKeyStoreProvider).deleteKey(_id);
     ref.invalidate(aiKeyPresentProvider);
     if (!mounted) return;
@@ -261,8 +279,9 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
     if (picked != null && mounted) _model.text = picked.value;
   }
 
-  Future<bool> _confirmDelete(AppLocalizations l) async {
-    final msg = Text(l.aiEditDeleteConfirm(_label.text.trim()));
+  Future<bool> _confirm(String message, String actionLabel) async {
+    final l = AppLocalizations.of(context);
+    final msg = Text(message);
     final apple = Theme.of(context).platform == TargetPlatform.iOS;
     final bool? ok;
     if (apple) {
@@ -278,7 +297,7 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
             CupertinoDialogAction(
               isDestructiveAction: true,
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.commonDelete),
+              child: Text(actionLabel),
             ),
           ],
         ),
@@ -295,7 +314,7 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.commonDelete),
+              child: Text(actionLabel),
             ),
           ],
         ),
@@ -306,7 +325,11 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
 
   Future<void> _delete() async {
     final l = AppLocalizations.of(context);
-    if (!await _confirmDelete(l) || !mounted) return;
+    final ok = await _confirm(
+      l.aiEditDeleteConfirm(_label.text.trim()),
+      l.commonDelete,
+    );
+    if (!ok || !mounted) return;
     await ref.read(llmEngineSettingsProvider.notifier).remove(_id);
     ref.invalidate(aiKeyPresentProvider);
     if (!mounted) return;
@@ -431,6 +454,30 @@ class _AiProviderEditScreenState extends ConsumerState<AiProviderEditScreen> {
                         title: Text(l.aiEditPdf),
                         value: _pdf,
                         onChanged: (v) => setState(() => _pdf = v),
+                      ),
+                      SwitchListTile.adaptive(
+                        key: const Key('aiStreamingSwitch'),
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l.aiEditStreaming),
+                        value: _streaming,
+                        onChanged: (v) => setState(() => _streaming = v),
+                      ),
+                      ListTile(
+                        key: const Key('aiStructuredPicker'),
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l.aiEditStructured),
+                        subtitle: Text(_structuredName(l, _structured)),
+                        trailing: const Icon(Icons.expand_more),
+                        onTap: () async {
+                          final picked =
+                              await showAiChoice<StructuredOutput>(context, [
+                                for (final o in StructuredOutput.values)
+                                  AiChoice(o, _structuredName(l, o)),
+                              ]);
+                          if (picked != null) {
+                            setState(() => _structured = picked.value);
+                          }
+                        },
                       ),
                     ],
                     if (!isDefault)

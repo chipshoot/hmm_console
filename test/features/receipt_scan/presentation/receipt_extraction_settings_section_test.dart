@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -72,8 +74,11 @@ void main() {
     expect(blob, contains('"receiptExtractorMode":"cloudAi"'));
   });
 
-  Future<ProviderContainer> pumpWithRouter(WidgetTester t) async {
-    SharedPreferences.setMockInitialValues({});
+  Future<ProviderContainer> pumpWithRouter(
+    WidgetTester t, {
+    Map<String, Object> prefs = const {},
+  }) async {
+    SharedPreferences.setMockInitialValues(prefs);
     final c = ProviderContainer();
     addTearDown(c.dispose);
     final router = GoRouter(routes: [
@@ -119,6 +124,30 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('AI SCREEN'), findsOneWidget);
       expect(c.read(receiptExtractorModeProvider), ReceiptExtractorMode.onDevice);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('cold start: the first tap sees the stored default engine',
+      (t) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      final e = presetEngine(
+        LlmEngineKind.openai,
+        id: 'a',
+        label: 'A',
+        model: 'm',
+      );
+      // No notifier has been built before the tap.
+      final c = await pumpWithRouter(t, prefs: {
+        'ai.engines': jsonEncode([e.toJson()]),
+        'ai.default': 'a',
+      });
+      await t.tap(find.text('My AI provider'));
+      await t.pumpAndSettle();
+      expect(find.text('AI SCREEN'), findsNothing);
+      expect(c.read(receiptExtractorModeProvider), ReceiptExtractorMode.provider);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }

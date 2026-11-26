@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_attachment_picker.dart';
 import 'package:hmm_console/core/data/attachments/picker/image_byte_source.dart';
@@ -42,17 +44,17 @@ class _EngineStub extends LlmEngineSettingsNotifier {
   _EngineStub(this.s);
   final LlmEngineSettings s;
   @override
+  Future<void> get ready => Future.value();
+  @override
   LlmEngineSettings build() => s;
 }
 
 class _Keys extends LlmKeyStore {
   final consent = <String, String>{};
   @override
-  Future<void> setConsent(String id, String host) async =>
-      consent[id] = host;
+  Future<void> setConsent(String id, String host) async => consent[id] = host;
   @override
-  Future<bool> hasConsent(String id, String host) async =>
-      consent[id] == host;
+  Future<bool> hasConsent(String id, String host) async => consent[id] == host;
 }
 
 class _ImageSource implements ImageByteSource {
@@ -106,15 +108,17 @@ Future<ProviderContainer> _pump(
   LlmEngineSettings? engines,
   ReceiptExtractor? extractor,
   _Keys? keys,
+  bool coldEngines = false,
 }) async {
   final c = ProviderContainer(
     overrides: [
       serviceRecordRepositoryModeProvider.overrideWithValue(_Repo()),
       dataModeProvider.overrideWith(_StubMode.new),
       receiptExtractorModeProvider.overrideWith(() => _ModeStub(mode)),
-      llmEngineSettingsProvider.overrideWith(
-        () => _EngineStub(engines ?? LlmEngineSettings.empty),
-      ),
+      if (!coldEngines)
+        llmEngineSettingsProvider.overrideWith(
+          () => _EngineStub(engines ?? LlmEngineSettings.empty),
+        ),
       llmKeyStoreProvider.overrideWithValue(keys ?? _Keys()),
       imageByteSourceProvider.overrideWithValue(_ImageSource()),
       if (extractor != null)
@@ -181,11 +185,29 @@ void main() {
       expect(_pdfEnabled(t), isFalse);
     });
 
+    testWidgets('cold start: engines still loading, PDF is enabled', (t) async {
+      final s = _settings(pdf: true);
+      SharedPreferences.setMockInitialValues({
+        'ai.engines': jsonEncode([for (final e in s.engines) e.toJson()]),
+        'ai.default': 'a',
+      });
+      await _pump(t, mode: ReceiptExtractorMode.provider, coldEngines: true);
+      await _openSheet(t);
+      expect(_pdfEnabled(t), isTrue);
+    });
+
     testWidgets('on-device: disabled', (t) async {
       await _pump(t, mode: ReceiptExtractorMode.onDevice);
       await _openSheet(t);
       expect(_pdfEnabled(t), isFalse);
     });
+  });
+
+  testWidgets('scan card names the provider mode from the ARB', (t) async {
+    await _pump(t, mode: ReceiptExtractorMode.provider);
+    expect(find.textContaining('My AI provider'), findsOneWidget);
+    await _pump(t, mode: ReceiptExtractorMode.cloudAi);
+    expect(find.textContaining('Hmm cloud AI'), findsOneWidget);
   });
 
   group('consent', () {
@@ -209,7 +231,7 @@ void main() {
       await t.tap(find.text('Continue'));
       await t.pumpAndSettle();
       expect(ex.calls, 2);
-      expect(keys.consent, {'a'});
+      expect(keys.consent, {'a': 'api.openai.com'});
       expect(find.textContaining('Filled'), findsOneWidget);
       expect(find.text('Joe Auto'), findsWidgets);
     });

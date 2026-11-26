@@ -411,6 +411,9 @@ class _ServiceRecordFormScreenState
 
   Future<void> _showScanSheet() async {
     final l = AppLocalizations.of(context);
+    // The stored engines may still be loading on a cold start.
+    await ref.read(llmEngineSettingsProvider.notifier).ready;
+    if (!mounted) return;
     final pdfOk = receiptPdfSupported(
       ref.read(receiptExtractorModeProvider),
       ref.read(llmEngineSettingsProvider),
@@ -775,7 +778,7 @@ class _ScanReceiptCard extends StatelessWidget {
           scanning
               ? 'Reading receipt…'
               : 'Auto-fill from a photo${cloud ? ' or PDF' : ''} · '
-                  '${cloud ? 'Hmm cloud AI' : provider ? 'My AI provider' : 'On-device'}',
+                  '${cloud ? l.receiptCloudAi : provider ? l.receiptProvider : 'On-device'}',
         ),
         trailing: scanning
             ? const SizedBox(

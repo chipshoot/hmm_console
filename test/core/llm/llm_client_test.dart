@@ -454,18 +454,19 @@ void main() {
     expect(settingsCalls, 0);
   });
 
-  test('refused stop reason throws LlmRefused without a schema retry', () async {
-    openai.replies.add(
-      const LlmResponse(text: '', stopReason: LlmStopReason.refused),
-    );
-    await expectLater(
-      client().complete(_req(schema: _schema)),
-      throwsA(
-        isA<LlmRefused>().having((e) => e.engineLabel, 'label', 'L-a'),
-      ),
-    );
-    expect(openai.requests, hasLength(1));
-  });
+  test(
+    'refused stop reason throws LlmRefused without a schema retry',
+    () async {
+      openai.replies.add(
+        const LlmResponse(text: '', stopReason: LlmStopReason.refused),
+      );
+      await expectLater(
+        client().complete(_req(schema: _schema)),
+        throwsA(isA<LlmRefused>().having((e) => e.engineLabel, 'label', 'L-a')),
+      );
+      expect(openai.requests, hasLength(1));
+    },
+  );
 
   test('maxTokens with a schema is truncated, no retry', () async {
     openai.replies.add(

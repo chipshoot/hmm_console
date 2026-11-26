@@ -5591,6 +5591,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiEditVision => 'Reads images';
 
   @override
+  String get aiEditStructured => 'Structured replies';
+
+  @override
+  String get aiEditStructNative => 'Native (JSON schema)';
+
+  @override
+  String get aiEditStructJsonMode => 'JSON mode';
+
+  @override
+  String get aiEditStructNone => 'None';
+
+  @override
+  String get aiEditStreaming => 'Streams replies';
+
+  @override
+  String aiEditRemoveKeyConfirm(Object label) {
+    return 'Remove the saved key for $label from this device?';
+  }
+
+  @override
   String get aiEditPdf => 'Reads PDF files';
 
   @override

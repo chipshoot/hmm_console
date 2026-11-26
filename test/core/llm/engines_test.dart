@@ -228,13 +228,9 @@ void main() {
       c.listen(llmEngineSettingsProvider, (_, _) {});
       c.read(settingsBusProvider.notifier).bump();
       // Read in the rebuild window, before the reload completes.
-      expect(c.read(llmEngineSettingsProvider).engines.map((e) => e.id), [
-        'a',
-      ]);
+      expect(c.read(llmEngineSettingsProvider).engines.map((e) => e.id), ['a']);
       await c.read(llmEngineSettingsProvider.notifier).ready;
-      expect(c.read(llmEngineSettingsProvider).engines.map((e) => e.id), [
-        'a',
-      ]);
+      expect(c.read(llmEngineSettingsProvider).engines.map((e) => e.id), ['a']);
     });
 
     test('a malformed entry is dropped, valid kept, no key swept', () async {

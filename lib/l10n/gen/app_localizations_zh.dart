@@ -5337,6 +5337,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiEditVision => '可读取图片';
 
   @override
+  String get aiEditStructured => '结构化回复';
+
+  @override
+  String get aiEditStructNative => '原生（JSON Schema）';
+
+  @override
+  String get aiEditStructJsonMode => 'JSON 模式';
+
+  @override
+  String get aiEditStructNone => '无';
+
+  @override
+  String get aiEditStreaming => '流式回复';
+
+  @override
+  String aiEditRemoveKeyConfirm(Object label) {
+    return '从此设备移除 $label 的已保存密钥？';
+  }
+
+  @override
   String get aiEditPdf => '可读取 PDF 文件';
 
   @override
