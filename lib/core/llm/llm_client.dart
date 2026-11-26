@@ -15,6 +15,9 @@ import 'json_schema_validator.dart';
 import 'llm_dio.dart';
 import 'llm_key_store.dart';
 
+/// Host a consent is tied to: content goes to this host and no other.
+String engineHost(LlmEngine e) => Uri.tryParse(e.baseUrl)?.host ?? e.baseUrl;
+
 /// The one entry point features use to call an AI provider. Runs the guards
 /// in a fixed order, picks the engine, reads its key, calls the adapter,
 /// retries, and validates structured output.
@@ -117,7 +120,7 @@ class LlmClient {
     LlmException unsupported(LlmCapability c) =>
         LlmUnsupported(c, engineLabel: engine.label);
 
-    if (!await _keys.hasConsent(engine.id)) {
+    if (!await _keys.hasConsent(engine.id, engineHost(engine))) {
       throw LlmConsentRequired(engineLabel: engine.label);
     }
     final caps = engine.capabilities;
@@ -184,6 +187,7 @@ class LlmClient {
     final schema = r.responseSchema;
     final first = await _call(engine, key, r, cancel);
     if (schema == null) return first;
+    _rejectUnusable(first);
 
     final (json, errors) = _parse(first.text, schema);
     if (json != null) return _withJson(first, json);
@@ -204,9 +208,19 @@ class LlmClient {
       containsSensitive: r.containsSensitive,
     );
     final second = await _call(engine, key, retry, cancel);
+    _rejectUnusable(second);
     final (json2, _) = _parse(second.text, schema);
     if (json2 == null) throw const LlmBadResponse('schema');
     return _withJson(second, json2);
+  }
+
+  /// A refusal or a cut-off reply can never validate; retrying would only
+  /// pay for a second upload.
+  void _rejectUnusable(LlmResponse r) {
+    if (r.stopReason == LlmStopReason.refused) throw const LlmRefused();
+    if (r.stopReason == LlmStopReason.maxTokens) {
+      throw const LlmBadResponse('truncated');
+    }
   }
 
   LlmResponse _withJson(LlmResponse r, Map<String, Object?> json) =>

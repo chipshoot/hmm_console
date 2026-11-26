@@ -37,6 +37,7 @@ class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
   int _writes = 0;
   bool _swept = false;
   Completer<void> _ready = Completer<void>();
+  LlmEngineSettings _last = LlmEngineSettings.empty;
 
   /// Completes when the first load of this build has finished, whether it
   /// succeeded or failed. Callers that must not see the empty default (the
@@ -49,7 +50,9 @@ class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
     _writes = 0;
     _ready = Completer<void>();
     _load();
-    return LlmEngineSettings.empty;
+    // Keep what we had while the reload runs, so a read in that window
+    // does not see "no engines".
+    return _last;
   }
 
   Future<void> _load() async {
@@ -59,11 +62,12 @@ class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
       final prefs = await SharedPreferences.getInstance();
       if (!ref.mounted || _writes != writesAtStart) return;
       final (parsed, clean) = _parse(prefs);
-      state = parsed;
+      state = _last = parsed;
       if (!ready.isCompleted) ready.complete();
       // Never sweep from a partial read: it would delete keys of engines we
       // merely failed to parse, and those keys are not recoverable.
-      if (!_swept && clean) {
+      // An empty set may be a fresh install whose sync has not pulled yet.
+      if (!_swept && clean && state.engines.isNotEmpty) {
         _swept = true;
         await ref.read(llmKeyStoreProvider).sweepOrphans({
           for (final e in state.engines) e.id,
@@ -182,7 +186,7 @@ class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
 
   Future<void> _commit(LlmEngineSettings next) async {
     _writes++;
-    state = next;
+    state = _last = next;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       SyncableSettingsRepository.aiEnginesKey,

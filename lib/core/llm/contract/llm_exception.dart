@@ -95,3 +95,15 @@ class LlmCancelled extends LlmException {
   @override
   LlmException withEngine(String label) => LlmCancelled(engineLabel: label);
 }
+
+class LlmNotFound extends LlmException {
+  const LlmNotFound({super.engineLabel});
+  @override
+  LlmException withEngine(String label) => LlmNotFound(engineLabel: label);
+}
+
+class LlmTooLarge extends LlmException {
+  const LlmTooLarge({super.engineLabel});
+  @override
+  LlmException withEngine(String label) => LlmTooLarge(engineLabel: label);
+}

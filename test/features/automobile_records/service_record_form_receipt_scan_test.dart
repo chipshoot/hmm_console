@@ -46,11 +46,13 @@ class _EngineStub extends LlmEngineSettingsNotifier {
 }
 
 class _Keys extends LlmKeyStore {
-  final consent = <String>{};
+  final consent = <String, String>{};
   @override
-  Future<void> setConsent(String id) async => consent.add(id);
+  Future<void> setConsent(String id, String host) async =>
+      consent[id] = host;
   @override
-  Future<bool> hasConsent(String id) async => consent.contains(id);
+  Future<bool> hasConsent(String id, String host) async =>
+      consent[id] == host;
 }
 
 class _ImageSource implements ImageByteSource {

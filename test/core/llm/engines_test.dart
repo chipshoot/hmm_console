@@ -10,6 +10,7 @@ import 'package:hmm_console/core/llm/engines/llm_engine.dart';
 import 'package:hmm_console/core/llm/engines/llm_engine_registry.dart';
 import 'package:hmm_console/core/llm/llm_key_store.dart';
 import 'package:hmm_console/features/settings/data/syncable_settings_repository.dart';
+import 'package:hmm_console/features/settings/providers/settings_bus_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeStorage extends FlutterSecureStorage {
@@ -176,7 +177,7 @@ void main() {
       await n.setDefault('a');
       await n.setRoute('receipts', 'a');
       await c.read(llmKeyStoreProvider).writeKey('a', 'k');
-      await c.read(llmKeyStoreProvider).setConsent('a');
+      await c.read(llmKeyStoreProvider).setConsent('a', 'h');
       await n.remove('a');
       final s = c.read(llmEngineSettingsProvider);
       expect(s.engines.map((e) => e.id), ['b']);
@@ -203,6 +204,37 @@ void main() {
       expect(s.engines.single.label, 'Renamed');
       expect(s.defaultId, 'a');
       expect(s.routes, {'receipts': 'a'});
+    });
+
+    test('empty engine set sweeps nothing (reinstall before sync)', () async {
+      SharedPreferences.setMockInitialValues({});
+      await storage.write(key: 'llm.key.a', value: 'k');
+      await storage.write(key: 'llm.consent.a', value: 'h');
+      final c3 = ProviderContainer(
+        overrides: [
+          llmKeyStoreProvider.overrideWithValue(LlmKeyStore(storage)),
+        ],
+      );
+      addTearDown(c3.dispose);
+      c3.listen(llmEngineSettingsProvider, (_, _) {});
+      await c3.read(llmEngineSettingsProvider.notifier).ready;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(storage.map.keys.toSet(), {'llm.key.a', 'llm.consent.a'});
+    });
+
+    test('a bus tick keeps the previous engines while reloading', () async {
+      final n = c.read(llmEngineSettingsProvider.notifier);
+      await n.add(_e('a'));
+      c.listen(llmEngineSettingsProvider, (_, _) {});
+      c.read(settingsBusProvider.notifier).bump();
+      // Read in the rebuild window, before the reload completes.
+      expect(c.read(llmEngineSettingsProvider).engines.map((e) => e.id), [
+        'a',
+      ]);
+      await c.read(llmEngineSettingsProvider.notifier).ready;
+      expect(c.read(llmEngineSettingsProvider).engines.map((e) => e.id), [
+        'a',
+      ]);
     });
 
     test('a malformed entry is dropped, valid kept, no key swept', () async {

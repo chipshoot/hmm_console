@@ -236,8 +236,21 @@ class OpenAiCompatibleAdapter implements LlmAdapter {
       final map = data is String ? jsonDecode(data) : data;
       if (map is! Map) throw const FormatException();
       final choice = (map['choices'] as List).first as Map;
-      final content = (choice['message'] as Map)['content'];
-      if (content is! String) throw const FormatException();
+      final message = choice['message'] as Map;
+      final content = message['content'];
+      final refusal = message['refusal'];
+      if (content is! String) {
+        // A refusal arrives as a `refusal` string with null content.
+        if (content == null && refusal is String && refusal.isNotEmpty) {
+          return LlmResponse(
+            text: '',
+            stopReason: LlmStopReason.refused,
+            usage: _usage(map['usage']),
+            model: map['model'] as String?,
+          );
+        }
+        throw const FormatException();
+      }
       return LlmResponse(
         text: content,
         stopReason: _stop(choice['finish_reason'] as String?),
@@ -284,6 +297,8 @@ class OpenAiCompatibleAdapter implements LlmAdapter {
         retryAfter: secs == null ? null : Duration(seconds: secs),
       );
     }
+    if (status == 404) return const LlmNotFound();
+    if (status == 413) return const LlmTooLarge();
     if (status >= 500) return const LlmUnreachable();
     return const LlmBadResponse('openai: malformed');
   }

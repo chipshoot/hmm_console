@@ -15,7 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class FakeKeys extends LlmKeyStore {
   FakeKeys();
   final keys = <String, String>{};
-  final consent = <String>{};
+  final consent = <String, String>{};
 
   @override
   Future<String?> readKey(String id) async => keys[id];
@@ -34,9 +34,11 @@ class FakeKeys extends LlmKeyStore {
   @override
   Future<bool> hasKey(String id) async => keys[id]?.isNotEmpty ?? false;
   @override
-  Future<bool> hasConsent(String id) async => consent.contains(id);
+  Future<bool> hasConsent(String id, String host) async =>
+      consent[id] == host;
   @override
-  Future<void> setConsent(String id) async => consent.add(id);
+  Future<void> setConsent(String id, String host) async =>
+      consent[id] = host;
   @override
   Future<void> deleteConsent(String id) async => consent.remove(id);
   @override

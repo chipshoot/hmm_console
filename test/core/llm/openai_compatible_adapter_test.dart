@@ -308,6 +308,27 @@ void main() {
         ),
       );
     });
+    test('404', () => expectErr<LlmNotFound>((_) => _json({}, status: 404)));
+    test('413', () => expectErr<LlmTooLarge>((_) => _json({}, status: 413)));
+    test('refusal field is a refusal, not malformed', () async {
+      make(
+        (_) => _json({
+          'choices': [
+            {
+              'message': {
+                'role': 'assistant',
+                'content': null,
+                'refusal': 'no',
+              },
+              'finish_reason': 'stop',
+            },
+          ],
+        }),
+      );
+      final r = await run(_req());
+      expect(r.stopReason, LlmStopReason.refused);
+      expect(r.text, '');
+    });
     test('503', () => expectErr<LlmUnreachable>((_) => _json({}, status: 503)));
     test(
       'timeout',

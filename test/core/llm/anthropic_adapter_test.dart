@@ -282,6 +282,8 @@ void main() {
         ),
       );
     });
+    test('404', () => expectErr<LlmNotFound>((_) => _json({}, status: 404)));
+    test('413', () => expectErr<LlmTooLarge>((_) => _json({}, status: 413)));
     test('529', () => expectErr<LlmUnreachable>((_) => _json({}, status: 529)));
     test('500', () => expectErr<LlmUnreachable>((_) => _json({}, status: 500)));
     test(

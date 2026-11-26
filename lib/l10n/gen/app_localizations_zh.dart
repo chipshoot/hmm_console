@@ -5440,6 +5440,16 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String llmErrNotFound(Object label) {
+    return '$label：未找到——请检查地址或模型。';
+  }
+
+  @override
+  String llmErrTooLarge(Object label) {
+    return '$label：文件对该服务商来说太大。';
+  }
+
+  @override
   String get helpAiProvidersTitle => 'AI 服务商';
 
   @override

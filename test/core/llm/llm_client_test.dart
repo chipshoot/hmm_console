@@ -16,6 +16,7 @@ class _Keys extends LlmKeyStore {
   _Keys();
   String? key = 'sk';
   bool consent = true;
+  String? hostSeen;
   int reads = 0;
   int consentChecks = 0;
   @override
@@ -28,7 +29,8 @@ class _Keys extends LlmKeyStore {
   Future<void> sweepOrphans(Set<String> liveIds) async {}
 
   @override
-  Future<bool> hasConsent(String id) async {
+  Future<bool> hasConsent(String id, String host) async {
+    hostSeen = host;
     consentChecks++;
     return consent;
   }
@@ -450,6 +452,38 @@ void main() {
       throwsA(isA<LlmSensitiveRefused>()),
     );
     expect(settingsCalls, 0);
+  });
+
+  test('refused stop reason throws LlmRefused without a schema retry', () async {
+    openai.replies.add(
+      const LlmResponse(text: '', stopReason: LlmStopReason.refused),
+    );
+    await expectLater(
+      client().complete(_req(schema: _schema)),
+      throwsA(
+        isA<LlmRefused>().having((e) => e.engineLabel, 'label', 'L-a'),
+      ),
+    );
+    expect(openai.requests, hasLength(1));
+  });
+
+  test('maxTokens with a schema is truncated, no retry', () async {
+    openai.replies.add(
+      const LlmResponse(text: '{"a":', stopReason: LlmStopReason.maxTokens),
+    );
+    await expectLater(
+      client().complete(_req(schema: _schema)),
+      throwsA(
+        isA<LlmBadResponse>().having((e) => e.detail, 'detail', 'truncated'),
+      ),
+    );
+    expect(openai.requests, hasLength(1));
+  });
+
+  test('consent is checked against the engine host', () async {
+    openai.replies.add(_ok('x'));
+    await client().complete(_req());
+    expect(keys.hostSeen, 'x');
   });
 
   test('testConnection skips consent', () async {

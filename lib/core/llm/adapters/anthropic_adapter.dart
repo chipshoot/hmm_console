@@ -278,6 +278,8 @@ class AnthropicAdapter implements LlmAdapter {
         retryAfter: secs == null ? null : Duration(seconds: secs),
       );
     }
+    if (status == 404) return const LlmNotFound();
+    if (status == 413) return const LlmTooLarge();
     if (status >= 500) return const LlmUnreachable();
     if (status == 400) {
       Object? parsed = body;

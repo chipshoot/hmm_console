@@ -2383,6 +2383,8 @@
   "llmErrSensitive": "{label}: sensitive notes are never sent to an AI provider.",
   "llmErrConsent": "{label}: sending to this provider hasn't been approved on this device.",
   "llmErrCancelled": "{label}: cancelled.",
+  "llmErrNotFound": "{label}: not found — check the address or model.",
+  "llmErrTooLarge": "{label}: the file is too large for this provider.",
   "helpAiProvidersTitle": "AI providers",
   "helpAiProvidersSummary": "Connect your own AI account. Keys stay on this device and are never synced.",
   "helpAiProvidersAddTitle": "Add provider",

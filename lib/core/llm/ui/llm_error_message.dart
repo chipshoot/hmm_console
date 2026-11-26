@@ -28,5 +28,7 @@ String llmErrorMessage(LlmException e, AppLocalizations l) {
     LlmSensitiveRefused() => l.llmErrSensitive(label),
     LlmConsentRequired() => l.llmErrConsent(label),
     LlmCancelled() => l.llmErrCancelled(label),
+    LlmNotFound() => l.llmErrNotFound(label),
+    LlmTooLarge() => l.llmErrTooLarge(label),
   };
 }

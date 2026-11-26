@@ -77,15 +77,20 @@ void main() {
   });
 
   test('consent set and checked', () async {
-    expect(await store.hasConsent('a'), isFalse);
-    await store.setConsent('a');
-    expect(await store.hasConsent('a'), isTrue);
+    expect(await store.hasConsent('a', 'h.com'), isFalse);
+    await store.setConsent('a', 'h.com');
+    expect(await store.hasConsent('a', 'h.com'), isTrue);
+  });
+
+  test('consent is void when the host changes', () async {
+    await store.setConsent('a', 'h.com');
+    expect(await store.hasConsent('a', 'other.com'), isFalse);
   });
 
   test('sweeps orphan keys', () async {
     for (final id in ['a', 'b']) {
       await store.writeKey(id, 'k');
-      await store.setConsent(id);
+      await store.setConsent(id, 'h.com');
     }
     s.map['hmm_access_token'] = 'tok';
     await store.sweepOrphans({'a'});

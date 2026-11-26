@@ -27,11 +27,13 @@ class LlmKeyStore {
     return k != null && k.isNotEmpty;
   }
 
-  Future<bool> hasConsent(String id) async =>
-      await _storage.read(key: '$_consentPrefix$id') != null;
+  /// Consent is for one host: it holds only while the engine still points
+  /// at the host that was approved, so editing the base URL asks again.
+  Future<bool> hasConsent(String id, String host) async =>
+      await _storage.read(key: '$_consentPrefix$id') == host;
 
-  Future<void> setConsent(String id) =>
-      _storage.write(key: '$_consentPrefix$id', value: '1');
+  Future<void> setConsent(String id, String host) =>
+      _storage.write(key: '$_consentPrefix$id', value: host);
 
   Future<void> deleteConsent(String id) =>
       _storage.delete(key: '$_consentPrefix$id');

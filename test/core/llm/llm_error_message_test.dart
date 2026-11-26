@@ -28,6 +28,8 @@ void main() {
     const LlmSensitiveRefused(engineLabel: 'Claude (work)'),
     const LlmConsentRequired(engineLabel: 'Claude (work)'),
     const LlmCancelled(engineLabel: 'Claude (work)'),
+    const LlmNotFound(engineLabel: 'Claude (work)'),
+    const LlmTooLarge(engineLabel: 'Claude (work)'),
   ];
 
   for (final code in ['en', 'zh']) {
@@ -102,7 +104,7 @@ void main() {
         await t.tap(find.text('Continue'));
         await t.pumpAndSettle();
         expect(await f, isTrue);
-        expect(h.keys.consent, {'a'});
+        expect(h.keys.consent, {'a': 'api.anthropic.com'});
       },
     );
 
@@ -122,7 +124,7 @@ void main() {
       await t.tap(find.text('Continue'));
       await t.pumpAndSettle();
       expect(await f, isTrue);
-      expect(h.keys.consent, {'a'});
+      expect(h.keys.consent, {'a': 'api.anthropic.com'});
     });
   });
 }

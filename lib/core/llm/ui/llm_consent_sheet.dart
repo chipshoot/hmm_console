@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/gen/app_localizations.dart';
 import '../engines/llm_engine.dart';
+import '../llm_client.dart';
 import '../llm_key_store.dart';
 
 /// Asks once per device before content goes to [engine]'s host. Accepting
@@ -15,10 +16,8 @@ Future<bool> showLlmConsentSheet(BuildContext context, LlmEngine engine) async {
     context,
     listen: false,
   ).read(llmKeyStoreProvider);
-  final message = l.llmConsentMessage(
-    engine.label,
-    Uri.tryParse(engine.baseUrl)?.host ?? engine.baseUrl,
-  );
+  final host = engineHost(engine);
+  final message = l.llmConsentMessage(engine.label, host);
   final ios = Theme.of(context).platform == TargetPlatform.iOS;
   final bool? ok;
   if (ios) {
@@ -57,6 +56,6 @@ Future<bool> showLlmConsentSheet(BuildContext context, LlmEngine engine) async {
     );
   }
   if (ok != true) return false;
-  await keys.setConsent(engine.id);
+  await keys.setConsent(engine.id, host);
   return true;
 }

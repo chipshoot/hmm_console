@@ -1675,6 +1675,8 @@
   "llmErrSensitive": "{label}：敏感笔记绝不会发送给 AI 服务商。",
   "llmErrConsent": "{label}：此设备尚未同意向该服务商发送内容。",
   "llmErrCancelled": "{label}：已取消。",
+  "llmErrNotFound": "{label}：未找到——请检查地址或模型。",
+  "llmErrTooLarge": "{label}：文件对该服务商来说太大。",
   "helpAiProvidersTitle": "AI 服务商",
   "helpAiProvidersSummary": "连接您自己的 AI 账户。密钥只保存在此设备上，不会同步。",
   "helpAiProvidersAddTitle": "添加服务商",

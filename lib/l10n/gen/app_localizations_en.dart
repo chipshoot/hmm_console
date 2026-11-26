@@ -5694,6 +5694,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String llmErrNotFound(Object label) {
+    return '$label: not found — check the address or model.';
+  }
+
+  @override
+  String llmErrTooLarge(Object label) {
+    return '$label: the file is too large for this provider.';
+  }
+
+  @override
   String get helpAiProvidersTitle => 'AI providers';
 
   @override

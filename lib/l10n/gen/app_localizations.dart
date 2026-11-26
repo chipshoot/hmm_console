@@ -9854,6 +9854,18 @@ abstract class AppLocalizations {
   /// **'{label}: cancelled.'**
   String llmErrCancelled(Object label);
 
+  /// No description provided for @llmErrNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: not found — check the address or model.'**
+  String llmErrNotFound(Object label);
+
+  /// No description provided for @llmErrTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: the file is too large for this provider.'**
+  String llmErrTooLarge(Object label);
+
   /// No description provided for @helpAiProvidersTitle.
   ///
   /// In en, this message translates to:
