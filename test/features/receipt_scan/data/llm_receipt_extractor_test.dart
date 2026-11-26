@@ -111,11 +111,9 @@ void main() {
       client,
       compress: (b) async => b.length > 4 * 1024 * 1024 ? Uint8List(1000) : b,
     );
-    await x.extract(
-      ReceiptInput(bytes: big, contentType: 'image/jpeg'),
-    );
-    final part = client.requests.single.messages.single.parts.single
-        as ImagePart;
+    await x.extract(ReceiptInput(bytes: big, contentType: 'image/jpeg'));
+    final part =
+        client.requests.single.messages.single.parts.single as ImagePart;
     expect(part.bytes.length, lessThan(4 * 1024 * 1024));
   });
 
@@ -130,20 +128,70 @@ void main() {
     expect(d.lineItems.single.quantity, 2);
   });
 
-  test('ApiLlmExtractor still maps the same JSON (PascalCase too)', () {
-    final pascal = {
-      'ShopName': 'Joe',
-      'Odometer': 10,
-      'LineItems': [
-        {'Type': 'Fee', 'Name': 'Env', 'Quantity': 3, 'Amount': 3.0},
-      ],
-    };
-    final d = receiptDraftFromJson(pascal, ReceiptExtractorMode.cloudAi);
-    expect(d.shopName, 'Joe');
-    expect(d.odometer, 10);
-    expect(d.lineItems.single.quantity, 3);
-    expect(d.source, ReceiptExtractorMode.cloudAi);
-    // ApiLlmExtractor delegates to the same mapper.
-    expect(ApiLlmExtractor(ApiClient(Dio())), isA<ApiLlmExtractor>());
+  group('receiptTargetSize', () {
+    test('portrait: long side capped at 2000', () {
+      expect(receiptTargetSize(3000, 4000), (1500, 2000));
+    });
+    test('landscape: long side capped at 2000', () {
+      expect(receiptTargetSize(4000, 3000), (2000, 1500));
+    });
+    test('already small: never upscaled', () {
+      expect(receiptTargetSize(800, 1200), (800, 1200));
+      expect(receiptTargetSize(2000, 2000), (2000, 2000));
+    });
+    test('extreme aspect keeps at least 1 px', () {
+      expect(receiptTargetSize(100, 20000), (10, 2000));
+      expect(receiptTargetSize(1, 40000), (1, 2000));
+    });
   });
+
+  group('ApiLlmExtractor shares the mapper', () {
+    Future<ReceiptDraft> run(String body) async {
+      final dio = Dio(BaseOptions(baseUrl: 'https://x/v1'))
+        ..httpClientAdapter = _Body(body);
+      return ApiLlmExtractor(ApiClient(dio)).extract(
+        ReceiptInput(bytes: Uint8List.fromList([1]), contentType: 'image/jpeg'),
+      );
+    }
+
+    test('camelCase keys', () async {
+      final d = await run(
+        '{"shopName":"Joe","odometer":10,"lineItems":'
+        '[{"type":"Fee","name":"Env","quantity":3,"amount":3.0}]}',
+      );
+      expect(d.source, ReceiptExtractorMode.cloudAi);
+      expect(d.shopName, 'Joe');
+      expect(d.lineItems.single.quantity, 3);
+    });
+
+    test('PascalCase keys', () async {
+      final d = await run(
+        '{"ShopName":"Joe","Odometer":10,"LineItems":'
+        '[{"Type":"Fee","Name":"Env","Quantity":3,"Amount":3.0}]}',
+      );
+      expect(d.shopName, 'Joe');
+      expect(d.odometer, 10);
+      expect(d.lineItems.single.name, 'Env');
+      expect(d.lineItems.single.quantity, 3);
+    });
+  });
+}
+
+class _Body implements HttpClientAdapter {
+  _Body(this.body);
+  final String body;
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async => ResponseBody.fromString(
+    body,
+    200,
+    headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType],
+    },
+  );
+  @override
+  void close({bool force = false}) {}
 }

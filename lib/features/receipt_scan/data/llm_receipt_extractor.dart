@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
@@ -52,15 +54,46 @@ class LlmReceiptExtractor implements ReceiptExtractor {
 
 const _maxImageBytes = 4 * 1024 * 1024;
 
+/// Size (width, height) that keeps the aspect ratio with the LONG side at
+/// most [maxLong]; images already within it are returned unchanged.
+(int, int) receiptTargetSize(int w, int h, {int maxLong = 2000}) {
+  final long = w > h ? w : h;
+  if (long <= maxLong) return (w, h);
+  final scale = maxLong / long;
+  int fit(int v) => (v * scale).round().clamp(1, maxLong);
+  return (fit(w), fit(h));
+}
+
+Future<(int, int)?> _dimensions(Uint8List bytes) async {
+  ui.ImmutableBuffer? buffer;
+  ui.ImageDescriptor? d;
+  try {
+    buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+    d = await ui.ImageDescriptor.encoded(buffer);
+    return (d.width, d.height);
+  } catch (_) {
+    return null;
+  } finally {
+    d?.dispose();
+    buffer?.dispose();
+  }
+}
+
 /// JPEG, long side at most 2000 px, quality stepped down from 85 by 15 to a
-/// floor of 40 until the result is under 4 MB.
+/// floor of 40 until the result is under 4 MB. The plugin treats
+/// minWidth/minHeight as lower bounds, so the real size is read first and the
+/// scaled target is passed.
 Future<Uint8List> defaultReceiptCompress(Uint8List bytes) async {
+  final dims = await _dimensions(bytes);
+  final (w, h) = dims == null
+      ? (2000, 2000)
+      : receiptTargetSize(dims.$1, dims.$2);
   var out = bytes;
   for (var q = 85; q >= 40; q -= 15) {
     out = await FlutterImageCompress.compressWithList(
       bytes,
-      minWidth: 2000,
-      minHeight: 2000,
+      minWidth: w,
+      minHeight: h,
       quality: q,
       format: CompressFormat.jpeg,
     );
