@@ -79,6 +79,7 @@ class OpenAiCompatibleAdapter implements LlmAdapter {
 
       final text = StringBuffer();
       var stop = LlmStopReason.end;
+      var finished = false;
       LlmUsage? usage;
       String? usedModel;
       final events = parseSse(rb.stream).timeout(
@@ -87,7 +88,10 @@ class OpenAiCompatibleAdapter implements LlmAdapter {
       );
       await for (final e in events) {
         if (e.data.isEmpty) continue;
-        if (e.data.trim() == '[DONE]') break;
+        if (e.data.trim() == '[DONE]') {
+          finished = true;
+          break;
+        }
         final Object? decoded;
         try {
           decoded = jsonDecode(e.data);
@@ -108,9 +112,14 @@ class OpenAiCompatibleAdapter implements LlmAdapter {
             yield TextDelta(content);
           }
           final fr = choice['finish_reason'];
-          if (fr is String) stop = _stop(fr);
+          if (fr is String) {
+            stop = _stop(fr);
+            finished = true;
+          }
         }
       }
+      // A connection that closed without [DONE] or a finish_reason was cut.
+      if (!finished) throw const LlmUnreachable();
       yield Completed(
         LlmResponse(
           text: text.toString(),
@@ -165,7 +174,11 @@ class OpenAiCompatibleAdapter implements LlmAdapter {
         if (system != null) {'role': 'system', 'content': system},
         for (final m in request.messages) _message(m),
       ],
-      'max_tokens': request.maxTokens,
+      // Current OpenAI models reject max_tokens; other providers want it.
+      if (engine.kind == LlmEngineKind.openai)
+        'max_completion_tokens': request.maxTokens
+      else
+        'max_tokens': request.maxTokens,
       'temperature': ?request.temperature,
       'response_format': ?responseFormat,
       if (stream) ...{

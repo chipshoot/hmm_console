@@ -42,12 +42,13 @@ ResponseBody _json(Object body, {int status = 200, Map<String, String>? h}) =>
     );
 
 LlmEngine _engine({
+  LlmEngineKind kind = LlmEngineKind.openai,
   String baseUrl = 'https://h/v1',
   StructuredOutput so = StructuredOutput.native,
 }) => LlmEngine(
   id: 'e',
   label: 'E',
-  kind: LlmEngineKind.openai,
+  kind: kind,
   baseUrl: baseUrl,
   defaultModel: 'm',
   requiresKey: true,
@@ -111,7 +112,7 @@ void main() {
         {'role': 'system', 'content': 'sys'},
         {'role': 'user', 'content': 'hi'},
       ],
-      'max_tokens': 2048,
+      'max_completion_tokens': 2048,
       'temperature': 0.2,
     });
     expect(res.text, 'hello');
@@ -238,6 +239,45 @@ void main() {
       );
       expect((await run(_req())).stopReason, want);
     }
+  });
+
+  test('openai engine sends max_completion_tokens, not max_tokens', () async {
+    make((_) => _json(_ok));
+    await run(_req());
+    expect(sent()['max_completion_tokens'], 2048);
+    expect(sent().containsKey('max_tokens'), isFalse);
+  });
+
+  test('deepseek and custom engines send max_tokens', () async {
+    for (final k in [LlmEngineKind.deepseek, LlmEngineKind.custom]) {
+      make((_) => _json(_ok));
+      await run(_req(), engine: _engine(kind: k));
+      expect(sent()['max_tokens'], 2048);
+      expect(sent().containsKey('max_completion_tokens'), isFalse);
+    }
+  });
+
+  test('tool part throws LlmUnsupported(tools)', () async {
+    make((_) => _json(_ok));
+    await expectLater(
+      run(
+        _req(
+          messages: [
+            const LlmMessage(
+              role: LlmRole.assistant,
+              parts: [ToolCallPart('1', 'f', '{}')],
+            ),
+          ],
+        ),
+      ),
+      throwsA(
+        isA<LlmUnsupported>().having(
+          (e) => e.capability,
+          'capability',
+          LlmCapability.tools,
+        ),
+      ),
+    );
   });
 
   group('errors', () {
@@ -405,6 +445,65 @@ void main() {
       }
       expect(seen, [const TextDelta('Hel')]);
       expect(error, isA<LlmUnreachable>());
+    });
+
+    test('clean close without DONE or finish_reason is unreachable', () async {
+      make(
+        (_) => sse(
+          Stream.fromIterable([
+            utf8.encode(
+              ev({
+                'choices': [
+                  {
+                    'delta': {'content': 'Hel'},
+                  },
+                ],
+              }),
+            ),
+          ]),
+        ),
+      );
+      final seen = <LlmEvent>[];
+      Object? error;
+      try {
+        await for (final e in adapter.stream(
+          _engine(),
+          'k',
+          _req(),
+          model: 'm',
+        )) {
+          seen.add(e);
+        }
+      } catch (e) {
+        error = e;
+      }
+      expect(seen, [const TextDelta('Hel')]);
+      expect(error, isA<LlmUnreachable>());
+    });
+
+    test('event with empty data is skipped', () async {
+      make(
+        (_) => sse(
+          Stream.fromIterable([
+            utf8.encode('event: ping\n\n'),
+            utf8.encode(
+              ev({
+                'choices': [
+                  {
+                    'delta': {'content': 'A'},
+                    'finish_reason': 'stop',
+                  },
+                ],
+              }),
+            ),
+          ]),
+        ),
+      );
+      final events = await adapter
+          .stream(_engine(), 'k', _req(), model: 'm')
+          .toList();
+      expect(events.first, const TextDelta('A'));
+      expect((events.last as Completed).response.text, 'A');
     });
 
     test('stream HTTP error maps status', () async {
