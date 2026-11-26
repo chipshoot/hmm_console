@@ -49,8 +49,11 @@ class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (!ref.mounted || _writes != writesAtStart) return;
-      state = _parse(prefs);
-      if (!_swept) {
+      final (parsed, clean) = _parse(prefs);
+      state = parsed;
+      // Never sweep from a partial read: it would delete keys of engines we
+      // merely failed to parse, and those keys are not recoverable.
+      if (!_swept && clean) {
         _swept = true;
         await ref.read(llmKeyStoreProvider).sweepOrphans({
           for (final e in state.engines) e.id,
@@ -62,29 +65,45 @@ class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
     }
   }
 
-  LlmEngineSettings _parse(SharedPreferences prefs) {
-    var engines = <LlmEngine>[];
+  /// Bad entries are dropped one by one; [clean] is false when anything
+  /// could not be read, so the caller must not treat the list as complete.
+  (LlmEngineSettings, bool) _parse(SharedPreferences prefs) {
+    var clean = true;
+    final engines = <LlmEngine>[];
     var routes = <String, String>{};
-    try {
-      final raw = prefs.getString(SyncableSettingsRepository.aiEnginesKey);
-      if (raw != null) {
-        engines = [
-          for (final j in jsonDecode(raw) as List)
-            LlmEngine.fromJson(Map<String, Object?>.from(j as Map)),
-        ];
+    final raw = prefs.getString(SyncableSettingsRepository.aiEnginesKey);
+    if (raw != null) {
+      try {
+        for (final j in jsonDecode(raw) as List) {
+          try {
+            engines.add(
+              LlmEngine.fromJson(Map<String, Object?>.from(j as Map)),
+            );
+          } catch (_) {
+            clean = false;
+          }
+        }
+      } catch (_) {
+        clean = false;
       }
-      final r = prefs.getString(SyncableSettingsRepository.aiRoutesKey);
-      if (r != null) {
-        routes = Map<String, String>.from(jsonDecode(r) as Map);
-      }
-    } catch (_) {
-      engines = [];
-      routes = {};
     }
-    return LlmEngineSettings(
-      engines: engines,
-      defaultId: prefs.getString(SyncableSettingsRepository.aiDefaultKey),
-      routes: routes,
+    final r = prefs.getString(SyncableSettingsRepository.aiRoutesKey);
+    if (r != null) {
+      try {
+        routes = Map<String, String>.from(jsonDecode(r) as Map);
+      } catch (_) {
+        routes = {};
+      }
+    }
+    // '' means "no default" (kept as a value so the clear syncs).
+    final def = prefs.getString(SyncableSettingsRepository.aiDefaultKey);
+    return (
+      LlmEngineSettings(
+        engines: engines,
+        defaultId: (def == null || def.isEmpty) ? null : def,
+        routes: routes,
+      ),
+      clean,
     );
   }
 
@@ -157,14 +176,10 @@ class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
       SyncableSettingsRepository.aiEnginesKey,
       jsonEncode([for (final e in next.engines) e.toJson()]),
     );
-    if (next.defaultId == null) {
-      await prefs.remove(SyncableSettingsRepository.aiDefaultKey);
-    } else {
-      await prefs.setString(
-        SyncableSettingsRepository.aiDefaultKey,
-        next.defaultId!,
-      );
-    }
+    await prefs.setString(
+      SyncableSettingsRepository.aiDefaultKey,
+      next.defaultId ?? '',
+    );
     await prefs.setString(
       SyncableSettingsRepository.aiRoutesKey,
       jsonEncode(next.routes),

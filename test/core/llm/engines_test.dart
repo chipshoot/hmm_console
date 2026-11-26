@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +9,7 @@ import 'package:hmm_console/core/llm/engines/engine_selector.dart';
 import 'package:hmm_console/core/llm/engines/llm_engine.dart';
 import 'package:hmm_console/core/llm/engines/llm_engine_registry.dart';
 import 'package:hmm_console/core/llm/llm_key_store.dart';
+import 'package:hmm_console/features/settings/data/syncable_settings_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeStorage extends FlutterSecureStorage {
@@ -201,5 +204,70 @@ void main() {
       expect(s.defaultId, 'a');
       expect(s.routes, {'receipts': 'a'});
     });
+
+    test('a malformed entry is dropped, valid kept, no key swept', () async {
+      final good = _e('a').toJson();
+      SharedPreferences.setMockInitialValues({
+        'ai.engines': jsonEncode([
+          good,
+          {'label': 'no id'},
+          5,
+        ]),
+      });
+      await storage.write(key: 'llm.key.a', value: 'k');
+      await storage.write(key: 'llm.key.zzz', value: 'k2');
+      final c3 = ProviderContainer(
+        overrides: [
+          llmKeyStoreProvider.overrideWithValue(LlmKeyStore(storage)),
+        ],
+      );
+      addTearDown(c3.dispose);
+      c3.listen(llmEngineSettingsProvider, (_, _) {});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(c3.read(llmEngineSettingsProvider).engines.map((e) => e.id), [
+        'a',
+      ]);
+      expect(storage.map.keys.toSet(), {'llm.key.a', 'llm.key.zzz'});
+    });
+
+    test('unparseable engines value sweeps nothing', () async {
+      SharedPreferences.setMockInitialValues({'ai.engines': 'not json'});
+      await storage.write(key: 'llm.key.a', value: 'k');
+      final c3 = ProviderContainer(
+        overrides: [
+          llmKeyStoreProvider.overrideWithValue(LlmKeyStore(storage)),
+        ],
+      );
+      addTearDown(c3.dispose);
+      c3.listen(llmEngineSettingsProvider, (_, _) {});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(storage.map.keys, ['llm.key.a']);
+    });
+
+    test(
+      'removing the default syncs as empty and an empty default applies',
+      () async {
+        final n = c.read(llmEngineSettingsProvider.notifier);
+        await n.add(_e('a'));
+        await n.setDefault('a');
+        await n.remove('a');
+        final bundle = await SyncableSettingsRepository().read();
+        expect(bundle.aiDefault, '');
+        expect(c.read(llmEngineSettingsProvider).defaultId, isNull);
+
+        // Another device with a stale default applies the bundle.
+        SharedPreferences.setMockInitialValues({'ai.default': 'a'});
+        await SyncableSettingsRepository().apply(bundle);
+        final c2 = ProviderContainer(
+          overrides: [
+            llmKeyStoreProvider.overrideWithValue(LlmKeyStore(storage)),
+          ],
+        );
+        addTearDown(c2.dispose);
+        c2.listen(llmEngineSettingsProvider, (_, _) {});
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(c2.read(llmEngineSettingsProvider).defaultId, isNull);
+      },
+    );
   });
 }
