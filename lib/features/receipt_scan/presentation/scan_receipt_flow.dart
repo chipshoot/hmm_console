@@ -1,3 +1,4 @@
+import '../../../core/llm/contract/contract.dart';
 import '../domain/apply_draft.dart';
 import '../domain/receipt_draft.dart';
 import '../domain/receipt_extractor.dart';
@@ -32,6 +33,10 @@ Future<ScanResult> scanReceipt({
   try {
     final draft = await extractor.extract(input);
     return ScanSuccess(applyDraft(current, draft));
+  } on LlmException {
+    // Typed AI-provider failures (consent, key, quota…) are handled by the
+    // caller, which can prompt or localize them.
+    rethrow;
   } on ReceiptExtractionException catch (e) {
     return ScanFailure(e.message);
   } catch (e) {

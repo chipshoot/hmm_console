@@ -2129,8 +2129,26 @@ abstract class AppLocalizations {
   /// No description provided for @receiptCloudAi.
   ///
   /// In en, this message translates to:
-  /// **'Cloud AI (more accurate)'**
+  /// **'Hmm cloud AI'**
   String get receiptCloudAi;
+
+  /// No description provided for @receiptProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'My AI provider'**
+  String get receiptProvider;
+
+  /// No description provided for @receiptProviderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses your own AI account. Reads photos, and PDFs when the provider supports them.'**
+  String get receiptProviderSubtitle;
+
+  /// No description provided for @recordsNeedsPdfProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs Hmm cloud AI or a provider that reads PDFs (change in Settings)'**
+  String get recordsNeedsPdfProvider;
 
   /// No description provided for @receiptOnDeviceSubtitle.
   ///

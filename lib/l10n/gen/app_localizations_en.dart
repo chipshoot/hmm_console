@@ -1155,7 +1155,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receiptOnDevice => 'On-device (private)';
 
   @override
-  String get receiptCloudAi => 'Cloud AI (more accurate)';
+  String get receiptCloudAi => 'Hmm cloud AI';
+
+  @override
+  String get receiptProvider => 'My AI provider';
+
+  @override
+  String get receiptProviderSubtitle =>
+      'Uses your own AI account. Reads photos, and PDFs when the provider supports them.';
+
+  @override
+  String get recordsNeedsPdfProvider =>
+      'Needs Hmm cloud AI or a provider that reads PDFs (change in Settings)';
 
   @override
   String get receiptOnDeviceSubtitle =>

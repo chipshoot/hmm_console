@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
-import '../../automobile_records/domain/entities/line_item_type.dart';
 import '../domain/receipt_draft.dart';
 import '../domain/receipt_extractor.dart';
 
@@ -22,7 +21,8 @@ class ApiLlmExtractor implements ReceiptExtractor {
   Future<ReceiptDraft> extract(ReceiptInput input) async {
     if (input.sensitive) {
       throw const ReceiptExtractionException(
-          'Sensitive attachments are never sent to cloud AI.');
+        'Sensitive attachments are never sent to cloud AI.',
+      );
     }
     try {
       final form = FormData.fromMap({
@@ -41,7 +41,10 @@ class ApiLlmExtractor implements ReceiptExtractor {
         options: Options(receiveTimeout: const Duration(seconds: 60)),
       );
 
-      return _fromJson(_asMap(response.data));
+      return receiptDraftFromJson(
+        _asMap(response.data),
+        ReceiptExtractorMode.cloudAi,
+      );
     } on ReceiptExtractionException {
       rethrow;
     } on DioException catch (e) {
@@ -49,7 +52,8 @@ class ApiLlmExtractor implements ReceiptExtractor {
     } catch (_) {
       // Keep internal error detail out of the user-facing message.
       throw const ReceiptExtractionException(
-          'Could not read the receipt. Please try again.');
+        'Could not read the receipt. Please try again.',
+      );
     }
   }
 
@@ -62,42 +66,8 @@ class ApiLlmExtractor implements ReceiptExtractor {
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
     }
     throw const ReceiptExtractionException(
-        'Unexpected response from the receipt service.');
-  }
-
-  ReceiptDraft _fromJson(Map<String, dynamic> j) {
-    final rawItems = _get(j, 'lineItems');
-    final items = rawItems is List ? rawItems : const [];
-    final date = _asString(_get(j, 'date'));
-    return ReceiptDraft(
-      source: ReceiptExtractorMode.cloudAi,
-      shopName: _asString(_get(j, 'shopName')),
-      date: date != null ? DateTime.tryParse(date) : null,
-      odometer: _asNum(_get(j, 'odometer'))?.toInt(),
-      tax: _asNum(_get(j, 'tax'))?.toDouble(),
-      total: _asNum(_get(j, 'total'))?.toDouble(),
-      currency: _asString(_get(j, 'currency')),
-      lineItems: [
-        for (final it in items)
-          if (it is Map)
-            ReceiptLineItem(
-              type: LineItemType.fromWire(_asString(_get(it, 'type'))),
-              name: _asString(_get(it, 'name')) ?? '',
-              quantity: _asNum(_get(it, 'quantity'))?.toInt() ?? 1,
-              unitCost: _asNum(_get(it, 'unitCost'))?.toDouble(),
-              amount: _asNum(_get(it, 'amount'))?.toDouble(),
-            ),
-      ],
+      'Unexpected response from the receipt service.',
     );
-  }
-
-  /// Case-tolerant key lookup. The endpoint returns camelCase, but fall back
-  /// to the PascalCase variant so a server serializer-config regression can't
-  /// silently blank out the extracted fields (the bug that once shipped).
-  static dynamic _get(Map<dynamic, dynamic> j, String camel) {
-    if (j.containsKey(camel)) return j[camel];
-    final pascal = camel[0].toUpperCase() + camel.substring(1);
-    return j[pascal];
   }
 
   String _filenameFor(String contentType) {
@@ -120,8 +90,4 @@ class ApiLlmExtractor implements ReceiptExtractor {
     }
     return 'Could not reach the receipt extraction service.';
   }
-
-  static String? _asString(dynamic v) => v is String ? v : null;
-
-  static num? _asNum(dynamic v) => v is num ? v : null;
 }

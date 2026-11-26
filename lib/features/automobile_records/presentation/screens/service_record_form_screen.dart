@@ -1,3 +1,8 @@
+import '../../../../core/llm/contract/contract.dart';
+import '../../../../core/llm/engines/engine_selector.dart';
+import '../../../../core/llm/engines/llm_engine_registry.dart';
+import '../../../../core/llm/ui/llm_consent_sheet.dart';
+import '../../../../core/llm/ui/llm_error_message.dart';
 import 'package:flutter/material.dart';
 
 import '../record_labels.dart';
@@ -406,8 +411,10 @@ class _ServiceRecordFormScreenState
 
   Future<void> _showScanSheet() async {
     final l = AppLocalizations.of(context);
-    final cloudAi = ref.read(receiptExtractorModeProvider) ==
-        ReceiptExtractorMode.cloudAi;
+    final pdfOk = receiptPdfSupported(
+      ref.read(receiptExtractorModeProvider),
+      ref.read(llmEngineSettingsProvider),
+    );
     final source = await showModalBottomSheet<_ScanSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -424,16 +431,14 @@ class _ServiceRecordFormScreenState
               title: Text(l.recordsChoosePhoto),
               onTap: () => Navigator.pop(ctx, _ScanSource.photo),
             ),
-            // PDFs are readable only by the Cloud AI extractor; on-device OCR
-            // handles images only.
+            // PDFs need Hmm cloud AI or a provider whose engine reads PDFs;
+            // on-device OCR handles images only.
             ListTile(
-              enabled: cloudAi,
+              enabled: pdfOk,
               leading: const Icon(Icons.picture_as_pdf_outlined),
               title: Text(l.recordsChoosePdf),
-              subtitle: cloudAi
-                  ? null
-                  : Text(l.recordsNeedsCloudAi),
-              onTap: cloudAi ? () => Navigator.pop(ctx, _ScanSource.pdf) : null,
+              subtitle: pdfOk ? null : Text(l.recordsNeedsPdfProvider),
+              onTap: pdfOk ? () => Navigator.pop(ctx, _ScanSource.pdf) : null,
             ),
           ],
         ),
@@ -470,13 +475,12 @@ class _ServiceRecordFormScreenState
     }
 
     setState(() => _scanning = true);
-    final result = await scanReceipt(
-      extractor: ref.read(receiptExtractorProvider),
-      input: ReceiptInput(bytes: bytes, contentType: contentType),
-      current: _currentValues(),
+    final result = await _runScan(
+      ReceiptInput(bytes: bytes, contentType: contentType),
     );
     if (!mounted) return;
     setState(() => _scanning = false);
+    if (result == null) return;
 
     switch (result) {
       case ScanSuccess(:final applied):
@@ -511,6 +515,32 @@ class _ServiceRecordFormScreenState
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
     }
+  }
+
+  /// Runs the scan; on [LlmConsentRequired] asks for consent and retries once.
+  /// Returns null when the user declines consent (nothing to report).
+  Future<ScanResult?> _runScan(ReceiptInput input) async {
+    final l = AppLocalizations.of(context);
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await scanReceipt(
+          extractor: ref.read(receiptExtractorProvider),
+          input: input,
+          current: _currentValues(),
+        );
+      } on LlmConsentRequired {
+        final engine = selectEngine(
+          ref.read(llmEngineSettingsProvider),
+          purpose: 'receipts',
+        );
+        if (attempt > 0 || engine == null || !mounted) return null;
+        if (!await showLlmConsentSheet(context, engine)) return null;
+        if (!mounted) return null;
+      } on LlmException catch (e) {
+        return ScanFailure(llmErrorMessage(e, l));
+      }
+    }
+    return null;
   }
 
   /// Builds a [ServiceRecord] from the current form fields. [notes] is passed
@@ -736,6 +766,7 @@ class _ScanReceiptCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final cloud = mode == ReceiptExtractorMode.cloudAi;
+    final provider = mode == ReceiptExtractorMode.provider;
     return Card(
       child: ListTile(
         leading: const Icon(Icons.document_scanner_outlined),
@@ -744,7 +775,7 @@ class _ScanReceiptCard extends StatelessWidget {
           scanning
               ? 'Reading receipt…'
               : 'Auto-fill from a photo${cloud ? ' or PDF' : ''} · '
-                  '${cloud ? 'Cloud AI' : 'On-device'}',
+                  '${cloud ? 'Hmm cloud AI' : provider ? 'My AI provider' : 'On-device'}',
         ),
         trailing: scanning
             ? const SizedBox(

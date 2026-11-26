@@ -1,8 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/llm/engines/engine_selector.dart';
+import '../../../core/llm/engines/llm_engine_registry.dart';
+import '../../../core/navigation/route_names.dart';
 import '../../../core/settings/settings_controller.dart';
 import '../domain/receipt_draft.dart';
 import '../providers/receipt_extractor_providers.dart';
@@ -20,8 +25,9 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
   ) async {
     final l = AppLocalizations.of(context);
     if (mode == ReceiptExtractorMode.cloudAi) {
-      final consented =
-          (await ref.read(settingsProvider.future)).receiptCloudConsent;
+      final consented = (await ref.read(
+        settingsProvider.future,
+      )).receiptCloudConsent;
       if (!consented) {
         if (!context.mounted) return;
         final ok = await showDialog<bool>(
@@ -45,8 +51,23 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
         await ref.read(settingsProvider.notifier).setReceiptCloudConsent(true);
       }
     }
+    if (mode == ReceiptExtractorMode.provider) {
+      final engine = selectEngine(
+        ref.read(llmEngineSettingsProvider),
+        purpose: 'receipts',
+      );
+      if (engine == null) {
+        if (!context.mounted) return;
+        await context.pushNamed(RouterNames.aiProviders.name);
+        return;
+      }
+    }
     await ref.read(receiptExtractorModeProvider.notifier).setMode(mode);
   }
+
+  static bool get _providerModeAvailable =>
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.android;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,8 +79,9 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
       children: [
         Text(
           'Receipt extraction',
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 4),
         RadioGroup<ReceiptExtractorMode>(
@@ -83,6 +105,14 @@ class ReceiptExtractionSettingsSection extends ConsumerWidget {
                 title: Text(l.receiptCloudAi),
                 subtitle: Text(l.receiptCloudAiSubtitle),
               ),
+              if (_providerModeAvailable)
+                RadioListTile<ReceiptExtractorMode>(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  value: ReceiptExtractorMode.provider,
+                  title: Text(l.receiptProvider),
+                  subtitle: Text(l.receiptProviderSubtitle),
+                ),
             ],
           ),
         ),

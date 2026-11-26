@@ -7,7 +7,8 @@ import '../../automobile_records/domain/entities/service_type.dart';
 /// a user preference; mirrors the DataMode selection pattern.
 enum ReceiptExtractorMode {
   onDevice('onDevice'),
-  cloudAi('cloudAi');
+  cloudAi('cloudAi'),
+  provider('provider');
 
   const ReceiptExtractorMode(this.wire);
 
@@ -104,3 +105,48 @@ class ReceiptExtractionException implements Exception {
   @override
   String toString() => 'ReceiptExtractionException: $message';
 }
+
+/// Maps an extractor's JSON (server or AI provider) to a [ReceiptDraft].
+///
+/// Deliberately tolerant — a mistyped or missing field degrades to null rather
+/// than discarding the whole draft. Keys fall back from camelCase to
+/// PascalCase so a serializer-config regression can't silently blank the
+/// extracted fields (the bug that once shipped).
+ReceiptDraft receiptDraftFromJson(
+  Map<String, dynamic> j,
+  ReceiptExtractorMode source,
+) {
+  final rawItems = _get(j, 'lineItems');
+  final items = rawItems is List ? rawItems : const [];
+  final date = _asString(_get(j, 'date'));
+  return ReceiptDraft(
+    source: source,
+    shopName: _asString(_get(j, 'shopName')),
+    date: date != null ? DateTime.tryParse(date) : null,
+    odometer: _asNum(_get(j, 'odometer'))?.toInt(),
+    tax: _asNum(_get(j, 'tax'))?.toDouble(),
+    total: _asNum(_get(j, 'total'))?.toDouble(),
+    currency: _asString(_get(j, 'currency')),
+    lineItems: [
+      for (final it in items)
+        if (it is Map)
+          ReceiptLineItem(
+            type: LineItemType.fromWire(_asString(_get(it, 'type'))),
+            name: _asString(_get(it, 'name')) ?? '',
+            quantity: _asNum(_get(it, 'quantity'))?.toInt() ?? 1,
+            unitCost: _asNum(_get(it, 'unitCost'))?.toDouble(),
+            amount: _asNum(_get(it, 'amount'))?.toDouble(),
+          ),
+    ],
+  );
+}
+
+dynamic _get(Map<dynamic, dynamic> j, String camel) {
+  if (j.containsKey(camel)) return j[camel];
+  final pascal = camel[0].toUpperCase() + camel.substring(1);
+  return j[pascal];
+}
+
+String? _asString(dynamic v) => v is String ? v : null;
+
+num? _asNum(dynamic v) => v is num ? v : null;

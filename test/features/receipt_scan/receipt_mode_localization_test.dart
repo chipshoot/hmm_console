@@ -24,6 +24,7 @@ void main() {
   test('the persisted wire value is a stable literal', () {
     expect(ReceiptExtractorMode.onDevice.wire, 'onDevice');
     expect(ReceiptExtractorMode.cloudAi.wire, 'cloudAi');
+    expect(ReceiptExtractorMode.provider.wire, 'provider');
   });
 
   test('every mode round-trips through its wire value', () {
@@ -42,7 +43,7 @@ void main() {
 
   test('the labels translate and are not the wire values', () {
     expect(zh.receiptOnDevice, '本机识别（私密）');
-    expect(zh.receiptCloudAi, '云端 AI（更准确）');
+    expect(zh.receiptCloudAi, 'Hmm 云端 AI');
     expect(zh.receiptOnDevice, isNot(en.receiptOnDevice));
     // The guard that matters: no label may equal a wire value, or the two
     // concepts have been collapsed again.

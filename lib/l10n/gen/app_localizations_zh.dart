@@ -1114,7 +1114,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get receiptOnDevice => '本机识别（私密）';
 
   @override
-  String get receiptCloudAi => '云端 AI（更准确）';
+  String get receiptCloudAi => 'Hmm 云端 AI';
+
+  @override
+  String get receiptProvider => '我的 AI 服务商';
+
+  @override
+  String get receiptProviderSubtitle => '使用你自己的 AI 账号。可读取照片；服务商支持时也可读取 PDF。';
+
+  @override
+  String get recordsNeedsPdfProvider => '需要 Hmm 云端 AI 或支持 PDF 的服务商（可在设置中更改）';
 
   @override
   String get receiptOnDeviceSubtitle => '在手机上识别照片，不会上传任何内容。无法读取 PDF。';
