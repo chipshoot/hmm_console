@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -35,22 +36,31 @@ class LlmEngineSettings {
 class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
   int _writes = 0;
   bool _swept = false;
+  Completer<void> _ready = Completer<void>();
+
+  /// Completes when the first load of this build has finished, whether it
+  /// succeeded or failed. Callers that must not see the empty default (the
+  /// LLM client right after app start) await it.
+  Future<void> get ready => _ready.future;
 
   @override
   LlmEngineSettings build() {
     ref.watch(settingsBusProvider);
     _writes = 0;
+    _ready = Completer<void>();
     _load();
     return LlmEngineSettings.empty;
   }
 
   Future<void> _load() async {
     final writesAtStart = _writes;
+    final ready = _ready;
     try {
       final prefs = await SharedPreferences.getInstance();
       if (!ref.mounted || _writes != writesAtStart) return;
       final (parsed, clean) = _parse(prefs);
       state = parsed;
+      if (!ready.isCompleted) ready.complete();
       // Never sweep from a partial read: it would delete keys of engines we
       // merely failed to parse, and those keys are not recoverable.
       if (!_swept && clean) {
@@ -62,6 +72,8 @@ class LlmEngineSettingsNotifier extends Notifier<LlmEngineSettings> {
     } catch (e) {
       // Type only: engine config and keys must not reach logs.
       debugPrint('LlmEngines: settings unreadable (${e.runtimeType})');
+    } finally {
+      if (!ready.isCompleted) ready.complete();
     }
   }
 
