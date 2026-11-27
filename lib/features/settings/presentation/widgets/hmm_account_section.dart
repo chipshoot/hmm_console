@@ -7,6 +7,7 @@ import '../../../../core/data/data_mode.dart';
 import '../../../../l10n/gen/app_localizations.dart';
 import '../../../auth/presentation/hmm_sign_in_sheet.dart';
 import '../../../auth/providers/current_user_provider.dart';
+import '../../../auth/providers/hmm_session_expired_provider.dart';
 import '../../../auth/usecases/signout_usecase.dart';
 
 /// Switches the data mode. Hmm cloud (`cloudApi`) needs a Hmm session, so the
@@ -67,6 +68,8 @@ class HmmAccountSection extends ConsumerWidget {
       _ => false,
     };
     final signedIn = user != null;
+    // The IdP ended the session: say so, rather than a plain "not signed in".
+    final expired = signedIn ? null : ref.watch(hmmSessionExpiredProvider).value;
     final label = signedIn ? l.settingsHmmSignOut : l.hmmSignInAction;
     void onPressed() =>
         signedIn ? _signOut(context, ref) : context.push('/auth');
@@ -85,7 +88,11 @@ class HmmAccountSection extends ConsumerWidget {
         Text(
           signedIn
               ? l.settingsHmmSignedInAs(user.email ?? '')
-              : l.settingsHmmNotSignedIn,
+              : expired == null
+                  ? l.settingsHmmNotSignedIn
+                  : expired.isEmpty
+                      ? l.hmmSessionExpiredBody
+                      : l.settingsHmmSessionExpired(expired),
         ),
         const SizedBox(height: 8),
         Align(

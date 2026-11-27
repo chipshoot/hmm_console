@@ -2,15 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hmm_console/core/network/idp_token_service.dart';
-import 'package:hmm_console/core/network/token_storage.dart';
 import 'package:hmm_console/features/auth/data/interfaces/auth_interface.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 
 class _AuthRemoteDataSource implements AuthRepository {
-  _AuthRemoteDataSource(this._idpTokenService, this._tokenStorage);
+  _AuthRemoteDataSource(this._idpTokenService);
 
   final IdpTokenService _idpTokenService;
-  final TokenStorage _tokenStorage;
   final StreamController<bool> _authStateController =
       StreamController<bool>.broadcast();
 
@@ -67,14 +65,25 @@ class _AuthRemoteDataSource implements AuthRepository {
 
   @override
   Stream<bool> isUserAuthenticated() async* {
-    yield await _tokenStorage.hasValidToken();
-    yield* _authStateController.stream;
+    // Not just "is the access token fresh": an expired one is refreshed
+    // first, and an unreachable IdP keeps the stored session.
+    yield await _idpTokenService.checkSession() != SessionCheck.signedOut;
+    // Sign-in / sign-out here, plus the IdP refusing the refresh token on
+    // any path (start-up, an API call, sync): that session is over too.
+    final out = StreamController<bool>();
+    final subs = [
+      _authStateController.stream.listen(out.add),
+      _idpTokenService.sessionEnded.listen((_) => out.add(false)),
+    ];
+    out.onCancel = () async {
+      for (final sub in subs) {
+        await sub.cancel();
+      }
+    };
+    yield* out.stream;
   }
 }
 
 final authRemoteDataSource = Provider<_AuthRemoteDataSource>(
-  (ref) => _AuthRemoteDataSource(
-    ref.watch(idpTokenServiceProvider),
-    ref.watch(tokenStorageProvider),
-  ),
+  (ref) => _AuthRemoteDataSource(ref.watch(idpTokenServiceProvider)),
 );

@@ -11,6 +11,11 @@ class TokenStorage {
   static const _refreshTokenKey = 'hmm_refresh_token';
   static const _expiryKey = 'hmm_token_expiry';
 
+  /// Set when the IdP refused the refresh token, so the app can ask the user
+  /// to sign in again. Holds the account's email ('' when unknown). Cleared
+  /// by a new sign-in, a deliberate sign-out, or the user dismissing it.
+  static const _expiredKey = 'hmm_session_expired';
+
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
@@ -20,6 +25,7 @@ class TokenStorage {
       _storage.write(key: _accessTokenKey, value: accessToken),
       _storage.write(key: _refreshTokenKey, value: refreshToken),
       _storage.write(key: _expiryKey, value: expiry.toIso8601String()),
+      _storage.delete(key: _expiredKey),
     ]);
   }
 
@@ -47,8 +53,18 @@ class TokenStorage {
       _storage.delete(key: _accessTokenKey),
       _storage.delete(key: _refreshTokenKey),
       _storage.delete(key: _expiryKey),
+      _storage.delete(key: _expiredKey),
     ]);
   }
+
+  Future<void> markSessionExpired(String? email) =>
+      _storage.write(key: _expiredKey, value: email ?? '');
+
+  /// The expired account's email ('' when unknown), or null when no session
+  /// has expired.
+  Future<String?> getExpiredSession() => _storage.read(key: _expiredKey);
+
+  Future<void> clearSessionExpired() => _storage.delete(key: _expiredKey);
 }
 
 final tokenStorageProvider = Provider<TokenStorage>(

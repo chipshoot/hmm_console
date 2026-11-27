@@ -86,6 +86,30 @@ void main() {
     });
   });
 
+  test('cloudApi while the session check is still running: holds off',
+      () async {
+    // The startup check may be refreshing an expired access token over the
+    // network; the login screen must not flash for a signed-in user.
+    final container = ProviderContainer(
+      overrides: [
+        settingsProvider.overrideWith(
+          () => _FixedSettings(
+            AppSettings.defaults.copyWith(dataMode: DataMode.cloudApi),
+          ),
+        ),
+        routerAuthStateProvider.overrideWith(
+          (_) => Completer<bool>().future.asStream(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final gateSub = container.listen(loginRequiredProvider, (_, _) {});
+    addTearDown(gateSub.close);
+    await container.read(settingsProvider.future);
+    await container.pump();
+    expect(container.read(loginRequiredProvider), isFalse);
+  });
+
   group('authGateRedirect', () {
     test('sends to /auth when a login is required', () {
       expect(authGateRedirect(loginRequired: true, isAuthPath: false), '/auth');

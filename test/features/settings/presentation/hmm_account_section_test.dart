@@ -10,6 +10,7 @@ import 'package:hmm_console/core/auth/owner_id.dart';
 import 'package:hmm_console/core/data/local/database.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
+import 'package:hmm_console/features/auth/providers/hmm_session_expired_provider.dart';
 import 'package:hmm_console/core/network/idp_token_service.dart';
 import 'package:hmm_console/features/settings/presentation/widgets/hmm_account_section.dart';
 import 'package:hmm_console/l10n/gen/app_localizations.dart';
@@ -43,6 +44,7 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   required bool signedIn,
   required _FakeSignOut signOut,
+  String? expired,
 }) async {
   final router = _router = GoRouter(
     initialLocation: '/settings',
@@ -65,6 +67,7 @@ Future<ProviderContainer> _pump(
       ownerIdProvider.overrideWith((ref) async => 'OWNER'),
       if (signedIn) currentUserProvider.overrideWith(_User.new),
       idpTokenServiceProvider.overrideWithValue(signOut),
+      hmmSessionExpiredProvider.overrideWith((_) => Stream.value(expired)),
     ],
   );
   addTearDown(container.dispose);
@@ -87,6 +90,26 @@ void main() {
     await _pump(tester, signedIn: false, signOut: _FakeSignOut());
     expect(find.textContaining('Not signed in'), findsOneWidget);
     expect(find.text('Sign out'), findsNothing);
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+    expect(find.text('login-screen'), findsOneWidget);
+  });
+
+  testWidgets('an expired session says so and offers Sign in', (tester) async {
+    await _pump(
+      tester,
+      signedIn: false,
+      signOut: _FakeSignOut(),
+      expired: 'me@example.com',
+    );
+    expect(
+      find.text(
+        'Your session for me@example.com expired. Sign in again to keep '
+        'using your Hmm account.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Not signed in'), findsNothing);
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
     expect(find.text('login-screen'), findsOneWidget);

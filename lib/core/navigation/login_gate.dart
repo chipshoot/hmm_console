@@ -18,7 +18,12 @@ final loginRequiredProvider = Provider<bool>((ref) {
   final settingsLoaded = ref.watch(settingsProvider.select((s) => s.hasValue));
   if (!settingsLoaded) return false;
   if (ref.watch(dataModeProvider) != DataMode.cloudApi) return false;
-  return ref.watch(routerAuthStateProvider).value != true;
+  // The start-up session check may be refreshing an expired access token
+  // over the network (up to a few seconds); hold off rather than flash the
+  // login screen at a user who is signed in.
+  final auth = ref.watch(routerAuthStateProvider);
+  if (auth.isLoading && !auth.hasValue) return false;
+  return auth.value != true;
 });
 
 /// Where the router sends the user when a login is required, or null.
