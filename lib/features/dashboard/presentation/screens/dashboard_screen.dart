@@ -9,7 +9,9 @@ import '../../../../core/navigation/route_names.dart';
 import '../../../../core/network/idp_token_service.dart';
 import '../../../../domain/entities/app_function.dart';
 import '../../../auth/data/models/current_user.dart';
+import '../../../auth/presentation/widges/hmm_session_expired_banner.dart';
 import '../../../auth/providers/current_user_provider.dart';
+import '../../../auth/providers/hmm_session_expired_provider.dart';
 import '../../../auth/usecases/signout_usecase.dart';
 import '../../../contacts/presentation/widgets/contact_photo.dart';
 import '../../../contacts/states/contacts_state.dart';
@@ -77,6 +79,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    // The IdP ended the Hmm session: stop greeting the user by an account
+    // that is no longer signed in.
+    ref.listen(hmmSessionExpiredProvider, (_, next) {
+      if (next.value != null && ref.read(currentUserProvider) != null) {
+        ref.read(currentUserProvider.notifier).setUser(null);
+      }
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -97,6 +106,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         const SizedBox(height: 32),
                         _buildSearchBar(colorScheme),
                         const SizedBox(height: 24),
+                        // Shows only when the Hmm session expired
+                        // (local / cloudStorage); otherwise takes no space.
+                        const HmmSessionExpiredBanner(),
                         // First-run defaults greeter. Hides itself after
                         // the user acknowledges; never returns.
                         if (!ref.watch(introCardSeenProvider)) ...[

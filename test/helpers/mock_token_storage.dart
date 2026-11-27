@@ -8,6 +8,7 @@ class MockTokenStorage extends TokenStorage {
   String? _accessToken;
   String? _refreshToken;
   DateTime? _expiry;
+  String? _expired;
 
   @override
   Future<void> saveTokens({
@@ -18,6 +19,7 @@ class MockTokenStorage extends TokenStorage {
     _accessToken = accessToken;
     _refreshToken = refreshToken;
     _expiry = expiry;
+    _expired = null;
   }
 
   @override
@@ -40,5 +42,16 @@ class MockTokenStorage extends TokenStorage {
     _accessToken = null;
     _refreshToken = null;
     _expiry = null;
+    _expired = null;
   }
+
+  @override
+  Future<void> markSessionExpired(String? email) async =>
+      _expired = email ?? '';
+
+  @override
+  Future<String?> getExpiredSession() async => _expired;
+
+  @override
+  Future<void> clearSessionExpired() async => _expired = null;
 }

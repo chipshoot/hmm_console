@@ -5239,6 +5239,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsHmmSignOutFailed => '未能退出登录，请重试。';
 
   @override
+  String settingsHmmSessionExpired(String email) {
+    return '$email 的登录已过期。请重新登录以继续使用 Hmm 账户。';
+  }
+
+  @override
+  String get hmmSessionExpiredTitle => 'Hmm 登录已过期';
+
+  @override
+  String get hmmSessionExpiredBody => '请重新登录以继续使用 Hmm 账户。此设备上的数据不受影响。';
+
+  @override
+  String get hmmSessionExpiredDismiss => '暂不';
+
+  @override
   String get onboardingHmmCloudFailed => '未能完成设置，请重试。';
 
   @override

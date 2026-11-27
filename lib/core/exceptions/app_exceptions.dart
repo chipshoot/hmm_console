@@ -109,6 +109,13 @@ class AuthTokenException extends AppException {
   factory AuthTokenException.refreshFailed() =>
       const AuthTokenException('TOKEN_REFRESH_FAILED', 'Token refresh failed');
 
+  /// The IdP could not be reached (offline, timeout, server error). The
+  /// stored session is kept: it may still be valid.
+  factory AuthTokenException.refreshUnreachable() => const AuthTokenException(
+        'TOKEN_REFRESH_UNREACHABLE',
+        'Could not reach the sign-in service',
+      );
+
   factory AuthTokenException.expired() =>
       const AuthTokenException('TOKEN_EXPIRED', 'Token has expired');
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,6 +17,19 @@ class TokenPeekException implements Exception {
 
   @override
   String toString() => 'TokenPeekException($cause)';
+}
+
+/// Result of [IdpTokenService.checkSession] at app start.
+enum SessionCheck {
+  /// A usable access token is stored (possibly just refreshed).
+  signedIn,
+
+  /// A session is stored but the IdP could not be reached to refresh it.
+  /// It is kept, and the user treated as signed in.
+  offline,
+
+  /// No session, or the IdP refused the refresh token.
+  signedOut,
 }
 
 class IdpTokenService {
@@ -60,6 +75,7 @@ class IdpTokenService {
       final claims = decodeJwtPayload(accessToken);
       if (beforeStore != null) await beforeStore(claims);
       await _storeTokens(response.data);
+      _sessionChanges.add(null);
       return claims;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
@@ -177,14 +193,30 @@ class IdpTokenService {
   }
 
   /// Refresh the access token using the stored refresh token.
-  Future<void> refreshAccessToken() async {
+  ///
+  /// Concurrent callers share one IdP request: the IdP rotates refresh
+  /// tokens, so a second request with the old token would be refused and
+  /// would wrongly end the session.
+  ///
+  /// Throws [AuthTokenException.refreshUnreachable] when the IdP cannot be
+  /// reached or fails on its side (the session is kept), and
+  /// [AuthTokenException.refreshFailed] when it refuses the refresh token —
+  /// in which case the session is ended: tokens cleared, the session marked
+  /// expired, and [sessionEnded] notified.
+  Future<void> refreshAccessToken() =>
+      _inflightRefresh ??= _refresh().whenComplete(() => _inflightRefresh = null);
+
+  Future<void>? _inflightRefresh;
+
+  Future<void> _refresh() async {
     final refreshToken = await _tokenStorage.getRefreshToken();
     if (refreshToken == null) {
       throw AuthTokenException.missingToken();
     }
 
+    final Response<dynamic> response;
     try {
-      final response = await _dio.post(
+      response = await _dio.post(
         _config.tokenEndpoint,
         data: {
           'grant_type': 'refresh_token',
@@ -196,21 +228,92 @@ class IdpTokenService {
           contentType: Headers.formUrlEncodedContentType,
         ),
       );
-
-      // A rejected refresh (revoked token, 400 invalid_grant) can arrive as a
-      // non-throwing response carrying an error body. _storeTokens would
-      // then crash on the missing access_token with a bare TypeError, which
-      // is not something callers can catch as an auth failure.
-      final data = response.data;
-      if (response.statusCode != 200 ||
-          data is! Map ||
-          data['access_token'] is! String) {
-        throw AuthTokenException.refreshFailed();
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 400 || status == 401) {
+        await _endSession(refreshToken);
+        return;
       }
-      await _storeTokens(Map<String, dynamic>.from(data));
-    } on DioException {
+      throw AuthTokenException.refreshUnreachable();
+    }
+
+    // A rejected refresh (revoked token, 400 invalid_grant) can arrive as a
+    // non-throwing response carrying an error body. _storeTokens would
+    // then crash on the missing access_token with a bare TypeError, which
+    // is not something callers can catch as an auth failure.
+    final data = response.data;
+    if (response.statusCode == 400 || response.statusCode == 401) {
+      await _endSession(refreshToken);
+      return;
+    }
+    if (response.statusCode != 200 ||
+        data is! Map ||
+        data['access_token'] is! String) {
       throw AuthTokenException.refreshFailed();
     }
+    await _storeTokens(Map<String, dynamic>.from(data));
+  }
+
+  /// The IdP refused [sentToken]. Unless another refresh already stored a
+  /// newer pair (then this refusal is stale and the session is fine), clear
+  /// the session, remember it expired, notify, and throw refreshFailed.
+  Future<void> _endSession(String sentToken) async {
+    if (await _tokenStorage.getRefreshToken() != sentToken) return;
+    final email = await _peekClaimOrNull('email');
+    await _tokenStorage.clearTokens();
+    await _tokenStorage.markSessionExpired(email);
+    _sessionEnded.add(null);
+    _sessionChanges.add(null);
+    throw AuthTokenException.refreshFailed();
+  }
+
+  Future<String?> _peekClaimOrNull(String name) async {
+    try {
+      return await _peekClaim(name);
+    } on TokenPeekException {
+      return null;
+    }
+  }
+
+  final _sessionEnded = StreamController<void>.broadcast();
+  final _sessionChanges = StreamController<void>.broadcast();
+
+  /// Fires when the IdP refused the refresh token and the session was ended.
+  Stream<void> get sessionEnded => _sessionEnded.stream;
+
+  /// Fires whenever the stored session or its expired flag changes (sign-in,
+  /// sign-out, session ended, expired notice dismissed).
+  Stream<void> get sessionChanges => _sessionChanges.stream;
+
+  /// Decides at app start whether the stored Hmm session is usable.
+  ///
+  /// A valid access token is signed in. An expired one is refreshed first;
+  /// if the IdP cannot be reached within [timeout], the session is kept and
+  /// the user let in ([SessionCheck.offline]) — later API calls refresh it.
+  /// Only a refused refresh token, or no session at all, is signed out.
+  Future<SessionCheck> checkSession({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    if (await _tokenStorage.hasValidToken()) return SessionCheck.signedIn;
+    if (await _tokenStorage.getRefreshToken() == null) {
+      return SessionCheck.signedOut;
+    }
+    try {
+      await refreshAccessToken().timeout(timeout);
+      return SessionCheck.signedIn;
+    } on TimeoutException {
+      return SessionCheck.offline;
+    } on AuthTokenException {
+      return await hasHmmSession()
+          ? SessionCheck.offline
+          : SessionCheck.signedOut;
+    }
+  }
+
+  /// The user acknowledged the "session expired" notice.
+  Future<void> dismissExpiredSession() async {
+    await _tokenStorage.clearSessionExpired();
+    _sessionChanges.add(null);
   }
 
   /// Returns a valid access token, refreshing if necessary.
@@ -286,7 +389,10 @@ class IdpTokenService {
   }
 
   /// Clear all stored tokens (on sign-out).
-  Future<void> clearTokens() => _tokenStorage.clearTokens();
+  Future<void> clearTokens() async {
+    await _tokenStorage.clearTokens();
+    _sessionChanges.add(null);
+  }
 
   Future<void> _storeTokens(Map<String, dynamic> data) async {
     final accessToken = data['access_token'] as String;

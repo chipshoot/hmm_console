@@ -5,6 +5,7 @@ import 'package:hmm_console/core/data/data_mode.dart';
 import 'package:hmm_console/core/data/sync/sync_controller.dart';
 import 'package:hmm_console/features/auth/data/models/current_user.dart';
 import 'package:hmm_console/features/auth/providers/current_user_provider.dart';
+import 'package:hmm_console/features/auth/providers/hmm_session_expired_provider.dart';
 import 'package:hmm_console/features/cheatsheet/domain/entities/cheatsheet_card.dart';
 import 'package:hmm_console/features/cheatsheet/states/cheatsheets_state.dart';
 import 'package:hmm_console/features/contacts/domain/entities/contact.dart';
@@ -77,6 +78,7 @@ Future<void> _pump(
   required DataMode mode,
   CurrentUserDataModel? user,
   List<Contact> contacts = const [],
+  String? expired,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -87,6 +89,7 @@ Future<void> _pump(
         dataModeProvider.overrideWith(() => _StubMode(mode)),
         syncControllerProvider.overrideWithValue(_FakeSync()),
         contactsStateProvider.overrideWith(() => _Contacts(contacts)),
+        hmmSessionExpiredProvider.overrideWith((_) => Stream.value(expired)),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -146,5 +149,24 @@ void main() {
     );
     expect(_inAvatar(find.text('T')), findsOneWidget);
     expect(_inAvatar(find.text('AL')), findsNothing);
+  });
+
+  testWidgets('an expired Hmm session shows the notice and drops the login',
+      (tester) async {
+    await _pump(
+      tester,
+      mode: DataMode.local,
+      user: _tester,
+      expired: 'tester@example.com',
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('hmm-session-expired')), findsOneWidget);
+    expect(find.textContaining('Tester'), findsNothing);
+    expect(_inAvatar(find.byIcon(Icons.person_outline)), findsOneWidget);
+  });
+
+  testWidgets('no expired session: no notice', (tester) async {
+    await _pump(tester, mode: DataMode.local, user: _tester);
+    expect(find.byKey(const Key('hmm-session-expired')), findsNothing);
   });
 }

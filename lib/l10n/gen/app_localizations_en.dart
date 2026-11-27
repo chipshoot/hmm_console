@@ -5490,6 +5490,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsHmmSignOutFailed => 'Couldn\'t sign out. Try again.';
 
   @override
+  String settingsHmmSessionExpired(String email) {
+    return 'Your session for $email expired. Sign in again to keep using your Hmm account.';
+  }
+
+  @override
+  String get hmmSessionExpiredTitle => 'Hmm session expired';
+
+  @override
+  String get hmmSessionExpiredBody =>
+      'Sign in again to keep using your Hmm account. Your data on this device is safe.';
+
+  @override
+  String get hmmSessionExpiredDismiss => 'Not now';
+
+  @override
   String get onboardingHmmCloudFailed =>
       'Couldn\'t finish setting up. Try again.';
 

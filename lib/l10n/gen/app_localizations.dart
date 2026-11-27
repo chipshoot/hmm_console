@@ -9512,6 +9512,30 @@ abstract class AppLocalizations {
   /// **'Couldn\'t sign out. Try again.'**
   String get settingsHmmSignOutFailed;
 
+  /// No description provided for @settingsHmmSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session for {email} expired. Sign in again to keep using your Hmm account.'**
+  String settingsHmmSessionExpired(String email);
+
+  /// No description provided for @hmmSessionExpiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hmm session expired'**
+  String get hmmSessionExpiredTitle;
+
+  /// No description provided for @hmmSessionExpiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again to keep using your Hmm account. Your data on this device is safe.'**
+  String get hmmSessionExpiredBody;
+
+  /// No description provided for @hmmSessionExpiredDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get hmmSessionExpiredDismiss;
+
   /// No description provided for @onboardingHmmCloudFailed.
   ///
   /// In en, this message translates to:
